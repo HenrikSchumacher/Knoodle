@@ -1,5 +1,10 @@
 public:
 
+    bool MovingBoxesCollidingQ( const Int i, const Int j )
+    {
+        return MovingBoxesCollidingQ( B_0.data(i), B_1.data(i), B_0.data(j), B_1.data(j) );
+    }
+
     bool MovingBoxesCollidingQ(
         cptr<Real> P_0, cptr<Real> P_1, cptr<Real> Q_0, cptr<Real> Q_1
     )

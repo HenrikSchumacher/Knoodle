@@ -354,13 +354,15 @@ namespace Knoodle
             s +=  "\n";
             s += line_prefix;
             s += "|>";
+            
+            return s;
         }
         
     public:
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("ClangAffineTransform")
+            return std::string("ClangAffineTransform")
                 + "<" + ToString(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>

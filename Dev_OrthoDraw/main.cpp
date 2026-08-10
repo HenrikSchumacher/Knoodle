@@ -21,7 +21,8 @@ using LInt  = Int64;           // integer type used, e.g., for indices
 //using Int   = UInt64;           // integer type used, e.g., for indices
 //using LInt  = UInt64;           // integer type used, e.g., for indices
 
-using PD_T        = PlanarDiagram<Int>;
+using PDC_T       = PlanarDiagramComplex<Int>;
+using PD_T        = PDC_T::PD_T;
 using OrthoDraw_T = OrthoDraw<PD_T>;
 
 int main( int argc, char** argv )
@@ -86,20 +87,24 @@ int main( int argc, char** argv )
         {25, 23, 26, 22, 1}
     };
     
-    PD_T pd = PD_T::FromSignedPDCode(
-        &pd_code[0][0], c_count, int(0), false, false
+    
+    
+    PDC_T pdc (
+       PD_T::FromSignedPDCode(&pd_code[0][0], c_count)
     );
+    
+    
     
 //    TOOLS_DUMP(pd.Crossings());
 //    TOOLS_DUMP(pd.Arcs());
     
     
-    pd.Simplify4();
+    pdc.Simplify();
     
     Profiler::Clear();
     
     
-    OrthoDraw_T H (pd, Int(-1),
+    OrthoDraw_T H (pdc[0], Int(-1),
         {
             .bend_method               = OrthoDraw_T::BendMethod_T::Bends_MCF,
             .use_dual_simplexQ         = false,
@@ -158,20 +163,20 @@ int main( int argc, char** argv )
     
     H.SegmentsInfluencedByVirtualEdges();
     
-    TOOLS_DUMP(pd.CheckerBoardColoring());
+    TOOLS_DUMP(pdc[0].CheckerBoardColoring());
     
     
-    TOOLS_DUMP(pd.PDCode());
+    TOOLS_DUMP(pdc[0].PDCode());
     
-    TOOLS_DUMP(pd.MacLeodCode());
+    TOOLS_DUMP(pdc[0].MacLeodCode());
     
-    auto code_string = pd.MacLeodString();
+    auto code_string = pdc[0].MacLeodString();
     
     TOOLS_DUMP(code_string);
     
-    auto pd_decoded = PlanarDiagram<Int>::FromMacLeodString(code_string);
-    
-    TOOLS_DUMP(pd_decoded.MacLeodCode());
+//    auto pd_decoded = PD_T::FromMacLeodString(code_string);
+//    
+//    TOOLS_DUMP(pd_decoded.MacLeodCode());
     
     return EXIT_SUCCESS;
 }

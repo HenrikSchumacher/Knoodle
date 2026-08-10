@@ -1,6 +1,6 @@
 public:
 
-/*! @brief Checks whether a Reidemeister II move can be made at crossing `c`,
+/*!@brief Checks whether a Reidemeister II move can be made at crossing `c`,
  *  then applies it (if possible), and returns a Boolean that indicates whether
  *  any change has been made or not.
  *  Occasionally, it may perform a Reidemeister I move or a twist move,

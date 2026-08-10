@@ -10,7 +10,7 @@ ColorCounts_T ColorArcCounts() const
 
         if( pd.AnelloQ() )
         {
-            AddTo(color_arc_counts, pd.last_color_deactivated, Int(0));
+            Increment(color_arc_counts, pd.last_color_deactivated, Int(0));
             continue;
         }
         
@@ -18,7 +18,7 @@ ColorCounts_T ColorArcCounts() const
         
         for( auto [col,count] : pd_color_arc_counts )
         {
-            AddTo(color_arc_counts, col, count);
+            Increment(color_arc_counts, col, count);
         }
     }
     
@@ -97,8 +97,7 @@ Sparse::MatrixCSR<ToSigned<Int>,Int,Int,Sequential> ColorIntersectionMatrix() co
         Int k = 0;
         for( auto & x : lut )
         {
-            i[k] = x.first.i;
-            j[k] = x.first.j;
+            std::tie(i[k],j[k]) = x.first;
             a[k] = x.second;
             ++k;
         }

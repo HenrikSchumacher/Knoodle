@@ -2,7 +2,7 @@ public:
 
 
 
-/*! @brief This just splits off connected summands and appends them to the supplied `pd_list`.
+/*!@brief This just splits off connected summands and appends them to the supplied `pd_list`.
  *
  * Caution: At the moment it does not track from which connected component it was split off. Hence, this is useful only for knots, not for multi-component links.
  */
@@ -69,7 +69,7 @@ bool DisconnectSummands(
 
 private:
 
-/*! @brief Checks whether face `f` has a double face neighbor. If yes, it may split off connected summand(s) and pushes them to the supplied `std::vector` `pd_list`. It may however decide to perform some Reidemeister moves to remove crossings in the case that this would lead to an unknot. Returns `true` if any change has been made.
+/*!@brief Checks whether face `f` has a double face neighbor. If yes, it may split off connected summand(s) and pushes them to the supplied `std::vector` `pd_list`. It may however decide to perform some Reidemeister moves to remove crossings in the case that this would lead to an unknot. Returns `true` if any change has been made.
  *
  * If a nontrivial connect-sum decomposition is found, this routine splits off the smaller component, pushes it to `pd_list`, and then tries to simplify it further with `Simplify5` (which may push further connected summands to `pd_list`).
  *
@@ -344,7 +344,7 @@ bool DisconnectSummand(
 
 private:
 
-/*! @brief Removes the smaller of the connected components of arc `a` and `b` and creates a new diagram from it.
+/*!@brief Removes the smaller of the connected components of arc `a` and `b` and creates a new diagram from it.
  */
 
 PD_T ExportSmallerComponent( const Int a_0, const Int b_0 )
@@ -377,7 +377,7 @@ PD_T ExportSmallerComponent( const Int a_0, const Int b_0 )
 
 private:
 
-/*! @brief Removes the connected component of arc `a_0`, creates a new diagram from it, and returns it.
+/*!@brief Removes the connected component of arc `a_0`, creates a new diagram from it, and returns it.
  *
  * Before this is called, it is essential that at least the positions in `C_scratch` that will be traversed are filled by negative numbers! For example, `ExportSmallerComponent` does this.
  *

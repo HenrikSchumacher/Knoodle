@@ -8,6 +8,13 @@
 
 #define KNOODLE_H
 
+#ifdef KNOODLE_USE_BOOST_UNORDERED
+    #ifndef TOOLS_USE_BOOST_UNORDERED
+        #define TOOLS_USE_BOOST_UNORDERED
+    #endif
+#endif
+
+
 #include <cfenv>
 
 #include "deps/pcg-cpp/include/pcg_random.hpp"
@@ -23,8 +30,6 @@ namespace Knoodle
     using Tools::ToString;
 }
 
-
-#include "src/Containers.hpp"
 #include "src/Types.hpp"
 #include "src/Debugging.hpp"
 
@@ -38,6 +43,8 @@ namespace Knoodle
 #include "src/PlanarLineSegmentIntersector.hpp"
 #include "src/LinkEmbedding.hpp"
 #include "src/KnotEmbedding.hpp" // Like LinkEmbedding, only for knots. A bit more efficient this way.
+
+#include "src/LinkEmbedding2.hpp"
 
 #include "src/MultiGraphBase.hpp"
 #include "src/MultiGraph.hpp"
@@ -80,9 +87,7 @@ namespace Knoodle
 #include "src/Link_3D.hpp"
 #include "src/LinearHomotopy_3D.hpp"
 
-
 #include "src/ActionAngleSampler.hpp"
 #include "src/ConformalBarycenterSampler.hpp"
-
 
 #include "src/Klut.hpp"

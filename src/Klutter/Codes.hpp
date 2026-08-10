@@ -22,7 +22,7 @@ struct CodeHash
         
         for( Size_T i = 0; i < n; ++i )
         {
-            Tools::hash_combine(seed,w[i]);
+            HashCombine(seed,w[i]);
         }
         
         return seed;

@@ -7,10 +7,11 @@ namespace Knoodle
     using namespace Tools;
     using namespace Tensors;
     
-    /*!
-     * @brief Implements the _(Progressive) Action-Angle Method_. The main routines are `CreateRandomClosedPolygon` and `CreateRandomClosedPolygons` to generate one or many closed polygons with unit edge lengths.
+    /*!@brief An implementation of the _(Progressive) Action-Angle Method_. The main routines are `CreateRandomClosedPolygon` and `CreateRandomClosedPolygons` to generate one or many closed polygons with unit edge lengths.
      *
      * The class's only purpose is to initial the random number generator and to keep it alive during calls to `CreateRandomClosedPolygon`.
+     *
+     * @tparam AmbDim_ Dimension of the ambient Eulcidean space.
      *
      * @tparam Real_ A real floating point type used for corordinates.
      *
@@ -124,8 +125,8 @@ namespace Knoodle
         }
         
         explicit ConformalBarycenterSampler(
-            const Real * restrict const r,
-            const Real * restrict const rho,
+            const Real * const r,
+            const Real * const rho,
             const Int edge_count,
             const Settings_T settings = Settings_T()
         )
@@ -326,7 +327,7 @@ namespace Knoodle
          * @param mode Specify whether the output polygon `p` will be be centered to its center of mass and in which sense "mass" is operationalized.
          */
         void WriteRandomOpenPolygon(
-            Real * restrict const p,
+            Real * const p,
             CentralizationMode_T mode
         )
         {
@@ -351,7 +352,7 @@ namespace Knoodle
          *
          * @param K Where to store the sampling weight. The type of sampling weights is determined by the value of `quotient_space_Q` (see below).
          *
-         * @param wrap_aroundQ If set to yes, then the output polygon `q` will have `EdgeCount()` + 1 vertex position, somewhat repeating the first one. (The difference between first and last vertex positions indicates the numerical error.)
+         * @param wrap_aroundQ If set to yes, then the output polygon `q` will have `EdgeCount() + 1` vertex position, somewhat repeating the first one. (The difference between first and last vertex positions indicates the numerical error.)
          *
          * @param mode Specify whether the output polygon `q` will be be centered to its center of mass and in which sense "mass" is operationalized.
          *
@@ -359,8 +360,8 @@ namespace Knoodle
          */
 
         void WriteRandomClosedPolygon(
-            Real * restrict const q,
-            Real & restrict       K,
+            Real * const q,
+            Real &       K,
             CentralizationMode_T  mode,
             const bool            wrap_aroundQ,
             const bool            quotient_space_weightQ = true
@@ -466,11 +467,11 @@ namespace Knoodle
          *
          * This routine interprets `n` as the number of unit vectors per point cloud.
          *
-         * @param x The input array for the unit vectors of the uncentered point cloud; it is assumed to have size at least `n * d`. The `j`-coordinate of the `i`-th unit vector of the `k`-th polygon is stored in `x[d * i + j].`
+         * @param x The input array for the unit vectors of the uncentered point cloud; it is assumed to have size at least `n * d`. The `j`-coordinate of the `i`-th unit vector of the `k`-th polygon is stored in `x[d * i + j]`.
          *
          * @param w The output array for the conformal barycenter of the input point cloud; it is assumed to have size at least `d`.
          *
-         * @param y The output array for the unit vectors of the centered point cloud; it is assumed to have size at least `n * d`. The `j`-coordinate of the `i`-th unit vector is stored in `y[d * i + j].`
+         * @param y The output array for the unit vectors of the centered point cloud; it is assumed to have size at least `n * d`. The `j`-coordinate of the `i`-th unit vector is stored in `y[d * i + j]`.
          *
          * @param K_edge_space The output for the reweighting factors of the point space (rotation group not modded out); it is assumed to have size at least `sample_count`.
          *
@@ -478,11 +479,11 @@ namespace Knoodle
          */
         
         void ComputeConformalCentralization(
-            const Real * restrict const x,
-                  Real * restrict const w,
-                  Real * restrict const y,
-                  Real & restrict       K_edge_space,
-                  Real & restrict       K_quot_space
+            const Real * const x,
+                  Real * const w,
+                  Real * const y,
+                  Real &       K_edge_space,
+                  Real &       K_quot_space
         )
         {
             TOOLS_PTIMER(timer,MethodName("ComputeConformalCentralization"));
@@ -518,13 +519,13 @@ namespace Knoodle
     public:
 
         void ComputeConformalClosure(
-            const Real * restrict const p,
-                  Real * restrict const w,
-                  Real * restrict const q,
-                  Real & restrict       K_edge_space,
-                  Real & restrict       K_quot_space,
-            CentralizationMode_T        mode,
-            const bool                  wrap_aroundQ
+            const Real * const   p,
+                  Real * const   w,
+                  Real * const   q,
+                  Real &         K_edge_space,
+                  Real &         K_quot_space,
+            CentralizationMode_T mode,
+            const bool           wrap_aroundQ
         ) const
         
         {
@@ -541,18 +542,21 @@ namespace Knoodle
     
         
     public:
-        /*! @brief Returns a string that identifies the class's method as specified by `tag`. */
+        /*!@brief Returns a string that identifies the class's method as specified by `tag`. */
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        /*! @brief Returns a string that identifies the class. Good for debugging and printing messages. */
+        /*!@brief Returns a string that identifies the class. Good for debugging and printing messages. */
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return std::string("ConformalBarycenterSampler<") + TypeName<Real> + "," + TypeName<Int>  +  ">";
+            return std::string("ConformalBarycenterSampler")
+                 + "<" + TypeName<Real>
+                 + "," + TypeName<Int>
+                 + ">";
         }
         
     }; // ConformalBarycenterSampler

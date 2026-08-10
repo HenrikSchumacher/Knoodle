@@ -1,3 +1,5 @@
+private:
+
 template<bool find_maximal_passQ = false>
 bool FindPass_HandleLoop( mref<Pass_T> pass, const Int c_1  )
 {

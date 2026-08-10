@@ -25,19 +25,27 @@
 // Jason, you can let the compiler have the following flags defined
 //#define KNOODLE_USE_UMFPACK  // Support for the "Dirichlet" and "Bending" energies in Reapr.
 //#define KNOODLE_USE_CLP      // Support some LP problems in Reapr and OrthoDraw; inferior to MCF.
-//#define KNOODLE_USE_BOOST_UNORDERED // Support for faster associative containers in Reapr.
+//#define TOOLS_USE_BOOST_UNORDERED // Support for faster associative containers in Reapr.
 
-// Only KNOODLE_USE_BOOST_UNORDERED might be of some interest here because OrthoDraw and Reapr uses some of the containers provided by this a little. However, the containers sizes should be small in practive, so the corresponding fall back containers of the STL will be good enough. I doubt that anybody will measure some difference, but you are free to do so.
+// Only TOOLS_USE_BOOST_UNORDERED might be of some interest here because OrthoDraw and Reapr uses some of the containers provided by this a little. However, the containers sizes should be small in practive, so the corresponding fall back containers of the STL will be good enough. I doubt that anybody will measure some difference, but you are free to do so.
 
 #include "knoodle_io.hpp"
 
+#include <cstdio>
 #include <filesystem>
+#include <limits>
 
 //==============================================================================
 // Configuration
 //==============================================================================
 
 namespace {
+
+// The timing aliases moved into namespace knoodle_io (see knoodle_io.hpp) to
+// avoid a global-scope clash with Apple's <MacTypes.h> `Duration`. This tool
+// never pulls in the Accelerate backend, so bringing the alias local to this
+// anonymous namespace is safe and keeps the timing fields below unqualified.
+using knoodle_io::Duration;
 
 /**
  * @brief Configuration parsed from command-line arguments.
@@ -50,6 +58,37 @@ struct Config
     bool no_compaction        = false;       ///< Skip compaction in OrthoDraw (Reapr only)
     std::optional<Energy_T> reapr_energy;    ///< Energy flag for Reapr (if set)
 
+    // Simplify_Args_T overrides (src/PlanarDiagramComplex/Simplify.hpp). All
+    // optional: unset means "whatever --simplify-level's preset already
+    // chose" (see BuildSimplifyArgs). splitQ is deliberately NOT exposed here
+    // -- it is an internal simplification-quality knob (splitQ=false makes
+    // Reapr skip multi-component diagrams outright, Simplify.hpp:313-324), not
+    // the output-shape choice "unite"/"split" below control.
+    std::optional<bool>     compress_initial;
+    std::optional<int>      local_opt_level;          ///< 0-4
+    std::optional<Knoodle::DijkstraStrategy_T> dijkstra_strategy;
+    std::optional<Int>      start_max_dist;
+    std::optional<Int>      final_max_dist;
+    std::optional<bool>     reroute;                  ///< overrides the level>=4 preset
+    std::optional<bool>     disconnect;                ///< overrides the level>=5 preset
+    std::optional<bool>     compress;
+    std::optional<Int>      compression_threshold;
+    std::optional<Knoodle::Size_T> rotation_trials;
+    std::optional<bool>     reapr_permute_random;
+    std::optional<double>   reapr_scaling;
+    std::optional<int>      randomize_bends;
+    std::optional<bool>     randomize_virtual_edges;
+    std::optional<PDC_T::Compaction_T> compaction_method;  ///< supersedes no_compaction if both given
+    std::optional<bool>     canonicalize;
+
+    // Output shape: split (default, matching Simplify's natural splitQ=true
+    // output -- one diagram per diagrammatically-prime factor, same-colored
+    // factors belonging to the same original component) vs. unite (connect-
+    // sums same-colored factors back together via PDC::Unite, so the result
+    // is one diagram per physically split component -- the natural form for
+    // a single PD code per component, e.g. for KnotTheory/Regina).
+    bool unite                = false;
+
     // Input options
     std::vector<std::string> input_files;    ///< Input file paths
     bool streaming_mode       = false;       ///< Read from stdin, write to stdout
@@ -58,6 +97,9 @@ struct Config
     // Output options
     std::optional<std::string> output_file;  ///< Single output file (if specified)
     bool quiet                = false;       ///< Suppress per-knot reports, show counter only
+    bool pdc_format           = false;       ///< --format=pdc: PlanarDiagramComplex's own
+                                              ///< native serialization (colors, including for
+                                              ///< unknot summands, round-trip exactly)
 
     // Derived state
     bool help_requested       = false;       ///< User requested help
@@ -137,15 +179,50 @@ void PrintUsage()
     Log("Simplification options:");
     Log("  -s=N, --simplify-level=N    Set simplification level:");
     Log("                                0          No simplification (PD code only)");
-    Log("                                3          Simplify3 (Reidemeister I + II)");
-    Log("                                4          Simplify4 (+ path rerouting)");
-    Log("                                5          Simplify5 (+ summand detection)");
+    Log("                              local-only diagnostic tiers (no rerouting):");
+    Log("                                1          Reidemeister I only");
+    Log("                                2          Reidemeister I + II");
+    Log("                                3          all local moves (incl. R_Ia/R_IIa)");
+    Log("                              production pipeline (no local pass; tuned):");
+    Log("                                4          path rerouting");
+    Log("                                5          rerouting + summand detection");
     Log("                                6+/max/full/reapr");
-    Log("                                           Full Reapr pipeline (default)");
+    Log("                                           full Reapr pipeline (default)");
     Log("  --max-reapr-attempts=K      Maximum iterations for Reapr (default: 25)");
     Log("  --no-compaction             Skip compaction in OrthoDraw (Reapr only)");
     Log("  --reapr-energy=E            Set Reapr energy function (Reapr only):");
     Log("                                " + ValidEnergies());
+    Log("");
+    Log("Output shape:");
+    Log("  --split                     One diagram per diagrammatically-prime factor,");
+    Log("                                same-colored factors sharing a link component");
+    Log("                                (default; natural input for knoodleidentify)");
+    Log("  --unite                     Connect-sum same-colored factors back together,");
+    Log("                                one diagram per physically split component");
+    Log("                                (natural PD-code-per-component form for");
+    Log("                                KnotTheory/Regina)");
+    Log("");
+    Log("Simplify_Args_T fine-tuning (all optional; unset = --simplify-level's own");
+    Log("preset -- see src/PlanarDiagramComplex/Simplify.hpp):");
+    Log("  --compress-initial / --no-compress-initial   Compress input before simplifying");
+    Log("  --local-opt-level=N (0-4)   Local pattern optimization intensity");
+    Log("  --dijkstra-strategy=S       unidirectional, alternating, bidirectional");
+    Log("  --start-max-dist=N          Initial Dijkstra max search distance");
+    Log("  --final-max-dist=N          Final Dijkstra max search distance");
+    Log("  --reroute / --no-reroute    Enable rerouting passes");
+    Log("  --disconnect / --no-disconnect   Enable disconnect simplification");
+    Log("  --compress / --no-compress  Compress diagrams during simplification");
+    Log("  --compression-threshold=N   Crossing-count threshold for compression");
+    Log("  --reapr-rotation-trials=N   Random rotations tried per Reapr embedding (default: 25)");
+    Log("  --reapr-permute-random / --no-reapr-permute-random");
+    Log("                              Randomize arc permutation in Reapr");
+    Log("  --reapr-scaling=X           3D grid scaling in Reapr (default: 1.0)");
+    Log("  --randomize-bends=N         Bend randomization iterations (default: 4)");
+    Log("  --randomize-virtual-edges / --no-randomize-virtual-edges");
+    Log("                              Randomize virtual edges in OrthoDraw");
+    Log("  --compaction-method=M       unknown, topological-numbering, topological-ordering,");
+    Log("                                length-mcf (default), length-clp, area-length-clp");
+    Log("  --canonicalize / --no-canonicalize   Canonicalize after simplification");
     Log("");
     Log("Input formats:");
     Log("  4 columns: unsigned PD code (4 arc labels per crossing)");
@@ -163,6 +240,10 @@ void PrintUsage()
     Log("Output options:");
     Log("  --output=FILE               Write all output to FILE");
     Log("  -q, --quiet                 Suppress per-knot reports, show counter only");
+    Log("  --format=pdc                PlanarDiagramComplex's own native serialization");
+    Log("                                (WriteToFile/FromInString) instead of the usual");
+    Log("                                TSV -- colors, including for unknot summands,");
+    Log("                                round-trip exactly");
     Log("");
     Log("Other:");
     Log("  -h, --help                  Show this help message");
@@ -292,6 +373,99 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
                 return std::nullopt;
             }
         }
+        // Simplify_Args_T overrides (unset = --simplify-level's own preset)
+        else if (arg == "--compress-initial")   { config.compress_initial = true; }
+        else if (arg == "--no-compress-initial"){ config.compress_initial = false; }
+        else if (arg.starts_with("--local-opt-level="))
+        {
+            try
+            {
+                int v = std::stoi(std::string(arg.substr(18)));
+                if (v < 0 || v > 4) { LogError("local-opt-level must be 0-4"); return std::nullopt; }
+                config.local_opt_level = v;
+            }
+            catch (const std::exception&) { LogError("Invalid local-opt-level value"); return std::nullopt; }
+        }
+        else if (arg.starts_with("--dijkstra-strategy="))
+        {
+            std::string v = ToLower(arg.substr(20));
+            if      (v == "unidirectional") config.dijkstra_strategy = Knoodle::DijkstraStrategy_T::Unidirectional;
+            else if (v == "alternating")    config.dijkstra_strategy = Knoodle::DijkstraStrategy_T::Alternating;
+            else if (v == "bidirectional")  config.dijkstra_strategy = Knoodle::DijkstraStrategy_T::Bidirectional;
+            else
+            {
+                LogError("Unknown dijkstra-strategy: '" + std::string(arg.substr(20)) + "'");
+                LogError("Valid options: unidirectional, alternating, bidirectional");
+                return std::nullopt;
+            }
+        }
+        else if (arg.starts_with("--start-max-dist="))
+        {
+            try { config.start_max_dist = std::stoll(std::string(arg.substr(17))); }
+            catch (const std::exception&) { LogError("Invalid start-max-dist value"); return std::nullopt; }
+        }
+        else if (arg.starts_with("--final-max-dist="))
+        {
+            try { config.final_max_dist = std::stoll(std::string(arg.substr(17))); }
+            catch (const std::exception&) { LogError("Invalid final-max-dist value"); return std::nullopt; }
+        }
+        else if (arg == "--reroute")    { config.reroute = true; }
+        else if (arg == "--no-reroute") { config.reroute = false; }
+        else if (arg == "--disconnect")    { config.disconnect = true; }
+        else if (arg == "--no-disconnect") { config.disconnect = false; }
+        else if (arg == "--compress")    { config.compress = true; }
+        else if (arg == "--no-compress") { config.compress = false; }
+        else if (arg.starts_with("--compression-threshold="))
+        {
+            try { config.compression_threshold = std::stoll(std::string(arg.substr(24))); }
+            catch (const std::exception&) { LogError("Invalid compression-threshold value"); return std::nullopt; }
+        }
+        else if (arg.starts_with("--reapr-rotation-trials="))
+        {
+            try
+            {
+                Int v = std::stoll(std::string(arg.substr(24)));
+                if (v < 0) { LogError("reapr-rotation-trials must be non-negative"); return std::nullopt; }
+                config.rotation_trials = static_cast<Knoodle::Size_T>(v);
+            }
+            catch (const std::exception&) { LogError("Invalid reapr-rotation-trials value"); return std::nullopt; }
+        }
+        else if (arg == "--reapr-permute-random")    { config.reapr_permute_random = true; }
+        else if (arg == "--no-reapr-permute-random") { config.reapr_permute_random = false; }
+        else if (arg.starts_with("--reapr-scaling="))
+        {
+            try { config.reapr_scaling = std::stod(std::string(arg.substr(16))); }
+            catch (const std::exception&) { LogError("Invalid reapr-scaling value"); return std::nullopt; }
+        }
+        else if (arg.starts_with("--randomize-bends="))
+        {
+            try { config.randomize_bends = std::stoi(std::string(arg.substr(18))); }
+            catch (const std::exception&) { LogError("Invalid randomize-bends value"); return std::nullopt; }
+        }
+        else if (arg == "--randomize-virtual-edges")    { config.randomize_virtual_edges = true; }
+        else if (arg == "--no-randomize-virtual-edges") { config.randomize_virtual_edges = false; }
+        else if (arg.starts_with("--compaction-method="))
+        {
+            std::string v = ToLower(arg.substr(20));
+            if      (v == "unknown")               config.compaction_method = PDC_T::Compaction_T::Unknown;
+            else if (v == "topological-numbering") config.compaction_method = PDC_T::Compaction_T::TopologicalNumbering;
+            else if (v == "topological-ordering")  config.compaction_method = PDC_T::Compaction_T::TopologicalOrdering;
+            else if (v == "length-mcf")            config.compaction_method = PDC_T::Compaction_T::Length_MCF;
+            else if (v == "length-clp")            config.compaction_method = PDC_T::Compaction_T::Length_CLP;
+            else if (v == "area-length-clp")       config.compaction_method = PDC_T::Compaction_T::AreaAndLength_CLP;
+            else
+            {
+                LogError("Unknown compaction-method: '" + std::string(arg.substr(20)) + "'");
+                LogError("Valid options: unknown, topological-numbering, topological-ordering, "
+                         "length-mcf, length-clp, area-length-clp");
+                return std::nullopt;
+            }
+        }
+        else if (arg == "--canonicalize")    { config.canonicalize = true; }
+        else if (arg == "--no-canonicalize") { config.canonicalize = false; }
+        // Output shape: prime-factored (default) vs. connect-summed by color
+        else if (arg == "--split") { config.unite = false; }
+        else if (arg == "--unite") { config.unite = true; }
         // Input file
         else if (arg.starts_with("--input="))
         {
@@ -323,6 +497,19 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.quiet = true;
         }
+        // Output format
+        else if (arg.starts_with("--format="))
+        {
+            std::string val(arg.substr(9));
+            if (val != "pdc")
+            {
+                std::cerr << "Error: Unknown --format value: " << val << "\n";
+                std::cerr << "  Valid: pdc (PlanarDiagramComplex's own native serialization,\n";
+                std::cerr << "         colors round-trip exactly, including for unknot summands)\n";
+                return std::nullopt;
+            }
+            config.pdc_format = true;
+        }
         // Unknown option
         else if (arg.starts_with("-"))
         {
@@ -352,18 +539,146 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
 //==============================================================================
 
 /**
+ * @brief Build a PDC_T::Simplify_Args_T from --simplify-level's coarse preset,
+ *        with any explicit Simplify_Args_T-field flags applied on top. splitQ
+ *        is always true -- it is an internal simplification-quality knob
+ *        (splitQ=false makes Reapr skip multi-component diagrams outright),
+ *        not the output-shape choice --unite/--split controls.
+ */
+PDC_T::Simplify_Args_T BuildSimplifyArgs(const Config& config)
+{
+    PDC_T::Simplify_Args_T args;
+    args.splitQ = true;
+
+    // Coarse preset from --simplify-level. Two regimes:
+    //
+    //   Levels 1-3 are LOCAL-ONLY diagnostic tiers (no rerouting), driven by
+    //   local_opt_level -- the gate for the ArcSimplifier patterns
+    //   (ArcSimplifier<...,level>): 1 = Reidemeister I only, 2 = + Reidemeister
+    //   II, 4 = all local patterns (incl. assisted R_Ia/R_IIa). Useful for
+    //   benchmarking other simplifiers against a pure R1 / R1+R2 / full-local
+    //   pass.
+    //
+    //   Levels 4-6 are the tuned PRODUCTION pipeline (reroute/disconnect/Reapr)
+    //   and deliberately keep local_opt_level = 0: Henrik's performance testing
+    //   found the local pass does not help (slightly hurts) once rerouting is
+    //   engaged on large diagrams, so the default path leaves it off. Local and
+    //   reroute are orthogonal, so the 3->4 boundary is intentionally not a
+    //   strict superset.
+    args.local_opt_level = static_cast<Knoodle::UInt8>(
+        config.simplify_level == 1 ? 1 :
+        config.simplify_level == 2 ? 2 :
+        config.simplify_level == 3 ? 4 : 0);
+    args.rerouteQ    = (config.simplify_level >= 4);
+    args.disconnectQ = (config.simplify_level >= 5);
+
+    if (config.simplify_level >= kReaprThreshold)
+    {
+        args.embedding_trials = static_cast<Knoodle::Size_T>(config.max_reapr_attempts);
+        args.rotation_trials = 25;
+    }
+
+    if (config.reapr_energy.has_value())     args.energy = *config.reapr_energy;
+    if (config.no_compaction)                args.compaction_method = PDC_T::Compaction_T::Unknown;
+
+    // Explicit overrides, applied last so they win over the level preset.
+    if (config.compress_initial.has_value())     args.compress_initialQ = *config.compress_initial;
+    if (config.local_opt_level.has_value())       args.local_opt_level = static_cast<Knoodle::UInt8>(*config.local_opt_level);
+    if (config.dijkstra_strategy.has_value())      args.strategy = *config.dijkstra_strategy;
+    if (config.start_max_dist.has_value())         args.start_max_dist = *config.start_max_dist;
+    if (config.final_max_dist.has_value())         args.final_max_dist = *config.final_max_dist;
+    if (config.reroute.has_value())                args.rerouteQ = *config.reroute;
+    if (config.disconnect.has_value())             args.disconnectQ = *config.disconnect;
+    if (config.compress.has_value())               args.compressQ = *config.compress;
+    if (config.compression_threshold.has_value())  args.compression_threshold = *config.compression_threshold;
+    if (config.rotation_trials.has_value())        args.rotation_trials = *config.rotation_trials;
+    if (config.reapr_permute_random.has_value())   args.permute_randomQ = *config.reapr_permute_random;
+    if (config.reapr_scaling.has_value())          args.scaling = *config.reapr_scaling;
+    if (config.randomize_bends.has_value())        args.randomize_bends = *config.randomize_bends;
+    if (config.randomize_virtual_edges.has_value())args.randomize_virtual_edgesQ = *config.randomize_virtual_edges;
+    if (config.compaction_method.has_value())      args.compaction_method = *config.compaction_method;
+    if (config.canonicalize.has_value())           args.canonicalizeQ = *config.canonicalize;
+
+    return args;
+}
+
+/**
  * @brief Simplify a knot using the configured algorithm.
  *
  * @param input The input knot with its summands.
  * @param config Configuration options.
+ * @param output_pdc If non-null, every resulting diagram (trivial or not) is
+ *        ALSO pushed here, for --format=pdc output -- unlike `result`, which
+ *        the standard TSV writer treats losslessly only up to the point where
+ *        a summand becomes trivial (see knoodle_io.hpp's unknot_colors doc
+ *        comment), this preserves full color fidelity via
+ *        PlanarDiagramComplex's own native serialization.
  * @return The simplified knot with timing information.
  */
-SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
+SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T* output_pdc = nullptr)
 {
     SimplifiedKnot result;
 
+    // PDC-native format ('u <color>') can only represent a *colored* Anello:
+    // PD_T::InvalidQ() is true for a 0-crossing diagram with an uninitialized
+    // color, and WriteToFile silently skips invalid diagrams -- so an unknot
+    // summand with no known color (colorless input, e.g. a bare 's' line or
+    // an uncolored 4/5-column PD) would otherwise vanish from --format=pdc
+    // output entirely. A synthetic color from a high base (astronomically
+    // unlikely to collide with any real, user-supplied color) keeps it in
+    // the output instead; distinct summands get distinct synthetic colors.
+    Int next_synthetic_color = (std::numeric_limits<Int>::max)() / 2;
+    auto validColor = [&next_synthetic_color](Int color) -> Int
+    {
+        return (color == PD_T::Uninitialized) ? next_synthetic_color++ : color;
+    };
+
+    // Every resulting diagram (trivial or not, across all input summands) is
+    // gathered here first, so --unite (see below) can be applied uniformly
+    // before result.summands/unknot_count/output_pdc are derived from it --
+    // regardless of whether --format=pdc was also requested.
+    PDC_T all_pdc;
+
+    // Push()/Clear() are lock-guarded: on a locked complex they do nothing and
+    // warn, because they cannot verify that the caller's arc colors stay
+    // consistent. Assembling diagrams we own and have already colored ourselves
+    // is the sanctioned use, so unlock for the duration. Without this every
+    // Push() below silently fails, all_pdc stays empty, and the tool reports
+    // every input -- trefoil included -- as a 0-crossing unknot.
+    all_pdc.Unlock();
+
     // Unknot summands that arrived as bare 's' lines pass through.
-    result.unknot_count += input.empty_summand_count;
+    for (Int color : input.unknot_colors)
+    {
+        all_pdc.Push(PD_T::Unknot(validColor(color)));
+    }
+
+    const PDC_T::Simplify_Args_T args = BuildSimplifyArgs(config);
+
+    // 4- and 5-column PD codes carry no colors, so every arc arrives as
+    // PD_T::Uninitialized. Simplification then splits the diagram into summands,
+    // and the record of WHICH summands were once a single closed curve -- the
+    // thing that distinguishes a connected sum from a split link -- exists
+    // nowhere but the colors. Assign them up front, per link component, so that
+    // record survives the split and can be written out below. Colored input
+    // (6/7-column, PDC-native) and 3D input (colored by FromCoordinates) already
+    // carry meaningful colors and must keep them.
+    const bool assign_colors = (input.input_column_count == 4)
+                            || (input.input_column_count == 5);
+
+    auto colorize = [assign_colors](PD_T&& pd) -> PD_T
+    {
+        if (assign_colors)
+        {
+            // ComputeArcColors() is lock-guarded: it can change arc colors, which
+            // in general breaks the class's invariants. Here it only fills in
+            // colors that were never set, on a diagram we own outright.
+            pd.Unlock();
+            pd.ComputeArcColors();
+            pd.Lock();
+        }
+        return std::move(pd);
+    };
 
     {
         ScopedTimer timer(result.simplify_time);
@@ -373,55 +688,83 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
             if (config.simplify_level == 0)
             {
                 // No simplification - just copy the PD
-                PD_T pd(pd_in);
-                result.summands.push_back(std::move(pd));
+                all_pdc.Push(colorize(PD_T(pd_in)));
             }
             else
             {
                 // Use PlanarDiagramComplex for all simplification levels
-                PD_T pd_copy(pd_in);
+                PD_T pd_copy = colorize(PD_T(pd_in));
                 PDC_T pdc(std::move(pd_copy));
-
-                PDC_T::Simplify_Args_T args;
-                args.splitQ = true;
-
-                if (config.simplify_level >= 4)
-                    args.rerouteQ = true;
-                else
-                    args.rerouteQ = false;
-
-                if (config.simplify_level >= 5)
-                    args.disconnectQ = true;
-                else
-                    args.disconnectQ = false;
-
-                if (config.simplify_level >= kReaprThreshold)
-                {
-                    args.embedding_trials = static_cast<Knoodle::Size_T>(config.max_reapr_attempts);
-                    args.rotation_trials = 25;
-                }
-
-                if (config.reapr_energy.has_value())
-                    args.energy = *config.reapr_energy;
-
-                if (config.no_compaction)
-                    args.compaction_method = PDC_T::Compaction_T::Unknown;
 
                 pdc.Simplify(args);
 
-                // Extract results
                 if (pdc.DiagramCount() == 0)
                 {
-                    ++result.unknot_count;
+                    // Nothing (not even a trivial done-diagram) survived in
+                    // pdc itself to read a color off of; fall back to the
+                    // color the original, un-simplified summand carried.
+                    all_pdc.Push(PD_T::Unknot(validColor(pd_in.ArcColors()[0])));
                 }
                 else
                 {
                     for (Int i = 0; i < pdc.DiagramCount(); ++i)
                     {
-                        result.summands.push_back(PD_T(pdc.Diagram(i)));
+                        PD_T pd(pdc.Diagram(i));
+                        if (pd.CrossingCount() == 0)
+                        {
+                            all_pdc.Push(PD_T::Unknot(validColor(pd.FirstColor())));
+                        }
+                        else
+                        {
+                            all_pdc.Push(std::move(pd));
+                        }
                     }
                 }
             }
+        }
+    }
+
+    // --unite: connect-sum same-colored diagrams back together, so the
+    // result is one diagram per physically split link component instead of
+    // one per diagrammatically-prime factor -- e.g. for exporting a single
+    // PD code per component to KnotTheory/Regina.
+    //
+    // PDC::Unite/Union() is NOT the right tool for this, despite the name:
+    // it just packs multiple diagrams' crossing/arc data into one PD_T's
+    // arrays side by side (offset indices), without actually splicing any
+    // arcs together -- the result is still, topologically, several
+    // disconnected diagram components bundled in one PD_T. Verified this the
+    // hard way: OrthoDraw correctly refuses it ("Input planar diagram has
+    // more than one diagram components", a crash prior to that check being
+    // hit defensively here). The real connect-sum operation is
+    // PDC::Connect()/ConnectedSum() (Connect.hpp) -- it groups by color, then
+    // performs actual arc surgery (PD_T::Connect(a,b)) between a
+    // representative diagram and every other same-colored one, and already
+    // handles Anelli exactly as intended (a color with any non-trivial
+    // diagram absorbs that color's unknots -- a no-op connect-sum; a color
+    // with only unknots keeps exactly one).
+    if (config.unite)
+    {
+        all_pdc.Connect();
+    }
+
+    // Derive result.summands/unknot_count (and output_pdc, if requested)
+    // from the final (possibly united) diagram list.
+    for (Int i = 0; i < all_pdc.DiagramCount(); ++i)
+    {
+        PD_T pd(all_pdc.Diagram(i));
+
+        // Same lock caveat as all_pdc above; the caller hands us a fresh
+        // (locked) complex, so unlock before the first Push into it.
+        if (output_pdc) { output_pdc->Unlock(); output_pdc->Push(PD_T(pd)); }
+
+        if (pd.CrossingCount() == 0)
+        {
+            ++result.unknot_count;
+        }
+        else
+        {
+            result.summands.push_back(std::move(pd));
         }
     }
 
@@ -506,6 +849,22 @@ void WriteKnot(SimplifiedKnot& knot, std::ostream& output,
     }
 }
 
+/**
+ * @brief Write a simplified knot, choosing --format=pdc (PlanarDiagramComplex's
+ *        own native serialization, full color fidelity) over the usual TSV
+ *        writer when output_pdc is non-null.
+ */
+bool WriteSimplified(SimplifiedKnot& knot, PDC_T* output_pdc, std::ostream& output,
+                      bool include_k_marker, bool colored_output)
+{
+    if (output_pdc)
+    {
+        return WritePdcNativeFormat(*output_pdc, output, include_k_marker);
+    }
+    WriteKnot(knot, output, include_k_marker, colored_output);
+    return true;
+}
+
 //==============================================================================
 // Reporting
 //==============================================================================
@@ -526,9 +885,11 @@ void WriteKnotReport(const InputKnot& input,
     // Simplification settings
     std::string level_str;
     if (config.simplify_level == 0) level_str = "None (PD code only)";
-    else if (config.simplify_level == 3) level_str = "Simplify3";
-    else if (config.simplify_level == 4) level_str = "Simplify4";
-    else if (config.simplify_level == 5) level_str = "Simplify5";
+    else if (config.simplify_level == 1) level_str = "R1 only (local)";
+    else if (config.simplify_level == 2) level_str = "R1 + R2 (local)";
+    else if (config.simplify_level == 3) level_str = "All local Reidemeister moves";
+    else if (config.simplify_level == 4) level_str = "Path rerouting";
+    else if (config.simplify_level == 5) level_str = "Rerouting + summand detection";
     else
     {
         level_str = "Reapr (max attempts: " + std::to_string(config.max_reapr_attempts);
@@ -642,9 +1003,11 @@ void WriteFinalReport(const ProcessingStats& stats, const Config& config)
     // Simplification settings
     std::string level_str;
     if (config.simplify_level == 0) level_str = "None (PD code only)";
-    else if (config.simplify_level == 3) level_str = "Simplify3";
-    else if (config.simplify_level == 4) level_str = "Simplify4";
-    else if (config.simplify_level == 5) level_str = "Simplify5";
+    else if (config.simplify_level == 1) level_str = "R1 only (local)";
+    else if (config.simplify_level == 2) level_str = "R1 + R2 (local)";
+    else if (config.simplify_level == 3) level_str = "All local Reidemeister moves";
+    else if (config.simplify_level == 4) level_str = "Path rerouting";
+    else if (config.simplify_level == 5) level_str = "Rerouting + summand detection";
     else
     {
         level_str = "Reapr (max attempts: " + std::to_string(config.max_reapr_attempts);
@@ -769,6 +1132,18 @@ bool ProcessXYZFile(const std::string& filepath,
     {
         ScopedTimer timer(input_time);
         LinkEmb_T link = LinkEmb_T::ReadFromFile(std::filesystem::path(filepath));
+
+        if (config.randomize_projection)
+        {
+            // Rotate the whole embedding at once (not each component
+            // independently, which would distort the link's actual geometric
+            // arrangement) with a proper random rotation -- the same mechanism
+            // already used elsewhere (PlanarDiagramComplex/Simplify.hpp:
+            // emb.Rotate(reapr.RandomRotation())).
+            Reapr_T reapr;
+            link.Rotate(reapr.RandomRotation());
+        }
+
         // PDC constructor from LinkEmbedding calls FindIntersections internally
         pdc = PDC_T(std::move(link));
     }
@@ -796,7 +1171,8 @@ bool ProcessXYZFile(const std::string& filepath,
     }
 
     // Simplification phase
-    SimplifiedKnot simplified = SimplifyKnot(input_knot, config);
+    PDC_T output_pdc;
+    SimplifiedKnot simplified = SimplifyKnot(input_knot, config, config.pdc_format ? &output_pdc : nullptr);
 
     // Output phase (always 7-column / colored for .kndlxyz)
     Duration output_time{0};
@@ -806,8 +1182,8 @@ bool ProcessXYZFile(const std::string& filepath,
 
         if (output_stream)
         {
-            WriteKnot(simplified, *output_stream,
-                      !first_knot_in_output, true);
+            WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, *output_stream,
+                             !first_knot_in_output, true);
             first_knot_in_output = false;
         }
         else
@@ -815,14 +1191,30 @@ bool ProcessXYZFile(const std::string& filepath,
             std::filesystem::path input_path(filepath);
             std::filesystem::path output_path = GetSimplifiedFilename(input_path);
 
-            std::ofstream file(output_path);
-            if (!file)
+            // Staged: committed only if nothing went wrong producing this knot.
+            const long errors_before = ErrorTotal();
+
+            AtomicOutFile file(output_path);
+            if (!file.Good())
             {
                 LogError("Failed to open " + output_path.string() + " for writing");
                 return false;
             }
 
-            WriteKnot(simplified, file, true, true);
+            WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file.Stream(), true, true);
+
+            if (ErrorTotal() != errors_before)
+            {
+                file.Abort();
+                *g_log_stream << "Refusing to write " << output_path.string()
+                              << ": the library reported an error while producing it.\n";
+                return false;
+            }
+            if (!file.Commit())
+            {
+                LogError("Failed to move output into place: " + output_path.string());
+                return false;
+            }
         }
     }
 
@@ -901,10 +1293,22 @@ bool ProcessSource(std::istream& input,
         }
 
         // Simplification phase
-        SimplifiedKnot simplified = SimplifyKnot(*input_knot, config);
+        PDC_T output_pdc;
+        SimplifiedKnot simplified = SimplifyKnot(*input_knot, config, config.pdc_format ? &output_pdc : nullptr);
 
-        // Determine output format based on input column count
-        bool colored_output = (input_knot->input_column_count >= 6);
+        // Determine output format based on input column count.
+        //
+        // Colors are also written whenever the result has more than one summand,
+        // even for uncolored input. Splitting a diagram is exactly when the color
+        // stops being redundant: it is the only thing recording that two summands
+        // were once one closed curve (a connected sum) rather than two (a split
+        // link), and a consumer such as `knoodledraw --embedding` cannot rebuild
+        // the correct link type without it. SimplifyKnot has already given
+        // uncolored input real per-link-component colors for this purpose.
+        const bool split_into_summands =
+            (simplified.summands.size() + static_cast<std::size_t>(simplified.unknot_count)) > 1;
+
+        bool colored_output = (input_knot->input_column_count >= 6) || split_into_summands;
 
         // Output phase
         Duration output_time{0};
@@ -915,25 +1319,41 @@ bool ProcessSource(std::istream& input,
             if (output_stream)
             {
                 // Writing to shared output stream
-                WriteKnot(simplified, *output_stream,
-                          !first_knot_in_output || !config.streaming_mode,
-                          colored_output);
+                WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, *output_stream,
+                                 !first_knot_in_output || !config.streaming_mode,
+                                 colored_output);
                 first_knot_in_output = false;
             }
             else if (!config.streaming_mode)
             {
-                // Per-file output
+                // Per-file output. Staged, and committed only if nothing went
+                // wrong while producing this knot (see AtomicOutFile).
                 std::filesystem::path input_path(source_name);
                 std::filesystem::path output_path = GetSimplifiedFilename(input_path);
 
-                std::ofstream file(output_path);
-                if (!file)
+                const long errors_before = ErrorTotal();
+
+                AtomicOutFile file(output_path);
+                if (!file.Good())
                 {
                     LogError("Failed to open " + output_path.string() + " for writing");
                     return false;
                 }
 
-                WriteKnot(simplified, file, true, colored_output);
+                WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file.Stream(), true, colored_output);
+
+                if (ErrorTotal() != errors_before)
+                {
+                    file.Abort();
+                    *g_log_stream << "Refusing to write " << output_path.string()
+                                  << ": the library reported an error while producing it.\n";
+                    return false;
+                }
+                if (!file.Commit())
+                {
+                    LogError("Failed to move output into place: " + output_path.string());
+                    return false;
+                }
             }
         }
 
@@ -974,6 +1394,13 @@ bool ProcessSource(std::istream& input,
 
 int main(int argc, char* argv[])
 {
+    // Watch std::cerr for the library's "ERROR: " lines for the whole run. Must
+    // outlive every write below, since the commit decision at the end depends on
+    // what it counted. See knoodle_io.hpp for why tapping the stream is the only
+    // handle we have on Tools' eprint.
+    CerrErrorTap cerr_tap;
+    g_cerr_tap = &cerr_tap;
+
     // Parse command line
     auto config_opt = ParseArguments(argc, argv);
     if (!config_opt)
@@ -990,6 +1417,15 @@ int main(int argc, char* argv[])
     }
 
     // Initialize logging
+    // Decide where diagnostics go before anything else can write one: the log
+    // opens in InitLogging just below, and the library reads KNOODLE_DUMP_DIR at
+    // the moment Rattle's projection fails (its default is the user's home
+    // directory). Alongside the output file when we have one, else a per-process
+    // temp directory. Snapshot what is already there so we only report our own.
+    const std::filesystem::path diag_dir =
+        ChooseDiagnosticDir("knoodlesimplify", config.streaming_mode, config.output_file);
+    const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
+
     if (!InitLogging(config.streaming_mode, "knoodlesimplify.log"))
     {
         return EXIT_FAILURE;
@@ -1002,8 +1438,14 @@ int main(int argc, char* argv[])
     ProcessingStats stats;
     bool first_knot_in_output = true;
 
-    // Prepare output stream if single output file specified
-    std::ofstream output_file;
+    // Prepare output stream if single output file specified.
+    //
+    // The file is staged as "<name>.partial" and only renamed into place if the
+    // run finishes without the library or this tool reporting an error -- see
+    // AtomicOutFile and the commit decision at the end of main(). Results are
+    // written knot by knot, long before we know whether a later knot will fail,
+    // so staging is the only way to honour "no output on error".
+    std::optional<AtomicOutFile> output_file;
     std::ostream* output_stream = nullptr;
 
     if (config.streaming_mode)
@@ -1013,13 +1455,13 @@ int main(int argc, char* argv[])
     }
     else if (config.output_file)
     {
-        output_file.open(*config.output_file);
-        if (!output_file)
+        output_file.emplace(*config.output_file);
+        if (!output_file->Good())
         {
             LogError("Failed to open output file: " + *config.output_file);
             return EXIT_FAILURE;
         }
-        output_stream = &output_file;
+        output_stream = &output_file->Stream();
     }
 
     // Process inputs
@@ -1027,7 +1469,14 @@ int main(int argc, char* argv[])
 
     if (config.streaming_mode)
     {
-        // Read from stdin
+        // Read from stdin. In streaming mode Log is redirected to a file, so write
+        // the interactive-tty notice straight to stderr (else a bare invocation of
+        // `knoodlesimplify --streaming-mode` just looks hung).
+        if (StdinIsInteractive())
+        {
+            std::cerr << "knoodlesimplify: reading diagrams from stdin (Ctrl-D to end). "
+                         "Pipe a stream or pass a file; --help for usage.\n";
+        }
         success = ProcessSource(std::cin, "stdin", output_stream, config, rng,
                                 stats, first_knot_in_output);
         if (success)
@@ -1099,6 +1548,95 @@ int main(int argc, char* argv[])
     {
         WriteFinalReport(stats, config);
     }
+
+    // Fail loudly. The core library signals unrecoverable trouble by calling
+    // eprint and then handing back a diagram it has already disclaimed ("Returning
+    // an invalid diagram. Check your results carefully."), and the PDC writers skip
+    // invalid diagrams silently -- so without this the run would write a quietly
+    // truncated file and exit 0. Refuse the output instead, and say why.
+    if (ErrorsSeen())
+    {
+        std::string notice;
+        if (output_file)
+        {
+            output_file->Abort();
+            notice = "\nRefusing to write " + output_file->FinalPath().string()
+                   + ": " + ErrorSummary() + " during this run.\n"
+                     "The output would be unreliable (the library discards diagrams it"
+                     " has flagged as invalid), so no file was produced.\n";
+        }
+        else if (config.streaming_mode)
+        {
+            // Already-piped bytes cannot be recalled; the exit code is the contract.
+            notice = "\nknoodlesimplify: " + ErrorSummary()
+                   + " during this run -- output already written to stdout is"
+                     " UNRELIABLE and should be discarded.\n";
+        }
+        else
+        {
+            notice = "\nknoodlesimplify: " + ErrorSummary()
+                   + " during this run; per-file outputs were withheld.\n";
+        }
+
+        // Always reach the terminal. In streaming mode g_log_stream is the log
+        // FILE, which is precisely where someone piping output would never look.
+        std::cerr << notice;
+        if (g_log_stream != &std::cerr) { *g_log_stream << notice; }
+
+        // Drop everything needed to reproduce into one forwardable file. The
+        // Simplify args matter most: the failures we have chased so far only
+        // appear at high --max-reapr-attempts / --reapr-rotation-trials, and a
+        // pasted stderr tail never carries them.
+        std::string invocation;
+        for (int i = 0; i < argc; ++i)
+        {
+            invocation += (i ? " " : "");
+            invocation += argv[i];
+        }
+
+        std::string inputs;
+        if (config.streaming_mode)
+        {
+            inputs = "  (stdin, --streaming-mode)\n";
+        }
+        for (const auto& f : config.input_files)
+        {
+            std::error_code ec;
+            const auto size = std::filesystem::file_size(f, ec);
+            inputs += "  " + f + (ec ? "  (size unknown)"
+                                     : "  (" + std::to_string(size) + " bytes)") + "\n";
+        }
+
+        const auto report = WriteDiagnosticReport("knoodlesimplify", {
+            { "command line",     "  " + invocation + "\n" },
+            { "input files",      inputs },
+            { "simplify options", "  " + ToString(BuildSimplifyArgs(config)) + "\n" },
+            { "what to send",
+              "  This file, plus the input file(s) listed above.\n"
+              "  The failing intermediate diagram and its 3D embedding live inside\n"
+              "  the library and are not reachable from here; if a core-side dump is\n"
+              "  available in your version, its files will be named alongside this one.\n" },
+        });
+
+        if (!report.empty())
+        {
+            std::cerr << "Wrote a diagnostic report to " << report.string()
+                      << " -- please send it with any bug report.\n";
+        }
+
+        FinishDiagnostics(diag_dir, bundles_before, "knoodlesimplify", true);
+
+        return EXIT_FAILURE;
+    }
+
+    if (output_file && !output_file->Commit())
+    {
+        LogError("Failed to move output into place: " + output_file->FinalPath().string());
+        FinishDiagnostics(diag_dir, bundles_before, "knoodlesimplify", true);
+        return EXIT_FAILURE;
+    }
+
+    FinishDiagnostics(diag_dir, bundles_before, "knoodlesimplify", !success);
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }

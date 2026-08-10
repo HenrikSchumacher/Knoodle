@@ -11,7 +11,7 @@ private:
 public:
 
 /*!
- * @brief Returns how many Reidemeister I moves have been performed so far.
+ * @brief Return how many Reidemeister I moves have been performed so far.
  */
 
 Int Reidemeister_I_Counter() const
@@ -20,7 +20,7 @@ Int Reidemeister_I_Counter() const
 }
 
 /*!
- * @brief Returns how many Reidemeister Ia moves have been performed so far.
+ * @brief Return how many Reidemeister Ia moves have been performed so far.
  */
 
 Int Reidemeister_Ia_Counter() const
@@ -29,7 +29,7 @@ Int Reidemeister_Ia_Counter() const
 }
 
 /*!
- * @brief Returns how many Reidemeister II moves have been performed so far.
+ * @brief Return how many Reidemeister II moves have been performed so far.
  */
 
 Int Reidemeister_II_Counter() const
@@ -38,7 +38,7 @@ Int Reidemeister_II_Counter() const
 }
 
 /*!
- * @brief Returns how many Reidemeister IIa moves have been performed so far.
+ * @brief Return how many Reidemeister IIa moves have been performed so far.
  */
 
 Int Reidemeister_IIa_Counter() const
@@ -47,7 +47,7 @@ Int Reidemeister_IIa_Counter() const
 }
 
 /*!
- * @brief Returns how many twist moves have been performed so far.
+ * @brief Return how many twist moves have been performed so far.
  *
  * See TwistMove.hpp for details.
  */
@@ -58,7 +58,7 @@ Int TwistMove_Counter() const
 }
 
 /*!
- * @brief Returns how many moves that remove 4 crossings at once have been performed so far.
+ * @brief Return how many moves that remove 4 crossings at once have been performed so far.
  */
 
 Int FourMove_Counter() const

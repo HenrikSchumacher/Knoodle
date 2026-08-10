@@ -4,7 +4,7 @@ public:
 
 // TODO: It lies in the nature of the way we detect connected summands that the local simplifications can only change something around the seam. We should really do a local search that is sensitive to this.
 
-/*! @brief This repeatedly applies `Simplify4` and attempts to split off connected components with `Split`. This works also for multiple component links.
+/*!@brief This repeatedly applies `Simplify4` and attempts to split off connected components with `Split`. This works also for multiple component links.
  *
  * @param pd_list A `std::vector` of instances of `PlanarDiagram_Legacy` to push the newly created connected summands to.
  *

@@ -12,10 +12,17 @@
 #include "../src/OrthoDraw.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cctype>
 #include <chrono>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
+#include <streambuf>
+#include <system_error>
+#include <utility>
+
+#include <sys/utsname.h>   // runtime machine identity for the failure report
 #include <iomanip>
 #include <iostream>
 #include <optional>
@@ -24,6 +31,19 @@
 #include <string_view>
 #include <variant>
 #include <vector>
+
+// Interactive-terminal detection: POSIX isatty/fileno vs Windows _isatty/_fileno.
+// Centralized here so the three tools build unchanged on macOS, Linux, and Windows.
+#include <cstdio>       // stdin, fileno
+#ifdef _WIN32
+#  include <io.h>       // _isatty, _fileno
+#  include <process.h>  // _getpid
+#  include <stdlib.h>   // _putenv_s
+#else
+#  include <unistd.h>   // isatty, fileno, getpid
+#endif
+
+#include <set>          // bundle bookkeeping in the diagnostics helpers
 
 //==============================================================================
 // Type Aliases
@@ -36,10 +56,40 @@ using PD_T        = PDC_T::PD_T;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Energy_T    = PDC_T::Energy_T;
 using LinkEmb_T   = Knoodle::LinkEmbedding<Real, Int, float>;
-using Clock       = std::chrono::steady_clock;
-using Duration    = std::chrono::duration<double>;
+using Reapr_T     = Knoodle::Reapr<Real, Int, float>;  // only used for RandomRotation()
+
+// The timing aliases live in a named namespace rather than at global scope.
+// Apple's <MacTypes.h> (pulled in transitively by <Accelerate/Accelerate.h>,
+// which the UMFPACK/Alexander path force-includes) declares `typedef SInt32
+// Duration;` at global scope. A global `using Duration = ...` here is then a
+// conflicting typedef redefinition. Downstream tools that combine this shared
+// header with the Accelerate backend are the first TU to meet both, so keep
+// these two aliases scoped. The vocabulary aliases above stay global on purpose.
+namespace knoodle_io {
+    using Clock    = std::chrono::steady_clock;
+    using Duration = std::chrono::duration<double>;
+} // namespace knoodle_io
 
 namespace {
+
+//==============================================================================
+// Terminal Utilities
+//==============================================================================
+
+/**
+ * @brief Is stdin connected to an interactive terminal?
+ *
+ * Wraps POSIX isatty/fileno and their Windows _isatty/_fileno equivalents so
+ * the tools' "reading from stdin…" hint behaves identically on both platforms.
+ */
+inline bool StdinIsInteractive()
+{
+#ifdef _WIN32
+    return _isatty(_fileno(stdin)) != 0;
+#else
+    return isatty(fileno(stdin)) != 0;
+#endif
+}
 
 //==============================================================================
 // Timing Utilities
@@ -51,17 +101,17 @@ namespace {
 class ScopedTimer
 {
 public:
-    explicit ScopedTimer(Duration& target)
-        : target_(target), start_(Clock::now()) {}
+    explicit ScopedTimer(knoodle_io::Duration& target)
+        : target_(target), start_(knoodle_io::Clock::now()) {}
 
     ~ScopedTimer()
     {
-        target_ = Clock::now() - start_;
+        target_ = knoodle_io::Clock::now() - start_;
     }
 
 private:
-    Duration& target_;
-    Clock::time_point start_;
+    knoodle_io::Duration& target_;
+    knoodle_io::Clock::time_point start_;
 };
 
 //==============================================================================
@@ -77,10 +127,12 @@ struct InputKnot
     std::vector<Int>  crossing_counts;    ///< Crossing count per summand
     Int               total_crossings = 0;
 
-    /// Number of 's' markers with no crossing data following them.
-    /// knoodlesimplify emits an unknot summand as a bare 's' line
-    /// (a 0-crossing diagram), so these represent unknot summands.
-    Int               empty_summand_count = 0;
+    /// One entry per unknot (0-crossing) summand -- knoodlesimplify emits these
+    /// as bare 's' lines (color unknown, PD_T::Uninitialized here) in its usual
+    /// TSV output, or as 'u <color>' markers (color known) in PlanarDiagramComplex's
+    /// native WriteToFile/FromInString format (see ReadKnot's PDC-native
+    /// delegation). Old call sites that just want the count can use .size().
+    std::vector<Int>  unknot_colors;
 
     // For 3D geometry input
     bool              had_3d_geometry = false;
@@ -101,6 +153,606 @@ std::ostream* g_log_stream = &std::cerr;
 /// Log file for streaming mode
 std::ofstream g_log_file;
 
+/// Where that log file ended up, so we can tell the user (rule 3). Empty unless
+/// streaming mode actually opened one.
+std::filesystem::path g_log_path;
+
+//==============================================================================
+// Error detection (fail loudly rather than emit silently-wrong output)
+//==============================================================================
+//
+// The core library reports unrecoverable trouble by calling Tools' eprint() and
+// carrying on with a diagram it has already told you not to trust -- e.g.
+// PlanarDiagramComplex::Rattle, when FindIntersections keeps failing:
+//
+//   ERROR: ...Rattle: ...returned invalid status flag for 10 random rotation
+//          matrices. Something must be wrong. Returning an invalid diagram.
+//          Check your results carefully.
+//
+// PlanarDiagramComplex's writers then *skip* invalid diagrams silently, so the
+// run finishes, writes a short file, and (before this change) exited 0. That is
+// the worst possible outcome: corrupt output indistinguishable from success.
+//
+// There is no error counter in Tools to query, and eprint() is not a hook we can
+// register with, but it does write every message to std::cerr with a fixed
+// "ERROR: " prefix. So we tap std::cerr, pass everything through untouched, and
+// count matching lines. Tools serializes its own prints behind cerr_mutex, so
+// the counting stays coherent for library output; our own LogError bumps the
+// counter directly, since in streaming mode it goes to the log file, not cerr.
+
+/// Number of errors reported by this tool's own LogError.
+long g_tool_error_count = 0;
+
+/// Counts "ERROR: " lines written to std::cerr (i.e. Tools' eprint) while
+/// forwarding every byte to the original stream. RAII: restores cerr on scope
+/// exit. One instance at a time, installed in main().
+class CerrErrorTap
+{
+public:
+    CerrErrorTap()
+    {
+        buf_.sink = std::cerr.rdbuf();
+        std::cerr.rdbuf(&buf_);
+    }
+
+    ~CerrErrorTap()
+    {
+        std::cerr.rdbuf(buf_.sink);
+    }
+
+    CerrErrorTap(const CerrErrorTap&)            = delete;
+    CerrErrorTap& operator=(const CerrErrorTap&) = delete;
+
+    long Count() const { return buf_.errors; }
+
+    /// The error lines themselves, for the diagnostic report (bounded, so a
+    /// pathological run cannot eat memory).
+    const std::vector<std::string>& Messages() const { return buf_.messages; }
+
+private:
+    class Buf : public std::streambuf
+    {
+    public:
+        std::streambuf*          sink   = nullptr;
+        long                     errors = 0;
+        std::vector<std::string> messages;
+
+        static constexpr std::size_t max_messages   = 50;
+        static constexpr std::size_t max_line_bytes = 2000;
+
+    protected:
+        int overflow(int c) override
+        {
+            if (c == traits_type::eof()) { return traits_type::not_eof(c); }
+            const char ch = static_cast<char>(c);
+            if (sink) { sink->sputc(ch); }
+            if (ch == '\n')
+            {
+                if (line_.starts_with("ERROR:"))
+                {
+                    ++errors;
+                    if (messages.size() < max_messages) { messages.push_back(line_); }
+                }
+                line_.clear();
+            }
+            else if (line_.size() < max_line_bytes)
+            {
+                // Whole line retained now (not just the prefix) so the report can
+                // quote what the library actually said.
+                line_.push_back(ch);
+            }
+            return c;
+        }
+
+        int sync() override { return sink ? sink->pubsync() : 0; }
+
+    private:
+        std::string line_;
+    };
+
+    Buf buf_;
+};
+
+/// The single tap installed by main(), if any. Tools query it via ErrorsSeen().
+CerrErrorTap* g_cerr_tap = nullptr;
+
+/// Total errors so far, library + tool. Snapshot this before writing an output
+/// unit and compare after, to decide whether that unit is trustworthy.
+[[maybe_unused]] long ErrorTotal()
+{
+    return g_tool_error_count
+         + ((g_cerr_tap != nullptr) ? g_cerr_tap->Count() : 0);
+}
+
+/// True if the library or this tool has reported any error during this run.
+[[maybe_unused]] bool ErrorsSeen()
+{
+    return ErrorTotal() > 0;
+}
+
+/// Human-readable tally, for the failure message.
+[[maybe_unused]] std::string ErrorSummary()
+{
+    const long lib = (g_cerr_tap != nullptr) ? g_cerr_tap->Count() : 0;
+    return std::to_string(lib) + " library error(s), "
+         + std::to_string(g_tool_error_count) + " tool error(s)";
+}
+
+//==============================================================================
+// Diagnostic report
+//==============================================================================
+//
+// When a run fails there is usually nobody watching, and a bug report reaches us
+// as a pasted stderr tail with the interesting parts missing (which build? which
+// options? which diagram?). So on failure the tools drop a single self-contained
+// file next to the output, and print its path. The aim is that forwarding that
+// one file is enough for us to reproduce, without a round trip asking for the
+// version and the input.
+//
+// Build identity is recorded twice on purpose. The COMPILE-TIME target says what
+// the binary was built for; the RUNTIME uname says what it is executing on. They
+// differ for an x86_64 build under Rosetta on Apple silicon -- and since the
+// degeneracy this was written for turns on exact floating-point coincidence,
+// that distinction is exactly the sort of thing that decides whether a failure
+// reproduces.
+
+/// Compile-time build identity.
+[[maybe_unused]] std::string BuildIdentity()
+{
+    std::string s;
+
+#if defined(GIT_VERSION)
+    {
+        // The Makefile's -DGIT_VERSION=\"...\" leaves literal quotes in the
+        // value; strip them so the most-read line of the report is clean.
+        std::string v = GIT_VERSION;
+        std::erase(v, '"');
+        s += "  knoodle version : " + v + "\n";
+    }
+#else
+    s += "  knoodle version : (not compiled in)\n";
+#endif
+
+#if   defined(__aarch64__) || defined(__arm64__)
+    s += "  built for arch  : arm64\n";
+#elif defined(__x86_64__)
+    s += "  built for arch  : x86_64\n";
+#else
+    s += "  built for arch  : (unknown)\n";
+#endif
+
+#if   defined(__APPLE__)
+    s += "  built for OS    : macOS\n";
+#elif defined(__linux__)
+    s += "  built for OS    : Linux\n";
+#else
+    s += "  built for OS    : (unknown)\n";
+#endif
+
+#if defined(__VERSION__)
+    s += "  compiler        : " __VERSION__ "\n";
+#endif
+
+    s += "  built           : " __DATE__ " " __TIME__ "\n";
+    return s;
+}
+
+/// Runtime machine identity (see BuildIdentity for why both are recorded).
+[[maybe_unused]] std::string RuntimeIdentity()
+{
+    std::string s;
+    struct utsname u;
+    if (uname(&u) == 0)
+    {
+        s += std::string("  running on      : ") + u.sysname + " " + u.release
+           + " (" + u.machine + ")\n";
+    }
+    else
+    {
+        s += "  running on      : (uname failed)\n";
+    }
+    return s;
+}
+
+/// Process id, for a per-run directory name. POSIX `getpid` vs Windows
+/// `_getpid`, same split as the isatty handling above.
+inline long long CurrentProcessId()
+{
+#ifdef _WIN32
+    return static_cast<long long>(_getpid());
+#else
+    return static_cast<long long>(getpid());
+#endif
+}
+
+/// Set an environment variable for this process. POSIX `setenv` vs Windows
+/// `_putenv_s`; the library reads `KNOODLE_DUMP_DIR` with plain `std::getenv`,
+/// so either is fine on the reading side.
+inline void SetEnvVar(const char* name, const std::string& value)
+{
+#ifdef _WIN32
+    _putenv_s(name, value.c_str());
+#else
+    ::setenv(name, value.c_str(), 1);
+#endif
+}
+
+/// Where this run puts anything a user might need to forward to us: the failure
+/// report written here, and the bundles the core library drops when Rattle's
+/// projection fails (see PlanarDiagramComplex/Simplify.hpp, DumpRattleFailure).
+/// Set once by ChooseDiagnosticDir; empty until then.
+std::filesystem::path g_diagnostic_dir;
+
+/// True only when we created g_diagnostic_dir ourselves as a per-process temp
+/// directory, i.e. when it is ours to remove again. Comparing paths after the
+/// fact is not reliable -- std::filesystem::temp_directory_path() keeps its
+/// trailing separator on macOS, so parent_path() never compares equal to it.
+bool g_diagnostic_dir_is_temp = false;
+
+/**
+ * @brief Decide where this run's diagnostic artifacts belong, and tell the
+ *        library about it.
+ *
+ * Three rules:
+ *
+ *  1. Writing output to a file -> that file's own directory. If the run fails,
+ *     the user finds the diagnostics sitting where they expected their result,
+ *     rather than having to be told where to look.
+ *  2. Streaming to stdout -> a per-process directory under the system temp
+ *     directory. Streaming means we are probably a subshell of something else
+ *     (the Mathematica paclet works this way), so the working directory is not
+ *     ours to litter and may not even be writable. The risk accepted here is
+ *     that the system may purge the temp directory before anyone collects the
+ *     bundle.
+ *  3. Either way the user is told, by ReportDiagnosticBundles below.
+ *
+ * An explicit `KNOODLE_DUMP_DIR` from the environment always wins: someone who
+ * has chosen a location has out-ranked all of the above.
+ *
+ * The library reads `KNOODLE_DUMP_DIR` at the point of failure, so this must run
+ * before any call into Simplify.
+ *
+ * @return The directory chosen. Best-effort: on any filesystem error this falls
+ *         back to the current directory, which is the historical behaviour.
+ */
+[[maybe_unused]] std::filesystem::path ChooseDiagnosticDir(
+    const std::string& tool,
+    bool streaming_mode,
+    const std::optional<std::string>& output_file)
+{
+    namespace fs = std::filesystem;
+
+    std::error_code ec;
+
+    if (const char* forced = std::getenv("KNOODLE_DUMP_DIR"))
+    {
+        if (*forced != '\0') { g_diagnostic_dir = fs::path(forced); return g_diagnostic_dir; }
+    }
+
+    fs::path dir;
+
+    if (!streaming_mode && output_file.has_value())
+    {
+        // Rule 1. parent_path() is empty for a bare filename, which means "here".
+        dir = fs::path(*output_file).parent_path();
+        if (dir.empty()) { dir = fs::path("."); }
+    }
+    else
+    {
+        // Rule 2. Per-process, so two concurrent runs cannot overwrite each
+        // other's bundles -- the library numbers them from zero in every process.
+        dir = fs::temp_directory_path(ec);
+        if (ec) { dir = fs::path("."); }
+        else
+        {
+            dir /= ("knoodle-" + tool + "-" + std::to_string(CurrentProcessId()));
+            fs::create_directories(dir, ec);
+            if (ec) { dir = fs::path("."); }
+            else    { g_diagnostic_dir_is_temp = true; }
+        }
+    }
+
+    g_diagnostic_dir = dir;
+
+    // The library only consults the environment, so this is how it learns.
+    SetEnvVar("KNOODLE_DUMP_DIR", dir.string());
+
+    return dir;
+}
+
+/// Names of the library's bundle files currently in `dir`. Used to tell this
+/// run's bundles apart from ones an earlier run left behind.
+[[maybe_unused]] std::set<std::string> ListDiagnosticBundles(
+    const std::filesystem::path& dir)
+{
+    namespace fs = std::filesystem;
+
+    std::set<std::string> out;
+    std::error_code ec;
+
+    for (fs::directory_iterator it(dir, ec), end; !ec && it != end; it.increment(ec))
+    {
+        const std::string name = it->path().filename().string();
+        if (name.rfind("rattle-failure-", 0) == 0) { out.insert(name); }
+    }
+    return out;
+}
+
+/**
+ * @brief Tell the user about any bundle this run produced, and what it is for.
+ *
+ * Deliberately conditional on whether the run actually failed. Since PR #26 the
+ * library dumps on the FIRST failed projection rather than after Rattle has
+ * exhausted its retries, and Rattle normally recovers on the next rotation --
+ * so a completely successful run can leave a bundle behind. Telling such a user
+ * to file a bug report would be wrong and would bury us in noise.
+ *
+ * Writes to std::cerr directly rather than through eprint: this is information,
+ * not an error, and eprint would be counted by the cerr tap and turn a healthy
+ * run into a nonzero exit.
+ */
+[[maybe_unused]] void ReportDiagnosticBundles(
+    const std::filesystem::path& dir,
+    const std::set<std::string>& before,
+    const std::string& tool,
+    bool run_failed)
+{
+    std::set<std::string> now = ListDiagnosticBundles(dir);
+
+    std::vector<std::string> fresh;
+    for (const auto& n : now)
+    {
+        if (before.find(n) == before.end()) { fresh.push_back(n); }
+    }
+    if (fresh.empty()) { return; }
+
+    std::cerr << tool << ": wrote " << fresh.size()
+              << " diagnostic file(s) to " << dir.string() << "\n";
+    for (const auto& n : fresh) { std::cerr << "    " << n << "\n"; }
+
+    if (run_failed)
+    {
+        std::cerr <<
+            "  These describe the failure above. Please attach them to a report at\n"
+            "  https://github.com/HenrikSchumacher/Knoodle/issues -- they contain the\n"
+            "  exact diagram and geometry needed to reproduce it.\n";
+    }
+    else
+    {
+        std::cerr <<
+            "  This run SUCCEEDED and its output is valid: the projection step hit a\n"
+            "  degenerate viewing angle, and Knoodle retried and recovered. The files\n"
+            "  are kept because that case is still worth fixing -- sending them to\n"
+            "  https://github.com/HenrikSchumacher/Knoodle/issues helps us make it stop\n"
+            "  happening at all.\n";
+    }
+}
+
+/**
+ * @brief Tell the user where the streaming-mode log went, if it has content.
+ *
+ * Rule 3 applied to the log: in streaming mode it is the only record of what
+ * happened, and it no longer sits in the working directory. Silent when the log
+ * is empty, so a clean run of a tool the paclet drives thousands of times says
+ * nothing at all.
+ */
+[[maybe_unused]] void ReportLogLocation()
+{
+    if (g_log_path.empty()) { return; }
+
+    g_log_file.flush();
+
+    std::error_code ec;
+    const auto size = std::filesystem::file_size(g_log_path, ec);
+    if (ec || size == 0) { return; }
+
+    std::cerr << "  (run log: " << g_log_path.string() << ")\n";
+}
+
+/**
+ * @brief Drop the streaming-mode log when the run went cleanly.
+ *
+ * In streaming mode the log always has content -- it carries the per-knot report
+ * that would otherwise corrupt stdout -- so the per-process temp directory would
+ * never be empty and never be removed. A caller that runs the tool thousands of
+ * times (the paclet does) would accumulate one directory per run.
+ *
+ * On a clean run that report is reproducible by running the tool again, so it is
+ * not worth a directory each time. On a failing run it is evidence and is kept.
+ *
+ * Only ever touches a log inside a directory we created ourselves: if the user
+ * pointed KNOODLE_DUMP_DIR somewhere, they asked for the file to be there.
+ */
+[[maybe_unused]] void DiscardLogIfClean(bool run_failed)
+{
+    if (run_failed || !g_diagnostic_dir_is_temp || g_log_path.empty()) { return; }
+
+    // Nothing may write to the log after this point.
+    g_log_stream = &std::cerr;
+    g_log_file.close();
+
+    std::error_code ec;
+    std::filesystem::remove(g_log_path, ec);
+    if (!ec) { g_log_path.clear(); }
+}
+
+/// Remove the per-process temp directory if we made one and nothing used it.
+/// Keeps rule 2 from leaving an empty directory behind on every clean run.
+[[maybe_unused]] void CleanupDiagnosticDir()
+{
+    namespace fs = std::filesystem;
+
+    // Only ever remove a directory we created ourselves.
+    if (!g_diagnostic_dir_is_temp || g_diagnostic_dir.empty()) { return; }
+
+    // The log lives in here too; close it first so the emptiness test is honest
+    // and Windows will let the directory go.
+    if (g_log_file.is_open()) { g_log_file.flush(); }
+
+    std::error_code ec;
+    if (fs::is_empty(g_diagnostic_dir, ec) && !ec)
+    {
+        fs::remove(g_diagnostic_dir, ec);
+    }
+}
+
+/**
+ * @brief Everything that has to happen on the way out, in the right order.
+ *
+ * Report bundles first (while they are all still there), then drop the log if
+ * the run was clean, then report the log only if it survived, then remove the
+ * directory if that left it empty.
+ */
+[[maybe_unused]] void FinishDiagnostics(
+    const std::filesystem::path& dir,
+    const std::set<std::string>& before,
+    const std::string& tool,
+    bool run_failed)
+{
+    ReportDiagnosticBundles(dir, before, tool, run_failed);
+    DiscardLogIfClean(run_failed);
+    ReportLogLocation();
+    CleanupDiagnosticDir();
+}
+
+/**
+ * @brief Write a self-contained failure report the user can forward verbatim.
+ *
+ * @param tool        Tool name, used for the filename and the header.
+ * @param sections    Ordered (title, body) pairs: the caller's options, input
+ *                    description, parsed diagram, and so on.
+ * @return The path written, or an empty path if it could not be written.
+ *
+ * Goes in the same directory as the library's bundles (see ChooseDiagnosticDir),
+ * so everything a user needs to send is in one place. Previously this was a bare
+ * relative path, i.e. the working directory, which for a streaming run inside
+ * another process is nobody's idea of a useful location.
+ *
+ * Never throws and never fails the run further: this is best-effort diagnostics
+ * on a path that is already failing.
+ */
+[[maybe_unused]] std::filesystem::path WriteDiagnosticReport(
+    const std::string& tool,
+    const std::vector<std::pair<std::string,std::string>>& sections)
+{
+    const std::filesystem::path dir =
+        g_diagnostic_dir.empty() ? std::filesystem::path(".") : g_diagnostic_dir;
+
+    const std::filesystem::path path = dir / (tool + "-error-report.txt");
+
+    std::ofstream out(path);
+    if (!out) { return {}; }
+
+    out << "================================================================\n"
+        << tool << " error report\n"
+        << "================================================================\n\n"
+        << "Something went wrong that makes this run's output untrustworthy.\n"
+        << "Please send this whole file with your bug report -- it contains the\n"
+        << "build, the options, and the input needed to reproduce.\n\n"
+        << "-- build ------------------------------------------------------\n"
+        << BuildIdentity()
+        << RuntimeIdentity()
+        << "\n";
+
+    out << "-- errors reported --------------------------------------------\n";
+    if ((g_cerr_tap != nullptr) && !g_cerr_tap->Messages().empty())
+    {
+        for (const auto& m : g_cerr_tap->Messages()) { out << "  " << m << "\n"; }
+        const long extra = g_cerr_tap->Count()
+                         - static_cast<long>(g_cerr_tap->Messages().size());
+        if (extra > 0) { out << "  ... and " << extra << " more\n"; }
+    }
+    else
+    {
+        out << "  (no library errors; the failure was reported by the tool itself --\n"
+               "   see the tool's own message on stderr, e.g. a malformed input line)\n";
+    }
+    out << "  (" << ErrorSummary() << ")\n\n";
+
+    for (const auto& [title, body] : sections)
+    {
+        out << "-- " << title << " "
+            << std::string(std::max<std::size_t>(4, 62 - title.size()), '-') << "\n"
+            << body;
+        if (!body.empty() && body.back() != '\n') { out << "\n"; }
+        out << "\n";
+    }
+
+    out.flush();
+    return out ? path : std::filesystem::path{};
+}
+
+//==============================================================================
+// Atomic file output
+//==============================================================================
+
+/**
+ * @brief An output file that only becomes visible if the run succeeds.
+ *
+ * Writes go to "<path>.partial"; Commit() renames it into place, and anything
+ * else (explicit Abort, or destruction without Commit) removes it. This is what
+ * lets us honour "refuse to produce file output" even though results are written
+ * incrementally, knot by knot, long before we know whether the run went wrong.
+ *
+ * Note this cannot apply to stdout (--streaming-mode): bytes already written to
+ * a pipe cannot be recalled, so there the contract is only the nonzero exit.
+ */
+class AtomicOutFile
+{
+public:
+    explicit AtomicOutFile(const std::filesystem::path& final_path)
+    :   final_path_ { final_path }
+    ,   temp_path_  { final_path.string() + ".partial" }
+    {
+        stream_.open(temp_path_);
+    }
+
+    ~AtomicOutFile()
+    {
+        if (!committed_) { Abort(); }
+    }
+
+    AtomicOutFile(const AtomicOutFile&)            = delete;
+    AtomicOutFile& operator=(const AtomicOutFile&) = delete;
+
+    bool Good() const { return static_cast<bool>(stream_); }
+
+    std::ofstream& Stream() { return stream_; }
+
+    /// Move the finished file into place. Returns false if the rename failed.
+    bool Commit()
+    {
+        if (committed_) { return true; }
+        stream_.flush();
+        stream_.close();
+        std::error_code ec;
+        std::filesystem::rename(temp_path_, final_path_, ec);
+        if (ec)
+        {
+            std::filesystem::remove(temp_path_, ec);
+            return false;
+        }
+        committed_ = true;
+        return true;
+    }
+
+    /// Discard the partial file, leaving any previous output file untouched.
+    void Abort()
+    {
+        stream_.close();
+        std::error_code ec;
+        std::filesystem::remove(temp_path_, ec);
+    }
+
+    const std::filesystem::path& FinalPath() const { return final_path_; }
+
+private:
+    std::filesystem::path final_path_;
+    std::filesystem::path temp_path_;
+    std::ofstream         stream_;
+    bool                  committed_ = false;
+};
+
 /**
  * @brief Initialize logging based on mode.
  *
@@ -108,14 +760,24 @@ std::ofstream g_log_file;
  * @param log_filename The filename for the log file (used only in streaming mode).
  * @return true on success.
  */
-bool InitLogging(bool streaming_mode, const std::string& log_filename)
+[[maybe_unused]] bool InitLogging(bool streaming_mode, const std::string& log_filename)
 {
     if (streaming_mode)
     {
-        g_log_file.open(log_filename);
+        // Same three rules as the failure report and the library's bundles: in
+        // streaming mode this used to be a bare relative path, i.e. the working
+        // directory of whatever process happens to be driving us. Call
+        // ChooseDiagnosticDir before this; the fallback keeps the old behaviour
+        // if some caller has not.
+        const std::filesystem::path dir =
+            g_diagnostic_dir.empty() ? std::filesystem::path(".") : g_diagnostic_dir;
+
+        g_log_path = dir / log_filename;
+
+        g_log_file.open(g_log_path);
         if (!g_log_file)
         {
-            std::cerr << "Error: Failed to open " << log_filename << " for writing.\n";
+            std::cerr << "Error: Failed to open " << g_log_path.string() << " for writing.\n";
             return false;
         }
         g_log_stream = &g_log_file;
@@ -126,7 +788,7 @@ bool InitLogging(bool streaming_mode, const std::string& log_filename)
 /**
  * @brief Log a message to the appropriate stream.
  */
-void Log(const std::string& msg)
+[[maybe_unused]] void Log(const std::string& msg)
 {
     *g_log_stream << msg << "\n";
 }
@@ -136,6 +798,8 @@ void Log(const std::string& msg)
  */
 void LogError(const std::string& msg)
 {
+    ++g_tool_error_count;   // see ErrorsSeen(): in streaming mode this line goes
+                            // to the log file, so the tap on cerr won't see it.
     *g_log_stream << "Error: " << msg << "\n";
 }
 
@@ -146,7 +810,7 @@ void LogError(const std::string& msg)
 /**
  * @brief Convert a string to lowercase.
  */
-std::string ToLower(std::string_view s)
+[[maybe_unused]] std::string ToLower(std::string_view s)
 {
     std::string result(s);
     std::transform(result.begin(), result.end(), result.begin(),
@@ -242,7 +906,7 @@ bool ParseNumericLine(const std::string& line,
 // Energy Utilities
 //==============================================================================
 
-std::string EnergyName(Energy_T e)
+[[maybe_unused]] std::string EnergyName(Energy_T e)
 {
     switch (e)
     {
@@ -256,7 +920,7 @@ std::string EnergyName(Energy_T e)
     }
 }
 
-std::string ValidEnergies()
+[[maybe_unused]] std::string ValidEnergies()
 {
     return std::string("TV, ")
 #ifdef KNOODLE_USE_UMFPACK
@@ -268,6 +932,52 @@ std::string ValidEnergies()
     + "TV_CLP, "
 #endif
     + "TV_MCF";
+}
+
+//==============================================================================
+// PDC-Native Format I/O
+//==============================================================================
+
+/**
+ * @brief Write a PlanarDiagramComplex to an arbitrary output stream using its
+ *        own native serialization (PDC_T::WriteToFile -- 'u <color>' for
+ *        colored unknot summands, 's <flag>' + colored PD rows otherwise; see
+ *        src/PlanarDiagramComplex/WriteToFile.hpp).
+ *
+ * WriteToFile only writes to a real file, so this round-trips through a
+ * unique scratch file rather than reimplementing its logic -- callers (e.g.
+ * knoodlesimplify's --format=pdc) get Henrik's exact, unmodified output
+ * regardless of whether their own destination is a file or stdout.
+ */
+bool WritePdcNativeFormat(PDC_T& pdc, std::ostream& output, bool leading_kQ = true)
+{
+    static std::atomic<unsigned long long> counter{0};
+
+    auto scratch_path = std::filesystem::temp_directory_path() / (
+        "knoodle_pdc_"
+        + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count())
+        + "_" + std::to_string(counter.fetch_add(1)) + ".tmp"
+    );
+
+    if (!pdc.WriteToFile(scratch_path, leading_kQ))
+    {
+        LogError("WritePdcNativeFormat: PlanarDiagramComplex::WriteToFile failed for "
+                 + scratch_path.string());
+        return false;
+    }
+
+    std::ifstream scratch(scratch_path);
+    if (!scratch)
+    {
+        LogError("WritePdcNativeFormat: failed to reopen scratch file " + scratch_path.string());
+        std::filesystem::remove(scratch_path);
+        return false;
+    }
+
+    output << scratch.rdbuf();
+    scratch.close();
+    std::filesystem::remove(scratch_path);
+    return true;
 }
 
 //==============================================================================
@@ -362,6 +1072,18 @@ PD_T CreateDiagramFrom3D(const std::vector<Real>& vertices,
 
     if (!pd.ValidQ())
     {
+        // FromKnotEmbedding returns an invalid pd alongside a populated
+        // `unlinks` color list precisely when every component turned out to
+        // have zero self-intersections (see PlanarDiagramComplex's own
+        // pair-consuming constructor, which treats this combination as "all
+        // trivial anelli", not an error). A single 3D curve is exactly one
+        // component, so unlinks.Size() > 0 here means "this curve is the
+        // unknot", not a real FindIntersections failure.
+        if (unlinks.Size() > 0)
+        {
+            return PD_T::Unknot(unlinks[0]);
+        }
+
         LogError("FromKnotEmbedding failed to create a valid diagram");
         return PD_T();
     }
@@ -446,7 +1168,7 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
         // (knoodlesimplify writes unknots as bare 's' lines).
         if (geometry_vertices.empty() && pd_crossing_count == 0)
         {
-            ++result.empty_summand_count;
+            result.unknot_colors.push_back(PD_T::Uninitialized);
             in_summand = false;
             return true;
         }
@@ -536,6 +1258,62 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
             continue;
         }
 
+        // PlanarDiagramComplex's own native serialization -- 'u <color>' for a
+        // colored unknot summand, 's <flag>' for a proven-minimal-tagged
+        // summand (see src/PlanarDiagramComplex/{Write,Read}FromFile.hpp) --
+        // is detected here (distinguished from the bare 's' marker above by
+        // the trailing token) and delegated wholesale to PDC_T::FromInString
+        // rather than reimplemented: colors -- including for unknot summands,
+        // which the tools' own bare-'s' convention cannot represent -- round-
+        // trip exactly as Henrik's reader/writer pair already defines them.
+        if ((!cleaned.empty() && (cleaned[0] == 'u' || cleaned[0] == 'U')) ||
+            cleaned.starts_with("s ") || cleaned.starts_with("S "))
+        {
+            if (!finalize_summand()) return std::nullopt;
+
+            std::string pdc_text = cleaned + "\n";
+            std::string more_line;
+            bool saw_terminating_k = false;
+
+            while (std::getline(input, more_line))
+            {
+                std::string more_cleaned = CleanLine(more_line);
+                if (more_cleaned == "k" || more_cleaned == "K")
+                {
+                    saw_terminating_k = true;
+                    break;
+                }
+                if (more_cleaned.empty()) continue;
+                pdc_text += more_cleaned + "\n";
+            }
+
+            Tools::InString in_str(pdc_text);
+            PDC_T pdc = PDC_T::FromInString(in_str);
+
+            for (Int i = 0; i < pdc.DiagramCount(); ++i)
+            {
+                Knoodle::cref<PD_T> pd = pdc.Diagram(i);
+                if (pd.AnelloQ())
+                {
+                    result.unknot_colors.push_back(pd.FirstColor());
+                }
+                else
+                {
+                    result.summands.push_back(PD_T(pd));
+                }
+            }
+
+            // Equivalent richness to signed+colored PD code, for output-format
+            // decisions downstream (e.g. knoodlesimplify's colored_output).
+            detected_format = 7;
+            first_data_seen = true;
+            saw_content = true;
+            in_summand = false;
+
+            if (saw_terminating_k) { break; }
+            continue;
+        }
+
         // Parse as data line
         bool has_float = false;
 
@@ -606,7 +1384,7 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
 
     // Check if we got any data (a knot consisting only of unknot
     // summands — bare 's' lines — still counts as data)
-    if (result.summands.empty() && result.empty_summand_count == 0)
+    if (result.summands.empty() && result.unknot_colors.empty())
     {
         return std::nullopt;  // No data found
     }

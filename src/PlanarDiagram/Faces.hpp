@@ -1,5 +1,6 @@
 public:
 
+/*!@brief Return a string with the most important information of a face `f`. Meant for debugging.*/
 std::string FaceString( const Int f ) const
 {
     cptr<Int> F_dA_ptr = FaceDarcs().Pointers().data();
@@ -14,13 +15,14 @@ std::string FaceString( const Int f ) const
     
 }
 
-
+/*!@brief Return the number of faces in the diagram. CAUTION: Faces here are characterized by their boundary components only. If the diagram is connected, then this coincide with the ordinary meaning of faces.*/
 Int FaceCount() const
 {
 //    TOOLS_PTIMER(timer,MethodName("FaceCount"));
     return FaceDarcs().SublistCount();
 }
 
+/*!@brief For each face return the list of _darcs_ (i.e., directed arcs) in the ordering they are traversed when cycling counter-clockwise around the face. The orientation of the darcs is so that the corresponding face lies on its left side.*/
 cref<RaggedList<Int,Int>> FaceDarcs() const
 {
     std::string tag ("FaceDarcs");
@@ -29,6 +31,7 @@ cref<RaggedList<Int,Int>> FaceDarcs() const
     return this->template GetCache<RaggedList<Int,Int>>(tag);
 }
 
+/*!@brief For each arc list the two faces. The convention is that `ArcFaces()(a,1)` is the face to the _right_ of the forward arc `ToDarc(a,Head)` of `a`. This convention may seem odd, but we have to stick to it.*/
 cref<ArcContainer_T> ArcFaces()  const
 {
     std::string tag ("ArcFaces");
@@ -37,6 +40,7 @@ cref<ArcContainer_T> ArcFaces()  const
     return this->template GetCache<ArcContainer_T>(tag);
 }
 
+/*!@brief Return the index of a face with maximal number of arcs.*/
 Int MaximumFace() const
 {
     std::string tag ("MaximumFace");
@@ -45,6 +49,7 @@ Int MaximumFace() const
     return this->template GetCache<Int>(tag);
 }
 
+/*!@brief Return the maximal size (= number of arcs) of all faces..*/
 Int MaxFaceSize() const
 {
     std::string tag ("MaxFaceSize");
@@ -58,7 +63,7 @@ TOOLS_FORCE_INLINE void TraverseFaceAtDarc( const Int da_0, ArcFun_T & arc_fun )
 {
     if( !ArcActiveQ(ArcOfDarc(da_0)) ) { return; }
     
-    Int * restrict dA_left_dA = COND(lutQ,ArcLeftDarcs().data(),nullptr);
+    Int * TOOLS_RESTRICT dA_left_dA = COND(lutQ,ArcLeftDarcs().data(),nullptr);
     
     Int da = da_0;
     do
@@ -79,6 +84,7 @@ TOOLS_FORCE_INLINE void TraverseFaceAtDarc( const Int da_0, ArcFun_T & arc_fun )
     while( da != da_0 );
 }
 
+/*!@brief Make sure that the face information is computed, i.e., the internal values of `FaceDarcs()`, `ArcFaces()`, `MaxFaceSize`, `MaximumFace`, `FaceCount()`. Note that the face information is cached and might get stale. Some other data depending on this might also become cached. So id you want to recompute this, it is in general safer to call `ClearCache()` and to rely on the fact that downstream data function will call `RequireFaces()`.*/
 void RequireFaces() const
 {
 //    TOOLS_PTIMER(timer,MethodName("RequireFaces"));
@@ -93,6 +99,8 @@ void RequireFaces() const
     }
     
 }
+
+/*!@brief (Re-)compute face information, i.e., the internal values of `FaceDarcs()`, `ArcFaces()`, `MaxFaceSize`, `MaximumFace`, `FaceCount()`. Note that the face information is cached and might get stale. Some other data depending on this this might also be cached. So id you want to recompute this, it is in general safer to call `ClearCache()` and to rely on the fact that downstream data function will call `RequireFaces()`.*/
 void ComputeFaces() const
 {
     TOOLS_PTIMER(timer,MethodName("ComputeFaces"));
@@ -117,8 +125,8 @@ void ComputeFaces() const
     // This way the directed arc da = 2 * a + d has its left face in dA_f[da].
     
     
-    // Entry Uninitialized means "unvisited but to be visited".
-    // Entry DoNotVisit means "do not visit".
+    // An entry with value Uninitialized means "unvisited but to be visited".
+    // An entry with value DoNotVisit means "do not visit".
     
     for( Int a = 0; a < max_arc_count; ++ a )
     {
@@ -206,6 +214,7 @@ void ComputeFaces() const
     this->template SetCache<true>( "MaximumFace", max_f                  );
 }
 
+/*!@brief For each face provide a list of crossings on its boundary (possibly with repetitions) in counter-clockwise order.*/
 RaggedList<Int,Int> FaceCrossings() const
 {
     auto & F_dA = FaceDarcs();
@@ -225,6 +234,7 @@ RaggedList<Int,Int> FaceCrossings() const
     return F_C;
 }
 
+/*!@brief For each crossing list the faces in the ordering east, north, west, south. (Imagine the crossing turned so that the two outgoing arcs point  north-west and north-east.)*/
 Tiny::VectorList_AoS<4,Int,Int> CrossingFaces() const
 {
     using Container_T =  Tiny::VectorList_AoS<4,Int,Int>;
@@ -273,8 +283,8 @@ Tiny::VectorList_AoS<4,Int,Int> CrossingFaces() const
     return C_faces;
 }
 
-
-Tensor1<Int8,Int> CheckerBoardColoring()
+/*!@brief For each face return a number +1 or -1 according to a checkerboard coloring. Note that there are 2^c such checkboard colorings, where c is the number of connected components. This function just picks one of them.*/
+Tensor1<Int8,Int> CheckerBoardColoring() const
 {
     TOOLS_PTIMER(timer,MethodName("CheckerBoardColoring"));
     
@@ -302,11 +312,105 @@ Tensor1<Int8,Int> CheckerBoardColoring()
             }
             else
             {
-                color[E.head] = -color[E.tail];
+                color[E.head] = Int8(-color[E.tail]);
             }
         },
         MultiGraph_T::TrivialEdgeFunction      // postvisit
     );
     
     return color;
+}
+
+
+/*!@brief For each color return a list for winding numbers for each face. That is, `ColorFaceWindingNumbers(color)[f]` is the winding number of the subdiagram of color `color` around face `f`.
+ *
+ * Note that we do not really specify an external face, so these winding numbers are not uniquely defined. Moreover, if the diagram is not connected, one would have to pick an external face for each connected component. The algorithm chooses such external faces automatically depth-first traversal of the dual graph. For a connected diagram you can make face `f0` the external face by subtracting `ColorFaceWindingNumbers(color])[f0]` from `ColorFaceWindingNumbers(color])[f]` for all faces `f`.
+ *
+ *  Preconditions: This algorithm uses the class `MultiGraph_T` and works only if all arcs. This precondition can be satisfied by calling `Compress` first or by creating a new diagram with `CreateCompressed`."
+ *
+ *  @return If the routine succeeds, it returns a `Tensor1` object of size equal to the number of faces. If it fails (e.g., because the diagram is invalied or when the diagram contains inactive arcs), then an empty container is returned.
+ */
+cref<Tensor1<ToSigned<Int>,Int>> ColorFaceWindingNumbers( const Int color ) const
+{
+    TOOLS_PTIMER(timer,MethodName("ColorFaceWindingNumbers"));
+    
+    std::string tag = "ColorFaceWindingNumbers";
+    
+    if(!this->InCacheQ(tag)) { ComputeColorFaceWindingNumbers(); }
+    
+    using Count_T     = ToSigned<Int>;
+    using Container_T = AssociativeContainer<Int,Tensor1<Count_T,Int>>;
+    
+    const auto & a = this->template GetCache<Container_T>(tag);
+    
+    if( (color != InvalidColor) && (a.contains(color)) )
+    {
+        return a.at(color);
+    }
+    else
+    {
+        return a.at(InvalidColor);
+    }
+}
+
+private:
+    
+void ComputeColorFaceWindingNumbers() const
+{
+    using Count_T   = ToSigned<Int>;
+    using DedgeNode = MultiGraph_T::DedgeNode;
+    
+    AssociativeContainer<Int,Tensor1<Count_T,Int>> container;
+    
+    if( InvalidQ() )
+    {
+        this->SetCache("ColorFaceWindingNumbers",std::move(container));
+        return;
+    }
+    
+    if( ArcCount() != MaxArcCount() )
+    {
+        eprint(MethodName("ComputeColorFaceWindingNumbers") + ": Diagram contains deactivated arcs. This algorithm uses the class " + MultiGraph_T::ClassName() + " and works only if all arcs are active. We have to abort here. Try it again after you compressed the diagram with `Compress` or `CreateCompressed`.");
+        
+        this->SetCache("ColorFaceWindingNumbers",std::move(container));
+        return;
+    }
+    
+    ColorCounts_T color_arc_counts = ColorArcCounts();
+    const Int face_count = FaceCount();
+    
+    for( auto [col,count] : color_arc_counts )
+    {
+        container[col] = Tensor1<Count_T,Int> ( face_count, Count_T(0) );
+    }
+    
+    // CAUTION: We add a extra key to store the result to be returned in the case of a query to a nonexistent color.
+    container[InvalidColor] = Tensor1<ToSigned<Int>,Int>();
+    
+    MultiGraph_T G ( face_count, ArcFaces() );
+    
+    G.DepthFirstSearch(
+        MultiGraph_T::TrivialEdgeFunction,     // discover
+        MultiGraph_T::TrivialEdgeFunction,     // rediscover
+        [&container,this]( cref<DedgeNode> E ) // previsit
+        {
+            if( E.tail == MultiGraph_T::UninitializedVertex ) { return; }
+            
+            auto [e,d] = MultiGraph_T::FromDedge(E.de);
+            const Int e_col = A_color[e];
+            
+            for( auto & [col,w] : container )
+            {
+                if( col == InvalidColor ) { continue; }
+                
+                w[E.head] = w[E.tail] +
+                    ( (col != e_col) ? Count_T(0) : (d  ? Count_T(-1) : Count_T(1)) );
+                
+                // If d == Head, then we go from the right face of arc e to the left face. (Mind the slightly odd convention to place the right face first in a dual edge.)
+            }
+        },
+        MultiGraph_T::TrivialEdgeFunction      // postvisit
+    );
+    
+    this->SetCache("ColorFaceWindingNumbers", std::move(container));
 }

@@ -8,11 +8,14 @@ struct GlueData_T
     Int b   = Uninitialized; // arc of second diagram to be joined
 };
 
+/*!@brief Connect the diagrams to one big diagram (and possibly a few unlinks) according to their coloring. This routine works in-place.*/
 
 void Connect()
 {
     *this = this->ConnectedSum();
 }
+
+/*!@brief Return a new `PlanarDiagramComplex` in which all diagrams (except for a few unlinks) are connected according to their coloring.*/
 
 PDC_T ConnectedSum() const
 {
@@ -31,10 +34,9 @@ PDC_T ConnectedSum() const
 
     if constexpr ( debugQ )
     {
-        logprint("Step 1");
+        logprint("Step 1: For each diagram and each color that it contains, find and record an arc of that color. We also record all single-color diagrams and a \"representative\" for each color.");
     }
-    // Step 1: For each diagram and each color that it contains, find and record an arc of that color.
-    // We also record all single-color diagrams and a "representative" for each color.
+    
     for( Int i = 0; i < pd_count; ++i )
     {
         if constexpr ( debugQ )
@@ -150,27 +152,29 @@ PDC_T ConnectedSum() const
         logprint("Step 4: Do the surgery.");
     }
     
-    Int64 flag = 0;
+//    Int64 flag = 0;
+    if( !gluing_arc_pairs.empty() )
     {
         PD_T & pd_0 = pdc.pd_list[0];
         
         for( auto [a,b] : gluing_arc_pairs )
         {
-            // TODO: Is expensive as it recomputes ArcLinkComponents.
             if( a == b )
             {
-                wprint(MethodName("ConnectedSum")+": a == b.");
+                eprint(MethodName("ConnectedSum")+": a == b.");
                 continue;
             }
             
-            flag += (!pd_0.Connect(a,b));
+            // Connect(a,b) does many checks that are expensive as it frequently recomputes recomputes ArcLinkComponents; we better use ArcSwap_Private.
+//            flag += (!pd_0.Connect(a,b));
             
-            // When things are debugged use this, as it is much faster than Connect(a,b).
-//            pd_0.template ArcSwap_Private<Head>(a,b);
+            pd_0.template ArcSwap_Private<Head>(a,b);
         }
+        
+        pd_0.ClearCache();
     }
     
-    pdc.SetCache("ConnectedSumFlag",flag);
+//    pdc.SetCache("ConnectedSumFlag",flag);
     
     // Call Split() here?
     
@@ -178,14 +182,14 @@ PDC_T ConnectedSum() const
     return pdc;
 }
 
-Int64 ConnectedSumFlag() const
-{
-    if( this->InCacheQ("ConnectedSumFlag") )
-    {
-        return this->template GetCache<Int64>("ConnectedSumFlag");
-    }
-    else
-    {
-        return Int64(-1);
-    }
-}
+//Int64 ConnectedSumFlag() const
+//{
+//    if( this->InCacheQ("ConnectedSumFlag") )
+//    {
+//        return this->template GetCache<Int64>("ConnectedSumFlag");
+//    }
+//    else
+//    {
+//        return Int64(-1);
+//    }
+//}

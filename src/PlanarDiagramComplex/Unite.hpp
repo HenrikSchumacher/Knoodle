@@ -1,12 +1,18 @@
+/*!@brief Merge all diagrams into a `PlanarDiagram`. This routine works in-place.*/
+
 void Unite()
 {
     (*this) = this->Union();
 }
 
+/*!@brief Return a new `PlanarDiagramComplex` in which all diagrams are united in a single `PlanarDiagram`. */
+
 PDC_T Union() const
 {
     Tensor1<Int,Size_T> crossing_ptr ( DiagramCount() + Int(1) );
-    
+    crossing_ptr[0] = 0;    // seed the prefix sum; else crossing_ptr[0] is read
+                            // uninitialized below (as at the sibling *_ptr sites)
+
     const Size_T diagram_count = Size_T(DiagramCount());
     
     Int crossing_count = 0;

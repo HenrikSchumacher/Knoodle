@@ -1,5 +1,6 @@
 public:
 
+/*!@brief The number of link components.*/
 Int LinkComponentCount() const
 {
     const std::string tag = "LinkComponentCount";
@@ -8,11 +9,13 @@ Int LinkComponentCount() const
     return this->template GetCache<Int>(tag);
 }
 
+/*!@brief The number arcs in link components number `lc`.*/
 Int LinkComponentSize( const Int lc ) const
 {
     return LinkComponentArcs().SublistSize(lc);
 }
 
+/*!@brief Exposes the container that stores for each link component the list of arcs, ordered in the way they are traversed.*/
 cref<RaggedList<Int,Int>> LinkComponentArcs() const
 {
     const std::string tag = "LinkComponentArcs";
@@ -20,6 +23,7 @@ cref<RaggedList<Int,Int>> LinkComponentArcs() const
     return this->template GetCache<RaggedList<Int,Int>>(tag);
 }
 
+/*!@brief Exposes the container that stores for each arc to which link component it belongs.*/
 cref<Tensor1<Int,Int>> ArcLinkComponents() const
 {
     const std::string tag = "ArcLinkComponents";
@@ -27,6 +31,7 @@ cref<Tensor1<Int,Int>> ArcLinkComponents() const
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
+/*!@brief Exposes the container that stores for each arc at which place if appears in canonical ordering.*/
 cref<Tensor1<Int,Int>> ArcPositions() const
 {
     const std::string tag = "ArcPositions";
@@ -43,6 +48,8 @@ cref<ArcContainer_T> ArcTraversalFlags() const
 
 
 // TODO: Test this.
+
+/*!@brief Return the minimum number of hops needed to go from one of the arcs `a_0`, `a_1` to the other.*/
 Int ArcDistance( const Int a_0, const Int a_1 ) const
 {
     cptr<Int> A_lc  = ArcLinkComponents().data();
@@ -65,6 +72,7 @@ Int ArcDistance( const Int a_0, const Int a_1 ) const
     }
 }
 
+/*!@brief Make sure that the information with regard to link components is computed.*/
 void RequireLinkComponents() const
 {
     if(

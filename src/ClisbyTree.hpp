@@ -370,7 +370,7 @@ namespace Knoodle
             
             for( Int vertex = 0; vertex < n; ++vertex )
             {
-                const double angle = delta * vertex;
+                const double angle = delta * double(vertex);
                 
                 v[0] = radius * std::cos(angle);
                 v[1] = radius * std::sin(angle);
@@ -493,14 +493,14 @@ namespace Knoodle
                 + "\t" + TOOLS_MEM_DUMP_STRING(Base_T::N_ranges.AllocatedByteCount());
         }
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
     
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("ClisbyTree")
+            return std::string("ClisbyTree")
                 + "<" + Tools::ToString(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>

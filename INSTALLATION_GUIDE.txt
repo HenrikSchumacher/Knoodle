@@ -29,17 +29,43 @@ ONE-LINER INSTALLATION
 brew tap designbynumbers/cantarellalab && brew install git-lfs && git lfs install && brew install knoodle
 
 
+WINDOWS (WSL2)
+--------------
+Knoodle installs on Windows through WSL2 using Linuxbrew, the same way as on
+native Linux. A few WSL-specific notes:
+
+* Use WSL 2, not WSL 1. WSL 1 has known issues running Homebrew binaries.
+* Ubuntu 24.04 is recommended (Tier 1 Homebrew support); 22.04 also works.
+* Install Homebrew at its default prefix (/home/linuxbrew/.linuxbrew) and run
+  the build from your Linux home directory, NOT a Windows path under /mnt/c.
+* No GitHub SSH key is required: the formula clones Knoodle's submodules over
+  HTTPS automatically, so a fresh WSL2 box works out of the box.
+* The build compiles from source and is memory-heavy. WSL2 defaults to ~50% of
+  host RAM, so on a modest machine the compiler can be killed mid-build (you'll
+  see: internal compiler error: Killed (program cc1plus)). If that happens,
+  raise the memory limit: create C:\Users\<you>\.wslconfig containing
+
+    [wsl2]
+    memory=8GB
+    swap=8GB
+
+  then run "wsl --shutdown" in Windows PowerShell, reopen your distro, and retry
+  "brew install knoodle".
+
+
 IMPORTANT NOTES
 ---------------
 * Git LFS is required because Knoodle uses it to store large binary files
-* On Linux, this may take 20-30 minutes as it recompiles dependencies with 
-  LLVM/clang for ABI compatibility
-* The installation compiles from source for optimal performance on your CPU
+* The installation compiles Knoodle from source for optimal performance on your
+  CPU (-march=native), so Homebrew does not ship a precompiled bottle for it
+* On Linux this typically takes about 5-10 minutes. The C++ sources are
+  template-heavy, so the compile uses a noticeable amount of RAM (see the WSL2
+  note above if you are memory-constrained)
 
 
 WHY GIT LFS IS REQUIRED
 -----------------------
-Knoodle uses Git LFS to store large binary files efficiently. The installation 
+Knoodle uses Git LFS to store large binary files efficiently. The installation
 will fail with a clear error message if git-lfs is not installed first.
 
 
@@ -48,31 +74,40 @@ TROUBLESHOOTING
 Error: "git-lfs: command not found"
 → This means git-lfs is not installed. Follow the installation steps above.
 
-Error: Formula not found  
+Error: Formula not found
 → Make sure you've added the tap: brew tap designbynumbers/cantarellalab
 
-Build taking a long time on Linux
-→ This is normal! The formula recompiles dependencies with LLVM for best 
-  compatibility. Grab a coffee and wait for it to finish.
+Error: "internal compiler error: Killed (program cc1plus)"
+→ The compiler ran out of memory. On WSL2 raise the memory limit via .wslconfig
+  (see the WINDOWS (WSL2) section); on other systems free up RAM or add swap.
+
+Build taking a few minutes on Linux
+→ This is normal. Knoodle is compiled from source with CPU-specific
+  optimizations. Its Homebrew dependencies (boost, clp, metis, suite-sparse)
+  install as ordinary Homebrew packages.
 
 
 WHAT GETS INSTALLED
 -------------------
-* polyfold: Knot-tightening tool
-* knoodletool: Knot theory utilities  
-* Headers: Development headers in $(brew --prefix)/include/knoodle/
+* polyfold:          knot-tightening tool
+* knoodlesimplify:   simplify knot/link diagrams to PD codes
+* knoodledraw:       render diagrams as ASCII/Unicode art
+* knoodleidentify:   identify knot types via the KLUT
+* Headers:           development headers in $(brew --prefix)/include/knoodle/
 
 
 VERIFICATION
 ------------
 Test the installation:
 polyfold --help
-knoodletool --help
+knoodlesimplify --help
+knoodledraw --help
+knoodleidentify --help
 
 
 PERFORMANCE NOTES
 -----------------
-* Both tools are compiled with CPU-specific optimizations (-march=native)
-* On macOS: Uses clang with matrix extensions for maximum performance
-* On Linux: Uses Homebrew LLVM/clang for ABI safety and performance
-* Performance should be comparable between platforms
+* All tools are compiled with CPU-specific optimizations (-march=native)
+* On macOS: built with Apple Clang (a recent libc++ is required; very old macOS
+  / Xcode is not supported)
+* On Linux and WSL2: built with Homebrew's gcc for a recent C++ toolchain

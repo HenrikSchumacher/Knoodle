@@ -14,7 +14,12 @@ Size_T PDCodeCrossingCount() const
     return c_count;
 }
 
-template<IntQ T, PDCode_TArgs_T targs, bool color_warningQ = true>
+/*!@brief Write a pd code that describes the whole diagram complex to the buffer `pd_code`. */
+template<
+    IntQ T,
+    PDCode_TArgs_T targs = PDCode_TArgs_T{.signQ = true, .colorQ = true, .farfalleQ = true},
+    bool color_warningQ = true
+>
 void WritePDCode( mptr<T> pd_code ) const
 {
     static_assert( targs.farfalleQ == true, "This won't work correctly without farfalle." );
@@ -63,6 +68,7 @@ void WritePDCode( mptr<T> pd_code ) const
     }
 }
 
+/*!@brief Return a pd code that describes the whole diagram complex. */
 template<IntQ T, PDCode_TArgs_T targs = {.signQ = true, .colorQ = true, .farfalleQ = true}>
 Tensor2<T,Int> PDCode() const
 {
@@ -91,6 +97,7 @@ Tensor2<T,Int> PDCode() const
     return pd_code;
 }
 
+/*!@brief Return the pd code to an `OutString` object, that can be converted to various types of string. */
 template<PDCode_TArgs_T targs = {.signQ = true, .colorQ = true, .farfalleQ = true}>
 OutString ToPDCodeString() const
 {
@@ -103,6 +110,7 @@ OutString ToPDCodeString() const
     );
 }
 
+/*!@brief Write the pd code to the file specified by `file`, */
 template<PDCode_TArgs_T targs = {.signQ = true, .colorQ = true, .farfalleQ = true}>
 void ToPDCodeFile( cref<std::filesystem::path> file ) const
 {
@@ -111,6 +119,7 @@ void ToPDCodeFile( cref<std::filesystem::path> file ) const
     stream << ToPDCodeString<targs>();
 }
 
+/*!@brief Construct from a pd code of length `crossing_count` stored in the buffer `pd_code`.*/
 template<FromPDCode_TArgs_T targs = {.signQ = true, .colorQ = true}, IntQ T, IntNotBoolQ ExtInt>
 static PDC_T FromPDCode(
     cptr<T> pd_code,
@@ -124,6 +133,7 @@ static PDC_T FromPDCode(
     
     return pdc;
 }
+
 
 template<IntQ T, IntNotBoolQ ExtInt, IntNotBoolQ ExtInt2>
 static PDC_T FromPDCode(
@@ -140,6 +150,7 @@ static PDC_T FromPDCode(
     return pdc;
 }
 
+/*!@brief Construct from a pd code stored in an instance of `InString` (which can be constructed from different string representations).*/
 static PDC_T FromPDCodeString( mref<InString> s, const bool splitQ = true )
 {
     PDC_T pdc ( PD_T::FromPDCodeString( s, false, false ) );
@@ -149,6 +160,7 @@ static PDC_T FromPDCodeString( mref<InString> s, const bool splitQ = true )
     return pdc;
 }
 
+/*!@brief Read from a pd code stored in the file indicated by `file`.*/
 static PDC_T FromPDCodeFile( cref<std::filesystem::path> file, const bool splitQ = true )
 {
     InString s ( file );

@@ -26,7 +26,7 @@ MatrixTripleContainer_T<Int,ToSigned<Int>> LinkingNumbers() const
                     if( i != j )
                     {
                         const I val = static_cast<I>(ToUnderlying(pd.C_state[c]));
-                        AddTo( lut, {i,j}, val );
+                        Increment( lut, {i,j}, val );
                     }
                 }
             }
@@ -59,8 +59,7 @@ Sparse::MatrixCSR<ToSigned<Int>,Int,Int,Sequential> LinkingMatrix() const
         Int k = 0;
         for( auto & x : lut )
         {
-            i[k] = x.first.i;
-            j[k] = x.first.j;
+            std::tie(i[k],j[k]) = x.first;
             a[k] = x.second;
             ++k;
         }

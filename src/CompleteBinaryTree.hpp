@@ -12,7 +12,6 @@ namespace Knoodle
     >
     class CompleteBinaryTree : public CachedObject<1,0,0,0>
     {
-//        static_assert(SignedIntQ<Int_>,"");
         
     public:
         
@@ -46,8 +45,6 @@ namespace Knoodle
             , end       { end_      }
             {}
         };
-        
-        // TODO: What to do if leaf_node_count_ == 0?
         
         explicit CompleteBinaryTree( const Int leaf_node_count_  )
         :         leaf_node_count { int_cast<Int>(leaf_node_count_)                                   }
@@ -121,7 +118,7 @@ namespace Knoodle
         Int int_node_count = 0;
 
         Int last_row_begin = 0;
-//        
+        
         Int offset = 0;
 
         Tiny::VectorList_AoS<2,Int,Int> N_ranges;
@@ -580,7 +577,7 @@ namespace Knoodle
             BreakEarly      = 2
         };
         
-        static std::string ToString( DFS mode )
+        static constexpr std::string ToString( DFS mode )
         {
             switch( mode )
             {
@@ -620,7 +617,7 @@ namespace Knoodle
             const Int start_node = Uninitialized
         )
         {
-            TOOLS_PTIMER(timer,ClassName()+"::DepthFirstSearch"
+            TOOLS_PTIMER(timer,MethodName("DepthFirstSearch")
                 + "<" + ToString(mode)
                 + ">" );
             
@@ -726,8 +723,8 @@ namespace Knoodle
             const Int start_node = Uninitialized
         )
         {
-            constexpr Int stack_max_size = 2 * max_depth + 1;
-            constexpr Int stack_limit    = stack_max_size - 2;
+            constexpr Int stack_max_size = Int(2) * max_depth + Int(1);
+            constexpr Int stack_limit    = stack_max_size - Int(2);
             
             Int stack [stack_max_size];
             Int stack_ptr = 0;
@@ -799,7 +796,7 @@ namespace Knoodle
             
             if( stack_ptr >= stack_max_size )
             {
-                eprint(ClassName()+"::DepthFirstSearch_ManualStack: Stack overflow.");
+                eprint(MethodName("DepthFirstSearch_ManualStack")+": Stack overflow.");
             }
         }
         
@@ -898,14 +895,14 @@ namespace Knoodle
             return sizeof(CompleteBinaryTree) + AllocatedByteCount();
         }
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("CompleteBinaryTree")
+            return std::string("CompleteBinaryTree")
                 + "<" + TypeName<Int>
                 + "," + Tools::ToString(precompute_rangesQ)
                 + "," + Tools::ToString(use_manual_stackQ)

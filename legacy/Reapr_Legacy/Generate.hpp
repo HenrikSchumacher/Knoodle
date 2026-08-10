@@ -1,16 +1,3 @@
-//template<typename T>
-//struct hash
-//{
-//    inline Size_T operator()( cref<T> x_0 ) const
-//    {
-//        Size_T x = static_cast<Size_T>(x_0);
-//        x = (x ^ (x >> 30)) * Size_T(0xbf58476d1ce4e5b9);
-//        x = (x ^ (x >> 27)) * Size_T(0x94d049bb133111eb);
-//        x =  x ^ (x >> 31);
-//        return static_cast<Size_T>(x);
-//    }
-//};
-
 template<typename T, typename I>
 struct Tensor1Hash
 {
@@ -24,7 +11,7 @@ struct Tensor1Hash
         
         for( I i = 0; i < n; ++i )
         {
-            Tools::hash_combine(seed,v[i]);
+            Tools::HashCombine(seed,v[i]);
         }
         
         return seed;
@@ -39,10 +26,6 @@ using CodeSet_T    = SetContainer<Code_T,Hash_T>;
 
 // 0 can never occur as entry of a MacLeodCode, so we can use it as filler.
 static constexpr CodeInt code_filler = CodeInt(0);
-
-//using CodeCounts_T = std::unordered_map<Code_T,Size_T,Hash_T>;
-
-
 
 private:
 

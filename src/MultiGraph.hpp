@@ -5,6 +5,17 @@ namespace Knoodle
     // TODO: Make this ready for unsigned integers.
 
     
+    /*!@brief A class for undirected multi-graphs.
+     *
+     * @tparam VInt_ Integral type for vertex indices.
+     *
+     * @tparam EInt_ Integral type for edge indices.
+     *
+     * @tparam Sign_T_ Singed integral type to store signedness information.
+     *
+     * @tparam parQ_ Whether to use `Parallel_T::Sequential` or `Parallel_T::Parallel` mode. Parallelism is currently not supported. We keep this here for future use.
+     */
+    
     template<
         typename VInt_   = Int64,
         typename EInt_   = VInt_,
@@ -138,6 +149,10 @@ namespace Knoodle
         
     public:
         
+        /*!@brief Compute the undirected adjacency matrix.
+         *
+         * @tparam Scal Signed integral type used for the entries of the matrix.
+         */
         template<typename Scal = ToSigned<EInt>>
         cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>> AdjacencyMatrix() const
         {
@@ -146,6 +161,10 @@ namespace Knoodle
             return this->template UndirectedAdjacencyMatrix<Scal>();
         }
         
+        /*!@brief Compute the graph Laplacian.
+         *
+         * @tparam Scal Signed integral type used for the entries of the matrix.
+         */
         template<typename Scal = ToSigned<EInt>>
         cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>> Laplacian() const
         {
@@ -213,14 +232,14 @@ namespace Knoodle
         
     public:
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
                 
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("MultiGraph")
+            return std::string("MultiGraph")
                 + "<" + TypeName<VInt>
                 + "," + TypeName<EInt>
                 + "," + TypeName<Sign_T>

@@ -23,6 +23,7 @@
 #include "knoodle_io.hpp"
 
 #include <cmath>
+#include <cstdio>
 #include <filesystem>
 #include <limits>
 #include <map>
@@ -47,6 +48,7 @@ struct Config
     std::vector<std::string> highlight_specs;  // raw "--highlight=..." values
     bool randomize_projection = false;
     bool ascii_mode           = false;
+    bool wolfram_mode         = false;  // --format=wl : emit WL geometry association
     bool help_requested       = false;
     bool label_crossings      = false;
     bool label_arcs           = false;
@@ -64,6 +66,7 @@ struct Config
     std::optional<Int> x_rounding_radius;
     std::optional<Int> y_rounding_radius;
     std::optional<int> randomize_bends;
+    std::optional<Int> exterior_face;  // which face OrthoDraw lays out as unbounded (nullopt = auto)
 
     // Boolean options (nullopt = use default/preset)
     std::optional<bool> redistribute_bends;
@@ -73,6 +76,8 @@ struct Config
     std::optional<bool> filter_saturating_edges;
     std::optional<bool> randomize_virtual_edges;
     std::optional<bool> dual_simplex;
+
+    bool checkerboard_coloring = false;
 };
 
 enum class HighlightType : uint8_t { None = 0, Arc = 1, Crossing = 2, Face = 3 };
@@ -120,12 +125,15 @@ void PrintUsage()
     std::cerr << "  --ascii                     Use plain ASCII output (default: Unicode box-drawing)\n";
     std::cerr << "  --highlight=ELEMENTS        Highlight elements (a=arc, c=crossing, f=face)\n";
     std::cerr << "                              e.g. --highlight=\"a0,c3,f2\"; multiple flags allowed\n";
+    std::cerr << "  --checkerboard-coloring     Highlight alternating faces (checkerboard pattern)\n";
     std::cerr << "\n";
     std::cerr << "Algorithm options:\n";
     std::cerr << "  --bend-method=METHOD        mcf (default), clp\n";
     std::cerr << "  --compaction=METHOD         topo-number, topo-order, length-mcf (default),\n";
     std::cerr << "                              length-clp, area-clp\n";
     std::cerr << "  --randomize-bends=N         [experimental] Randomization rounds (default: 0)\n";
+    std::cerr << "  --exterior-face=N           Face to lay out as the unbounded exterior region\n";
+    std::cerr << "                              (0-based; default: auto, the largest face)\n";
     std::cerr << "\n";
     std::cerr << "Boolean tuning (--flag / --no-flag):\n";
     std::cerr << "  redistribute-bends (on)     Redistribute bends after optimization\n";
@@ -264,6 +272,20 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.ascii_mode = true;
         }
+        // Output format: unicode (default), ascii, or wl (Wolfram geometry association)
+        else if (arg.starts_with("--format="))
+        {
+            std::string val(arg.substr(9));
+            if (val == "wl" || val == "wolfram") { config.wolfram_mode = true; }
+            else if (val == "ascii")             { config.ascii_mode = true; }
+            else if (val == "unicode")           { /* default (Unicode box-drawing) */ }
+            else
+            {
+                std::cerr << "Error: Unknown --format value: " << val << "\n";
+                std::cerr << "  Valid: unicode, ascii, wl\n";
+                return std::nullopt;
+            }
+        }
         // Randomize projection
         else if (arg == "--randomize-projection")
         {
@@ -353,6 +375,18 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             auto val = ParsePositiveInt(arg.substr(20));
             if (!val) { std::cerr << "Error: Invalid y-rounding-radius value\n"; return std::nullopt; }
             config.y_rounding_radius = *val;
+        }
+        // Exterior face
+        else if (arg.starts_with("--exterior-face="))
+        {
+            auto val = ParseNonNegativeInt(arg.substr(16));
+            if (!val) { std::cerr << "Error: Invalid exterior-face value\n"; return std::nullopt; }
+            config.exterior_face = static_cast<Int>(*val);
+        }
+        // Checkerboard coloring
+        else if (arg == "--checkerboard-coloring" || arg == "--checkerboardcoloring")
+        {
+            config.checkerboard_coloring = true;
         }
         // Highlight specification
         else if (arg.starts_with("--highlight="))
@@ -586,8 +620,28 @@ std::string UnicodeifyDiagram(const std::string& ascii,
                 if (hl_mask && mi < hl_mask->size()
                     && (*hl_mask)[mi] != HighlightType::None)
                 {
+                    auto ht = (*hl_mask)[mi];
+
+                    // Face highlight is a background color — compose it
+                    // with the foreground component color if available,
+                    // so arc labels in highlighted faces keep their color.
+                    if (ht == HighlightType::Face
+                        && comp_map && mi < comp_map->size()
+                        && (*comp_map)[mi] >= 0)
+                    {
+                        int lc = static_cast<int>((*comp_map)[mi]);
+                        int fg = COMPONENT_COLORS[lc % NUM_COMPONENT_COLORS];
+                        result += COLOR_FACE;
+                        result += "\033[38;5;";
+                        result += std::to_string(fg);
+                        result += "m";
+                        result += char_out;
+                        result += COLOR_RESET;
+                        continue;
+                    }
+
                     const char* color = "";
-                    switch ((*hl_mask)[mi])
+                    switch (ht)
                     {
                         case HighlightType::Arc:      color = COLOR_ARC;      break;
                         case HighlightType::Crossing: color = COLOR_CROSSING; break;
@@ -1974,9 +2028,208 @@ bool ValidateSettingsCombinations(const OrthoDraw_T::Settings_T& settings)
 //==============================================================================
 
 /**
- * @brief Draw all summands of a knot to stdout.
+ * @brief Emit one diagram's OrthoDraw layout as a Wolfram Language association:
+ *        <| "BoundingBox"->{w,h},
+ *           "Arcs"->{ <|"Id"->a,"Component"->c,"Color"->k,"Points"->{{x,y},..}|>, .. },
+ *           "Crossings"->{ <|"Id"->c,"Pos"->{x,y}|>, .. },
+ *           "Faces"->{ <|"Id"->f,"Exterior"->True|False,"Color"->±1,"Boundary"->{{x,y},..}|>, .. } |>
+ *
+ * Arcs: each is its routed polyline of integer grid points. The over/under gaps
+ * are already baked into ArcLines() (the under-strand is inset at each
+ * crossing), so rendering the polylines directly yields correct
+ * broken-under-strand crossings. "Component" is a per-summand topological
+ * renumbering (ArcLinkComponents, restarts at 0 each summand); "Color" is the
+ * raw wire color (ArcColors) identifying the physical link component across all
+ * summands of a drawing call (uncolored input defaults to 0; the key is present
+ * for any real color and omitted only for the Uninitialized sentinel).
+ *
+ * Crossings: grid position of each active crossing (crossings are vertices
+ * [0, MaxCrossingCount()) in VertexCoordinates()).
+ *
+ * Faces: boundary of EVERY face, including the exterior one (flagged
+ * "Exterior"->True; its boundary is the outer silhouette of the whole
+ * diagram, needed for exterior-face label placement), as a closed point
+ * cycle, plus its two-coloring from CheckerBoardColoring(). Boundaries are
+ * built from ArcVertices() (the RAW, un-gapped vertex-index path per arc) and
+ * VertexCoordinates() rather than from ArcLines() -- ArcLines()'s under-strand
+ * gap inset is correct for drawing broken strands, but would leave a notch in
+ * a filled face polygon at every crossing.
+ *
+ * Parses via ToExpression.
  */
-bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
+void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out)
+{
+    const auto& A_lines  = H.ArcLines();
+    const auto& A_verts  = H.ArcVertices();
+    const auto& V_coords = H.VertexCoordinates();
+    const Int*  comp     = pd.ArcLinkComponents().data();
+
+    out << "<|\"BoundingBox\"->{" << H.Width() << "," << H.Height() << "},\"Arcs\"->{";
+
+    bool first_arc = true;
+    for (Int a = 0; a < H.MaxArcCount(); ++a)
+    {
+        if (!H.EdgeActiveQ(a)) { continue; }
+
+        auto sublist = A_lines[a];
+        if (sublist.end() - sublist.begin() < 2) { continue; }
+
+        out << (first_arc ? "" : ",")
+            << "<|\"Id\"->" << a
+            << ",\"Component\"->" << comp[a];
+        // Raw wire color (ArcColors) identifies which physical link component
+        // the arc belongs to -- unlike "Component" (ArcLinkComponents), a
+        // per-summand topological renumbering that restarts at 0 in every
+        // summand, so connect-sum factors of a one-component knot all read
+        // "Component"->0 yet share one wire color. Active arcs normally carry a
+        // real color (uncolored input still defaults to 0), so the key is
+        // effectively always present; the guard only suppresses the
+        // Uninitialized sentinel (-1) so it is never emitted as a bogus color
+        // class -- faces legitimately use -1 for their checkerboard sign.
+        // Absence of the key therefore means an older binary; downstream falls
+        // back to per-summand "Component" runs in that case.
+        const Int wire_color = pd.ArcColors()[a];
+        if (wire_color != PD_T::Uninitialized) { out << ",\"Color\"->" << wire_color; }
+        out << ",\"Points\"->{";
+        first_arc = false;
+
+        bool first_pt = true;
+        for (auto it = sublist.begin(); it != sublist.end(); ++it)
+        {
+            out << (first_pt ? "" : ",") << "{" << (*it)[0] << "," << (*it)[1] << "}";
+            first_pt = false;
+        }
+        out << "}|>";
+    }
+    out << "},\"Crossings\"->{";
+
+    bool first_c = true;
+    for (Int c = 0; c < H.MaxCrossingCount(); ++c)
+    {
+        if (!pd.CrossingActiveQ(c)) { continue; }
+        out << (first_c ? "" : ",")
+            << "<|\"Id\"->" << c
+            << ",\"Pos\"->{" << V_coords(c,0) << "," << V_coords(c,1) << "}|>";
+        first_c = false;
+    }
+    out << "},\"Faces\"->{";
+
+    // CheckerBoardColoring() mutates cache state and needs a non-const PD_T, so
+    // work on a copy; face ids match H's (OrthoDraw is built directly from pd).
+    PD_T pd_copy = pd;
+    auto coloring = pd_copy.CheckerBoardColoring();
+    const bool have_color = (coloring.Dimension(0) == H.FaceCount());
+
+    const auto& F_dA = H.FaceDarcs();
+    const Int   ext  = H.ExteriorFace();
+
+    bool first_f = true;
+    for (Int f = 0; f < H.FaceCount(); ++f)
+    {
+        out << (first_f ? "" : ",")
+            << "<|\"Id\"->" << f
+            << ",\"Exterior\"->" << (f == ext ? "True" : "False")
+            << ",\"Color\"->" << (have_color ? int(coloring[f]) : 0)
+            << ",\"Boundary\"->{";
+        first_f = false;
+
+        std::vector<Int> darc_list(F_dA[f].begin(), F_dA[f].end());
+        const Int m = static_cast<Int>(darc_list.size());
+
+        bool first_pt = true;
+        Int  prev_end_vertex = Int(-1);   // vertex the previous darc's walk ended on
+
+        for (Int i = 0; i < m; ++i)
+        {
+            const Int da = darc_list[i];
+            const Int a  = da / Int(2);
+            const Int d  = da % Int(2);
+
+            auto vsub = A_verts[a];
+            std::vector<Int> vidx(vsub.begin(), vsub.end());
+            const Int n = static_cast<Int>(vidx.size());
+            if (n < 1) { continue; }
+
+            auto emit_vertex = [&](Int v)
+            {
+                out << (first_pt ? "" : ",")
+                    << "{" << V_coords(v,0) << "," << V_coords(v,1) << "}";
+                first_pt = false;
+            };
+
+            // Orient this arc's raw vertex path so it continues from wherever the
+            // previous darc's walk left off, verified by vertex-index equality --
+            // rather than trusting an inferred Tail/Head "forward means stored
+            // order" convention (that produced spurious jumps across faces in
+            // testing: a face's darc order need not alternate Tail/Head in a way
+            // that maps to a fixed forward/backward rule).
+            bool forwardQ;
+            if (prev_end_vertex >= Int(0))
+            {
+                if      (vidx.front() == prev_end_vertex) { forwardQ = true;  }
+                else if (vidx.back()  == prev_end_vertex) { forwardQ = false; }
+                else
+                {
+                    Knoodle::eprint("EmitWolframGeometry: face " + Knoodle::ToString(f)
+                         + " darc for arc " + Knoodle::ToString(a)
+                         + " does not connect to the previous vertex "
+                         + Knoodle::ToString(prev_end_vertex) + "; face boundary may be wrong.");
+                    forwardQ = (d == Int(PD_T::Tail));
+                }
+            }
+            else if (i + 1 < m)
+            {
+                // First darc of a multi-darc face: nothing to connect to yet, so
+                // orient by which endpoint is shared with the NEXT darc's arc.
+                auto vsub_next = A_verts[darc_list[i + 1] / Int(2)];
+                std::vector<Int> vnext(vsub_next.begin(), vsub_next.end());
+                auto sharesQ = [&](Int v) {
+                    return !vnext.empty() && (vnext.front() == v || vnext.back() == v);
+                };
+                if      (sharesQ(vidx.back()))  { forwardQ = true;  }
+                else if (sharesQ(vidx.front())) { forwardQ = false; }
+                else                            { forwardQ = (d == Int(PD_T::Tail)); } // shouldn't happen
+            }
+            else
+            {
+                // Single-darc face (one arc's own loop bounds it): direction is
+                // irrelevant to the resulting polygon.
+                forwardQ = (d == Int(PD_T::Tail));
+            }
+
+            if (forwardQ)
+            {
+                for (Int k = (first_pt ? 0 : 1); k < n; ++k) { emit_vertex(vidx[k]); }
+                prev_end_vertex = vidx[n - 1];
+            }
+            else
+            {
+                for (Int k = (first_pt ? n - 1 : n - 2); k >= 0; --k) { emit_vertex(vidx[k]); }
+                prev_end_vertex = vidx[0];
+            }
+        }
+        out << "}|>";
+    }
+    out << "}|>\n";
+}
+
+/**
+ * @brief Draw all summands of a knot to stdout.
+ *
+ * unknot_colors has one entry per bare unknot (0-crossing) summand that
+ * accompanied `summands` in the input -- ReadKnot() strips these out of the
+ * PD_T vector entirely (there is nothing to build an OrthoDraw diagram from),
+ * tracking only their color (PD_T::Uninitialized if unknown -- the plain
+ * bare-'s' TSV convention cannot represent one; a real color comes from the
+ * PDC-native 'u <color>' input format). In --format=wl mode we still owe the
+ * caller one line per summand, trivial or not, so each is emitted as a
+ * <|"Unknot"->True|> marker (plus "Component"->color when known) after the
+ * drawn summands. Order relative to the non-trivial summands isn't preserved
+ * by the parser (nor is it topologically meaningful for a connect-sum/split
+ * decomposition).
+ */
+bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
+              const std::vector<Int>& unknot_colors = {})
 {
     OrthoDraw_T::Settings_T settings = BuildSettings(config);
 
@@ -1985,16 +2238,23 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
 
     bool has_labels = config.label_crossings || config.label_arcs
                    || config.label_faces || config.label_components;
-    bool has_highlights = !config.highlight_specs.empty();
+    bool has_highlights = !config.highlight_specs.empty() || config.checkerboard_coloring;
 
     for (std::size_t i = 0; i < summands.size(); ++i)
     {
-        if (i > 0)
+        if (i > 0 && !config.wolfram_mode)
         {
             std::cout << "s\n";
         }
 
-        OrthoDraw_T H(summands[i], Int(-1), settings);
+        OrthoDraw_T H(summands[i], config.exterior_face ? *config.exterior_face : Int(-1), settings);
+
+        if (config.wolfram_mode)
+        {
+            EmitWolframGeometry(H, summands[i], std::cout);
+            continue;
+        }
+
         std::string diagram = H.DiagramString();
 
         // Virtual edges are drawn as '.' by DiagramString().
@@ -2016,11 +2276,28 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
 
             // Parse highlight specs
             HighlightSet highlights;
-            if (has_highlights)
+            if (!config.highlight_specs.empty())
             {
                 highlights = ParseHighlightSpecs(
                     config.highlight_specs,
                     H.MaxArcCount(), H.MaxCrossingCount(), H.FaceCount());
+            }
+
+            // Add checkerboard face highlights
+            if (config.checkerboard_coloring)
+            {
+                PD_T pd_copy = summands[i];
+                auto coloring = pd_copy.CheckerBoardColoring();
+                if (coloring.Dimension(0) > 0)
+                {
+                    for (Int f = 0; f < coloring.Dimension(0); ++f)
+                    {
+                        if (coloring[f] == 1)
+                        {
+                            highlights.faces.insert(f);
+                        }
+                    }
+                }
             }
 
             // Build face map if needed (for face labels OR face highlights)
@@ -2107,6 +2384,25 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
 
         std::cout << diagram << "\n";
     }
+
+    if (config.wolfram_mode)
+    {
+        for (Int color : unknot_colors)
+        {
+            std::cout << "<|\"Unknot\"->True";
+            if (color != PD_T::Uninitialized)
+            {
+                // `color` here is the raw wire color, so emit it under "Color"
+                // too -- this makes the unknot marker agree with arc records on
+                // what "Color" means, while "Component" stays for older
+                // consumers that keyed off it.
+                std::cout << ",\"Component\"->" << color
+                          << ",\"Color\"->" << color;
+            }
+            std::cout << "|>\n";
+        }
+    }
+
     return true;
 }
 
@@ -2143,7 +2439,7 @@ bool ProcessStream(std::istream& input,
             std::cout << "k\n";
         }
 
-        if (!DrawKnot(input_knot->summands, config)) return false;
+        if (!DrawKnot(input_knot->summands, config, input_knot->unknot_colors)) return false;
         any_drawn = true;
     }
 
@@ -2156,6 +2452,17 @@ bool ProcessStream(std::istream& input,
 bool ProcessXYZFile(const std::string& filepath, const Config& config)
 {
     LinkEmb_T link = LinkEmb_T::ReadFromFile(std::filesystem::path(filepath));
+
+    if (config.randomize_projection)
+    {
+        // Rotate the whole embedding at once (not each component independently,
+        // which would distort the link's actual geometric arrangement) with a
+        // proper random rotation -- the same mechanism already used elsewhere
+        // (PlanarDiagramComplex/Simplify.hpp: emb.Rotate(reapr.RandomRotation())).
+        Reapr_T reapr;
+        link.Rotate(reapr.RandomRotation());
+    }
+
     PDC_T pdc(std::move(link));
 
     if (pdc.DiagramCount() == 0)
@@ -2164,13 +2471,30 @@ bool ProcessXYZFile(const std::string& filepath, const Config& config)
         return false;
     }
 
+    // A trivial (0-crossing, unknot) diagram in the complex must NOT reach
+    // OrthoDraw_T's constructor -- unlike the streaming/ReadKnot path (which
+    // already separates these into unknot_colors before any diagram is
+    // built), pdc.Diagram(i) here can be trivial, and constructing an OrthoDraw
+    // from a 0-crossing PlanarDiagram crashes. Filter it out here instead, the
+    // same way ReadKnot does -- and since .kndlxyz components are colored
+    // automatically (by component order), each trivial diagram's color is
+    // recorded rather than discarded.
     std::vector<PD_T> summands;
+    std::vector<Int>  unknot_colors;
     for (Int i = 0; i < pdc.DiagramCount(); ++i)
     {
-        summands.push_back(PD_T(pdc.Diagram(i)));
+        PD_T pd(pdc.Diagram(i));
+        if (pd.CrossingCount() > Int(0))
+        {
+            summands.push_back(std::move(pd));
+        }
+        else
+        {
+            unknot_colors.push_back(pd.FirstColor());
+        }
     }
 
-    return DrawKnot(summands, config);
+    return DrawKnot(summands, config, unknot_colors);
 }
 
 } // anonymous namespace
@@ -2181,6 +2505,13 @@ bool ProcessXYZFile(const std::string& filepath, const Config& config)
 
 int main(int argc, char* argv[])
 {
+    // Count the library's "ERROR: " lines for the whole run, so a diagram the
+    // core has disclaimed cannot be drawn and reported as a success. knoodledraw
+    // writes only to stdout, so unlike knoodlesimplify there is no file to
+    // withhold -- the nonzero exit and the notice below are the whole contract.
+    CerrErrorTap cerr_tap;
+    g_cerr_tap = &cerr_tap;
+
     // Parse command line
     auto config_opt = ParseArguments(argc, argv);
     if (!config_opt)
@@ -2196,6 +2527,18 @@ int main(int argc, char* argv[])
         return EXIT_SUCCESS;
     }
 
+    // knoodledraw writes its drawing to stdout and never to a file, so rule 1
+    // (put diagnostics beside the output file) never applies -- it is rule 2
+    // every time: a per-process directory under the system temp dir.
+    //
+    // This tool never calls Simplify, so it cannot produce the library's Rattle
+    // bundles. It still needs the directory, because WriteDiagnosticReport reads
+    // g_diagnostic_dir and otherwise falls back to the working directory -- which
+    // for a Wolfram kernel is the user's notebook directory or home.
+    const std::filesystem::path diag_dir =
+        ChooseDiagnosticDir("knoodledraw", /*streaming_mode=*/true, std::nullopt);
+    const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
+
     // Initialize random number generator
     Knoodle::PRNG_T rng = Knoodle::InitializedRandomEngine<Knoodle::PRNG_T>();
 
@@ -2203,7 +2546,13 @@ int main(int argc, char* argv[])
 
     if (config.input_files.empty())
     {
-        // No input files — read from stdin (Unix filter mode)
+        // No input files — read from stdin (Unix filter mode). If stdin is an
+        // interactive terminal, say so, so a bare invocation does not look hung.
+        if (StdinIsInteractive())
+        {
+            std::cerr << "knoodledraw: reading diagrams from stdin (Ctrl-D to end). "
+                         "Pipe a stream or pass a file; --help for usage.\n";
+        }
         success = ProcessStream(std::cin, "stdin", config, rng);
     }
     else
@@ -2251,6 +2600,36 @@ int main(int argc, char* argv[])
             }
         }
     }
+
+    if (ErrorsSeen())
+    {
+        std::cerr << "\nknoodledraw: " << ErrorSummary()
+                  << " during this run -- the drawing above is UNRELIABLE"
+                     " (the library discards diagrams it has flagged as invalid).\n";
+
+        std::string invocation;
+        for (int i = 0; i < argc; ++i)
+        {
+            invocation += (i ? " " : "");
+            invocation += argv[i];
+        }
+
+        const auto report = WriteDiagnosticReport("knoodledraw", {
+            { "command line", "  " + invocation + "\n" },
+            { "what to send", "  This file, plus the input that produced it.\n" },
+        });
+
+        if (!report.empty())
+        {
+            std::cerr << "Wrote a diagnostic report to " << report.string()
+                      << " -- please send it with any bug report.\n";
+        }
+
+        FinishDiagnostics(diag_dir, bundles_before, "knoodledraw", true);
+        return EXIT_FAILURE;
+    }
+
+    FinishDiagnostics(diag_dir, bundles_before, "knoodledraw", !success);
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }

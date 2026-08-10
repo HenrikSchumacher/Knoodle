@@ -16,6 +16,7 @@ namespace Knoodle
             case DijkstraStrategy_T::Unidirectional : return "Unidirectional";
             case DijkstraStrategy_T::Alternating    : return "Alternating";
             case DijkstraStrategy_T::Bidirectional  : return "Bidirectional";
+            default                                 : return "Unknown";
         }
     }
     
@@ -76,9 +77,9 @@ namespace Knoodle
         using ArcData_Vector2List_T = Tiny::VectorList_AoS<2,Int,Int>;
         using ArcData_HashMap2_T      = AssociativeContainer<Int,std::array<Int,2>>;
         
-//        using ArcData_HashMap2_T      = std::unordered_map<Int,std::array<Int,2>>;
-//        using ArcData_HashMap1_T      = std::unordered_map<Int,Int>;
-//        using ArcData_HashMapStruct_T = std::unordered_map<Int,DualArc_T>;
+//        using ArcData_HashMap2_T      = AssociativeContainer<Int,std::array<Int,2>>;
+//        using ArcData_HashMap1_T      = AssociativeContainer<Int,Int>;
+//        using ArcData_HashMapStruct_T = AssociativeContainer<Int,DualArc_T>;
         
         using ArcDataContainer_T    = ArcData_Vector2List_T;
 //        using ArcDataContainer_T    = ArcData_HashMap2_T;
@@ -96,9 +97,9 @@ namespace Knoodle
         
     private:
 
-        PDC_T & restrict pdc;
+        PDC_T & TOOLS_RESTRICT pdc;
 
-        PD_T  * restrict pd = nullptr;
+        PD_T  * TOOLS_RESTRICT pd = nullptr;
 
         Int    max_crossing_count = 0;
         Int    max_arc_count      = 0;
@@ -116,7 +117,7 @@ namespace Knoodle
         
         ArcDataContainer_T D_data;  // Two Int per (dual) arc: The first one stores the current marker and some bits for left/right direction and one for traversal backward/forward direction.
         
-        Int * restrict dA_left;
+        Int * TOOLS_RESTRICT dA_left;
         
 //        Tensor1<Int,Int> path;
         Path_T  path_0;
@@ -306,7 +307,7 @@ namespace Knoodle
 #include "PassSimplifier/FindPass.hpp"
 #include "PassSimplifier/FindPass_HandleLoop.hpp"
 #include "PassSimplifier/SimplifyPasses.hpp"
-#include "PassSimplifier/SimplifyStrands.hpp"
+//#include "PassSimplifier/SimplifyStrands.hpp"
         
 //#include "PassSimplifier/SimplifyLocal.hpp" // Only meant for debugging.
         
@@ -371,14 +372,14 @@ namespace Knoodle
     
     public:
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("PassSimplifier")
+            return std::string("PassSimplifier")
                 + "<" + TypeName<Int>
                 + ">";
         }

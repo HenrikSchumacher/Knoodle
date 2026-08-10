@@ -79,3 +79,22 @@ test/build/
 
 # Markdown files
 *.md 
+doc/*
+
+<<<<<<< HEAD
+# user-specific XCode data
+*.xcuserstate
+*.xcodeproj/xcuserdata/*
+*.xcworkspace/
+xcuserdata/
+=======
+doc/*
+doc.html
+
+*.xcuserstate
+*.xcodeproj/xcuserdata/*
+*.xcuserstate
+*.xcworkspace/
+xcuserdata/
+
+>>>>>>> 0cc297a73078bea7c48f2defcefe73daa5edc68c

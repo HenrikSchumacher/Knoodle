@@ -3,6 +3,37 @@
 Bugs we've found reading/using the core library. Each needs a minimal repro
 before filing. Status: `found` → `confirmed` → `filed` → `fixed upstream`.
 
+## 2. `Alexander_UMFPACK::Alexander` (single-value overload) takes outputs by value
+
+**Status:** found 2026-06-13 (writing `test/inflate_check.cpp`).
+**Severity:** the single-value overload silently can't return its result;
+callers get uninitialized `mantissa`/`exponent`. The batch overload is fine.
+
+`src/KnotInvariants/Alexander_UMFPACK.hpp:93-100`:
+
+```cpp
+template<typename ExtScal, IntQ ExtInt>
+void Alexander(
+    cref<PD_T> pd,
+    ExtScal arg,
+    ExtScal mantissa,    // <-- by value: result is discarded
+    ExtInt  exponent,    // <-- by value: result is discarded
+    bool multiply_toQ
+) const
+```
+
+`mantissa` and `exponent` are outputs but are passed **by value**, so the
+computed values never reach the caller. **Fix:** make them references —
+`ExtScal& mantissa, ExtInt& exponent` (matching the by-pointer batch overload
+just below, which works). Note the scalar template argument must be **complex**
+(`Alexander_UMFPACK<std::complex<double>,Int>`) — the normalization evaluates
+the determinant at complex arguments; instantiating with a real `Scal` fails to
+compile (`Alexander_Strands_Det` is called with `Complex(...)`).
+
+**Workaround in our code:** `test/inflate_check.cpp` uses the batch overload
+`Alexander(pd, args, n, mantissas, exponents, multiply_toQ)` (pointers), which
+returns correctly.
+
 ## 1. `FromUnsignedPDCode` not migrated to the new `FromPDCode<targs>` API
 
 **Status:** found 2026-06-12 (during origin/main merge). **Severity:** any

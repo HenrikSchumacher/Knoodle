@@ -1,289 +1,134 @@
+//#define TOOLS_NO_RESTRICT
+
 #define TOOLS_AGGRESSIVE_INLINING
+//#define TOOLS_NO_INT128
+
+#define WIDE_INTEGER_HAS_LIMB_TYPE_UINT64
+#include "../experimental/wide-integer/math/wide_integer/uintwide_t.h"
 
 #include "../Knoodle.hpp"
-
-#include "../submodules/Tensors/submodules/Tools/src/ToString_Obsolete.hpp"
+//#include "../src/Prosector3.hpp"
+#include "../src/WideInt.hpp"
+#include "../src/WideInt/Boost_cpp_int.hpp"
+#include "../src/WideInt/Tests.hpp"
 
 using namespace Knoodle;
 using namespace Tools;
 
-using Int   = Size_T;
-using UInt  = UInt64;
-using Real  = Real64;
-//using BReal = Real64;
-using BReal = Real32;
+struct A
+{
+    int member = 0;
+    
+    constexpr A() {}
+    
+    constexpr A( int a )
+    :   member { a }
+    {}
+    
+    constexpr friend A operator+( const A & a, const A & b )
+    {
+        if( !std::is_constant_evaluated() )
+        {
+            eprint("!!!");
+        }
+        return A(a.member + b.member);
+    }
+};
 
-using T = Int;
-//using T = Real;
-
-
-using Dist_T = std::conditional_t<IntQ<T>, std::uniform_int_distribution<T>, std::uniform_real_distribution<T>>;
 
 int main()
 {
-    
-//    const char prefix_0 [3] = "{\n";
-//    const char infix_0  [3] = ",\n";
-//    const char suffix_0 [3] = "\n}";
-//    const char prefix_1 [4] = "\t{\n";
-//    const char infix_1  [3] = ",\n";
-//    const char suffix_1 [4] = "\n\t}";
-//    const char prefix_2 [5] = "\t\t{ ";
-//    const char infix_2  [3] = ", ";
-//    const char suffix_2 [3] = " }";
-    
-//    const char prefix_0 [3] = "{\n";
-//    const char infix_0  [3] = ",\n";
-//    const char suffix_0 [3] = "\n}";
-//    const char prefix_1 [4] = " { ";
-//    const char infix_1  [3] = ", ";
-//    const char suffix_1 [3] = " }";
-//    const char prefix_2 [3] = "{ ";
-//    const char infix_2  [3] = ", ";
-//    const char suffix_2 [3] = " }";
-    
-//    std::string s_prefix_0 (prefix_0);
-//    std::string s_infix_0  (infix_0);
-//    std::string s_suffix_0 (suffix_0);
-//    
-//    std::string s_prefix_1 (prefix_1);
-//    std::string s_infix_1  (infix_1);
-//    std::string s_suffix_1 (suffix_1);
-//    
-//    std::string s_prefix_2 (prefix_2);
-//    std::string s_infix_2  (infix_2);
-//    std::string s_suffix_2 (suffix_2);
-//    
-//    TOOLS_DUMP(s_prefix_0);
-//    TOOLS_DUMP(s_prefix_0.size());
-    
-    const T min_value = COND(IntQ<T>, T(0), T(-1.));
-    const T max_value = COND(IntQ<T>, T(1000), T(1.));
-    Dist_T dist (min_value,max_value);
-    
-    PRNG_T random_engine = InitializedRandomEngine<PRNG_T>();
-
-    
-//    Size_T d_0 = 10;
-    Size_T d_0 = 2'000'000;
-    Size_T d_1 = 2;
-    Size_T d_2 = 2;
-    
-    std::filesystem::path path ("/Volumes/RamDisk");
-
-    Tensor3<T,Size_T> T3 (d_0,d_1,d_2);
-
-    for( Size_T i = 0; i < d_0; ++i )
     {
-        for( Size_T j = 0; j < d_1; ++j )
-        {
-            for( Size_T k = 0; k < d_2; ++k )
-            {
-                T3(i,j,k) = dist( random_engine );
-            }
-        }
-    }
-    
-    Tensor2<T,Size_T> T2 (d_0,d_1);
-
-    for( Size_T i = 0; i < d_0; ++i )
-    {
-        for( Size_T j = 0; j < d_1; ++j )
-        {
-            T2(i,j) = dist( random_engine );
-        }
-    }
-    
-    Tensor1<T,Size_T> T1 (d_0);
-
-    for( Size_T i = 0; i < d_0; ++i )
-    {
-        T1(i) = dist( random_engine );
-    }
-    
-    tic("Tensor3_OutString");
-    {
-        std::ofstream stream ( path / "Tensor3_OutString.txt" );
-        stream << T3;
-    }
-    toc("Tensor3_OutString");
-    tic("Tensor3_ArrayToString");
-    {
-        std::ofstream stream ( path / "Tensor3_ArrayToString.txt" );
-        stream << ArrayToString(T3.data(),{T3.Dim(0),T3.Dim(1),T3.Dim(2)});
-    }
-    toc("Tensor3_ArrayToString");
-    
-    tic("Tensor2_OutString");
-    {
-        std::ofstream stream ( path / "Tensor2_OutString.txt" );
-        stream << T2;
-    }
-    toc("Tensor2_OutString");
-    tic("Tensor2_ArrayToString");
-    {
-        std::ofstream stream ( path / "Tensor2_ArrayToString.txt" );
-        stream << ArrayToString(T2.data(),{T2.Dim(0),T2.Dim(1)});
-    }
-    toc("Tensor2_ArrayToString");
-    
-    tic("Tensor1_OutString");
-    {
-        std::ofstream stream ( path / "Tensor1_OutString.txt" );
-        stream << T1;
-    }
-    toc("Tensor1_OutString");
-    tic("Tensor1_ArrayToString");
-    {
-        std::ofstream stream ( path / "Tensor1_ArrayToString.txt" );
-        stream << ArrayToString(T1.data(),{T1.Dim(0)});
-    }
-    toc("Tensor1_ArrayToString");
-    
-    
-    tic("Tensor3_OutString");
-    {
-        std::ofstream stream ( path / "Tensor3_OutString.txt" );
-        stream << T3;
-    }
-    toc("Tensor3_OutString");
-    tic("Tensor3_ArrayToString");
-    {
-        std::ofstream stream ( path / "Tensor3_ArrayToString.txt" );
-        stream << ArrayToString(T3.data(),{T3.Dim(0),T3.Dim(1),T3.Dim(2)});
-    }
-    toc("Tensor3_ArrayToString");
-    
-    tic("Tensor2_OutString");
-    {
-        std::ofstream stream ( path / "Tensor2_OutString.txt" );
-        stream << T2;
-    }
-    toc("Tensor2_OutString");
-    tic("Tensor2_ArrayToString");
-    {
-        std::ofstream stream ( path / "Tensor2_ArrayToString.txt" );
-        stream << ArrayToString(T2.data(),{T2.Dim(0),T2.Dim(1)});
-    }
-    toc("Tensor2_ArrayToString");
-    
-    tic("Tensor1_OutString");
-    {
-        std::ofstream stream ( path / "Tensor1_OutString.txt" );
-        stream << T1;
-    }
-    toc("Tensor1_OutString");
-    tic("Tensor1_ArrayToString");
-    {
-        std::ofstream stream ( path / "Tensor1_ArrayToString.txt" );
-        stream << ArrayToString(T1.data(),{T1.Dim(0)});
-    }
-    toc("Tensor1_ArrayToString");
-    
-    
-//
-//    {
-//        
-//        std::ofstream stream ( path / "c.txt" );
-//        tic("c");
-//        Tools::OutString s ( full_size );
-//        
-//        s.PutMatrix( a.data(), m, n, prefix_0, infix_0, suffix_0, prefix_1, infix_1, suffix_1, false );
-//        stream << s.View();
-//        toc("c");
-//    }
-//    
-//    
-//    Tensor2<T,Size_T> b(m,n);
-//    
-//    
-//    {
-//        std::filesystem::path file (path / "d.txt");
-//        // Open the stream to 'lock' the file.
-//        std::ifstream f(file, std::ios::in | std::ios::binary);
-//
-//        // Obtain the size of the file.
-//        const auto sz = std::filesystem::file_size(file);
-//        // Create a buffer.
-//        std::string input (sz, '\0');
-//        // Read the whole file into the buffer.
-//        f.read(input.data(), static_cast<std::streamsize>(sz));
-//        
-//        tic("Read d");
-//        Tools::InString s (input);
-//
-//        s.TakeMatrixFunction(
-//            [&b](const Size_T i, const Size_T j) -> T& { return b(i,j); },
-//            m, n, prefix_0, infix_0, suffix_0, prefix_1, infix_1, suffix_1
-//        );
-//        toc("Read d");
-//    }
-//    
-//    TOOLS_DUMP(b.MinMax());
-//    
-////    b -= a;
-//    for( Size_T i = 0; i < m; ++i )
-//    {
-//        for( Size_T j = 0; j < n; ++j )
-//        {
-//            b(i,j) -= a(i,j);
-//        }
-//    }
-//    
-//    TOOLS_DUMP(b.MinMax());
-    
-    
-    Tiny::Matrix<3,4,T,Int> A ;
-    for( Int i = 0; i < 3; ++i )
-    {
-        for( Int j = 0; j < 4; ++j )
-        {
-            A[i][j] = dist(random_engine);
-        }
-    }
-    
-    valprint("A[0][0]",ToString(A[0][0]));
-    
-    print(ToString(A));
-    
-    Aggregator<T,Int> agg;
-    
-    agg.Push( T(1) );
-    agg.Push( T(2) );
-    
-    print(ToString(agg.data()[0]));
-    print(ToString(agg.data()[1]));
-    
-    print(std::string_view( OutString::FromVector( agg.data(), agg.Size() ) ));
-    
-    
-    tic("logvalprint");
-    for( Size_T i = 0; i < d_0; ++i )
-    {
-        logvalprint( std::string("T1(") + ToString(i) + ") = ", T1(i));
-    }
-    toc("logvalprint");
-    
-    
-    tic("logvalprint2");
-    {
-        std::ofstream stream ( path / "log2.txt" );
+//        Size_T n    = 1024;
+//        Size_T reps = 1024 * 1024;
         
-        std::mutex stream_mutex;
+        Size_T n    = 1;
+        Size_T reps = 1;
         
-//        stream << ArrayToString(T1.data(),{T1.Dim(0)});
+        const Size_T limb_count = 2;
+        using Limb_T = UInt64;
+        using Comp_T = UInt128;
+        constexpr bool signQ = false;
         
-        for( Size_T i = 0; i < d_0; ++i )
-        {
-            std::lock_guard guard ( stream_mutex );
-            Profiler::log << "T1(";
-            Profiler::log << ToString(i);
-            Profiler::log << ") = ";
-            Profiler::log << ToString(T1(i));
-            Profiler::log << "\n";
-            Profiler::log << std::endl;
-        }
+        bool verbosed = true;
+        
+//        Test_NegativeQ    <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_Sign         <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_Negate       <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_less_small   <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_greater_small<limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_less         <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_greater      <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_Add          <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_Subtract     <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_long_mul     <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+        Test_long_fma     <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+        Test_long_det     <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+
     }
-    toc("logvalprint2");
     
+//    [[maybe_unused]] PRNG_T engine = InitializedRandomEngine<PRNG_T>();
+//    
+//    std::uniform_int_distribution<WInt64::Limb_T> dist (
+//        std::numeric_limits<WInt64::Limb_T>::lowest(),
+//        std::numeric_limits<WInt64::Limb_T>::max()
+//    );
+//
+//    ToSigned<WInt64::Limb_T> a_raw = static_cast<ToSigned<WInt64::Limb_T>>(dist(engine));
+//    ToSigned<WInt64::Limb_T> b_raw = static_cast<ToSigned<WInt64::Limb_T>>(dist(engine));
+//    
+////    ToSigned<WInt64::Limb_T> a_raw = 600;
+////    ToSigned<WInt64::Limb_T> b_raw = -120;
+//    
+//    WInt64 a = WInt64(a_raw);
+//    WInt64 b = WInt64(b_raw);
+//    TOOLS_DUMP(a_raw);
+//    TOOLS_DUMP(a[0]);
+//    TOOLS_DUMP(a);
+////    TOOLS_DUMP(-a);
+//    
+//    TOOLS_DUMP(b_raw);
+//    TOOLS_DUMP(b[0]);
+//    TOOLS_DUMP(b);
+////    TOOLS_DUMP(-b);
+//    
+//    wint128 a_wint (a_raw);
+//    wint128 b_wint (b_raw);
+//    
+//    WInt128 ab = long_mul(a,b);
+//    wint128 ab_wint = a_wint * b_wint;
+//    wint128 r_wint;
+//    wide_convert(ab, r_wint);
+//    
+////    double a = ToDouble(long_mul(WInt64(u[1]),WInt64(v[2])));
+////    double b = double(u[1]) * double(v[2]);
+//    TOOLS_DUMP(ab[0]);
+//    TOOLS_DUMP(ab[1]);
+//    TOOLS_DUMP(ToDouble(ab));
+//    TOOLS_DUMP(ToString(ab_wint));
+//    TOOLS_DUMP(ToString(r_wint));
+//    TOOLS_DUMP(static_cast<double>(ab_wint));
+//    TOOLS_DUMP(static_cast<double>(r_wint));
+//    
+//    TOOLS_DUMP(ab_wint == r_wint);
+    
+    
+    
+    
+//    TOOLS_DUMP( newTypeName<Int64> );
+//    TOOLS_DUMP( newTypeName<Int128> );
+//    
+//    auto & s0 = newTypeName<WideInt<2,UInt32,UInt128,true>>;
+//    auto & s1 = newTypeName<WideInt<2,UInt64,UInt128,true>>;
+//    auto & s2 = newTypeName<Knoodle::WUInt256>;
+//
+//    TOOLS_DUMP(s0);
+//    TOOLS_DUMP(s1);
+//    TOOLS_DUMP(s2);
+//    
+//    constexpr std::string s  = ToString(124);
+//    
+//    TOOLS_DUMP(s);
+
+    boost::multiprecision::int128_t z = 1;
 }

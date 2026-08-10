@@ -440,7 +440,7 @@ void Initialize()
     max_byte_count += torsion_hist.ByteCount();
     
     // Give 10% buffer to these calculcations.
-    max_byte_count = static_cast<Size_T>(max_byte_count * 1.1);
+    max_byte_count = static_cast<Size_T>(double(max_byte_count) * 1.1);
     
     Size_T expected_byte_count = 0;
     expected_byte_count += x_byte_count;
@@ -449,7 +449,7 @@ void Initialize()
     expected_byte_count += torsion_hist.ByteCount();
     
     // Give 10% buffer to these calculcations.
-    expected_byte_count = static_cast<Size_T>(expected_byte_count * 1.1);
+    expected_byte_count = static_cast<Size_T>(double(expected_byte_count) * 1.1);
     
     print("Initialization done.");
     valprint<a>("Maximum Byte Count", max_byte_count);

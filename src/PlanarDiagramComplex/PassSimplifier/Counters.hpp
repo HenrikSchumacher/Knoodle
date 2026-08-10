@@ -1,5 +1,7 @@
 #ifdef PD_COUNTERS
 
+private:
+
 mutable std::vector<Int> dual_arc_aggregator;
 mutable std::vector<Int> initial_face_size_aggregator;
 mutable std::vector<Int> face_size_aggregator;

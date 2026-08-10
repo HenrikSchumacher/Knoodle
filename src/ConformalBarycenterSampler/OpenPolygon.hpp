@@ -11,13 +11,13 @@ Vector_T InitialEdgeVector( const Int i ) const
  *
  * Suppose that `n = this->EdgeCount()` is the number of edges and `d = this->AmbientDimension()` is the dimension of the ambient space.
  *
- * @param x Target array; assumed to be of size of at least `n * d`. The coordinates are stored in interleaved form, i.e., the `j`-th coordinate of the `i`-th edge vector of the polygon is stored in `x[d * i + j].
+ * @param x Target array; assumed to be of size of at least `n * d`. The coordinates are stored in interleaved form, i.e., the `j`-th coordinate of the `i`-th edge vector of the polygon is stored in `x[d * i + j]`.
  *
  * @param normalizeQ Only if `normalizeQ` is set to true, the vectors get normalized. Otherwise, they are assumed to be already normalized.
  */
 
 void ReadInitialEdgeVectors(
-    const Real * restrict const x, bool normalizeQ = true
+    const Real * const x, bool normalizeQ = true
 )
 {
     if( normalizeQ )
@@ -56,15 +56,15 @@ void RandomizeInitialEdgeVectors()
  *
  * Suppose that `n = this->EdgeCount()` is the number of edges and `d = this->AmbientDimension()` is the dimension of the ambient space.
  *
- * @param x Target array; assumed to be of size of at least `n * d`. The coordinates are stored in interleaved form`, i.e., the `j`-th coordinate of the `i`-th unit edge vector of polygon number `offset` is stored in `x[d * i + j].
+ * @param x Target array; assumed to be of size of at least `n * d`. The coordinates are stored in interleaved form, i.e., the `j`-th coordinate of the `i`-th unit edge vector of polygon number `offset` is stored in `x[d * i + j]`.
  */
 
-void WriteInitialEdgeVectors( Real * restrict const x )
+void WriteInitialEdgeVectors( Real * const x )
 {
     x_.Write(x);
 }
 
-/*!@brief Reads the vertex positions of the open polygon from buffer `p`.
+/*!@brief Read the vertex positions of the open polygon from buffer `p`.
  *
  * Suppose that `n = this->EdgeCount()` is the number of edges and `d = this->AmbientDimension()` is the dimension of the ambient space.
  *
@@ -73,7 +73,7 @@ void WriteInitialEdgeVectors( Real * restrict const x )
 
 
 // Vertex positions
-void ReadInitialVertexCoordinates( const Real * restrict const p )
+void ReadInitialVertexCoordinates( const Real * const p )
 {
     TOOLS_MAKE_FP_FAST();
     
@@ -102,7 +102,7 @@ void ReadInitialVertexCoordinates( const Real * restrict const p )
  
  * @param mode Specify whether the output polygon `p` is to be centered to its center of mass and in which sense "mass" is operationalized.
  */
-void WriteInitialVertexCoordinates( Real * restrict const p, CentralizationMode_T mode )
+void WriteInitialVertexCoordinates( Real * const p, CentralizationMode_T mode )
 {
     writeCoordinates(x_,p,mode,true);
 }

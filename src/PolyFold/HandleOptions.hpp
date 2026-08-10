@@ -1,6 +1,6 @@
 private:
 
-void HandleOptions( int argc, char** argv )
+bool HandleOptions( int argc, char** argv )
 {
     namespace po = boost::program_options;
     
@@ -67,7 +67,8 @@ void HandleOptions( int argc, char** argv )
         std::stringstream s;
         s << desc;
         print(s.str());
-        throw; // TODO: Need to find an elegant way to exit here.
+        
+        return false;
     }
     
     
@@ -328,13 +329,6 @@ void HandleOptions( int argc, char** argv )
     // Use this path for profiles and general log files.
     Profiler::Clear(path,true);
     
-    if( !Profiler::log )
-    {
-        throw std::runtime_error(
-             ClassName()+"::Initialize: Failed to create file \"" + Profiler::log_file.string() + "\"."
-        );
-    }
-    
     if( vm.count("input") )
     {
         input_file = std::filesystem::path ( vm["input"].as<std::string>() );
@@ -367,4 +361,5 @@ void HandleOptions( int argc, char** argv )
         throw std::runtime_error("Not computing anything. Use the command line flags -c, -g, -M, -P, -a, -B, or -histograms to define outputs.");
     }
     
+    return true;
 }

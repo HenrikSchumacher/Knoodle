@@ -257,13 +257,13 @@ std::pair<Int,Int> RandomPivots_Clisby()
     Int i = RandomInteger( Int(0), n - Int(1) );
     Int j;
     
-    Real d = std::floor(std::exp2(pivot_clisby(random_engine)));
+    Int d = static_cast<Int>(std::floor(std::exp2(pivot_clisby(random_engine))));
     
     // If n is even and if d is the maximal distance, we reject with 50% and sample again.
     while( (n % Int(2) == Int(0)) && (d == n/Int(2)) && coin(random_engine) )
     {
         
-        d = std::floor(std::exp2(pivot_clisby(random_engine)));
+        d = static_cast<Int>(std::floor(std::exp2(pivot_clisby(random_engine))));
     }
         
     if( coin(random_engine) )

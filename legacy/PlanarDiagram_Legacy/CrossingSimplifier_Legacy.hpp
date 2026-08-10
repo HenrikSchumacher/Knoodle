@@ -31,13 +31,13 @@ namespace Knoodle
         
     private:
         
-        PD_T & restrict pd;
+        PD_T & TOOLS_RESTRICT pd;
         
-        CrossingContainer_T      & restrict C_arcs;
-        CrossingStateContainer_T & restrict C_state;
+        CrossingContainer_T      & TOOLS_RESTRICT C_arcs;
+        CrossingStateContainer_T & TOOLS_RESTRICT C_state;
         
-        ArcContainer_T           & restrict A_cross;
-        ArcStateContainer_T      & restrict A_state;
+        ArcContainer_T           & TOOLS_RESTRICT A_cross;
+        ArcStateContainer_T      & TOOLS_RESTRICT A_state;
         
     public:
         
@@ -195,16 +195,17 @@ namespace Knoodle
         
     public:
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("CrossingSimplifier_Legacy")
+            return std::string("CrossingSimplifier_Legacy")
                 + "<" + TypeName<Int>
-                + "," + ToString(mult_compQ) + ">";
+                + "," + ToString(mult_compQ)
+                + ">";
         }
 
     }; // class CrossingSimplifier_Legacy

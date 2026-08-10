@@ -35,7 +35,7 @@ void ComputeSpanningForest()
 }
 
 
-/*! @brief Returns the list of crossings ordered in the way they are pre-visited by `DepthFirstSearch`.
+/*!@brief Return the list of crossings ordered in the way they are pre-visited by `DepthFirstSearch`.
  */
 
 VV_Vector_T VertexPreOrdering()
@@ -46,7 +46,7 @@ VV_Vector_T VertexPreOrdering()
     return this->template GetCache<VV_Vector_T>(tag);
 }
 
-/*! @brief Returns the list of vertices ordered in the way they are post-visited by `DepthFirstSearch`.
+/*!@brief Return the list of vertices ordered in the way they are post-visited by `DepthFirstSearch`.
  */
 
 VV_Vector_T VertexPostOrdering()
@@ -57,7 +57,7 @@ VV_Vector_T VertexPostOrdering()
     return this->template GetCache<VV_Vector_T>(tag);
 }
 
-/*! @brief Returns a spanning forest in the following format: For every vertex `v` the entry `e = SpanningForestDedges()[v]` is the _oriented_ edge of the spanning tree that points to `v`. If `v` is a root crossing, then `UninitializedEdge` is returned instead.
+/*!@brief Return a spanning forest in the following format: For every vertex `v` the entry `e = SpanningForestDedges()[v]` is the _oriented_ edge of the spanning tree that points to `v`. If `v` is a root crossing, then `UninitializedEdge` is returned instead.
  */
 
 EE_Vector_T SpanningForestDedges()

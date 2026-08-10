@@ -1,36 +1,50 @@
 /**
  * @file knoodleidentify.cpp
- * @brief knoodleidentify - A command-line tool for identifying simplified
- *        knot diagrams via the KLUT (Knot LookUp Table).
+ * @brief knoodleidentify - identify knot diagrams via the KLUT (Knot LookUp Table).
  *
- * Reads the output of knoodlesimplify (the 'k'/'s'-delimited PD code stream),
- * looks each connect-sum summand up in the KLUT, and emits one identification
- * line per input knot.
+ * Reads RAW knot/link diagrams (PD codes or 3D embeddings, same input formats as
+ * knoodlesimplify) from stdin or files, runs the KLUT identify protocol on each
+ * (decompose -> simplify -> escalate with Reapr -> look each prime summand up),
+ * and emits one identification per input knot.
  *
- * Usage: knoodlesimplify --streaming-mode < diagrams.tsv | knoodleidentify
+ * Usage: generator | knoodleidentify        (parallel to: generator | knoodlesimplify)
  *
- * IMPORTANT: the KLUT stores MacLeod keys of *simplified, canonicalized*
- * diagrams only. Simplification is part of the query; this tool does not
- * simplify. Feed it knoodlesimplify output, not raw diagrams.
+ * Identification is self-contained: this tool simplifies internally (it does NOT
+ * consume knoodlesimplify output). It pass-reduces each diagram and looks it up;
+ * a non-minimal result is escalated with Reapr until it reduces to a table key.
  *
- * Output (default): one line per knot, summand names joined by " # ", e.g.
- *   K[3,1,1,"e/r"] # K[4,1,1,"e/m/r/mr"]
- *   Unknot
- * Non-table summands appear as markers: <unidentified:15> (over table range),
- * <notfound:9> (in range but no key match — flagged on stderr), <link:4>
- * (multi-component; the KLUT is knots-only).
+ * Output (default): per knot, a Wolfram Language association from each distinct
+ * prime summand to its multiplicity, e.g.
+ *   <| KnotSymbol[3,1,True,"e/r"] -> 2, KnotSymbol[4,1,True,"e/m/r/mr"] -> 1 |>
+ * Parses directly via ToExpression. An unknot yields <||>.
  *
- * Output (--tsv): one line per summand:
- *   knot_index <tab> summand_index <tab> crossing_count <tab> name
- *
- * See --help for the full option list.
+ * Non-table summands appear as: Unidentified[N] (reduced below the table range
+ * is impossible, so this is N>13), NotFound[N] (<=13 yet unresolved even after
+ * Reapr -- suspicious), and the whole input as Link[N] if it is multi-component
+ * (the KLUT is knots-only). See --help for the option list.
  */
 
 #include "knoodle_io.hpp"
+#include "klut_identify.hpp"
 
 #include <filesystem>
+#include <fstream>
 #include <map>
+#include <string>
 #include <tuple>
+#include <vector>
+
+// Platform primitive for "path to my own executable" (std::filesystem has none).
+// These CLI tools target POSIX: macOS, Linux, and Linux-under-WSL2. Native Windows
+// is deliberately NOT special-cased -- we don't pull in <windows.h>. The only context
+// that runs the binary under native Windows is the Mathematica paclet, which always
+// passes --data-dir explicitly, so exe-relative discovery is never needed there;
+// SelfExecutablePath() just returns {} and resolution falls through to the overrides.
+#if defined(__APPLE__)
+    #include <mach-o/dyld.h>   // _NSGetExecutablePath
+    #include <cstdint>         // std::uint32_t
+#endif
+// Linux/WSL2 reads /proc/self/exe via std::filesystem::read_symlink -- no <unistd.h>.
 
 //==============================================================================
 // Configuration
@@ -39,6 +53,7 @@
 namespace {
 
 using Klut = Knoodle::Klut;
+namespace ki = klut_identify;
 
 /**
  * @brief Configuration parsed from command-line arguments.
@@ -50,6 +65,7 @@ struct Config
     bool expanded       = false;             ///< '#'-joined per-summand output
     bool tsv            = false;             ///< Per-summand TSV output
     bool quiet          = false;             ///< Suppress stderr summary/warnings
+    bool randomize_projection = false;       ///< Apply random shear to 3D geometry projection
     std::vector<std::string> input_files;    ///< Input file paths (empty = stdin)
     bool help_requested = false;
 };
@@ -61,46 +77,58 @@ struct Config
 void PrintUsage()
 {
     std::cout <<
-        "knoodleidentify - identify simplified knot diagrams via the KLUT\n"
+        "knoodleidentify - identify knot diagrams via the KLUT\n"
         "\n"
         "Usage: knoodleidentify [options] [input_files...]\n"
         "\n"
-        "Reads knoodlesimplify output (PD codes, 'k' separates knots, 's'\n"
-        "separates connect-sum summands) from stdin or the given files, looks\n"
-        "each summand up in the Knot LookUp Table, and writes one line per\n"
-        "knot to stdout.\n"
+        "Examples:\n"
+        "  generator | knoodleidentify        # identify a piped stream of diagrams\n"
+        "  knoodleidentify diagrams.tsv       # identify diagrams from a file\n"
+        "  knoodleidentify                    # read diagrams from the terminal (Ctrl-D)\n"
         "\n"
-        "The table indexes simplified, canonicalized diagrams only — pipe\n"
-        "knoodlesimplify output into this tool; raw diagrams will not match.\n"
+        "Reads RAW knot/link diagrams (PD codes or 3D embeddings, same formats as\n"
+        "knoodlesimplify; 'k' separates diagrams) from stdin or the given files,\n"
+        "runs the KLUT identify protocol on each (decompose, simplify, escalate\n"
+        "with Reapr, look each prime summand up), and writes one line per knot.\n"
         "\n"
-        "Default output (one line per knot) is a Wolfram Language association\n"
-        "from each distinct knot summand to its multiplicity, e.g.\n"
-        "  <| KnotSymbol[3,1,True,\"e/r\"] -> 42, KnotSymbol[5,1,True,\"m/mr\"] -> 1 |>\n"
-        "This parses directly via ToExpression. An all-unknot knot yields <||>.\n"
+        "Self-contained: it simplifies internally -- feed it the SAME stream you\n"
+        "would feed knoodlesimplify (generator | knoodleidentify), not the output\n"
+        "of knoodlesimplify.\n"
+        "\n"
+        "Default output (one line per knot) is a Wolfram Language association from\n"
+        "each distinct knot summand to its multiplicity, e.g.\n"
+        "  <| KnotSymbol[3,1,True,\"e/r\"] -> 2, KnotSymbol[5,1,True,\"m/mr\"] -> 1 |>\n"
+        "This parses directly via ToExpression. An unknot yields <||>. A summand we\n"
+        "cannot place carries its PD code for offline analysis, e.g.\n"
+        "  <| Unidentified[15, {{1,2,3,4,-1}, ...}] -> 1 |>\n"
         "\n"
         "Options:\n"
         "  --data-dir=PATH     KLUT data directory containing Klut_Keys_NN.bin\n"
         "                      and Klut_Values_NN.tsv. Default: $KNOODLE_KLUT_DIR,\n"
         "                      else data/Klut next to this executable's parent,\n"
         "                      else ./data/Klut.\n"
-        "  --max-crossings=N   Load subtables up to N crossings (3-13, default 13).\n"
-        "  --expanded          One line per knot, summands joined by ' # ' in\n"
-        "                      arrival order (uses the raw K[...] table names).\n"
+        "  --max-crossings=N   Use subtables up to N crossings (3-13, default 13).\n"
+        "  --expanded          One line per knot, summands joined by ' # ' (uses\n"
+        "                      the raw K[...] table names).\n"
         "  --tsv               Per-summand output: knot_index, summand_index,\n"
         "                      crossing_count, name (tab-separated).\n"
         "  --quiet             Suppress the stderr summary and per-summand warnings.\n"
+        "  --randomize-projection  Apply random shear to 3D geometry projection.\n"
         "  -h, --help          Show this help.\n"
         "\n"
-        "Knot symbols (default / --tsv):\n"
+        "Knot symbols (default / --tsv); c=crossings, i=index, the third field is the\n"
+        "alternating flag, last is the symmetry coset:\n"
         "  KnotSymbol[c,i,a,\"sym\"]  identified knot; a (alternating) is True/False\n"
-        "  Unidentified[N]          N crossings, over the table range\n"
-        "  NotFound[N]              within range but not in the table (suspicious!)\n"
-        "  Link[N]                  multi-component diagram (table is knots-only)\n"
-        "  Invalid[]                invalid diagram\n"
+        "  Unidentified[N,PD]       N>13 crossings, over the table range; PD = signed\n"
+        "                           PD code of the unresolved diagram (for analysis)\n"
+        "  NotFound[N,PD]           <=13 yet unresolved after Reapr (suspicious!); PD too\n"
+        "  Link[N]                  multi-component input (the table is knots-only)\n"
+        "  Invalid[]                invalid diagram / internal error\n"
         "  (unknot summands are the connect-sum identity and are omitted)\n"
         "\n"
-        "Markers in --expanded mode: K[c,i,j,\"sym\"], Unknot, <unidentified:N>,\n"
-        "<notfound:N>, <link:N>, <invalid>.\n";
+        "Markers in --expanded mode (j is the same alternating flag, as 0/1):\n"
+        "  K[c,i,j,\"sym\"], Unknot, <unidentified:N PD=...>, <notfound:N PD=...>,\n"
+        "  <link:N>, <invalid>.\n";
 }
 
 //==============================================================================
@@ -165,6 +193,10 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.quiet = true;
         }
+        else if (arg == "--randomize-projection")
+        {
+            config.randomize_projection = true;
+        }
         else if (arg.starts_with("-") && arg.size() > 1)
         {
             LogError("Unknown option: " + std::string(arg));
@@ -185,12 +217,56 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
 //==============================================================================
 
 /**
+ * @brief Absolute, canonical path to the running executable.
+ *
+ * std::filesystem has no portable "path to my own executable" primitive, and
+ * argv[0] is unreliable: when the tool is launched by bare name off $PATH (the
+ * normal installed case) argv[0] has no directory part, so canonicalizing it
+ * resolves against the CWD rather than the real binary. Ask the OS instead.
+ * Returns an empty path if the platform call fails.
+ */
+std::filesystem::path SelfExecutablePath()
+{
+    namespace fs = std::filesystem;
+    std::error_code ec;
+
+#if defined(__APPLE__)
+    std::uint32_t size = 0;
+    _NSGetExecutablePath(nullptr, &size);          // query required buffer size
+    std::string buf(size, '\0');
+    if (_NSGetExecutablePath(buf.data(), &size) != 0) { return {}; }
+    // _NSGetExecutablePath may return a non-canonical path (symlinks, ..).
+    fs::path p = fs::weakly_canonical(fs::path(buf.c_str()), ec);
+    return ec ? fs::path(buf.c_str()) : p;
+#elif defined(__linux__)
+    // Native Linux and WSL2. read_symlink is pure std::filesystem, no <unistd.h>.
+    fs::path link = fs::read_symlink("/proc/self/exe", ec);
+    if (ec) { return {}; }
+    fs::path p = fs::weakly_canonical(link, ec);
+    return ec ? link : p;
+#else
+    // No exe-path primitive on this platform (e.g. native Windows). Resolution relies
+    // on --data-dir / $KNOODLE_KLUT_DIR instead; the paclet always supplies --data-dir.
+    (void)ec;
+    return {};
+#endif
+}
+
+/**
  * @brief Resolve the KLUT data directory.
  *
- * Order: --data-dir, $KNOODLE_KLUT_DIR, <exe_dir>/../data/Klut, ./data/Klut.
+ * Search order (first hit wins):
+ *   1. --data-dir=PATH                        (explicit override)
+ *   2. $KNOODLE_KLUT_DIR                       (explicit override)
+ *   3. <exe_dir>/../share/knoodle/Klut         (FHS install: bin/ <-> ../share/)
+ *   4. <exe_dir>/../data/Klut                  (in-tree build: tools/ <-> ../data/)
+ *   5. KNOODLE_KLUT_DIR compile-time default   (baked-in prefix, if defined)
+ *   6. ./data/Klut                             (CWD, dev convenience only)
+ *
+ * Candidates 3-4 are anchored to the *real* executable path, not argv[0] or the
+ * CWD, so a from-$PATH invocation of an installed binary resolves correctly.
  */
-std::optional<std::filesystem::path> ResolveDataDir(const Config& config,
-                                                    const char* argv0)
+std::optional<std::filesystem::path> ResolveDataDir(const Config& config)
 {
     namespace fs = std::filesystem;
 
@@ -207,14 +283,23 @@ std::optional<std::filesystem::path> ResolveDataDir(const Config& config,
             candidates.emplace_back(env);
         }
 
-        std::error_code ec;
-        fs::path exe = fs::weakly_canonical(fs::path(argv0), ec);
-        if (!ec && exe.has_parent_path())
+        fs::path exe = SelfExecutablePath();
+        if (!exe.empty() && exe.has_parent_path())
         {
-            // tools/ sits next to data/, so try <exe_dir>/../data/Klut
-            candidates.push_back(exe.parent_path().parent_path() / "data" / "Klut");
+            const fs::path exe_dir = exe.parent_path();
+            // Installed layout: <prefix>/bin/knoodleidentify next to
+            // <prefix>/share/knoodle/Klut (Homebrew keg, make install PREFIX=...).
+            candidates.push_back(exe_dir.parent_path() / "share" / "knoodle" / "Klut");
+            // In-tree build: tools/knoodleidentify next to <repo>/data/Klut.
+            candidates.push_back(exe_dir.parent_path() / "data" / "Klut");
         }
 
+#ifdef KNOODLE_KLUT_DIR
+        // Optional build-time default (e.g. -DKNOODLE_KLUT_DIR=/usr/local/share/...).
+        candidates.emplace_back(KNOODLE_KLUT_DIR);
+#endif
+
+        // Last-ditch dev convenience: relative to the current directory.
         candidates.push_back(fs::path("data") / "Klut");
     }
 
@@ -234,6 +319,41 @@ std::optional<std::filesystem::path> ResolveDataDir(const Config& config,
     }
     LogError("Specify one with --data-dir=PATH or $KNOODLE_KLUT_DIR.");
     return std::nullopt;
+}
+
+//==============================================================================
+// Name resolution: (crossing_count, id) -> K[c,i,j,"sym"]
+//==============================================================================
+
+/// Identify returns a compact (crossing_count, subtable id). The id is the knot's
+/// 0-based index within crossing-number subtable c, i.e. the id-th line of
+/// Klut_Values_cc.tsv. Load those name lists once for human-readable rendering.
+std::map<Int, std::vector<std::string>>
+LoadNames(const std::filesystem::path& dir, Int max_crossings)
+{
+    std::map<Int, std::vector<std::string>> names;
+    for (Int c = 3; c <= max_crossings; ++c)
+    {
+        const std::string cc = (c < 10 ? "0" : "") + std::to_string(c);
+        std::ifstream vf(dir / ("Klut_Values_" + cc + ".tsv"));
+        if (!vf) { continue; }
+        std::vector<std::string> v;
+        std::string name; long count;
+        while (vf >> name >> count) { v.push_back(name); }
+        names[c] = std::move(v);
+    }
+    return names;
+}
+
+std::string NameOf(const std::map<Int, std::vector<std::string>>& names,
+                   Int c, Klut::ID_T id)
+{
+    auto it = names.find(c);
+    if (it != names.end() && static_cast<std::size_t>(id) < it->second.size())
+    {
+        return it->second[id];
+    }
+    return "K[" + std::to_string(c) + ",?,?,\"?\"]";  // defensive; should not occur
 }
 
 //==============================================================================
@@ -264,20 +384,42 @@ enum class Kind { Identified, Unknot, OverRange, NotFound, Link, Invalid };
  */
 struct Summand
 {
-    Kind        kind       = Kind::Invalid;
-    Int         crossings  = 0;
+    Kind        kind        = Kind::Invalid;
+    Int         crossings   = 0;
 
     // Valid only when kind == Identified (parsed from the K[c,i,j,"sym"] name):
-    Int         knot_index = 0;     ///< i
+    Int         knot_index  = 0;     ///< i
     bool        alternating = false; ///< j: alternating flag (0/1 -> False/True)
-    std::string coset;              ///< "sym" *including* the surrounding quotes
-    std::string raw_name;           ///< the original K[...] string from FindName
+    std::string coset;               ///< "sym" *including* the surrounding quotes
+    std::string raw_name;            ///< the original K[...] string
+
+    // Valid only when kind == OverRange / NotFound: the flattened signed PD code
+    // (5 cols/crossing) of the diagram we could not identify, so a failure is
+    // recoverable for offline analysis. PD code is standard and survives any size.
+    std::vector<Int> pd_code;
 };
 
+/// Format a flattened signed PD code as a Wolfram nested list { {a,b,c,d,e}, ... }.
+std::string PDCodeToWL(const std::vector<Int>& pd)
+{
+    std::string out = "{";
+    const std::size_t rows = pd.size() / 5;
+    for (std::size_t r = 0; r < rows; ++r)
+    {
+        out += (r ? ",{" : "{");
+        for (int j = 0; j < 5; ++j)
+        {
+            if (j) { out += ","; }
+            out += std::to_string(pd[5 * r + j]);
+        }
+        out += "}";
+    }
+    out += "}";
+    return out;
+}
+
 /**
- * @brief Parse a raw table name "K[c,i,j,\"sym\"]" into the fields of a
- *        Summand. Leaves identified-only fields at defaults if the shape is
- *        unexpected (defensive; should not happen for real table names).
+ * @brief Parse a raw table name "K[c,i,j,\"sym\"]" into the fields of a Summand.
  */
 void ParseRawName(const std::string& raw, Summand& s)
 {
@@ -301,66 +443,6 @@ void ParseRawName(const std::string& raw, Summand& s)
 }
 
 /**
- * @brief Classify one summand and update the running stats.
- */
-Summand ClassifySummand(PD_T& pd, Klut& klut, Stats& stats)
-{
-    ++stats.summands;
-
-    Summand s;
-
-    if (pd.InvalidQ())
-    {
-        ++stats.invalid;
-        s.kind = Kind::Invalid;
-        return s;
-    }
-
-    s.crossings = pd.CrossingCount();
-
-    if (s.crossings == 0)
-    {
-        ++stats.unknots;
-        s.kind = Kind::Unknot;
-        return s;
-    }
-
-    if (pd.LinkComponentCount() > Int(1))
-    {
-        ++stats.links;
-        s.kind = Kind::Link;
-        return s;
-    }
-
-    if (s.crossings > static_cast<Int>(klut.CrossingCount()))
-    {
-        ++stats.over_range;
-        s.kind = Kind::OverRange;
-        return s;
-    }
-
-    const std::string name = klut.FindName(pd);
-
-    if (name == "NotFound")
-    {
-        ++stats.not_found;
-        s.kind = Kind::NotFound;
-        return s;
-    }
-    if (name == "Invalid" || name == "Error")
-    {
-        ++stats.invalid;
-        s.kind = Kind::Invalid;
-        return s;
-    }
-
-    ++stats.identified;
-    s.kind = Kind::Identified;
-    ParseRawName(name, s);
-    return s;
-}
-
-/**
  * @brief Wolfram Language symbol for a summand (default and --tsv output).
  *        Unknots have no symbol (connect-sum identity); returns "" for them.
  */
@@ -373,8 +455,14 @@ std::string WLSymbol(const Summand& s)
                    std::to_string(s.knot_index) + "," +
                    (s.alternating ? "True" : "False") + "," + s.coset + "]";
         case Kind::Unknot:    return "";
-        case Kind::OverRange: return "Unidentified[" + std::to_string(s.crossings) + "]";
-        case Kind::NotFound:  return "NotFound[" + std::to_string(s.crossings) + "]";
+        case Kind::OverRange: return s.pd_code.empty()
+                                     ? "Unidentified[" + std::to_string(s.crossings) + "]"
+                                     : "Unidentified[" + std::to_string(s.crossings) + ", "
+                                       + PDCodeToWL(s.pd_code) + "]";
+        case Kind::NotFound:  return s.pd_code.empty()
+                                     ? "NotFound[" + std::to_string(s.crossings) + "]"
+                                     : "NotFound[" + std::to_string(s.crossings) + ", "
+                                       + PDCodeToWL(s.pd_code) + "]";
         case Kind::Link:      return "Link[" + std::to_string(s.crossings) + "]";
         case Kind::Invalid:   return "Invalid[]";
     }
@@ -390,17 +478,17 @@ std::string ExpandedSymbol(const Summand& s)
     {
         case Kind::Identified: return s.raw_name;
         case Kind::Unknot:     return "Unknot";
-        case Kind::OverRange:  return "<unidentified:" + std::to_string(s.crossings) + ">";
-        case Kind::NotFound:   return "<notfound:" + std::to_string(s.crossings) + ">";
+        case Kind::OverRange:  return "<unidentified:" + std::to_string(s.crossings)
+                                    + (s.pd_code.empty() ? "" : " PD=" + PDCodeToWL(s.pd_code)) + ">";
+        case Kind::NotFound:   return "<notfound:" + std::to_string(s.crossings)
+                                    + (s.pd_code.empty() ? "" : " PD=" + PDCodeToWL(s.pd_code)) + ">";
         case Kind::Link:       return "<link:" + std::to_string(s.crossings) + ">";
         case Kind::Invalid:    return "<invalid>";
     }
     return "<invalid>";
 }
 
-/// Deterministic ordering of distinct summand kinds within a knot's multiset:
-/// identified knots first (by crossing, index, alternating flag, coset), then
-/// the non-knot categories grouped after.
+/// Deterministic ordering of distinct summand kinds within a knot's multiset.
 bool SummandLess(const Summand& a, const Summand& b)
 {
     auto group = [](const Summand& s) -> int
@@ -420,47 +508,107 @@ bool SummandLess(const Summand& a, const Summand& b)
     const int ga = group(a);
     const int gb = group(b);
 
-    return std::tie(ga, a.crossings, a.knot_index, a.alternating, a.coset)
-         < std::tie(gb, b.crossings, b.knot_index, b.alternating, b.coset);
+    // pd_code last: distinct failed diagrams (same crossing count) stay distinct
+    // keys in the multiset rather than collapsing and losing one diagram's code.
+    return std::tie(ga, a.crossings, a.knot_index, a.alternating, a.coset, a.pd_code)
+         < std::tie(gb, b.crossings, b.knot_index, b.alternating, b.coset, b.pd_code);
+}
+
+/// Convert one Identify result-summand to a render Summand, resolving its name.
+Summand ConvertSummand(const ki::Summand& rs,
+                       const std::map<Int, std::vector<std::string>>& names,
+                       Stats& stats)
+{
+    Summand s;
+    s.crossings = rs.crossings;
+    switch (rs.kind)
+    {
+        case ki::Summand::Kind::Identified:
+            s.kind = Kind::Identified;
+            ParseRawName(NameOf(names, rs.crossings, rs.id), s);
+            ++stats.identified;
+            break;
+        case ki::Summand::Kind::Unidentified:
+            s.kind = Kind::OverRange;
+            s.pd_code = rs.pd_code;
+            ++stats.over_range;
+            break;
+        case ki::Summand::Kind::Error:
+            s.kind = Kind::NotFound;
+            s.pd_code = rs.pd_code;
+            ++stats.not_found;
+            break;
+    }
+    return s;
 }
 
 /**
  * @brief Process one input stream; writes identifications to stdout.
  */
 bool ProcessStream(std::istream& input, const std::string& source_name,
-                   const Config& config, Klut& klut, Stats& stats,
-                   Knoodle::PRNG_T& rng)
+                   const Config& config, Klut& klut,
+                   const std::map<Int, std::vector<std::string>>& names,
+                   ki::Reapr_T& reapr, Stats& stats, Knoodle::PRNG_T& rng)
 {
     bool reached_eof = false;
 
     while (!reached_eof)
     {
-        auto input_knot = ReadKnot(input, false, rng, source_name, reached_eof);
+        auto input_knot = ReadKnot(input, config.randomize_projection, rng, source_name, reached_eof);
 
         if (!input_knot)
         {
-            if (reached_eof)
-            {
-                continue;
-            }
+            if (reached_eof) { continue; }
             return false;  // Parse error
         }
 
         ++stats.knots;
 
-        std::vector<Summand> summands;
-
-        // Unknot summands arrive as bare 's' lines (no diagram constructed).
-        for (Int i = 0; i < input_knot->empty_summand_count; ++i)
-        {
-            ++stats.summands;
-            ++stats.unknots;
-            summands.push_back(Summand{.kind = Kind::Unknot});
-        }
-
+        // Build a PDC from the raw input diagram(s). Raw input is normally a
+        // single diagram; if pre-split summands arrive, Identify re-decomposes
+        // their union. Bare unknot summands carry no diagram and are the identity.
+        ki::PDC_T pdc;
+        // Push() is lock-guarded and silently does nothing on a locked complex,
+        // which would leave pdc empty and make every input look like an unknot.
+        // Feeding it diagrams that ReadKnot just produced from one input record
+        // is the sanctioned use, so unlock for the duration.
+        pdc.Unlock();
         for (PD_T& pd : input_knot->summands)
         {
-            summands.push_back(ClassifySummand(pd, klut, stats));
+            if (pd.ValidQ()) { pdc.Push(std::move(pd)); }
+        }
+        const Int input_crossings =
+            (pdc.DiagramCount() > Int(0)) ? pdc.CrossingCount() : Int(0);
+
+        ki::IdentifyResult res = ki::Identify(klut, std::move(pdc), reapr);
+
+        std::vector<Summand> summands;
+
+        if (res.status == ki::IdentifyResult::Status::LinkOutOfScope)
+        {
+            Summand s; s.kind = Kind::Link; s.crossings = input_crossings;
+            summands.push_back(s);
+            ++stats.summands; ++stats.links;
+        }
+        else
+        {
+            if (res.component_error && !config.quiet)
+            {
+                LogError("knot " + std::to_string(stats.knots) +
+                         ": Simplify changed the link-component count (a bug) — "
+                         "identification suspect");
+            }
+            for (const ki::Summand& rs : res.summands)
+            {
+                summands.push_back(ConvertSummand(rs, names, stats));
+                ++stats.summands;
+            }
+            // Empty (and not a link) means everything reduced away: the unknot.
+            if (summands.empty())
+            {
+                summands.push_back(Summand{.kind = Kind::Unknot});
+                ++stats.summands; ++stats.unknots;
+            }
         }
 
         if (config.tsv)
@@ -527,8 +675,8 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
                     LogError("knot " + std::to_string(stats.knots) +
                              ", summand " + std::to_string(i + 1) + ": " +
                              std::to_string(summands[i].crossings) +
-                             " crossings, within table range but not found — " +
-                             "unsimplified input or table gap?");
+                             " crossings, <=13 yet unresolved after Reapr — "
+                             "table gap or a hard simplification case?");
                 }
             }
         }
@@ -545,6 +693,13 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
 
 int main(int argc, char* argv[])
 {
+    // Count the library's "ERROR: " lines for the whole run, so an identification
+    // made from a diagram the core has disclaimed cannot be reported as success.
+    // knoodleidentify writes only to stdout, so the nonzero exit and the notice
+    // below are the whole contract -- there is no file to withhold.
+    CerrErrorTap cerr_tap;
+    g_cerr_tap = &cerr_tap;
+
     auto config_opt = ParseArguments(argc, argv);
     if (!config_opt)
     {
@@ -559,14 +714,26 @@ int main(int argc, char* argv[])
         return EXIT_SUCCESS;
     }
 
-    auto data_dir = ResolveDataDir(config, argv[0]);
+    auto data_dir = ResolveDataDir(config);
     if (!data_dir)
     {
         return EXIT_FAILURE;
     }
 
-    Klut klut(*data_dir, static_cast<Knoodle::Size_T>(config.max_crossings));
+    // knoodleidentify always writes its results to stdout, so rule 1 (put the
+    // diagnostics beside the output file) never applies -- it is rule 2 every
+    // time: a per-process directory under the system temp dir. This has to
+    // happen before any call into Simplify, because ki::Identify escalates with
+    // embedding_trials > 0 (klut_identify.hpp) and can therefore reach Rattle,
+    // whose failure bundles would otherwise land in the user's home directory.
+    const std::filesystem::path diag_dir =
+        ChooseDiagnosticDir("knoodleidentify", /*streaming_mode=*/true, std::nullopt);
+    const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
 
+    Klut klut(*data_dir, static_cast<Knoodle::Size_T>(config.max_crossings));
+    auto names = LoadNames(*data_dir, config.max_crossings);
+
+    ki::Reapr_T reapr{};
     Knoodle::PRNG_T rng = Knoodle::InitializedRandomEngine<Knoodle::PRNG_T>();
 
     Stats stats;
@@ -574,7 +741,14 @@ int main(int argc, char* argv[])
 
     if (config.input_files.empty())
     {
-        success = ProcessStream(std::cin, "stdin", config, klut, stats, rng);
+        // Unix filter: no files -> read stdin. If stdin is an interactive terminal
+        // (no pipe/redirect), say so, so a bare invocation does not just look hung.
+        if (StdinIsInteractive())
+        {
+            Log("knoodleidentify: reading diagrams from stdin (Ctrl-D to end). "
+                "Pipe a stream or pass a file; --help for usage.");
+        }
+        success = ProcessStream(std::cin, "stdin", config, klut, names, reapr, stats, rng);
     }
     else
     {
@@ -587,7 +761,7 @@ int main(int argc, char* argv[])
                 success = false;
                 continue;
             }
-            if (!ProcessStream(file, filename, config, klut, stats, rng))
+            if (!ProcessStream(file, filename, config, klut, names, reapr, stats, rng))
             {
                 success = false;
             }
@@ -605,6 +779,36 @@ int main(int argc, char* argv[])
             std::to_string(stats.links) + " links, " +
             std::to_string(stats.invalid) + " invalid)");
     }
+
+    if (ErrorsSeen())
+    {
+        std::cerr << "\nknoodleidentify: " << ErrorSummary()
+                  << " during this run -- the identifications above are UNRELIABLE"
+                     " (the library discards diagrams it has flagged as invalid).\n";
+
+        std::string invocation;
+        for (int i = 0; i < argc; ++i)
+        {
+            invocation += (i ? " " : "");
+            invocation += argv[i];
+        }
+
+        const auto report = WriteDiagnosticReport("knoodleidentify", {
+            { "command line", "  " + invocation + "\n" },
+            { "what to send", "  This file, plus the input that produced it.\n" },
+        });
+
+        if (!report.empty())
+        {
+            std::cerr << "Wrote a diagnostic report to " << report.string()
+                      << " -- please send it with any bug report.\n";
+        }
+
+        FinishDiagnostics(diag_dir, bundles_before, "knoodleidentify", true);
+        return EXIT_FAILURE;
+    }
+
+    FinishDiagnostics(diag_dir, bundles_before, "knoodleidentify", !success);
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }

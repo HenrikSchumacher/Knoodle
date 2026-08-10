@@ -12,7 +12,7 @@ cref<MultiGraph_T> DiagramComponentLinkComponentGraph() const
         
         // Using a hash container to delete duplicates.
         
-        SetContainer<std::pair<Int,Int>,Tools::pair_hash<Int,Int>> aggregator;
+        SetContainer<std::pair<Int,Int>> aggregator;
         
         for( Int c = 0; c < max_crossing_count; ++c )
         {

@@ -28,7 +28,7 @@ bool TwoStrandMove(
     
     PD_ASSERT(pd.CheckAll());
     
-    PassSimplifier_T & S = PassSimplifier();
+    PassSimplifier_T & S = GetPassSimplifier();
     S.LoadDiagram(pd);
     S.ResetMarks();
     

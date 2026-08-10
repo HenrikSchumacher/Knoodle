@@ -30,6 +30,7 @@ namespace Knoodle
         using Base_T         = Link<Int>;
         using Tree_T         = AABBTree<3,Real,Int,BReal,false>;
         using Vector3_T      = Tiny::Vector<3,Real,Int>;
+        using Matrix3x3_T    = Tiny::Matrix<3,3,Real,Int>;
       
 //        using Vector3_T      = typename Tree_T::Vector_T;
         using EContainer_T   = typename Tree_T::EContainer_T;
@@ -83,7 +84,7 @@ namespace Knoodle
         // Move assignment operator
         Link_3D & operator=( Link_3D && other ) = default;
         
-        /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
+        /*!@brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
         template<IntQ I>
         explicit Link_3D( const I edge_count_ )
@@ -95,14 +96,14 @@ namespace Knoodle
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         template< IntQ I>
         Link_3D( cptr<Int> edges_, const I edge_count_ )
-        :   Base_T   { edges_, edge_count_     }
+        :   Base_T   { edges_, (I*)nullptr, edge_count_     }
         ,   E_coords { this->EdgeCount()       }
         ,   T        { this->EdgeCount()       }
         {}
         
         template<IntQ I>
         Link_3D( cptr<Real> V_coords_, cptr<Int> edges_, const I edge_count_ )
-        :   Base_T   { edges_, edge_count_     }
+        :   Base_T   { edges_, (I*)nullptr, edge_count_     }
         ,   E_coords { this->EdgeCount()       }
         ,   T        { this->EdgeCount()       }
         {
@@ -331,14 +332,14 @@ namespace Knoodle
         
     public:
 
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("Link_3D")
+            return std::string("Link_3D")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<BReal>

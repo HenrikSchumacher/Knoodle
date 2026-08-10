@@ -1,6 +1,6 @@
-// Methods that are just redirected to pd.
-
 private:
+
+// Methods that are just redirected to pd.
 
 bool CrossingActiveQ( const Int c_ ) const
 {
@@ -22,11 +22,6 @@ void DeactivateCrossing( const Int c_ )
 {
     pd->template DeactivateCrossing<assertsQ>(c_);
 }
-
-//void SwitchCrossing( const Int c_ )
-//{
-//    (void) pd->SwitchCrossing(c_);
-//}
 
 template<bool must_be_activeQ>
 void AssertCrossing( const Int c_ ) const
