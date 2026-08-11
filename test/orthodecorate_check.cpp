@@ -214,6 +214,45 @@ static int run_case(const char * name, std::vector<Int> pd, Int n,
         if (!tested) std::printf("  (no interior two-crossing chain in this diagram)\n");
     }
 
+    // ---- AfterDiagram: "drawing minus W" ------------------------------
+    // (descriptors below are written against the trefoil, so only run them
+    //  when that is the diagram under test)
+    // The second of the two deletions. Built from the descriptor alone, with
+    // no help from PassSimplifier::Reroute, so it is an independent statement
+    // of what the applier is supposed to return. Crossing count must be
+    // (before - interior crossings of W + corridor crossings), and the result
+    // must be a legal diagram.
+    if( diagram.CrossingCount() == Int(3) )
+    {
+        auto after = [&](const Deco_T::PassMove_T & mv, Int expect_cx,
+                         const char * name)
+        {
+            std::string why;
+            PD_T ad = deco.AfterDiagram(diagram, mv, why);
+            if (!why.empty())
+            {
+                std::printf("  after %s: %s\n", name, why.c_str());
+                ok = false;
+                return;
+            }
+            const bool cleanQ = ad.CheckAll();
+            const bool countQ = (ad.CrossingCount() == expect_cx);
+            std::printf("  after %s: %lld crossings, CheckAll %s%s\n", name,
+                (long long)ad.CrossingCount(), cleanQ ? "PASS" : "FAIL",
+                countQ ? "" : "  *** wrong crossing count ***");
+            if (!cleanQ || !countQ) { ok = false; }
+        };
+
+        // strand of 1 arc (0 interior crossings), corridor of 3: 3 - 0 + 3
+        after({ {1}, 1, {6, 3, 9}, {false, false, false}, 0 }, Int(6),
+              "doc-example");
+        // same shape, 4 corridor crossings: 3 - 0 + 4
+        after({ {1}, 0, {4, 10, 3, 9}, {false, false, false, false}, 0 },
+              Int(7), "face-revisit");
+        // 2-arc strand (1 interior crossing), corridor of 1: 3 - 1 + 1
+        after({ {11, 1}, 11, {7}, {false}, 1 }, Int(3), "two-arc-strand");
+    }
+
     std::printf(ok ? "CASE OK\n" : "CASE FAILED\n");
     return ok ? 0 : 1;
 }

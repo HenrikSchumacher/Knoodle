@@ -1050,6 +1050,300 @@ namespace Knoodle
         }
 
         //======================================================================
+        // Phase 5 — "drawing minus W": the diagram the move should produce
+        //
+        // The pass picture is a superposition of two states, each one deletion
+        // away. Delete the corridor and you have the diagram we were handed --
+        // true by construction, since that is what was drawn. Delete the strand
+        // W, smoothing the crossings it made, and what remains must be, up to
+        // relabelling, the diagram the applier is supposed to return.
+        //
+        // `AfterDiagram` builds that second one from the descriptor alone,
+        // without going near `PassSimplifier::Reroute`. That makes it an
+        // independent oracle: if the applier disagrees with it, one of the two
+        // is wrong, and the picture is where that shows up.
+        //
+        // Surviving crossings and arcs keep their indices -- what the move
+        // deletes is left inactive in place, what it creates is appended -- so
+        // the before/after correspondence is the identity on everything the
+        // move promised not to touch, the two anchors included. That is exactly
+        // the matching the picture needs in order to say where the move
+        // attaches.
+        //======================================================================
+
+        PD_T AfterDiagram(
+            cref<PD_T> pd, const PassMove_T & mv, mref<std::string> why
+        ) const
+        {
+            auto fail = [&why]( std::string msg ) -> PD_T
+            {
+                why = std::move(msg);
+                return PD_T();
+            };
+
+            if( !mv.WellFormedQ(pd,why) ) { return PD_T(); }
+
+            const Int n_c = pd.MaxCrossingCount();
+            const Int n_a = pd.MaxArcCount();
+            const Int L   = static_cast<Int>(mv.strand.size());
+            const Int k   = static_cast<Int>(mv.cross.size());
+
+            const Int m_c = n_c + k;
+            const Int m_a = Int(2) * m_c;   // PD_T requires exactly this
+
+            std::vector<Int>             C ( static_cast<std::size_t>(Int(4)*m_c), PD_T::Uninitialized );
+            std::vector<CrossingState_T> CS( static_cast<std::size_t>(m_c), CrossingState_T::Inactive );
+            std::vector<Int>             A ( static_cast<std::size_t>(Int(2)*m_a), PD_T::Uninitialized );
+            std::vector<ArcState_T>      AS( static_cast<std::size_t>(m_a), ArcState_T::Inactive );
+            std::vector<Int>             AC( static_cast<std::size_t>(m_a), PD_T::Uninitialized );
+
+            for( Int c = 0; c < n_c; ++c )
+            {
+                for( Int io = 0; io < 2; ++io )
+                {
+                    for( Int lr = 0; lr < 2; ++lr )
+                    {
+                        C[static_cast<std::size_t>(Int(4)*c + Int(2)*io + lr)]
+                            = pd.Crossings()(c,io,lr);
+                    }
+                }
+                CS[static_cast<std::size_t>(c)] = pd.CrossingStates()[c];
+            }
+            for( Int a = 0; a < n_a; ++a )
+            {
+                A [static_cast<std::size_t>(Int(2)*a    )] = pd.Arcs()(a,0);
+                A [static_cast<std::size_t>(Int(2)*a + 1)] = pd.Arcs()(a,1);
+                AS[static_cast<std::size_t>(a)] = pd.ArcStates()[a];
+                AC[static_cast<std::size_t>(a)] = pd.ArcColors()[a];
+            }
+
+            auto Cx = [&C]( Int c, Int io, Int lr ) -> Int &
+            { return C[static_cast<std::size_t>(Int(4)*c + Int(2)*io + lr)]; };
+            auto Aend = [&A]( Int a, Int ht ) -> Int &
+            { return A[static_cast<std::size_t>(Int(2)*a + ht)]; };
+
+            constexpr Int In_ = Int(1), Out_ = Int(0);
+
+            auto repoint = [&]( Int c, Int from, Int to ) -> bool
+            {
+                for( Int io = 0; io < 2; ++io )
+                {
+                    for( Int lr = 0; lr < 2; ++lr )
+                    {
+                        if( Cx(c,io,lr) == from ) { Cx(c,io,lr) = to; return true; }
+                    }
+                }
+                return false;
+            };
+
+            std::vector<Int> w (static_cast<std::size_t>(L));
+            for( Int i = 0; i < L; ++i )
+            {
+                w[static_cast<std::size_t>(i)]
+                    = PassMove_T::ArcOf(mv.strand[static_cast<std::size_t>(i)]);
+            }
+
+            const Int T = PassMove_T::DarcTailCrossing(pd, mv.strand.front());
+            const Int H = PassMove_T::DarcHeadCrossing(pd, mv.strand.back());
+
+            // -- the transversal at each interior crossing, as a_0 -> a_1 ----
+            std::vector<Int> heal_next(static_cast<std::size_t>(m_a), PD_T::Uninitialized);
+            std::vector<Int> interior;
+
+            for( Int i = 1; i < L; ++i )
+            {
+                const Int x = PassMove_T::DarcHeadCrossing(
+                    pd, mv.strand[static_cast<std::size_t>(i-1)] );
+                interior.push_back(x);
+
+                Int a0 = PD_T::Uninitialized, a1 = PD_T::Uninitialized;
+                const Int wp = w[static_cast<std::size_t>(i-1)];
+                const Int wn = w[static_cast<std::size_t>(i)];
+                for( Int lr = 0; lr < 2; ++lr )
+                {
+                    const Int in_a  = Cx(x,In_ ,lr);
+                    const Int out_a = Cx(x,Out_,lr);
+                    if( (in_a  != wp) && (in_a  != wn) ) { a0 = in_a;  }
+                    if( (out_a != wp) && (out_a != wn) ) { a1 = out_a; }
+                }
+                if( (a0 == PD_T::Uninitialized) || (a1 == PD_T::Uninitialized) )
+                {
+                    return fail("could not identify the transversal at interior"
+                        " crossing " + std::to_string(x));
+                }
+                heal_next[static_cast<std::size_t>(a0)] = a1;
+            }
+
+            // -- healed-arc representatives (a transversal can chain) --------
+            std::vector<Int> rep_of(static_cast<std::size_t>(m_a), PD_T::Uninitialized);
+            {
+                std::vector<bool> is_second(static_cast<std::size_t>(m_a), false);
+                for( Int a = 0; a < m_a; ++a )
+                {
+                    const Int nx = heal_next[static_cast<std::size_t>(a)];
+                    if( nx != PD_T::Uninitialized )
+                    {
+                        is_second[static_cast<std::size_t>(nx)] = true;
+                    }
+                }
+                for( Int a = 0; a < m_a; ++a )
+                {
+                    if( is_second[static_cast<std::size_t>(a)] ) { continue; }
+                    Int cur = a;
+                    while( cur != PD_T::Uninitialized )
+                    {
+                        rep_of[static_cast<std::size_t>(cur)] = a;
+                        cur = heal_next[static_cast<std::size_t>(cur)];
+                    }
+                }
+            }
+
+            // -- heal: the chain start absorbs the rest of its chain ---------
+            for( Int a = 0; a < n_a; ++a )
+            {
+                if( rep_of[static_cast<std::size_t>(a)] != a ) { continue; }
+
+                Int last = a;
+                while( heal_next[static_cast<std::size_t>(last)] != PD_T::Uninitialized )
+                {
+                    const Int nxt = heal_next[static_cast<std::size_t>(last)];
+                    AS[static_cast<std::size_t>(nxt)] = ArcState_T::Inactive;
+                    last = nxt;
+                }
+                if( last != a )
+                {
+                    const Int new_head = Aend(last,Int(1));
+                    Aend(a,Int(1)) = new_head;
+                    if( !repoint(new_head,last,a) )
+                    {
+                        return fail("healing: crossing " + std::to_string(new_head)
+                            + " does not mention arc " + std::to_string(last));
+                    }
+                }
+            }
+
+            // -- retire W and the crossings it made --------------------------
+            for( Int i = 0; i < L; ++i )
+            {
+                AS[static_cast<std::size_t>(w[static_cast<std::size_t>(i)])]
+                    = ArcState_T::Inactive;
+            }
+            for( Int x : interior ) { CS[static_cast<std::size_t>(x)] = CrossingState_T::Inactive; }
+
+            // -- the corridor -----------------------------------------------
+            // The move frees W's arcs and every transversal half it healed
+            // away; between those and the slots the array grew by there is
+            // always room for the k+1 corridor arcs and the k split pieces.
+            std::vector<Int> free_labels;
+            for( Int a = 0; a < m_a; ++a )
+            {
+                if( AS[static_cast<std::size_t>(a)] == ArcState_T::Inactive )
+                {
+                    free_labels.push_back(a);
+                }
+            }
+            if( static_cast<Int>(free_labels.size()) < Int(2)*k + Int(1) )
+            {
+                return fail("not enough arc slots for the corridor: need "
+                    + std::to_string(Int(2)*k + Int(1)) + ", have "
+                    + std::to_string(free_labels.size()));
+            }
+
+            std::size_t next_free = 0;
+            std::vector<Int> p (static_cast<std::size_t>(k+1));
+            for( Int j = 0; j <= k; ++j ) { p[static_cast<std::size_t>(j)] = free_labels[next_free++]; }
+            std::vector<Int> q (static_cast<std::size_t>(k));
+            for( Int j = 0; j < k; ++j ) { q[static_cast<std::size_t>(j)] = free_labels[next_free++]; }
+
+            const Int color = pd.ArcColors()[w[0]];
+            for( Int j = 0; j <= k; ++j )
+            {
+                AS[static_cast<std::size_t>(p[static_cast<std::size_t>(j)])] = ArcState_T::Active;
+                AC[static_cast<std::size_t>(p[static_cast<std::size_t>(j)])] = color;
+            }
+
+            if( !repoint(T, w[0], p[0]) )
+            {
+                return fail("tail anchor " + std::to_string(T)
+                    + " does not mention the strand's first arc");
+            }
+            if( !repoint(H, w[static_cast<std::size_t>(L-1)],
+                            p[static_cast<std::size_t>(k)]) )
+            {
+                return fail("head anchor " + std::to_string(H)
+                    + " does not mention the strand's last arc");
+            }
+            Aend(p[0],Int(0)) = T;
+            Aend(p[static_cast<std::size_t>(k)],Int(1)) = H;
+
+            std::vector<bool> split_seen(static_cast<std::size_t>(m_a), false);
+
+            for( Int j = 0; j < k; ++j )
+            {
+                const Int y  = n_c + j;
+                const Int b0 = PassMove_T::ArcOf(mv.cross[static_cast<std::size_t>(j)]);
+                const Int b  = rep_of[static_cast<std::size_t>(b0)];
+
+                if( split_seen[static_cast<std::size_t>(b)] )
+                {
+                    return fail("the corridor crosses one healed arc twice (arc "
+                        + std::to_string(b) + "); the order of the two crossings"
+                        " along it is not determined by the descriptor");
+                }
+                split_seen[static_cast<std::size_t>(b)] = true;
+
+                const Int qj       = q[static_cast<std::size_t>(j)];
+                const Int old_head = Aend(b,Int(1));
+
+                AS[static_cast<std::size_t>(qj)] = ArcState_T::Active;
+                AC[static_cast<std::size_t>(qj)] = AC[static_cast<std::size_t>(b)];
+                Aend(qj,Int(0)) = y;
+                Aend(qj,Int(1)) = old_head;
+                if( !repoint(old_head,b,qj) )
+                {
+                    return fail("splitting: crossing " + std::to_string(old_head)
+                        + " does not mention arc " + std::to_string(b));
+                }
+                Aend(b,Int(1)) = y;
+
+                const Int a_in  = p[static_cast<std::size_t>(j)];
+                const Int a_out = p[static_cast<std::size_t>(j+1)];
+                Aend(a_in ,Int(1)) = y;
+                Aend(a_out,Int(0)) = y;
+
+                // Port layout and handedness follow the same formula the
+                // applier uses (Reroute.hpp). That part is the geometry of the
+                // crossing, exercised by every production reroute; the label
+                // bookkeeping the aliasing bug lives in is above, and is ours.
+                const bool l2rQ  = PassMove_T::DirOf(mv.cross[static_cast<std::size_t>(j)]);
+                const bool overQ = static_cast<bool>(mv.over[static_cast<std::size_t>(j)]);
+
+                CS[static_cast<std::size_t>(y)]
+                    = BooleanToCrossingState(l2rQ ? overQ : !overQ);
+
+                if( l2rQ )
+                {
+                    Cx(y,Out_,Int(0)) = qj;     Cx(y,Out_,Int(1)) = a_out;
+                    Cx(y,In_ ,Int(0)) = a_in;   Cx(y,In_ ,Int(1)) = b;
+                }
+                else
+                {
+                    Cx(y,Out_,Int(0)) = a_out;  Cx(y,Out_,Int(1)) = qj;
+                    Cx(y,In_ ,Int(0)) = b;      Cx(y,In_ ,Int(1)) = a_in;
+                }
+            }
+
+            if( k == Int(0) ) { Aend(p[0],Int(1)) = H; }
+
+            why.clear();
+
+            return PD_T(
+                m_c, C.data(), CS.data(), A.data(), AS.data(), AC.data(),
+                pd.LastColorDeactivated(), false, false
+            );
+        }
+
+        //======================================================================
         // Phase 4 — Public API: overlay generation
         //
         // Classify each cell of a routed pass move into renderer-agnostic
