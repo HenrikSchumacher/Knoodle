@@ -2701,18 +2701,29 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
         }
     }
 
+    // A rejected --move must leave no drawing behind. The descriptor is tried
+    // against every summand (its darcs only resolve on the one it belongs to)
+    // and can still fail on routing after that, so whether it applied is not
+    // known until the loop is done -- buffer until then and emit nothing if it
+    // never applied. Without a --move there is nothing to withhold, so the
+    // ordinary path keeps writing straight through, unbuffered.
+    std::ostringstream move_buffer;
+    std::ostream & out = move_requested
+                       ? static_cast<std::ostream &>(move_buffer)
+                       : static_cast<std::ostream &>(std::cout);
+
     for (std::size_t i = 0; i < summands.size(); ++i)
     {
         if (i > 0 && !config.wolfram_mode)
         {
-            std::cout << "s\n";
+            out << "s\n";
         }
 
         OrthoDraw_T H(summands[i], config.exterior_face ? *config.exterior_face : Int(-1), settings);
 
         if (config.wolfram_mode)
         {
-            EmitWolframGeometry(H, summands[i], std::cout);
+            EmitWolframGeometry(H, summands[i], out);
             continue;
         }
 
@@ -2903,24 +2914,24 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
                 diagram = UnicodeifyDiagram(diagram);
         }
 
-        std::cout << diagram << "\n";
+        out << diagram << "\n";
     }
 
     if (config.wolfram_mode)
     {
         for (Int color : unknot_colors)
         {
-            std::cout << "<|\"Unknot\"->True";
+            out << "<|\"Unknot\"->True";
             if (color != PD_T::Uninitialized)
             {
                 // `color` here is the raw wire color, so emit it under "Color"
                 // too -- this makes the unknot marker agree with arc records on
                 // what "Color" means, while "Component" stays for older
                 // consumers that keyed off it.
-                std::cout << ",\"Component\"->" << color
-                          << ",\"Color\"->" << color;
+                out << ",\"Component\"->" << color
+                    << ",\"Color\"->" << color;
             }
-            std::cout << "|>\n";
+            out << "|>\n";
         }
     }
 
@@ -2931,8 +2942,10 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
         std::cerr << "knoodledraw: --move descriptor rejected: "
                   << (move_why.empty() ? "no drawable summands" : move_why)
                   << "\n";
-        return false;
+        return false;   // move_buffer is dropped: no drawing for a rejected move
     }
+
+    if (move_requested) { std::cout << move_buffer.str(); }
 
     return true;
 }
