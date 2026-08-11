@@ -183,6 +183,22 @@ canon_check: canon_check.cpp ../Knoodle.hpp
 	    canon_check.cpp $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ canon_check compiled successfully"
 
+# orthodecorate_check — OrthoDecorate face/route/overlay checks, incl. the pass
+# descriptor's spec checks (docs/move-descriptor.md) and the margin regression.
+# Light config (no UMFPACK). Depends on the header it exercises, so editing
+# OrthoDecorate.hpp actually rebuilds the test.
+orthodecorate_check: orthodecorate_check.cpp ../Knoodle.hpp ../src/OrthoDecorate.hpp
+	@echo "=== Building orthodecorate_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) orthodecorate_check.cpp -o $@
+	@echo "✓ orthodecorate_check compiled successfully"
+
+# klut_e2e — end-to-end Identify run over the KLUT data via the two built
+# tools. Self-contained: needs the KLUT data, no UMFPACK.
+klut_e2e: klut_e2e.cpp ../Knoodle.hpp
+	@echo "=== Building klut_e2e on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) klut_e2e.cpp -o $@
+	@echo "✓ klut_e2e compiled successfully"
+
 # component_check — regression guard for the CollapseArcRange unlink-loss bug
 # (Henrik's 5151f39). Embedded 8-crossing 2-component-unlink reproducer; default
 # Simplify must preserve the link-component count. Light config (no UMFPACK).

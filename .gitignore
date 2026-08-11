@@ -61,6 +61,7 @@ tools/ExampleKnot_simplified.tsv
 tools/knoodlesimplify
 tools/knoodledraw
 tools/knoodleidentify
+tools/*.d
 tools/knoodlesimplify.log
 tools/knoodledraw.log
 tools/knoodleidentify.log
