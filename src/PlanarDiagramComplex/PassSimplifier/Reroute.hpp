@@ -4,6 +4,17 @@ private:
  * @brief Attempts to reroute the strand. It is typically not save to call this function without the invariants guaranteed by `SimplifyStrands`. Some of the invariants are correct coloring of the arcs and crossings in the current strand and the absense of possible Reidemeister I and II moves along that strand.
  * This is why we make this function private.
  *
+ * `path` is produced before any mutation happens, so its entries are arc
+ * labels of the _incoming_ diagram. The loop below rewrites the diagram as it
+ * walks, and in doing so it recycles the label `a_1` (see there): `a_1`'s old
+ * geometric span is absorbed into `a_0`, and the label itself is reused for a
+ * piece of `b`. A later path entry naming such a label therefore no longer
+ * denotes the arc the path meant. `A_succ` maps each recycled label to the
+ * label that absorbed its span, and `path` entries are resolved through it.
+ * Without that resolution the loop splices a transversal it should have kept,
+ * and can return a planar, `CheckAll`-clean diagram of a _different knot_
+ * (see `handoff/reroute-arc-label-aliasing`).
+ *
  * @param pass On entry, pass to reroute. On return, the reouted pass.
  */
 
@@ -65,6 +76,8 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
     
     PD_TIC("While loop for rerouting");
 
+    succ_front.Reset();
+
     while( p < q )
     {
         const Int c_0 = pd->A_cross(a,Head);
@@ -75,6 +88,12 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
         const Int a_2 = pd->C_arcs(c_0,Out,side);
         PD_VALPRINT("a_2", ArcString(a_2));
         auto [b,left_to_rightQ] = FromDarc(path[p]);
+
+        // `path` was computed on the incoming diagram; redirect `b` if an
+        // earlier iteration recycled its label. Follow chains: an absorbing
+        // `a_0` can itself be recycled by a later crossing.
+        while( A_succ[b] != PD_T::Uninitialized ) { b = A_succ[b]; }
+
 //        PD_VALPRINT("b", ArcString(b));
         
         const Int c_1 = pd->A_cross(b,Head);
@@ -171,6 +190,12 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
         //             X
         
         Reconnect<Head,false>(a_0,a_1);
+
+        // `a_1`'s span now lives in `a_0`, and the label `a_1` is about to be
+        // reused below. Record the redirection for later `path` entries.
+        A_succ[a_1] = a_0;
+        succ_front.Push(a_1);
+
         pd->ChangeArcColor_Private( a_1, pd->A_color[b] );
         Reconnect<Head,false>(a_1,b  );
         
@@ -272,6 +297,10 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
         ++p;
     }
     PD_TOC("While loop for rerouting");
+
+    // Restore `A_succ` to all-`PD_T::Uninitialized` for the next call. Only the
+    // entries this call dirtied are touched.
+    while( !succ_front.EmptyQ() ) { A_succ[succ_front.Pop()] = PD_T::Uninitialized; }
 
     [[maybe_unused]] Int deleted_arc_count = CollapseArcRange( a, e, pass.arc_count, pass.mark );
 

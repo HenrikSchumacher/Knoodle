@@ -124,7 +124,19 @@ namespace Knoodle
         Stack_T X_front;
         Stack_T Y_front;
         Stack_T prev_front;
-        
+
+        // Scratch for `Reroute`: when its per-crossing loop recycles the label
+        // `a_1`, `A_succ[a_1]` records the label `a_0` that absorbed `a_1`'s
+        // geometric span, so that later entries of the (pre-computed) path can
+        // be redirected. `A_succ` holds `PD_T::Uninitialized` everywhere
+        // between calls -- note that the class-local `Uninitialized` above is
+        // declared `bool`, so it is `1`, a perfectly valid arc label, and must
+        // not be used as a sentinel here. `succ_front` lists the entries a call
+        // dirtied, so the reset at the end of `Reroute` costs O(path length)
+        // rather than O(arc count).
+        Tensor1<Int,Int> A_succ;
+        Stack_T succ_front;
+
         DijkstraStrategy_T strategy = DijkstraStrategy_T::Bidirectional;
         bool overQ;
         bool strand_completeQ;
@@ -168,6 +180,8 @@ namespace Knoodle
             X_front            = Stack_T( max_arc_count );
             Y_front            = Stack_T( max_arc_count );
             prev_front         = Stack_T( max_arc_count );
+            A_succ             = Tensor1<Int,Int>( max_arc_count, PD_T::Uninitialized );
+            succ_front         = Stack_T( max_arc_count );
             
             if constexpr ( hash_mapQ )
             {
