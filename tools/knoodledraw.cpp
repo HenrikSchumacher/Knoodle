@@ -50,6 +50,7 @@ struct Config
     std::vector<std::string> highlight_specs;  // raw "--highlight=..." values
     bool randomize_projection = false;
     bool ascii_mode           = false;
+    bool mono_mode            = false;  // --mono : no ANSI; weight carries meaning
     bool wolfram_mode         = false;  // --format=wl : emit WL geometry association
     bool help_requested       = false;
     bool label_crossings      = false;
@@ -90,7 +91,12 @@ struct Config
     bool trace_mode = false;
 };
 
-enum class HighlightType : uint8_t { None = 0, Arc = 1, Crossing = 2, Face = 3, Pass = 4 };
+// Strand = the arcs of a --move descriptor's rerouted strand W. It is a
+// highlight rather than an overlay: those arcs already exist in the diagram,
+// we only need to tell them apart from the corridor that replaces them.
+enum class HighlightType : uint8_t {
+    None = 0, Arc = 1, Crossing = 2, Face = 3, Pass = 4, Strand = 5
+};
 
 struct HighlightSet {
     std::set<Int> arcs;
@@ -133,6 +139,10 @@ void PrintUsage()
     std::cerr << "\n";
     std::cerr << "Output options:\n";
     std::cerr << "  --ascii                     Use plain ASCII output (default: Unicode box-drawing)\n";
+    std::cerr << "  --mono                      No ANSI color: the rerouted strand W and the new\n";
+    std::cerr << "                              corridor are drawn in heavy strokes and labelled\n";
+    std::cerr << "                              'w' / 'p' instead (for files, docs, and anything\n";
+    std::cerr << "                              that strips escape codes)\n";
     std::cerr << "  --highlight=ELEMENTS        Highlight elements (a=arc, c=crossing, f=face)\n";
     std::cerr << "                              e.g. --highlight=\"a0,c3,f2\"; multiple flags allowed\n";
     std::cerr << "  --checkerboard-coloring     Highlight alternating faces (checkerboard pattern)\n";
@@ -289,6 +299,10 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg == "--ascii")
         {
             config.ascii_mode = true;
+        }
+        else if (arg == "--mono")
+        {
+            config.mono_mode = true;
         }
         else if (arg == "--trace")
         {
@@ -541,7 +555,8 @@ bool ConnectsVertically(char c)
 std::string UnicodeifyDiagram(const std::string& ascii,
                                const std::vector<HighlightType>* hl_mask = nullptr,
                                Int n_x = 0,
-                               const std::vector<Int>* comp_map = nullptr)
+                               const std::vector<Int>* comp_map = nullptr,
+                               bool mono = false)
 {
     // Parse into lines
     std::vector<std::string> lines;
@@ -571,7 +586,8 @@ std::string UnicodeifyDiagram(const std::string& ascii,
     static const char* COLOR_ARC      = "\033[38;5;111m";  // blue-warmer
     static const char* COLOR_CROSSING = "\033[38;5;203m";  // red
     static const char* COLOR_FACE     = "\033[48;5;234m";  // bg-dim
-    static const char* COLOR_PASS     = "\033[38;5;220m";  // gold (pass-move overlay)
+    static const char* COLOR_PASS     = "\033[38;5;220m";  // gold (new corridor)
+    static const char* COLOR_STRAND   = "\033[38;5;80m";   // cyan (strand W)
     static const char* COLOR_RESET    = "\033[0m";
 
     // Component palette (Modus Vivendi distinct colors)
@@ -597,24 +613,58 @@ std::string UnicodeifyDiagram(const std::string& ascii,
             char ch = lines[r][c];
             std::string char_out;
 
+            // Which of the two rerouting actors, if either, owns this cell.
+            // In --mono there is no colour to say so, and the difference is
+            // carried by stroke weight instead: W and the corridor are drawn
+            // heavy, the rest of the diagram light. In colour mode everything
+            // is drawn with the diagram's own light strokes and the colour
+            // does the talking.
+            HighlightType ht_here = HighlightType::None;
+            if ((n_x > 0) && hl_mask)
+            {
+                auto m = r * static_cast<std::size_t>(n_x) + c;
+                if (m < hl_mask->size()) { ht_here = (*hl_mask)[m]; }
+            }
+            const bool heavyQ = mono
+                && ((ht_here == HighlightType::Strand)
+                 || (ht_here == HighlightType::Pass));
+
             switch (ch)
             {
-                case '-': char_out = "\xe2\x94\x80"; break; // ─ U+2500
-                case '|': char_out = "\xe2\x94\x82"; break; // │ U+2502
+                case '-': char_out = heavyQ ? "\xe2\x94\x81"  // ━ U+2501
+                                            : "\xe2\x94\x80"; // ─ U+2500
+                          break;
+                case '|': char_out = heavyQ ? "\xe2\x94\x83"  // ┃ U+2503
+                                            : "\xe2\x94\x82"; // │ U+2502
+                          break;
                 case '<': char_out = "\xe2\x86\x90"; break; // ← U+2190
                 case '>': char_out = "\xe2\x86\x92"; break; // → U+2192
                 case '^': char_out = "\xe2\x86\x91"; break; // ↑ U+2191
                 case 'v': char_out = "\xe2\x86\x93"; break; // ↓ U+2193
                 case '.': char_out = "\xc2\xb7";     break; // · U+00B7
 
-                // Pass-move overlay strokes (heavy box drawing, stamped by
-                // StampPassOverlay; never emitted by DiagramString itself)
-                case '=': char_out = "\xe2\x94\x81"; break; // ━ U+2501
-                case ';': char_out = "\xe2\x94\x83"; break; // ┃ U+2503
-                case '{': char_out = "\xe2\x94\x97"; break; // ┗ U+2517 (N+E)
-                case '}': char_out = "\xe2\x94\x9b"; break; // ┛ U+251B (N+W)
-                case '[': char_out = "\xe2\x94\x8f"; break; // ┏ U+250F (S+E)
-                case ']': char_out = "\xe2\x94\x93"; break; // ┓ U+2513 (S+W)
+                // Pass-move corridor strokes, stamped by StampPassOverlay and
+                // never emitted by DiagramString itself. They take the same
+                // light glyphs as the diagram (colour tells them apart) unless
+                // --mono asked for weight instead.
+                case '=': char_out = mono ? "\xe2\x94\x81"  // ━
+                                          : "\xe2\x94\x80"; // ─
+                          break;
+                case ';': char_out = mono ? "\xe2\x94\x83"  // ┃
+                                          : "\xe2\x94\x82"; // │
+                          break;
+                case '{': char_out = mono ? "\xe2\x94\x97"  // ┗ (N+E)
+                                          : "\xe2\x95\xb0"; // ╰
+                          break;
+                case '}': char_out = mono ? "\xe2\x94\x9b"  // ┛ (N+W)
+                                          : "\xe2\x95\xaf"; // ╯
+                          break;
+                case '[': char_out = mono ? "\xe2\x94\x8f"  // ┏ (S+E)
+                                          : "\xe2\x95\xad"; // ╭
+                          break;
+                case ']': char_out = mono ? "\xe2\x94\x93"  // ┓ (S+W)
+                                          : "\xe2\x95\xae"; // ╮
+                          break;
                 case '*': char_out = "\xe2\x97\x8f"; break; // ● U+25CF (junction)
 
                 case '+':
@@ -626,20 +676,41 @@ std::string UnicodeifyDiagram(const std::string& ascii,
 
                     int bits = (left ? 8 : 0) | (right ? 4 : 0) | (up ? 2 : 0) | (down ? 1 : 0);
 
-                    switch (bits)
+                    if (heavyQ)
                     {
-                        case 0b0101: char_out = "\xe2\x95\xad"; break; // ╭ right+down
-                        case 0b1001: char_out = "\xe2\x95\xae"; break; // ╮ left+down
-                        case 0b0110: char_out = "\xe2\x95\xb0"; break; // ╰ right+up
-                        case 0b1010: char_out = "\xe2\x95\xaf"; break; // ╯ left+up
-                        case 0b1101: char_out = "\xe2\x94\xac"; break; // ┬ left+right+down
-                        case 0b1110: char_out = "\xe2\x94\xb4"; break; // ┴ left+right+up
-                        case 0b0111: char_out = "\xe2\x94\x9c"; break; // ├ up+down+right
-                        case 0b1011: char_out = "\xe2\x94\xa4"; break; // ┤ up+down+left
-                        case 0b1111: char_out = "\xe2\x94\xbc"; break; // ┼ all four
-                        case 0b1100: char_out = "\xe2\x94\x80"; break; // ─ left+right
-                        case 0b0011: char_out = "\xe2\x94\x82"; break; // │ up+down
-                        default:     char_out = "+";            break; // fallback
+                        switch (bits)
+                        {
+                            case 0b0101: char_out = "\xe2\x94\x8f"; break; // ┏ right+down
+                            case 0b1001: char_out = "\xe2\x94\x93"; break; // ┓ left+down
+                            case 0b0110: char_out = "\xe2\x94\x97"; break; // ┗ right+up
+                            case 0b1010: char_out = "\xe2\x94\x9b"; break; // ┛ left+up
+                            case 0b1101: char_out = "\xe2\x94\xb3"; break; // ┳ left+right+down
+                            case 0b1110: char_out = "\xe2\x94\xbb"; break; // ┻ left+right+up
+                            case 0b0111: char_out = "\xe2\x94\xa3"; break; // ┣ up+down+right
+                            case 0b1011: char_out = "\xe2\x94\xab"; break; // ┫ up+down+left
+                            case 0b1111: char_out = "\xe2\x95\x8b"; break; // ╋ all four
+                            case 0b1100: char_out = "\xe2\x94\x81"; break; // ━ left+right
+                            case 0b0011: char_out = "\xe2\x94\x83"; break; // ┃ up+down
+                            default:     char_out = "+";            break; // fallback
+                        }
+                    }
+                    else
+                    {
+                        switch (bits)
+                        {
+                            case 0b0101: char_out = "\xe2\x95\xad"; break; // ╭ right+down
+                            case 0b1001: char_out = "\xe2\x95\xae"; break; // ╮ left+down
+                            case 0b0110: char_out = "\xe2\x95\xb0"; break; // ╰ right+up
+                            case 0b1010: char_out = "\xe2\x95\xaf"; break; // ╯ left+up
+                            case 0b1101: char_out = "\xe2\x94\xac"; break; // ┬ left+right+down
+                            case 0b1110: char_out = "\xe2\x94\xb4"; break; // ┴ left+right+up
+                            case 0b0111: char_out = "\xe2\x94\x9c"; break; // ├ up+down+right
+                            case 0b1011: char_out = "\xe2\x94\xa4"; break; // ┤ up+down+left
+                            case 0b1111: char_out = "\xe2\x94\xbc"; break; // ┼ all four
+                            case 0b1100: char_out = "\xe2\x94\x80"; break; // ─ left+right
+                            case 0b0011: char_out = "\xe2\x94\x82"; break; // │ up+down
+                            default:     char_out = "+";            break; // fallback
+                        }
                     }
                     break;
                 }
@@ -649,8 +720,10 @@ std::string UnicodeifyDiagram(const std::string& ascii,
                     break;
             }
 
-            // Apply coloring: highlight takes priority over component color
-            if (n_x > 0)
+            // Apply coloring: highlight takes priority over component color.
+            // --mono emits no escape codes at all: weight and the w/p markers
+            // carry everything colour would have.
+            if ((n_x > 0) && !mono)
             {
                 auto mi = r * static_cast<std::size_t>(n_x) + c;
 
@@ -685,6 +758,7 @@ std::string UnicodeifyDiagram(const std::string& ascii,
                         case HighlightType::Crossing: color = COLOR_CROSSING; break;
                         case HighlightType::Face:     color = COLOR_FACE;     break;
                         case HighlightType::Pass:     color = COLOR_PASS;     break;
+                        case HighlightType::Strand:   color = COLOR_STRAND;   break;
                         default: break;
                     }
                     result += color;
@@ -1754,6 +1828,143 @@ HighlightSet ParseHighlightSpecs(const std::vector<std::string>& specs,
  * - Crossings: marks the crossing cell and adjacent body chars (- or |).
  * - Faces: marks space cells owned by highlighted faces.
  */
+/**
+ * @brief Mark the cells drawn for a set of arcs with a highlight type.
+ *
+ * Shared by `--highlight=a<i>` (type Arc) and by a `--move` descriptor's
+ * strand W (type Strand). When `marker` is non-zero the midpoint of every
+ * sufficiently long straight run is overwritten with it in `diagram`, which
+ * is how W is labelled in `--mono` output (no colour to distinguish it).
+ */
+void MarkArcCells(
+    OrthoDraw_T& H, std::string& diagram,
+    Int n_x, Int n_y,
+    const std::vector<Int>& arcs,
+    std::vector<HighlightType>& mask,
+    HighlightType type,
+    char marker = '\0')
+{
+    auto idx = [n_x, n_y](Int x, Int y) -> std::size_t {
+        return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y));
+    };
+
+    auto in_bounds = [n_x, n_y](Int x, Int y) -> bool {
+        return x >= 0 && x < n_x - 1 && y >= 0 && y < n_y;
+    };
+
+    auto is_edge_char = [](char c) -> bool {
+        return c == '-' || c == '|' || c == '<' || c == '>'
+            || c == '^' || c == 'v';
+    };
+
+    const auto& A_E = H.ArcEdges();
+    const auto& A_V = H.ArcVertices();
+    const auto& E_V = H.Edges();
+    const auto& V_coords = H.VertexCoordinates();
+    const auto& E_dir = H.EdgeDirections();
+
+    // A marker is placed at most once per arc, on the longest straight run,
+    // so a short arc does not lose its only stroke to a label. If no arc of the
+    // set had a long enough run, the best cell seen anywhere gets one, so W is
+    // never left entirely unlabelled.
+    constexpr Int min_run_for_marker = 3;
+
+    Int overall_len = 0;
+    std::size_t overall_cell = 0;
+    bool overall_have = false;
+    bool placed_any = false;
+
+    for (Int a : arcs)
+    {
+        if (!H.EdgeActiveQ(a)) continue;
+
+        Int best_len = 0;
+        std::size_t best_cell = 0;
+        bool have_cell = false;
+
+        auto consider = [&](Int len, Int x, Int y)
+        {
+            if ((len < Int(1)) || !in_bounds(x, y)) { return; }
+
+            if ((len >= min_run_for_marker) && (len > best_len))
+            {
+                best_len  = len;
+                best_cell = idx(x, y);
+                have_cell = true;
+            }
+            if (len > overall_len)
+            {
+                overall_len  = len;
+                overall_cell = idx(x, y);
+                overall_have = true;
+            }
+        };
+
+        auto edges = A_E[a];
+        for (auto it = edges.begin(); it != edges.end(); ++it)
+        {
+            Int e = *it;
+            if (!H.EdgeActiveQ(e)) continue;
+
+            Int v_0 = E_V(e, 0);
+            Int v_1 = E_V(e, 1);
+            Int x0 = V_coords(v_0, 0), y0 = V_coords(v_0, 1);
+            Int x1 = V_coords(v_1, 0), y1 = V_coords(v_1, 1);
+
+            auto dir = E_dir[e];
+
+            if (dir == OrthoDraw_T::East || dir == OrthoDraw_T::West)
+            {
+                Int lo_x = std::min(x0, x1);
+                Int hi_x = std::max(x0, x1);
+                Int y = y0;
+                for (Int x = lo_x + 1; x <= hi_x - 1; ++x)
+                {
+                    if (!in_bounds(x, y)) continue;
+                    auto i = idx(x, y);
+                    if (is_edge_char(diagram[i])) mask[i] = type;
+                }
+                consider(hi_x - lo_x - 1, (lo_x + hi_x) / 2, y);
+            }
+            else if (dir == OrthoDraw_T::North || dir == OrthoDraw_T::South)
+            {
+                Int lo_y = std::min(y0, y1);
+                Int hi_y = std::max(y0, y1);
+                Int x = x0;
+                for (Int y = lo_y + 1; y <= hi_y - 1; ++y)
+                {
+                    if (!in_bounds(x, y)) continue;
+                    auto i = idx(x, y);
+                    if (is_edge_char(diagram[i])) mask[i] = type;
+                }
+                consider(hi_y - lo_y - 1, x, (lo_y + hi_y) / 2);
+            }
+        }
+
+        auto verts = A_V[a];
+        for (auto it = verts.begin(); it != verts.end(); ++it)
+        {
+            Int v = *it;
+            Int x = V_coords(v, 0);
+            Int y = V_coords(v, 1);
+            if (!in_bounds(x, y)) continue;
+            auto i = idx(x, y);
+            if (diagram[i] == '+') mask[i] = type;
+        }
+
+        if (marker && have_cell && (mask[best_cell] == type))
+        {
+            diagram[best_cell] = marker;
+            placed_any = true;
+        }
+    }
+
+    if (marker && !placed_any && overall_have && (mask[overall_cell] == type))
+    {
+        diagram[overall_cell] = marker;
+    }
+}
+
 std::vector<HighlightType> BuildHighlightMask(
     OrthoDraw_T& H, const std::string& diagram,
     Int n_x, Int n_y,
@@ -2464,15 +2675,54 @@ void PadCanvas(std::string& diagram, std::vector<HighlightType>& mask,
  */
 void StampPassOverlay(std::string& diagram, std::vector<HighlightType>& mask,
                       Int n_x, Int n_y,
-                      const std::vector<Deco_T::OverlayCell_T>& cells)
+                      const std::vector<Deco_T::OverlayCell_T>& cells,
+                      char marker = '\0')
 {
     if (mask.empty())
     {
         mask.assign(static_cast<std::size_t>(n_x * n_y), HighlightType::None);
     }
 
+    // In --mono the corridor is labelled instead of coloured: drop a marker
+    // every `marker_period` plain strokes, far enough apart to stay readable
+    // and never on an arrow, corner or crossing cell. A corridor too short to
+    // reach the period still gets one, at its middle plain cell -- otherwise a
+    // short corridor would be indistinguishable from W, which is also heavy.
+    constexpr int marker_period = 9;
+
+    std::vector<std::size_t> plain_cells;
+    if (marker)
+    {
+        for (std::size_t k = 0; k < cells.size(); ++k)
+        {
+            if ((cells[k].kind == Deco_T::OverlayKind::Horizontal)
+             || (cells[k].kind == Deco_T::OverlayKind::Vertical))
+            {
+                plain_cells.push_back(k);
+            }
+        }
+    }
+
+    std::set<std::size_t> marked;
+    if (plain_cells.size() >= static_cast<std::size_t>(marker_period))
+    {
+        for (std::size_t k = marker_period / 2; k < plain_cells.size();
+             k += marker_period)
+        {
+            marked.insert(plain_cells[k]);
+        }
+    }
+    else if (!plain_cells.empty())
+    {
+        marked.insert(plain_cells[plain_cells.size() / 2]);
+    }
+
+    std::size_t cell_index = 0;
+
     for (const auto& cell : cells)
     {
+        const std::size_t this_cell = cell_index++;
+
         if (cell.x < 0 || cell.x >= n_x - 1 || cell.y < 0 || cell.y >= n_y)
             continue;
 
@@ -2506,6 +2756,8 @@ void StampPassOverlay(std::string& diagram, std::vector<HighlightType>& mask,
                 mask[idx] = HighlightType::Crossing;
                 continue;  // emphasis only, glyph unchanged
         }
+
+        if (marker && marked.count(this_cell)) { ch = marker; }
 
         diagram[idx] = ch;
         mask[idx]    = HighlightType::Pass;
@@ -2704,9 +2956,38 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
             auto pass_route = deco.RoutePassMove(move);
             if (pass_route.validQ)
             {
+                // Mark the strand W before padding, while the mask and the
+                // drawing still share OrthoDraw's coordinates. W keeps the
+                // diagram's own strokes; only its colour (or, in --mono, its
+                // weight and a 'w' marker) sets it apart from the corridor.
+                {
+                    std::vector<Int> strand_arcs;
+                    strand_arcs.reserve(move.strand.size());
+                    for (Int da : move.strand)
+                    {
+                        strand_arcs.push_back(PD_T::ArcOfDarc(da));
+                    }
+
+                    if (mask.empty())
+                    {
+                        mask.assign(static_cast<std::size_t>(n_x * n_y),
+                                    HighlightType::None);
+                    }
+
+                    // --ascii has no colour either, so it gets the markers
+                    // too; it just has no heavy strokes to go with them.
+                    const bool no_colorQ = config.mono_mode || config.ascii_mode;
+
+                    MarkArcCells(H, diagram, n_x, n_y, strand_arcs, mask,
+                                 HighlightType::Strand,
+                                 no_colorQ ? 'w' : '\0');
+                }
+
                 PadCanvas(diagram, mask, component_map, n_x, n_y, move_margin);
                 StampPassOverlay(diagram, mask, n_x, n_y,
-                                 deco.RenderPassRoute(pass_route));
+                                 deco.RenderPassRoute(pass_route),
+                                 (config.mono_mode || config.ascii_mode)
+                                     ? 'p' : '\0');
                 move_applied = true;
             }
             else
@@ -2723,7 +3004,8 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
                 !component_map.empty() ? &component_map : nullptr;
 
             if (m_ptr || c_ptr)
-                diagram = UnicodeifyDiagram(diagram, m_ptr, n_x, c_ptr);
+                diagram = UnicodeifyDiagram(diagram, m_ptr, n_x, c_ptr,
+                                            config.mono_mode);
             else
                 diagram = UnicodeifyDiagram(diagram);
         }
