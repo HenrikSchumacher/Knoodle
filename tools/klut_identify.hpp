@@ -29,8 +29,21 @@ using Size_T  = Knoodle::Size_T;
 struct IdentifyParams
 {
     Size_T n0     = 1;    // initial embedding_trials for the Reapr escalation
-    Size_T cap    = 2;    // max escalation rounds per candidate (tuned via klut_bench: a
-                          // high cap only burns time on genuinely irreducible diagrams)
+    Size_T cap    = 4;    // max escalation rounds per candidate. Rounds beyond
+                          // `base` are BANDED (see deep_cx): they only run while
+                          // the stalled diagram is near table range, so raising
+                          // cap does not tax genuinely irreducible diagrams.
+                          // (2026-08: cap=2 unbanded missed ~0.5% of in-table
+                          // knots on census workloads; banded cap=4 recovers
+                          // them at ~cap=2 cost.)
+    Size_T base   = 2;    // escalation rounds always run, regardless of size
+                          // (= the old tuned cap)
+    Int    deep_cx = static_cast<Int>(Klut::max_crossing_count) + Int(3);
+                          // rounds base..cap run only while the current stalled
+                          // diagram has <= deep_cx crossings: a fixpoint close
+                          // to table range plausibly hides a table knot (every
+                          // recovered production miss stalled at 12-15); one
+                          // far above it does not.
     Size_T rot    = 5;    // rotation_trials (reprojections) per embedding during escalation
                           // (tuned via klut_bench: ~all of rot=1's speed, 5x the margin)
     Int    max_cx = static_cast<Int>(Klut::max_crossing_count);  // 13
@@ -178,6 +191,11 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
         Size_T n = q.n0;
         for( Size_T att = 0; att < q.cap && !done; ++att )
         {
+            // Banded deep rounds: past q.base, keep escalating only while the
+            // stalled diagram is near table range (see IdentifyParams::deep_cx).
+            if( att >= q.base
+                && temp.Diagram(0).CrossingCount() > q.deep_cx ) { break; }
+
             PDC_T::Simplify_Args_T a{};
             a.embedding_trials = n;                // escalation: canonicalize default (immaterial; Reapr swamps)
             a.rotation_trials  = q.rot;            // reprojections per embedding (tunable)
