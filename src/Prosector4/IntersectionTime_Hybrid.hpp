@@ -54,28 +54,37 @@ public:
         // We do it in a way that most computations are deferred until they are really needed.
         // In a generic situation, we just check s.a[0] * t.b[0] < t.a[0] * s.b[0].
         
-        if( Abs(s.t - t.t) > 0.0001 )
+        if( Abs(s.t - t.t) > 0.0000610352 )
         {
-            if( s.t < s.t )
+            int sign = int{s.t > t.t} - int{s.t < t.t};
+            switch( sign )
             {
-                return std::strong_ordering::less;
+                case -1: return std::strong_ordering::less;
+                case  1: return std::strong_ordering::greater;
+                default: return std::strong_ordering::equal;
             }
-            else if ( s.t > s.t )
-            {
-                return std::strong_ordering::greater;
-            }
-            else
-            {
-                return std::strong_ordering::equal;
-            }
+                        
+//            if( s.t < s.t )
+//            {
+//                return std::strong_ordering::less;
+//            }
+//            else if ( s.t > s.t )
+//            {
+//                return std::strong_ordering::greater;
+//            }
+//            else
+//            {
+//                return std::strong_ordering::equal;
+//            }
         }
         
         LLInt lhs;
         LLInt rhs;
         
         // Order 0
-        lhs = long_mul(s.a.c_0, t.b.c_0);
-        rhs = long_mul(s.b.c_0, t.a.c_0);
+        // The leading order terms of the numerators and denominators should be nonnegative due to fact that the intersection times should lie in [0,1] to leading order and due the normalization of the ratios. Hence we can spare some conditionals and some bit twiddling by using long_mul_unsigned. Alas, the branch prediction seems to guess the branches very well, so I do not see much difference in the timings.
+        lhs = long_mul_unsigned(s.a.c_0, t.b.c_0);
+        rhs = long_mul_unsigned(s.b.c_0, t.a.c_0);
         // TODO: Use <=> operator here.
         if( lhs < rhs ) { return std::strong_ordering::less;    }
         if( lhs > rhs ) { return std::strong_ordering::greater; }

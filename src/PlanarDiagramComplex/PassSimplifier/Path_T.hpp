@@ -11,7 +11,7 @@ struct Path_T
     ~Path_T() = default;
     
     Path_T( Int max_arc_count )
-    : container { max_arc_count }
+    :   container { max_arc_count }
     {}
     
     mref<Int> operator[]( const Int i )

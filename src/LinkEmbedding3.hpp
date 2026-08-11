@@ -129,7 +129,7 @@ namespace Knoodle
         bool edge_coords_computedQ    = false;
         bool bounding_boxes_computedQ = false;
         bool intersections_computedQ  = false;
-        bool inputs_integralQ         = IntQ<Real>;
+        bool input_integralQ          = IntQ<Real>;
         
     public:
         

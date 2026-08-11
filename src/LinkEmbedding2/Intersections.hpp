@@ -66,9 +66,9 @@ template<bool verboseQ = true> // whether to print errors and warnings
     
     intersection_count = static_cast<Int>(intersections.size());
     
-    Int64 sort_edge_count = 0;
-    Int64 sort_intersection_count = 0;
-    Int64 not_sort_intersection_count = 0;
+//    Int64 sort_edge_count = 0;
+//    Int64 sort_intersection_count = 0;
+//    Int64 not_sort_intersection_count = 0;
     {
         TOOLS_PTIMER(sort_timer,MethodName("ComputeIntersections") + ": coarse sorting.");
         
@@ -118,9 +118,9 @@ template<bool verboseQ = true> // whether to print errors and warnings
             // We need to sort only if there are at least two intersections on that edge.
             if( k_begin + Int(1) < k_end )
             {
-                // DEBUGGING
-                ++sort_edge_count;
-                sort_intersection_count += (k_end - k_begin);
+//                // DEBUGGING
+//                ++sort_edge_count;
+//                sort_intersection_count += (k_end - k_begin);
                 sort(
                     &edge_times[k_begin],
                     &edge_intersections[k_begin],
@@ -134,12 +134,12 @@ template<bool verboseQ = true> // whether to print errors and warnings
             }
         }
         
-        // DEBUGGING
-        TOOLS_DUMP(sort_edge_count);
-        TOOLS_DUMP(intersection_count);
-        TOOLS_DUMP(sort_intersection_count);
-        TOOLS_DUMP(not_sort_intersection_count);
-        TOOLS_DUMP(Frac<double>(sort_intersection_count,sort_edge_count));
+//        // DEBUGGING
+//        TOOLS_DUMP(sort_edge_count);
+//        TOOLS_DUMP(intersection_count);
+//        TOOLS_DUMP(sort_intersection_count);
+//        TOOLS_DUMP(not_sort_intersection_count);
+//        TOOLS_DUMP(Frac<double>(sort_intersection_count,sort_edge_count));
     }
     
     // From now on we can safely cycle around each component and generate vertices, edges, crossings, etc. in their order.

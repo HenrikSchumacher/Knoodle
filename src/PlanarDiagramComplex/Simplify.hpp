@@ -206,6 +206,8 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
     
     // By intializing S here, it will have enough internal memory for all planar diagrams.
     mref<PassSimplifier_T> S = GetPassSimplifier(args.strategy);
+    S.Allocate(this->TotalCrossingCount());
+    
     
 #ifdef PD_COUNTERS
     S.ResetCounters();
@@ -348,19 +350,19 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
 
     swap( pd_list, pd_done );
     
-#ifdef PD_COUNTERS
-    // We need to save the counters from being erased by Canonicalize().
-    auto S_buffer = std::move(this->GetCache<PassSimplifier_T>("PassSimplifier"));
-#endif
-    
     if( args.canonicalizeQ )
     {
+#ifdef PD_COUNTERS
+        // We need to save the counters from being erased by Canonicalize().
+        auto S_buffer = std::move(this->GetCache<PassSimplifier_T>("PassSimplifier"));
+#endif
         Canonicalize();
+        
+#ifdef PD_COUNTERS
+        this->SetCache("PassSimplifier",std::move(S_buffer));
+#endif
     }
 
-#ifdef PD_COUNTERS
-    this->SetCache("PassSimplifier",std::move(S_buffer));
-#endif
     
     if constexpr (debugQ)
     {
@@ -406,10 +408,8 @@ void DumpRattleFailure(
     {
         // Using the same path as the log file per default.
         // Log file writes to user's home directory per default because working directories for libraries may be unpredictable.
-//        std::filesystem::path dir { Tools::Profiler::logger.LogFile().parent_path() };
-        
-        // DEBUGGING
-        std::filesystem::path dir { HomeDirectory() };
+
+        std::filesystem::path dir { Tools::Profiler::LogFile().parent_path() };
         
         if( const char * d = std::getenv("KNOODLE_DUMP_DIR") ) { dir = d; }
 

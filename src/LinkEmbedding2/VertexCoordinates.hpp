@@ -34,7 +34,7 @@ void ReadVertexCoordinates( cptr<Real> v )
     rounding_error           = 0;
     intersection_count       = 0;
     intersection_count_3D    = 0;
-    inputs_integralQ         = IntQ<Real>;
+    input_integralQ         = IntQ<Real>;
     
     global_lo.Fill( Scalar::Max<Real> );
     global_hi.Fill( Scalar::Min<Real> );
@@ -108,7 +108,7 @@ void Transform( cref<Matrix3x3_T> A )
     rounding_error           = 0;
     intersection_count       = 0;
     intersection_count_3D    = 0;
-    inputs_integralQ         = IntQ<Real>;
+    input_integralQ         = IntQ<Real>;
     
     global_lo.Fill( Scalar::Max<Real> );
     global_hi.Fill( Scalar::Min<Real> );

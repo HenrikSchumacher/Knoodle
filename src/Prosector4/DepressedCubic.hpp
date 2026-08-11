@@ -51,14 +51,6 @@ public:
     friend double ToDouble( cref<DepressedCubic> P )
     {
         return ToDouble(P.c_0);
-        
-//        if constexpr ( IntQ<LInt> )
-//        {
-//            return static_cast<double>(P.c_0);
-//        }
-//        {
-//            return ToDouble(P.c_0);
-//        }
     }
     
     friend std::string ToString( cref<DepressedCubic> P )

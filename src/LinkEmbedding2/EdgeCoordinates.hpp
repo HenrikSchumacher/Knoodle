@@ -77,7 +77,7 @@ private:
         // TODO: Choices of max_bits are quite arbitrary here. Can we make better choices? Can we motivate these choices?
         constexpr int max_bits = SameQ<IReal,Int32> ? 28 : 60;
         
-        scaling_exponent = inputs_integralQ ? 0 : max_bits-static_cast<int>(std::ceil(std::log2(length)));
+        scaling_exponent = input_integralQ ? 0 : max_bits-static_cast<int>(std::ceil(std::log2(length)));
         
         // Scaling by a power of 2 does not incur any rounding, execept we have excessively small numbers here.
         scaling_factor = std::pow(Real(2),scaling_exponent);

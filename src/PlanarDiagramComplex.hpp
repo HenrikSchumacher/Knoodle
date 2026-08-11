@@ -696,13 +696,26 @@ namespace Knoodle
 
         mref<PassSimplifier_T> GetPassSimplifier( const Dijkstra_T strategy = Dijkstra_T::Bidirectional )
         {
-            if( !this->InCacheQ("GetPassSimplifier") )
+            if( !this->InCacheQ("PassSimplifier") )
             {
-                this->SetCache("GetPassSimplifier", PassSimplifier_T(*this,strategy));
+                this->SetCache("PassSimplifier", PassSimplifier_T(*this,strategy));
             }
 
-            return this->template GetCache<PassSimplifier_T>("GetPassSimplifier").SetDijkstraStrategy(strategy);
+            return this->template GetCache<PassSimplifier_T>("PassSimplifier").SetDijkstraStrategy(strategy);
         }
+        
+        /*!@brief **EXPERIMENTAL:** Attempts to find the shortest path between the faces created by merging the two faces of arc`a` and the faces created by merging the two faces of arc `b`.
+         *
+         * CAUTION: This assumes that `a` and `b` lie on the same link component!
+         *
+         *  @param idx Index of the subdiagram in which the path shall be found.
+         *
+         *  @param a The one end arc of the shortest path we are looking for.
+         *
+         *  @param b The other end arc of the shortest path we are looking for.
+         *
+         *  @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
+         */
         
         PassSimplifier_T::Path_T FindShortestPath(
             const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
@@ -711,6 +724,16 @@ namespace Knoodle
             return GetPassSimplifier(strategy).FindShortestPath( pd_list[idx], a, b, max_dist );
         }
         
+        /*!@brief **EXPERIMENTAL:** Attempts to find the arcs that make up a minimally rerouted strand, neglecting the arcs from `a` to `b` when traversed in natural order. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow! (It has to find and mark a the currect path between `a` and `b`, if existent.
+         *
+         *  @param idx Index of the subdiagram in which the path shall be found.
+         *
+         *  @param a The first arc of the input strand.
+         *
+         *  @param b The last arc of the input strand (included).
+         *
+         *  @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
+         */
         PassSimplifier_T::Path_T FindShortestRerouting(
             const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
         )

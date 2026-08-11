@@ -89,9 +89,17 @@ namespace Knoodle
             }
         }
         
-#include "Prosector4/Polynomial3.hpp"
         
-        using Time_T = double;
+#include "Prosector4/DepressedCubic.hpp"
+#include "Prosector4/IntersectionTime.hpp"
+#include "Prosector4/IntersectionTime_Double.hpp"
+#include "Prosector4/IntersectionTime_Hybrid.hpp"
+        
+//        using Time_T = IntersectionTime;
+//        using Time_T = IntersectionTime_Double;
+        using Time_T = IntersectionTime_Hybrid;
+        
+//        using Time_T = double;
 
 #include "Prosector4/Intersection.hpp"
         
@@ -111,6 +119,9 @@ namespace Knoodle
         
     protected:
 
+        Idx k_;
+        Idx l_;
+        
         Vector3_T x_0;
         Vector3_T x_1;
         Vector3_T y_0;
@@ -121,18 +132,23 @@ namespace Knoodle
         Vector3_T p;
         Vector3_T q;
         
-        Idx k_;
-        Idx l_;
-        
 //        LInt uxp_2;
-        LInt uxq_2;
-        LInt vxp_2;
 //        LInt vxq_2;
         
-        Sign_T sign_uxp;
-        Sign_T sign_uxq;
-        Sign_T sign_vxp;
-        Sign_T sign_vxq;
+        DepressedCubic P_0;
+        DepressedCubic P_1;
+        
+//        LVector3_T pxq;
+//        LVector3_T uxp;
+//        LVector3_T uxq;
+//        LVector3_T vxp;
+//        LVector3_T vxq;
+//        LVector3_T uxv;
+        
+//        Sign_T sign_uxp;
+//        Sign_T sign_uxq;
+//        Sign_T sign_vxp;
+//        Sign_T sign_vxq;
         
         Flag_T flag { Flag_T::Uninitialized };
 
@@ -184,17 +200,16 @@ namespace Knoodle
             //      |/     \|
             //      X------>X
             //  x_0     d     y_0
-//
         }
         
-//        // Somewhat pointless.
-//        void LoadLineSements(
-//            const Idx i_, cref<Vector3_T> x0, cref<Vector3_T> x1,
-//            const Idx j_, cref<Vector3_T> y0, cref<Vector3_T> y1
-//        )
-//        {
-//            LoadLineSements(i_, x0.data(), x1.data(), j_, y0.data(), y1.data());
-//        }
+        // Somewhat pointless.
+        void LoadLineSements(
+            const Idx i_, cref<Vector3_T> x0, cref<Vector3_T> x1,
+            const Idx j_, cref<Vector3_T> y0, cref<Vector3_T> y1
+        )
+        {
+            LoadLineSements( i_, x0.data(), x1.data(), j_, y0.data(), y1.data() );
+        }
         
         /*!@brief Classify whether and how two oriented line segments in 3-space intersect when they are projected to the x-y-plane.
          *
@@ -216,21 +231,26 @@ namespace Knoodle
                 logprint(tag() + " in verbose mode.");
             }
             
+            
             u[0] = x_1[0] - x_0[0];
             u[1] = x_1[1] - x_0[1];
             u[2] = x_1[2] - x_0[2];
-
+            
             p[0] = y_1[0] - x_0[0];
             p[1] = y_1[1] - x_0[1];
             p[2] = y_1[2] - x_0[2];
             
             q[0] = x_1[0] - y_0[0];
             q[1] = x_1[1] - y_0[1];
-            q[2] = x_1[2] - x_0[2];
+            q[2] = x_1[2] - y_0[2];
             
-            sign_uxp = Sign_Perturbed(u,p);
-            std::tie(sign_uxq,uxq_2) = Sign_Det_Perturbed(u,q);
-            
+            auto sign_uxp = Sign_Perturbed(u,p);
+//            auto sign_uxp = Sign_Perturbed_Kahan(u,p);
+            auto [sign_uxq, uxq_2] = Sign_Det_Perturbed(u,q);
+            // P_1 = Det_Perturbed(u,q);
+            P_1.c_0 = uxq_2;
+            // It is measurably slower to compute P_1 in full here.
+                        
             if constexpr ( verboseQ )
             {
                 TOOLS_LOGDUMP(sign_uxp);
@@ -290,8 +310,12 @@ namespace Knoodle
             v[1] = y_1[1] - y_0[1];
             v[2] = y_1[2] - y_0[2];
             
-            std::tie(sign_vxp,vxp_2) = Sign_Det_Perturbed(v,p);
-            sign_vxq = Sign_Perturbed(v,q);
+            auto [sign_vxp,vxp_2] = Sign_Det_Perturbed(v,p);
+            auto sign_vxq         = Sign_Perturbed(v,q);
+//            auto sign_vxq         = Sign_Perturbed_Kahan(v,q);
+            // P_0 = Det_Perturbed(p,v);
+            P_0.c_0 = -vxp_2;
+            // It is measurably slower to compute P_0 in full here.
             
             if constexpr ( verboseQ )
             {
@@ -355,8 +379,6 @@ namespace Knoodle
         /*!@brief Compute the intersection (if the internal flag indicates that it exists).
          *
          * @return Instance of type `Intersection`, indicating which line segments intersect (by their index), which line segement is on top, time of intersection, and handedness of the resulting crossing.
-         *
-         * Preconditions: `IntersectionType()` was called first and returned `Flag_T::Intersection`.
          */
         Intersection ComputeIntersection()
         {
@@ -368,11 +390,11 @@ namespace Knoodle
             
             // This post https://math.stackexchange.com/a/1008869/447001
             // told me how to determine which edge "goes over".
-            
+
 //            const LVector3_T uxv = cross(u,v);   // Does not overflow.
             
             // {Q.c_0, Q.c_1, Q.c_3} == {uxv[2], uxv[0], uxv[1]}
-            const Polynomial3 Q = Det_Perturbed(u,v);
+            const DepressedCubic Q = Det_Perturbed(u,v);
             
             if constexpr ( verboseQ ) { TOOLS_LOGDUMP(Q); }
 
@@ -389,27 +411,37 @@ namespace Knoodle
                 error( MethodName("ComputeIntersection") + ": The line segments " + ToString(k_) + " and " + ToString(l_) + " are coplanar. Moreover, if we arrive here, then `IntersectionType()` has returned `Flag_T::Intersection`. Hence, we have an intersection also in 3D. But `IntersectionType()` should have detected this already and should have returned `Flag_T::Error`. So we should not have come here." );
             }
             
-            Sign_T sign_2 = Sign(Q);
+            const Sign_T sign_2 = Sign(Q);
             // sign_2 != Sign_T(0), otherwise sign_3 would be equal to 0, too.
             
             // Det_Perturbed(d,v) == Det_Perturbed(p - v,v) == Det_Perturbed(p,v)
             // Det_Perturbed(d,u) == Det_Perturbed(u - q,u) == Det_Perturbed(u,q)
 
-            const double s    = double(1) / ToDouble(uxv[2]);
-            const double t_0  = - ToDouble(vxp_2) * s;
-            const double t_1  =   ToDouble(uxq_2) * s;
+            // At this point, we have computed P_0.c_0 and P_1.c_0 already. So we can save 33% of the integer operations in the next two lines. Very likely, the other entries have not yet been computed; so saving more is unlikely.
             
+//            P_0 = Det_Perturbed(p,v);
+//            P_1 = Det_Perturbed(u,q);
+            
+            P_0.c_1 = long_det(p[1],p[2],v[1],v[2]);
+            P_0.c_3 = long_det(p[2],p[0],v[2],v[0]);
+
+            P_1.c_1 = long_det(u[1],u[2],q[1],q[2]);
+            P_1.c_3 = long_det(u[2],u[0],q[2],q[0]);
+            
+//            const double s    = double(1) / ToDouble(Q.c_0);
+//            const double t_0  = ToDouble(P_0.c_0) * s;
+//            const double t_1  = ToDouble(P_1.c_0) * s;
+//            
             const bool x_under_y_Q = (sign_3 == sign_2);
             
             // First edge must go over.
             if( x_under_y_Q )
             {
-                return Intersection{ l_, k_, t_1, t_0, -sign_2, flag };
+                return Intersection{ l_, k_, Time_T{ P_1, Q }, Time_T{ P_0, Q }, -sign_2, flag };
             }
             else
             {
-                return Intersection{ k_, l_, t_0, t_1,  sign_2, flag };
-                
+                return Intersection{ k_, l_, Time_T{ P_0, Q }, Time_T{ P_1, Q },  sign_2, flag };
             }
         }
         
