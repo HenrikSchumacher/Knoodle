@@ -1148,7 +1148,11 @@ namespace Knoodle
             CrossOverH,   // corridor passes OVER the crossed arc, running E-W
             CrossOverV,   // corridor passes OVER the crossed arc, running N-S
             CrossUnder,   // corridor passes UNDER: the arc's own glyph stays
-            Anchor        // anchor crossing cell (color/emphasis only)
+            Anchor,       // anchor crossing cell (color/emphasis only)
+            ArrowN,       // straight cell carrying an orientation arrow, +y
+            ArrowE,       // ... +x
+            ArrowS,       // ... -y
+            ArrowW        // ... -x
         };
 
         struct OverlayCell_T
@@ -1213,6 +1217,40 @@ namespace Knoodle
                 else             { kind = OverlayKind::CornerSW; }
 
                 cells.push_back(OverlayCell_T{ p[i][0], p[i][1], kind });
+            }
+
+            // Orientation: one arrow per maximal straight run, at its midpoint.
+            // `cells` is still index-aligned with `p` here (anchors are appended
+            // below), so the travel direction is just the step at that cell.
+            for (std::size_t i = 0; i < cells.size(); )
+            {
+                const OverlayKind k = cells[i].kind;
+
+                if ((k != OverlayKind::Horizontal) && (k != OverlayKind::Vertical))
+                {
+                    ++i;
+                    continue;
+                }
+
+                std::size_t j = i;
+                while ((j + 1 < cells.size()) && (cells[j + 1].kind == k)) { ++j; }
+
+                if (j > i)   // runs of one stay plain: an arrow there reads as a corner
+                {
+                    const std::size_t m = i + (j - i) / 2;
+                    const std::size_t a = (m + 1 < p.size()) ? m     : m - 1;
+                    const std::size_t b = (m + 1 < p.size()) ? m + 1 : m;
+                    const Int dx = p[b][0] - p[a][0];
+                    const Int dy = p[b][1] - p[a][1];
+
+                    cells[m].kind = (k == OverlayKind::Horizontal)
+                                  ? ((dx >= Int(0)) ? OverlayKind::ArrowE
+                                                    : OverlayKind::ArrowW)
+                                  : ((dy >= Int(0)) ? OverlayKind::ArrowN
+                                                    : OverlayKind::ArrowS);
+                }
+
+                i = j + 1;
             }
 
             cells.push_back(OverlayCell_T{

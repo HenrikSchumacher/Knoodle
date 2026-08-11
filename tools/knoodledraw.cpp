@@ -2492,6 +2492,14 @@ void StampPassOverlay(std::string& diagram, std::vector<HighlightType>& mask,
             case Deco_T::OverlayKind::Junction:   ch = '*'; break;
             case Deco_T::OverlayKind::CrossOverH: ch = '='; break;
             case Deco_T::OverlayKind::CrossOverV: ch = ';'; break;
+            // Orientation arrows on the corridor. These reuse the diagram's own
+            // arrow glyphs: unambiguous in context, since they only ever sit
+            // inside a run of corridor strokes (and UnicodeifyDiagram already
+            // maps them to the right arrows).
+            case Deco_T::OverlayKind::ArrowN:     ch = '^'; break;
+            case Deco_T::OverlayKind::ArrowE:     ch = '>'; break;
+            case Deco_T::OverlayKind::ArrowS:     ch = 'v'; break;
+            case Deco_T::OverlayKind::ArrowW:     ch = '<'; break;
             case Deco_T::OverlayKind::CrossUnder:
                 continue;  // arc's glyph and color stay: corridor breaks
             case Deco_T::OverlayKind::Anchor:
