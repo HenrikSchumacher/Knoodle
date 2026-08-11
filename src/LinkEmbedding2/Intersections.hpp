@@ -128,10 +128,10 @@ template<bool verboseQ = true> // whether to print errors and warnings
                     k_end - k_begin
                 );
             }
-            else
-            {
-                not_sort_intersection_count += (k_end - k_begin);
-            }
+//            else
+//            {
+//                not_sort_intersection_count += (k_end - k_begin);
+//            }
         }
         
 //        // DEBUGGING
