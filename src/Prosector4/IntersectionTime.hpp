@@ -13,14 +13,14 @@ class IntersectionTime final
 {
 private:
     
-    Polynomial3 a;
-    Polynomial3 b;
+    DepressedCubic a;
+    DepressedCubic b;
     
 public:
     
     IntersectionTime() = default;
     
-    IntersectionTime( cref<Polynomial3> numerator, cref<Polynomial3> denominator )
+    IntersectionTime( cref<DepressedCubic> numerator, cref<DepressedCubic> denominator )
     {
         // Make sure at the time of initialization that the denominator is >= 0!
         // This is important for later < and > comparisons.
@@ -42,7 +42,7 @@ public:
 //            cref<ExtInt> a_0, cref<ExtInt> a_1, cref<ExtInt> a_2,
 //            cref<ExtInt> b_0, cref<ExtInt> b_1, cref<ExtInt> b_2
 //        )
-//        :   IntersectionTime{ Polynomial3{a_0,a_1,a_2}, Polynomial3{b_0,b_1,b_2} }
+//        :   IntersectionTime{ DepressedCubic{a_0,a_1,a_2}, DepressedCubic{b_0,b_1,b_2} }
 //        {}
     
 
@@ -75,24 +75,24 @@ public:
         assert(!t.a.c_0.NegativeQ());
         assert(!t.b.c_0.NegativeQ());
         
-//        if( s.a.c_0.NegativeQ() )
-//        {
-//            error("IntersectionTime: s.a is negative to leading order");
-//        }
-//        if( s.b.c_0.NegativeQ() )
-//        {
-//            error("IntersectionTime: s.b is negative to leading order");
-//        }
-//        if( t.a.c_0.NegativeQ() )
-//        {
-//            error("IntersectionTime: t.a is negative to leading order");
-//        }
-//        if( t.b.c_0.NegativeQ() )
-//        {
-//            error("IntersectionTime: t.b is negative to leading order");
-//        }
+        if( s.a.c_0.NegativeQ() )
+        {
+            error("IntersectionTime: s.a is negative to leading order");
+        }
+        if( s.b.c_0.NegativeQ() )
+        {
+            error("IntersectionTime: s.b is negative to leading order");
+        }
+        if( t.a.c_0.NegativeQ() )
+        {
+            error("IntersectionTime: t.a is negative to leading order");
+        }
+        if( t.b.c_0.NegativeQ() )
+        {
+            error("IntersectionTime: t.b is negative to leading order");
+        }
         
-        // The leading order terms of the numerators and denominators should be nonnegative due to fact that the intersection times should lie in [0,1] to leading order and due the normalization of the ratios. Hence we can spare some conditionals and bit twiddling by using long_mul_unsigned.
+        // The leading order terms of the numerators and denominators should be nonnegative due to fact that the intersection times should lie in [0,1] to leading order and due the normalization of the ratios. Hence we can spare some conditionals and some bit twiddling by using long_mul_unsigned. Alas, the branch prediction seems to guess the branches very well, so I do not see much difference in the timings.
         lhs = long_mul_unsigned(s.a.c_0, t.b.c_0);
         rhs = long_mul_unsigned(s.b.c_0, t.a.c_0);
         // TODO: Use <=> operator here.

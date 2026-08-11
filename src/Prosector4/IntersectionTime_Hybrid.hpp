@@ -13,15 +13,15 @@ class IntersectionTime_Hybrid final
 {
 private:
     
-    Polynomial3 a;
-    Polynomial3 b;
+    DepressedCubic a;
+    DepressedCubic b;
     double t;
     
 public:
     
     IntersectionTime_Hybrid() = default;
     
-    IntersectionTime_Hybrid( cref<Polynomial3> numerator, cref<Polynomial3> denominator )
+    IntersectionTime_Hybrid( cref<DepressedCubic> numerator, cref<DepressedCubic> denominator )
     {
         // Make sure at the time of initialization that the denominator is >= 0!
         // This is important for later < and > comparisons.

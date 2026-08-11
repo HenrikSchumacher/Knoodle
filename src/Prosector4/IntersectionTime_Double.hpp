@@ -12,7 +12,7 @@ public:
     
     IntersectionTime_Double() = default;
     
-    IntersectionTime_Double( cref<Polynomial3> numerator, cref<Polynomial3> denominator )
+    IntersectionTime_Double( cref<DepressedCubic> numerator, cref<DepressedCubic> denominator )
     :   t { ToDouble(numerator) / ToDouble(denominator) }
     {}
 

@@ -90,7 +90,7 @@ namespace Knoodle
         }
         
         
-#include "Prosector4/Polynomial3.hpp"
+#include "Prosector4/DepressedCubic.hpp"
 #include "Prosector4/IntersectionTime.hpp"
 #include "Prosector4/IntersectionTime_Double.hpp"
 #include "Prosector4/IntersectionTime_Hybrid.hpp"
@@ -135,8 +135,8 @@ namespace Knoodle
 //        LInt uxp_2;
 //        LInt vxq_2;
         
-        Polynomial3 P_0;
-        Polynomial3 P_1;
+        DepressedCubic P_0;
+        DepressedCubic P_1;
         
 //        LVector3_T pxq;
 //        LVector3_T uxp;
@@ -242,7 +242,7 @@ namespace Knoodle
             
             q[0] = x_1[0] - y_0[0];
             q[1] = x_1[1] - y_0[1];
-            q[2] = x_1[2] - x_0[2];
+            q[2] = x_1[2] - y_0[2];
             
             auto sign_uxp = Sign_Perturbed(u,p);
 //            auto sign_uxp = Sign_Perturbed_Kahan(u,p);
@@ -394,7 +394,7 @@ namespace Knoodle
 //            const LVector3_T uxv = cross(u,v);   // Does not overflow.
             
             // {Q.c_0, Q.c_1, Q.c_3} == {uxv[2], uxv[0], uxv[1]}
-            const Polynomial3 Q = Det_Perturbed(u,v);
+            const DepressedCubic Q = Det_Perturbed(u,v);
             
             if constexpr ( verboseQ ) { TOOLS_LOGDUMP(Q); }
 
@@ -417,14 +417,14 @@ namespace Knoodle
             // Det_Perturbed(d,v) == Det_Perturbed(p - v,v) == Det_Perturbed(p,v)
             // Det_Perturbed(d,u) == Det_Perturbed(u - q,u) == Det_Perturbed(u,q)
             
-            // TODO: At this point, we have computed vxp[2] and uxq[2] before. So we could save 33% of the integer operations in the next two lines. Very likely, the other entries have not yet been computed;so saving more is unlikely.
+            // At this point, we have computed P_0.c_0 and P_1.c_0 already. So we can save 33% of the integer operations in the next two lines. Very likely, the other entries have not yet been computed; so saving more is unlikely.
             
 //            P_0 = Det_Perturbed(p,v);
 //            P_1 = Det_Perturbed(u,q);
             
-            P_0.c_1 = long_det(v[1],v[2],p[1],p[2]);
-            P_0.c_3 = long_det(v[2],v[0],p[2],p[0]);
-            
+            P_0.c_1 = long_det(p[1],p[2],v[1],v[2]);
+            P_0.c_3 = long_det(p[2],p[0],v[2],v[0]);
+
             P_1.c_1 = long_det(u[1],u[2],q[1],q[2]);
             P_1.c_3 = long_det(u[2],u[0],q[2],q[0]);
             

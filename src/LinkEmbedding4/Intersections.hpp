@@ -13,7 +13,7 @@ template<bool verboseQ = true> // whether to print errors and warnings
 {
     if( intersections_computedQ ) { return 0; }
     
-    return ComputeIntersections();
+    return this->template ComputeIntersections<verboseQ>();
 }
 
 /*!@brief (Re)compute the intersections.*/
@@ -310,6 +310,9 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
         {
             eprint(tag() +": Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
             // TODO: We need a check for overflow here.
+            
+            // DEBUGGING
+            error(tag() +": Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
             
             ++intersection_count_3D;
             return;

@@ -42,7 +42,7 @@ long_fma(
 }
 
 /*!@brief Long fused multiply-add routine that computes `r = a * b + c` and returns `r` in a `WideInt` of appropriate size so that no overflow occurs. CAUTION: The result will be only correct if operands `a` and `b` a _nonnegative_.*/
-template<int other_limb_count>
+template<bool checkedQ = true, int other_limb_count>
 TOOLS_FORCE_INLINE constexpr friend
 WideInt<limb_count+other_limb_count,Limb_T,Comp_T,signQ>
 long_fma_unsigned(
@@ -63,18 +63,27 @@ long_fma_unsigned(
     
     Result_T r;
     
+    Comp_T X;
     for( Idx i = 0; i < m; ++i )
     {
-        Comp_T X (c[i]);
+        X = As_Comp(c[i]);
         for( Idx j = 0; j < n; ++j )
         {
-            // The following line cannot overflow because all 4 operands occupy only the lower half of a Comp_T. Let B = 2^LimbBitCount(). Then the operands are <= B-1.
-            // So X <= (B-1) + (B-1) + (B-1) * (B-1) = (B+1) * (B-1) = B^2 - 1 <= 2^CompBitCount() - 1;
+            // The following line cannot overflow because each of the four operands occupy only the lower half of a Comp_T. Proof: Let B = 2^LimbBitCount(). Then each of the four operands is <= B-1.
+            // Hence, X <= (B-1) + (B-1) + (B-1) * (B-1) = (B+1) * (B-1) = B^2 - 1 <= 2^CompBitCount() - 1;
             X      = As_Comp(X + As_Comp(r[i+j]) + As_Comp(a[i]) * As_Comp(b[j]) );
             r[i+j] = Lo_Limb(X);
             X      = Hi_Comp(X);
         }
         r[i + n] = Lo_Limb(X);
+    }
+    
+    if constexpr ( checkedQ  )
+    {
+        if( Hi_Comp(X) != Limb_T{0} )
+        {
+            error("long_fma_unsigned: Overflow");
+        }
     }
     
     return r;

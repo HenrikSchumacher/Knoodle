@@ -61,11 +61,16 @@ public:
     
     friend std::string ToString( cref<Polynomial3> P )
     {
-        std::stringstream s;
+        std::string s ("Polynomial3{ ");
         
-        s << "Polynomial3{ " << P.c_0 << ", " << P.c_1 << ", " << P.c_3 << " }";
-        
-        return s.str();
+        s+= ToString(P.c_0);
+        s+= ", ";
+        s+= ToString(P.c_1);
+        s+= ", ";
+        s+= ToString(P.c_3);
+        s+= " }";
+
+        return s;
     }
     
 }; // class Polynomial3

@@ -2,7 +2,7 @@ public:
 
 /*!@brief This type is used to represent polynomials of the form  `c_0 + c_1 * eps + c_3 * eps * eps * eps`. These appear as numerators and denominators of intersection times with the perturbation technique.
  */
-struct Polynomial3 final
+struct DepressedCubic final
 {
 public:
     
@@ -12,15 +12,15 @@ public:
     
 public:
     
-    Polynomial3() = default;
+    DepressedCubic() = default;
     
-    Polynomial3( LInt c_0_, LInt c_1_, LInt c_3_ )
+    DepressedCubic( LInt c_0_, LInt c_1_, LInt c_3_ )
     :   c_0 { c_0_ }
     ,   c_1 { c_1_ }
     ,   c_3 { c_3_ }
     {}
     
-    friend Sign_T Sign( cref<Polynomial3> P)
+    friend Sign_T Sign( cref<DepressedCubic> P)
     {
         Sign_T s;
         s = Sign(P.c_0);
@@ -32,23 +32,23 @@ public:
         return Sign_T(0);
     }
     
-    friend Polynomial3 operator+( cref<Polynomial3> P, cref<Polynomial3> Q )
+    friend DepressedCubic operator+( cref<DepressedCubic> P, cref<DepressedCubic> Q )
     {
-        return Polynomial3{ P.c_0 + Q.c_0, P.c_1 + Q.c_1, P.c_3 + Q.c_3 };
+        return DepressedCubic{ P.c_0 + Q.c_0, P.c_1 + Q.c_1, P.c_3 + Q.c_3 };
     }
     
-    friend Polynomial3 operator-( cref<Polynomial3> P, cref<Polynomial3> Q )
+    friend DepressedCubic operator-( cref<DepressedCubic> P, cref<DepressedCubic> Q )
     {
-        return Polynomial3{ P.c_0 - Q.c_0, P.c_1 - Q.c_1, P.c_3 - Q.c_3 };
+        return DepressedCubic{ P.c_0 - Q.c_0, P.c_1 - Q.c_1, P.c_3 - Q.c_3 };
     }
     
-    friend Polynomial3 operator-( cref<Polynomial3> P )
+    friend DepressedCubic operator-( cref<DepressedCubic> P )
     {
-        return Polynomial3{ -P.c_0, -P.c_1, -P.c_3 };
+        return DepressedCubic{ -P.c_0, -P.c_1, -P.c_3 };
     }
     
     
-    friend double ToDouble( cref<Polynomial3> P )
+    friend double ToDouble( cref<DepressedCubic> P )
     {
         return ToDouble(P.c_0);
         
@@ -61,13 +61,18 @@ public:
 //        }
     }
     
-    friend std::string ToString( cref<Polynomial3> P )
+    friend std::string ToString( cref<DepressedCubic> P )
     {
-        std::stringstream s;
+        std::string s ("DepressedCubic{ ");
         
-        s << "Polynomial3{ " << P.c_0 << ", " << P.c_1 << ", " << P.c_3 << " }";
-        
-        return s.str();
+        s+= ToString(P.c_0);
+        s+= ", ";
+        s+= ToString(P.c_1);
+        s+= ", ";
+        s+= ToString(P.c_3);
+        s+= " }";
+
+        return s;
     }
     
-}; // class Polynomial3
+}; // class DepressedCubic
