@@ -1076,6 +1076,18 @@ namespace Knoodle
             result.tail_anchor = DarcTailCell(mv.strand.front());
             result.head_anchor = DarcHeadCell(mv.strand.back());
 
+            // -- Both anchors the same crossing: W leaves and returns to one
+            //    crossing (an R_I curl at the head of the strand, and its
+            //    relatives). The two junctions would then be quadrants of the
+            //    same crossing and "which port" stops being well posed, so we
+            //    refuse rather than draw something we cannot justify. -------
+            if (result.tail_anchor == result.head_anchor)
+            {
+                return fail("tail and head anchors are the same crossing"
+                    " (strand closes on itself; R_I curls and friends are not"
+                    " supported)");
+            }
+
             // -- Combinatorial face chain (spec checks 2 and 3; RouteAcross-
             //    Darcs re-derives this, but failing early is clearer) --------
             const Int F_dep  = LeftFace(mv.depart);
@@ -1099,9 +1111,36 @@ namespace Knoodle
                 return fail("no crossings but L(depart) != L(land) (check 3)");
             }
 
-            // -- Junctions: the depart/land faces must be quadrants at the
-            //    respective anchor crossings (spec check 4); the junction
-            //    cell is the anchor's diagonal neighbor in that face. -------
+            // -- Junctions (spec check 4). Being *some* quadrant at the anchor
+            //    is not enough: a crossing has four quadrants and only the two
+            //    flanking the port that W occupies are reachable by a strand
+            //    that keeps the anchor fixed. Naming either of the other two
+            //    says the rerouted strand leaves through a different port,
+            //    which changes the diagram at a crossing the move promised not
+            //    to touch -- so require the face's boundary to contain W's
+            //    first (resp. last) arc, and only then take the quadrant cell.
+            const Int dep_l  = LeftFace (mv.strand.front());
+            const Int dep_r  = RightFace(mv.strand.front());
+            const Int land_l = LeftFace (mv.strand.back());
+            const Int land_r = RightFace(mv.strand.back());
+
+            if ((F_dep != dep_l) && (F_dep != dep_r))
+            {
+                return fail("depart face " + std::to_string(F_dep)
+                    + " does not have the strand's first arc "
+                    + std::to_string(mv.strand.front() / 2)
+                    + " on its boundary -- the rerouted strand would leave the"
+                      " tail anchor through the wrong port (check 4)");
+            }
+            if ((F_land != land_l) && (F_land != land_r))
+            {
+                return fail("land face " + std::to_string(F_land)
+                    + " does not have the strand's last arc "
+                    + std::to_string(mv.strand.back() / 2)
+                    + " on its boundary -- the rerouted strand would reach the"
+                      " head anchor through the wrong port (check 4)");
+            }
+
             Point_T start, goal;
             if (!JunctionCell(result.tail_anchor, F_dep, start))
             {

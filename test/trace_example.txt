@@ -2,7 +2,7 @@
 #step n=0 summand=0
 #view exterior=0
 #faces f0={0,4,8}; f1={1,6}; f2={2,9}; f3={3,11,7}; f4={5,10}
-#move kind=pass strand=11 depart=7 cross=7:u land=1
+#move kind=pass strand=1 depart=1 cross=6:u,3:u,9:u land=0
 0	4	1	3	1
 2	0	3	5	1
 4	2	5	1	1

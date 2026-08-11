@@ -129,9 +129,26 @@ entirely over or entirely under everything it crosses.
    consecutive pair — each crossing departs from the face the previous one
    arrived in.
 3. `L(land) = R(cross_k)` (or `= L(depart)` if `k = 0`).
-4. `depart` and `land` name faces incident to the respective anchor
-   crossings.
+4. `L(depart)` has the strand's **first** arc on its boundary, and `L(land)`
+   has its **last** arc on its boundary. Also, the two anchors must be
+   distinct crossings.
 5. All over/under tags equal.
+
+Check 4 is deliberately stronger than "names a face incident to the anchor
+crossing", which is what it used to say. A crossing has four quadrant faces,
+and the anchors stay put across a pass move, so the rerouted strand leaves
+(resp. reaches) the anchor through the very port the strand's first (resp.
+last) arc occupies. Only the **two** quadrants flanking that port are
+therefore reachable. Naming either of the other two is well formed under the
+weaker reading and yet describes a strand attaching to a different port — it
+would change the diagram at a crossing the move promised not to touch. That
+is precisely the failure mode a picture of a pass move is meant to catch, so
+it belongs in well-formedness rather than in soundness.
+
+The distinct-anchors clause excludes the case where the strand leaves and
+returns to the same crossing (an R_I curl at the end of a strand, and its
+relatives). Both junctions would then be quadrants of one crossing and "which
+port" stops being well posed; rather than pick one, consumers refuse.
 
 Every check is O(local) against the snapshot; a verifier needs `LeftDarc`
 orbits and nothing else. A descriptor that passes all checks is a
@@ -155,19 +172,30 @@ boundary darc cycles `{0,4,8}`, `{1,6}`, `{2,9}`, `{3,11,7}`, `{5,10}`.
 An illustrative (not necessarily simplifying) descriptor:
 
 ```
-#move kind=pass strand=11 depart=7 cross=7:u land=1
+#move kind=pass strand=1 depart=1 cross=6:u,3:u,9:u land=0
 ```
 
-reads: reroute the strand consisting of arc 5 (traversed along its
-orientation: darc 11 = 2·5 + Head; it runs from crossing 2 to crossing 0),
-leaving its tail anchor through face `L(7)` = `{3,11,7}`, passing **under**
-arc 3 by crossing darc 7 (stepping from `L(7) = {3,11,7}` to
-`R(7) = L(6) = {1,6}`), and reaching the head anchor through face
-`L(1) = {1,6}`. Checks: `L(cross₁) = L(depart)` ✓ (both name `{3,11,7}`),
-`L(land) = R(cross₁)` ✓, and the depart/land faces are quadrants at the
-tail/head anchors ✓. Check 4 has teeth here: the superficially similar
-`cross=3:u land=9` satisfies the chain rule, but `L(9) = {2,9}` is not
-incident to the head anchor (crossing 0), so it is not a legal landing.
+reads: reroute the strand consisting of arc 0 (traversed along its
+orientation: darc 1 = 2·0 + Head; it runs from crossing 0 to crossing 2),
+leaving its tail anchor through face `L(1)` = `{1,6}`, passing **under** arcs
+3, 1 and 4 in turn — darc 6 steps `{1,6}` → `{3,11,7}`, darc 3 steps
+`{3,11,7}` → `{2,9}`, darc 9 steps `{2,9}` → `{0,4,8}` — and reaching the
+head anchor through face `L(0)` = `{0,4,8}`. Checks: `L(cross₁) = L(depart)`
+✓, the chain is consecutive ✓, `L(land) = R(cross₃)` ✓, and both `{1,6}` and
+`{0,4,8}` have arc 0 itself on their boundary ✓ (they are the two faces
+flanking W), so the rerouted strand leaves and arrives on the port arc 0
+occupies.
+
+Check 4 has teeth. The descriptor
+`strand=11 depart=7 cross=7:u land=1` — reroute arc 5 under arc 3 —
+satisfies the chain rule, and `L(1)` = `{1,6}` *is* a quadrant at arc 5's head
+anchor, so the old, weaker check 4 accepted it. But arc 5's two flanking faces
+are `{3,11,7}` and `{5,10}`; `{1,6}` is the quadrant between arcs 0 and 3, on
+the far side of the crossing from arc 5's port. A strand landing there is not
+the strand we started with. It is rejected.
+
+(This example was itself wrong in earlier revisions of this document, in
+exactly that way — which is the argument for the stronger check in miniature.)
 
 ## Conformance tiers: well-formed vs sound
 

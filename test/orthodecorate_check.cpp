@@ -294,12 +294,28 @@ static int run_pass_tests(Int xg, Int yg)
     // The spec's worked example: reroute arc 5 (darc 11, runs c2 -> c0),
     // leave through L(7)=f3, cross arc 3 under (darc 7: f3 -> f1), land
     // through L(1)=f1.
-    expect({ {11}, 7, {7}, {false}, 1 }, true, 1, "doc-example");
+    // Doc worked example: W = arc 0, under arcs 3, 1, 4; depart f1 and land
+    // f0 are the two faces flanking arc 0, so the strand leaves and arrives
+    // on the port it already occupies (check 4).
+    expect({ {1}, 1, {6, 3, 9}, {false, false, false}, 0 }, true, 3,
+           "doc-example");
 
     // The doc's cautionary variant: chain rule holds (f3 -> f2 via darc 3,
-    // land L(9)=f2) but f2 is not a quadrant at the head anchor c0 — spec
-    // check 4 must reject it.
+    // land L(9)=f2) but f2 neither flanks arc 5 nor is a quadrant at the head
+    // anchor — spec check 4 must reject it.
     expect({ {11}, 7, {3}, {false}, 9 }, false, 0, "land-not-at-anchor");
+
+    // Wrong port: this is what the doc example used to say. The chain rule
+    // holds and L(1)={1,6} IS a quadrant at arc 5's head anchor, so the old
+    // check 4 accepted it -- but {1,6} sits between arcs 0 and 3, on the far
+    // side of the crossing from arc 5's port, so the rerouted strand would
+    // attach somewhere the move promised not to touch.
+    expect({ {11}, 7, {7}, {false}, 1 }, false, 0, "land-wrong-port");
+
+    // Both anchors the same crossing: the strand is the whole component, so
+    // it leaves and returns to one crossing and "which port" is not well
+    // posed (R_I curls and relatives).
+    expect({ {1, 3, 5, 7, 9, 11}, 1, {}, {}, 1 }, false, 0, "anchors-coincide");
 
     // Two-arc strand (arcs 5 then 0), corridor f3 -> f1 crossing arc 3.
     expect({ {11, 1}, 7, {7}, {false}, 1 }, true, 1, "two-arc-strand");
@@ -323,7 +339,8 @@ static int run_pass_tests(Int xg, Int yg)
     {
         OrthoDraw_T Hx(diagram, ext, settings);
         Deco_T dx(Hx, Int(2));
-        auto pr = dx.RoutePassMove({ {11}, 7, {7}, {false}, 1 });
+        auto pr = dx.RoutePassMove(
+            { {1}, 1, {6, 3, 9}, {false, false, false}, 0 });
         if (!pr.validQ)
         {
             std::printf("  exterior=%lld: REJECTED (%s)\n",
