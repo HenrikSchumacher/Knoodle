@@ -461,6 +461,9 @@ namespace Knoodle
 #ifdef KNOODLE_USE_BOOST_PLANARITY
 #include "PlanarDiagram/Planarity.hpp"
 #endif
+
+#include "PlanarDiagram/WriteToOutString.hpp"
+#include "PlanarDiagram/ReadFromInString.hpp"
         
     public:
         
