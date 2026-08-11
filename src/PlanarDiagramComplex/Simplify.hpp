@@ -373,31 +373,30 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
 
 
 /*!@brief Write everything needed to reproduce a `Rattle` projection failure.
- *
- * When `FindIntersections` keeps failing, `Rattle` gives up and returns a diagram
- * it has told the caller not to trust. The state that would explain *why* -- the
- * intermediate diagram and the 3D embedding whose projection went degenerate --
- * is local to this function and is destroyed on return, so a user's bug report
- * can only ever be the message above. That is not enough to reproduce: these
- * failures are intermittent (order one run in ten), depend on the random
- * embedding, and the interesting settings are not visible from the command line.
- *
- * So dump them. The diagram goes out as a signed, colored pd code that the CLI
- * tools read back directly, and the embedding through `LinkEmbedding::WriteToFile`
- * at full precision, so the exact geometry can be reloaded and re-projected.
- *
- * Costs nothing on the happy path -- it is only ever reached after the failure
- * has already been reported. Best-effort: any I/O problem is ignored rather than
- * turned into a second failure. Writes at most `max_dumps` bundles per process so
- * a long batch run cannot fill a disk, and honours `KNOODLE_DUMP_DIR` for the
- * destination (default: the working directory).
  */
 void DumpRattleFailure(
     cref<PD_T> pd, mref<LinkEmbedding_T> emb, mref<Reapr_T> reapr,
     cref<Simplify_Args_T> args, const int projection_flag
 )
 {
+    /*!When `FindIntersections` keeps failing, `Rattle` gives up and returns a diagram it has told the caller not to trust. The state that would explain
+     * *why* -- the intermediate diagram and the 3D embedding whose projection went
+     * degenerate -- is local to this function and is destroyed on return, so a
+     * user's bug report can only ever be the message above. That is not enough to
+     * reproduce: these failures depend on the random embedding, and the interesting settings are not visible from the command line.
+     *
+     * So dump them. The diagram goes out as a signed, colored pd code that the CLI
+     * tools read back directly, and the embedding through `LinkEmbedding::WriteToFile`
+     * at full precision, so the exact geometry can be reloaded and re-projected.
+     *
+     * Costs nothing on the happy path -- it is only ever reached after the failure
+     * has already been reported. Writes at most `max_dumps` bundles per process so
+     * a long batch run cannot fill a disk, and honours `KNOODLE_DUMP_DIR` for the
+     * destination (default: parent directory of Tools::logger.LogFile()).
+     */
     static constexpr int max_dumps = 8;
+    
+    // TODO: Henrik speaking: I really, really do not like nonconstant statics. They easily produce Heisenbugs, in particular, in shared library environments in which libraries may have been built by different versions of this code. Also, it is not clear whether several instances of this class shall have their one counter, e.g., when they run in multi-threaded applications.
     static std::atomic<int> dump_counter { 0 };
 
     const int n = dump_counter.fetch_add(1);
@@ -407,7 +406,10 @@ void DumpRattleFailure(
     {
         // Using the same path as the log file per default.
         // Log file writes to user's home directory per default because working directories for libraries may be unpredictable.
-        std::filesystem::path dir { Logger::File().parent_path() };
+//        std::filesystem::path dir { Tools::Profiler::logger.LogFile().parent_path() };
+        
+        // DEBUGGING
+        std::filesystem::path dir { HomeDirectory() };
         
         if( const char * d = std::getenv("KNOODLE_DUMP_DIR") ) { dir = d; }
 
@@ -516,6 +518,7 @@ Size_T Rattle(
         
         if( rotateQ )
         {
+            // We deliberately make a copy here because successive rotations and Sterbenz shifts have the potential to lose a lot of precision.
             x.template RequireSize<false>(emb.EdgeCount(), Int(3));
             emb.WriteVertexCoordinates(x.data());
         }
@@ -526,6 +529,7 @@ Size_T Rattle(
             
             for( Size_T pr_iter = 0; pr_iter < max_projection_iter; ++pr_iter )
             {
+                // We deliberately do not use `emb.Transform(reapr.RandomRotation())` because successive rotations and Sterbenz shifts have the potential to lose a lot of precision.
                 emb.SetTransformationMatrix(reapr.RandomRotation());
                 emb.template ReadVertexCoordinates<true>(x.data());
                 projection_flag = emb.RequireIntersections();

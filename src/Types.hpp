@@ -528,4 +528,10 @@ namespace Knoodle
         return static_cast<double>(a);
     }
     
+    
+    double ToDouble( double x )
+    {
+        return x;
+    }
+    
 } // namespace Tools

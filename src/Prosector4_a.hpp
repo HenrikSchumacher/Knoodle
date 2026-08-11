@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Prosector3/Types.hpp"
+#include "Prosector4/Types.hpp"
 
 namespace Knoodle
 {
@@ -33,7 +33,7 @@ namespace Knoodle
      * @tparam Idx_ Integral type used for indices.
      */
     template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false>
-    class Prosector3 final
+    class Prosector4 final
     {
     public:
         
@@ -61,7 +61,7 @@ namespace Knoodle
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
         
-        using Prosector_T = Prosector3<Int,Idx,verboseQ>;
+        using Prosector_T = Prosector4<Int,Idx,verboseQ>;
 //        using Vector3_T   = Tiny::Vector<3,Int ,Idx>;
 //        using LVector3_T  = Tiny::Vector<3,LInt,Idx>;
         
@@ -89,26 +89,25 @@ namespace Knoodle
             }
         }
         
+#include "Prosector4/Polynomial3.hpp"
         
-#include "Prosector3/Polynomial3.hpp"
-#include "Prosector3/IntersectionTime.hpp"
-#include "Prosector3/Intersection.hpp"
+        using Time_T = double;
 
-        using Time_T = IntersectionTime;
+#include "Prosector4/Intersection.hpp"
         
         // Default constructor
-        Prosector3() = default;
+        Prosector4() = default;
         // Default destructor
-        ~Prosector3() = default;
+        ~Prosector4() = default;
         
         // Copy constructor
-        Prosector3( const Prosector3 & other ) = default;
+        Prosector4( const Prosector4 & other ) = default;
         // Copy assignment operator
-        Prosector3 & operator=( const Prosector3 & other ) = default;
+        Prosector4 & operator=( const Prosector4 & other ) = default;
         // Move constructor
-        Prosector3( Prosector3 && other ) = default;
+        Prosector4( Prosector4 && other ) = default;
         // Move assignment operator
-        Prosector3 & operator=( Prosector3 && other ) = default;
+        Prosector4 & operator=( Prosector4 && other ) = default;
         
     protected:
 
@@ -117,14 +116,18 @@ namespace Knoodle
         Vector3_T y_0;
         Vector3_T y_1;
         
-        LVector3_T uxv;
-        LVector3_T uxp;
-        LVector3_T uxq;
-        LVector3_T vxp;
-        LVector3_T vxq;
+        Vector3_T u;
+        Vector3_T v;
+        Vector3_T p;
+        Vector3_T q;
         
         Idx k_;
         Idx l_;
+        
+//        LInt uxp_2;
+        LInt uxq_2;
+        LInt vxp_2;
+//        LInt vxq_2;
         
         Sign_T sign_uxp;
         Sign_T sign_uxq;
@@ -165,27 +168,10 @@ namespace Knoodle
             k_ = k;
             l_ = l;
             
-            x_0[0] = x0[0];
-            x_0[1] = x0[1];
-            x_0[2] = x0[2];
-            
-            x_1[0] = x1[0];
-            x_1[1] = x1[1];
-            x_1[2] = x1[2];
-            
-            y_0[0] = y0[0];
-            y_0[1] = y0[1];
-            y_0[2] = y0[2];
-            
-            y_1[0] = y1[0];
-            y_1[1] = y1[1];
-            y_1[2] = y1[2];
-            
-//            x_0.Read(x0);
-//            x_1.Read(x1);
-//            y_0.Read(y0);
-//            y_1.Read(y1);
-            
+            copy_buffer<3>( x0, &x_0[0] );
+            copy_buffer<3>( x1, &x_1[0] );
+            copy_buffer<3>( y0, &y_0[0] );
+            copy_buffer<3>( y1, &y_1[0] );
             
             //  x_1     e     y_1
             //      X------>X
@@ -198,80 +184,17 @@ namespace Knoodle
             //      |/     \|
             //      X------>X
             //  x_0     d     y_0
-//            
-            Vector3_T u { x_1[0] - x_0[0], x_1[1] - x_0[1], x_1[2] - x_0[2] };
-            Vector3_T v { y_1[0] - y_0[0], y_1[1] - y_0[1], y_1[2] - y_0[2] };
-            Vector3_T p { y_1[0] - x_0[0], y_1[1] - x_0[1], y_1[2] - x_0[2] };
-//            Vector3_T q { x_1[0] - y_0[0], x_1[1] - y_0[1], x_1[2] - y_0[2] };
-            
-            // TODO: It should be possible to compute this with only 3 cross products.
-            uxv = cross(u,v);   // Does not overflow.
-            
-            uxp = cross(u,p);   // Does not overflow.
-//            uxq = Cross(u,q);   // Does not overflow.
-            //   q ==   v -   p +   u
-            // uxq == uxv - uxp + uxu
-            // uxq =  uxv - uxp;
-            uxq[0] = uxv[0] - uxp[0];
-            uxq[1] = uxv[1] - uxp[1];
-            uxq[2] = uxv[2] - uxp[2];
-
-            vxp = cross(v,p);   // Does not overflow.
-//            vxq = Cross(v,q);   // Does not overflow.
-            //   q ==   v -   p +   u
-            // vxq == vxv - vxp + vxu
-            // vxq = -vxp - uxv;
-            vxq[0] = -vxp[0] - uxv[0];
-            vxq[1] = -vxp[1] - uxv[1];
-            vxq[2] = -vxp[2] - uxv[2];
-            
-            
-            if constexpr ( verboseQ )
-            {
-                TOOLS_LOGDUMP(k_);
-                TOOLS_LOGDUMP(l_);
-                
-                TOOLS_LOGDUMP(x_0);
-                TOOLS_LOGDUMP(x_1);
-                TOOLS_LOGDUMP(y_0);
-                TOOLS_LOGDUMP(y_1);
-                
-                TOOLS_LOGDUMP(u);
-                TOOLS_LOGDUMP(v);
-                TOOLS_LOGDUMP(p);
-//                TOOLS_LOGDUMP(q);
-                
-                logvalprint("uxv[0]",ToDouble(uxv[0]));
-                logvalprint("uxv[1]",ToDouble(uxv[1]));
-                logvalprint("uxv[2]",ToDouble(uxv[2]));
-                
-                logvalprint("uxp[0]",ToDouble(uxp[0]));
-                logvalprint("uxp[1]",ToDouble(uxp[1]));
-                logvalprint("uxp[2]",ToDouble(uxp[2]));
-                
-                logvalprint("uxq[0]",ToDouble(uxq[0]));
-                logvalprint("uxq[1]",ToDouble(uxq[1]));
-                logvalprint("uxq[2]",ToDouble(uxq[2]));
-                
-                logvalprint("vxp[0]",ToDouble(vxp[0]));
-                logvalprint("vxp[1]",ToDouble(vxp[1]));
-                logvalprint("vxp[2]",ToDouble(vxp[2]));
-                
-                logvalprint("vxq[0]",ToDouble(vxq[0]));
-                logvalprint("vxq[1]",ToDouble(vxq[1]));
-                logvalprint("vxq[2]",ToDouble(vxq[2]));
-            }
+//
         }
         
-        // Somewhat pointless.
-        void LoadLineSements(
-            const Idx i_, cref<Vector3_T> x0, cref<Vector3_T> x1,
-            const Idx j_, cref<Vector3_T> y0, cref<Vector3_T> y1
-        )
-        {
-            LoadLineSements(i_, x0.data(), x1.data(), j_, y0.data(), y1.data());
-        }
-        
+//        // Somewhat pointless.
+//        void LoadLineSements(
+//            const Idx i_, cref<Vector3_T> x0, cref<Vector3_T> x1,
+//            const Idx j_, cref<Vector3_T> y0, cref<Vector3_T> y1
+//        )
+//        {
+//            LoadLineSements(i_, x0.data(), x1.data(), j_, y0.data(), y1.data());
+//        }
         
         /*!@brief Classify whether and how two oriented line segments in 3-space intersect when they are projected to the x-y-plane.
          *
@@ -293,10 +216,20 @@ namespace Knoodle
                 logprint(tag() + " in verbose mode.");
             }
             
-            // Precondition: x_0 != x_1 and y_0 != y_1.
+            u[0] = x_1[0] - x_0[0];
+            u[1] = x_1[1] - x_0[1];
+            u[2] = x_1[2] - x_0[2];
+
+            p[0] = y_1[0] - x_0[0];
+            p[1] = y_1[1] - x_0[1];
+            p[2] = y_1[2] - x_0[2];
             
-            sign_uxp = Sign_Perturbed(uxp);
-            sign_uxq = Sign_Perturbed(uxq);
+            q[0] = x_1[0] - y_0[0];
+            q[1] = x_1[1] - y_0[1];
+            q[2] = x_1[2] - x_0[2];
+            
+            sign_uxp = Sign_Perturbed(u,p);
+            std::tie(sign_uxq,uxq_2) = Sign_Det_Perturbed(u,q);
             
             if constexpr ( verboseQ )
             {
@@ -346,9 +279,19 @@ namespace Knoodle
             }
             
             // Now we have sign_uxp != 0 and sign_uxq != 0.
+            if( sign_uxp != sign_uxq )
+            {
+                // The points {y_0[0],y_0[1]} and {y_1[0],y_1[1]} lie on the same side of the line through {x_0[0],x_0[1]} and {x_1[0],x_1[1]} (after perturbation).
+                flag = Flag_T::Empty;
+                return flag;
+            }
             
-            sign_vxp = Sign_Perturbed(vxp);
-            sign_vxq = Sign_Perturbed(vxq);
+            v[0] = y_1[0] - y_0[0];
+            v[1] = y_1[1] - y_0[1];
+            v[2] = y_1[2] - y_0[2];
+            
+            std::tie(sign_vxp,vxp_2) = Sign_Det_Perturbed(v,p);
+            sign_vxq = Sign_Perturbed(v,q);
             
             if constexpr ( verboseQ )
             {
@@ -396,14 +339,6 @@ namespace Knoodle
             }
             
             // Now we have sign_uxp != 0, sign_uxq != 0, sign_vxp != 0, and sign_vxq != 0.
-            
-            if( sign_uxp != sign_uxq )
-            {
-                // The points {y_0[0],y_0[1]} and {y_1[0],y_1[1]} lie on the same side of the line through {x_0[0],x_0[1]} and {x_1[0],x_1[1]} (after perturbation).
-                flag = Flag_T::Empty;
-                return flag;
-            }
-            
             if( sign_vxp != sign_vxq )
             {
                 // The points {x_0[0],x_0[1]} and {x_1[0],x_1[1]} lie on the same side of the line through {y_0[0],y_0[1]} and {y_1[0],y_1[1]} (after perturbation).
@@ -420,6 +355,8 @@ namespace Knoodle
         /*!@brief Compute the intersection (if the internal flag indicates that it exists).
          *
          * @return Instance of type `Intersection`, indicating which line segments intersect (by their index), which line segement is on top, time of intersection, and handedness of the resulting crossing.
+         *
+         * Preconditions: `IntersectionType()` was called first and returned `Flag_T::Intersection`.
          */
         Intersection ComputeIntersection()
         {
@@ -432,36 +369,37 @@ namespace Knoodle
             // This post https://math.stackexchange.com/a/1008869/447001
             // told me how to determine which edge "goes over".
             
-            if constexpr ( verboseQ ) { TOOLS_LOGDUMP(uxv); }
+//            const LVector3_T uxv = cross(u,v);   // Does not overflow.
             
-            auto det_3 = long_mul(y_1[0]-x_0[0],uxv[0])
-                       + long_mul(y_1[1]-x_0[1],uxv[1])
-                       + long_mul(y_1[2]-x_0[2],uxv[2]);
+            // {Q.c_0, Q.c_1, Q.c_3} == {uxv[2], uxv[0], uxv[1]}
+            const Polynomial3 Q = Det_Perturbed(u,v);
             
-            Sign_T sign_3 = Sign(det_3);
+            if constexpr ( verboseQ ) { TOOLS_LOGDUMP(Q); }
+
+            // Result has _three_ times as many limbs as Int, not four.
+            // We only have to make sure that we have two extra bits here.
+            const auto det_3 = long_mul( p[0], Q.c_1 )
+                             + long_mul( p[1], Q.c_3 )
+                             + long_mul( p[2], Q.c_0 );
+            
+            const Sign_T sign_3 = Sign(det_3);
              
             if( sign_3 == Sign_T(0) )
             {
-                // TODO: Better message and error handling.
-                wprint(MethodName("ComputeIntersection") + ": The line segments " + ToString(k_) + " and " + ToString(l_) + " are coplanar.");
+                error( MethodName("ComputeIntersection") + ": The line segments " + ToString(k_) + " and " + ToString(l_) + " are coplanar. Moreover, if we arrive here, then `IntersectionType()` has returned `Flag_T::Intersection`. Hence, we have an intersection also in 3D. But `IntersectionType()` should have detected this already and should have returned `Flag_T::Error`. So we should not have come here." );
             }
-                        
-            Polynomial3 Q { uxv[2], uxv[0], uxv[1] };
+            
             Sign_T sign_2 = Sign(Q);
-            
-            if( sign_2 == Sign_T(0) )
-            {
-                eprint(MethodName("ComputeIntersection") + ": The projections of the line segments " + ToString(k_) + " and " + ToString(l_) + " are parallel. No handedness assignable.");
-            }
-            
-            bool x_under_y_Q = (sign_3 == sign_2);
+            // sign_2 != Sign_T(0), otherwise sign_3 would be equal to 0, too.
             
             // Det_Perturbed(d,v) == Det_Perturbed(p - v,v) == Det_Perturbed(p,v)
             // Det_Perturbed(d,u) == Det_Perturbed(u - q,u) == Det_Perturbed(u,q)
 
+            const double s    = double(1) / ToDouble(uxv[2]);
+            const double t_0  = - ToDouble(vxp_2) * s;
+            const double t_1  =   ToDouble(uxq_2) * s;
             
-            Time_T t_0 { Polynomial3{ -vxp[2], -vxp[0], -vxp[1] }, Q };
-            Time_T t_1 { Polynomial3{  uxq[2],  uxq[0],  uxq[1] }, Q };
+            const bool x_under_y_Q = (sign_3 == sign_2);
             
             // First edge must go over.
             if( x_under_y_Q )
@@ -475,7 +413,7 @@ namespace Knoodle
             }
         }
         
-#include "Prosector3/Helpers.hpp"
+#include "Prosector4/Helpers.hpp"
         
     public:
         
@@ -486,13 +424,13 @@ namespace Knoodle
         
         static constexpr std::string ClassName()
         {
-            return std::string("Prosector3")
+            return std::string("Prosector4")
                 + "<" + TypeName<Int>
                 + "," + TypeName<Idx>
                 + "," + ToString(verboseQ)
                 + ">";
         }
         
-    }; // class Prosector3
+    }; // class Prosector4
     
 } // namespace Knoodle

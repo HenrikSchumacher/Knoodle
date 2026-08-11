@@ -1,4 +1,5 @@
 #define TOOLS_USE_BOOST_UNORDERED
+#define TOOLS_ENABLE_PROFILER
     
 #include "../Knoodle.hpp"
 

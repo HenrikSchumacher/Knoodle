@@ -272,7 +272,7 @@ void FindIntersectingEdges_DFS()
 void ComputeEdgeEdgeIntersection( const Int k, const Int l )
 {
     // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
-    if( (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) && !edge_degenerateQ[k] && !edge_degenerateQ[l] )
+    if( (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) )
     {
         this->template ComputeEdgeEdgeIntersection_impl<false>(k,l);
     }

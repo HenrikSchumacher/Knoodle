@@ -4,8 +4,8 @@ namespace Knoodle
 {
     /*!@brief A class for wide integers.
      
-     * The integer is represented by `limb_count` limbs of type `Limb_T`.
-     * Computations are performed in the _double limb_ `Comp_T`.
+     * An integer is represented by `limb_count` limbs of unsigned integer type `Limb_T`.
+     * Computations are performed in the unsigned integer type _double limb_ `Comp_T`.
      *
      * @tparam limb_count_ The number of limbs to use.
      *
@@ -197,14 +197,14 @@ namespace Knoodle
         
     public:
         
-        /*!@brief Return `i`-th limb, read only.*/
+        /*!@brief Return `i`-th limb, read only. The least significant limb is at position `0`.*/
         template<IntQ Int>
         TOOLS_FORCE_INLINE constexpr Limb_T operator[]( const Int i ) const
         {
             return limbs[i];
         }
         
-        /*!@brief Return `i`-th limb.*/
+        /*!@brief Return `i`-th limb. The least significant limb is at position `0`.*/
         template<IntQ Int>
         TOOLS_FORCE_INLINE constexpr Limb_T & operator[]( const Int i )
         {
@@ -411,23 +411,13 @@ namespace Knoodle
             return c;
         }
 
-        
-        // TODO: constexpr friend This_T operator*( cref<This_T> a, cref<This_T> b )
-
 #include "WideInt/bitwise.hpp"
 #include "WideInt/long_mul.hpp"
 #include "WideInt/long_fma.hpp"
+#include "WideInt/long_det.hpp"
         
     public:
-        
-        TOOLS_FORCE_INLINE constexpr friend Prod_T long_det(
-            cref<WideInt> a, cref<WideInt> b, cref<WideInt> c, cref<WideInt> d
-        )
-        {
-            return long_mul(a,d) - long_mul(b,c);
-        }
-        
-        
+
         template<IntQ T = signed __int128>
         T ToNumber()
         {
@@ -682,16 +672,66 @@ namespace Tools
 
 namespace Knoodle
 {
+    // If `Int128` is available, we can circumvent a lot of sign tiddling by using it directly for `long_fma`, `long_mul`, and `long_det` instread of casting to `WInt64`.
+    
+    TOOLS_FORCE_INLINE constexpr
+    WInt128 long_fma( cref<Int64> a, cref<Int64> b, cref<Int64> c )
+    {
+        if constexpr ( Int128_availableQ )
+        {
+            return WInt128{ Int128{a} * Int128{b} + Int128{c} };
+        }
+        else
+        {
+            return long_fma( WInt64{a}, WInt64{b}, WInt64{c} );
+        }
+    }
+    
+    TOOLS_FORCE_INLINE constexpr
+    WInt128 long_mul( cref<Int64> a, cref<Int64> b )
+    {
+        if constexpr ( Int128_availableQ )
+        {
+            return WInt128{ Int128{a} * Int128{b} };
+        }
+        else
+        {
+            return long_mul( WInt64{a}, WInt64{b} );
+        }
+    }
+    
     TOOLS_FORCE_INLINE constexpr
     WInt128 long_det( cref<Int64> a, cref<Int64> b, cref<Int64> c, cref<Int64> d )
     {
-        return long_det( WInt64(a), WInt64(b), WInt64(c), WInt64(d) );
+        if constexpr ( Int128_availableQ )
+        {
+            return WInt128{ Int128{a} * Int128{d} - Int128{b} * Int128{c} };
+        }
+        else
+        {
+            return long_det( WInt64{a}, WInt64{b}, WInt64{c}, WInt64{d} );
+        }
+    }
+
+    
+    // Since `Int64` is available on modern system, we can circumvent a lot of sign tiddling by using it directly for `long_fma`, `long_mul`, and `long_det` instread of casting to `WInt32`.
+
+    TOOLS_FORCE_INLINE constexpr
+    WInt64 long_fma( cref<Int32> a, cref<Int32> b, cref<Int32> c )
+    {
+        return WInt64{ Int64{a} * Int64{b} + Int64{c} };
+    }
+    
+    TOOLS_FORCE_INLINE constexpr
+    WInt64 long_mul( cref<Int32> a, cref<Int32> b )
+    {
+        return WInt64{ Int64{a} * Int64{b} };
     }
     
     TOOLS_FORCE_INLINE constexpr
     WInt64 long_det( cref<Int32> a, cref<Int32> b, cref<Int32> c, cref<Int32> d )
     {
-        return WInt64( Int64(a) * Int64(d) - Int64(b) * Int64(c));
+        return WInt64{ Int64{a} * Int64{d} - Int64{b} * Int64{c} };
     }
     
 } // namespace Knoodle
