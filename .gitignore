@@ -62,6 +62,7 @@ tools/knoodlesimplify
 tools/knoodledraw
 tools/knoodleidentify
 tools/*.d
+test/*.d
 tools/knoodlesimplify.log
 tools/knoodledraw.log
 tools/knoodleidentify.log

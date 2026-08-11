@@ -180,6 +180,30 @@ namespace Knoodle
                 }
             }
 
+            // -- check 1 (cont.): the corridor is arc-disjoint. Crossing one
+            //    arc twice is not something an applier can do: after the first
+            //    crossing splits it, the label denotes only the piece up to
+            //    that new crossing, so a later step naming it again operates on
+            //    a changed extent -- the same aliasing hazard the transversals
+            //    have. `FindShortestPath` cannot emit such a path anyway (it
+            //    keeps a visited set on arcs and only expands unvisited ones),
+            //    so nothing legitimate is being excluded; this makes the
+            //    precondition explicit instead of accidental.
+            for( std::size_t i = 0; i < k; ++i )
+            {
+                for( std::size_t j = i + 1; j < k; ++j )
+                {
+                    if( ArcOf(cross[i]) == ArcOf(cross[j]) )
+                    {
+                        return fail("corridor crosses arc "
+                            + Tools::ToString(ArcOf(cross[i]))
+                            + " twice (steps " + Tools::ToString(i)
+                            + " and " + Tools::ToString(j)
+                            + "); the corridor must be arc-disjoint (check 1)");
+                    }
+                }
+            }
+
             // -- check 1 (cont.): the strand is a consecutive run. Compared by
             //    crossing index; the drawing is not involved. --------------
             for( std::size_t i = 0; i + 1 < m; ++i )

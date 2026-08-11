@@ -124,7 +124,17 @@ entirely over or entirely under everything it crosses.
 ### Local validation (every consumer must check)
 
 1. `strand` darcs are consecutive: head of each = tail of the next; all arcs
-   active and pairwise distinct; no crossed arc belongs to the strand.
+   active and pairwise distinct; no crossed arc belongs to the strand; and the
+   crossed arcs are pairwise distinct — the corridor is **arc-disjoint**.
+
+   Arc-disjointness is not a stylistic preference. Crossing one arc twice is
+   not something an applier can carry out: the first crossing splits the arc,
+   after which the label denotes only the piece up to that new crossing, so a
+   later step naming it again operates on a changed extent. That is the same
+   aliasing hazard the transversals have. `FindShortestPath` cannot produce
+   such a path in any case — it keeps a visited set on arcs and expands only
+   unvisited ones — so requiring it here makes an existing precondition
+   explicit rather than excluding anything an emitter could legitimately want.
 2. `L(cross_1) = L(depart)`, and `L(cross_{i+1}) = R(cross_i)` for each
    consecutive pair — each crossing departs from the face the previous one
    arrived in.

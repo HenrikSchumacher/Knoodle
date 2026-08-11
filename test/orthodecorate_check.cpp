@@ -320,15 +320,19 @@ static int run_pass_tests(Int xg, Int yg)
     // Two-arc strand (arcs 5 then 0), corridor f3 -> f1 crossing arc 3.
     expect({ {11, 1}, 11, {7}, {false}, 1 }, true, 1, "two-arc-strand");
 
-    // Face-revisiting corridor: f3 -> f2 -> f3 crossing arc 1 twice.
-    expect({ {11}, 11, {3, 2}, {false, false}, 11 }, true, 2, "face-revisit");
+    // Face-revisiting corridor, arc-disjoint: faces f0 -> f4 -> f3 -> f2 -> f0,
+    // so f0 is entered twice while every crossed arc is distinct. (The old
+    // version of this case revisited the face by crossing arc 1 twice, which
+    // check 1 now refuses -- see cross-arc-twice below.)
+    expect({ {1}, 0, {4, 10, 3, 9}, {false, false, false, false}, 0 },
+           true, 4, "face-revisit");
 
     // kind=middlepass: the same mixed-tag corridor must be ACCEPTED once
     // per-crossing tags are declared (check 5 dropped).
     {
-        Deco_T::PassMove_T mp{ {11}, 11, {3, 2}, {false, true}, 11 };
+        Deco_T::PassMove_T mp{ {1}, 1, {6, 3, 9}, {false, true, false}, 0 };
         mp.middlepassQ = true;
-        expect(mp, true, 2, "middlepass-mixed");
+        expect(mp, true, 3, "middlepass-mixed");
     }
 
     // Margin regression (the mv0009 bug class): the doc-example corridor
@@ -351,7 +355,13 @@ static int run_pass_tests(Int xg, Int yg)
     std::printf("  exterior-independence sweep: 5 exteriors\n");
 
     // Rejections:
-    expect({ {11}, 11, {3, 2}, {false, true}, 11 }, false, 0, "mixed-tags");
+    expect({ {1}, 1, {6, 3, 9}, {false, true, false}, 0 }, false, 0, "mixed-tags");
+
+    // Arc-disjointness: crossing one arc twice is not something an applier can
+    // carry out (the first crossing splits it, so the label's extent changes),
+    // and FindShortestPath cannot emit it either -- it keeps a visited set on
+    // arcs. This is the descriptor the old face-revisit case used.
+    expect({ {11}, 11, {3, 2}, {false, false}, 11 }, false, 0, "cross-arc-twice");
     expect({ {11}, 11, {11}, {false}, 10 },        false, 0, "cross-own-strand");
     expect({ {11, 3}, 11, {7}, {false}, 1 },       false, 0, "broken-strand");
     expect({ {}, 7, {}, {}, 7 },                   false, 0, "empty-strand");
