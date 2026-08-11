@@ -718,6 +718,8 @@ namespace Knoodle
         // darcs. Face indices follow F_dA's numbering (= pd.FaceDarcs()).
         //======================================================================
 
+        static constexpr Int ArcOf( Int da ) { return da / Int(2); }
+
         Int LeftFace(Int da) const
         {
             RequireDarcFaces();
@@ -1111,34 +1113,31 @@ namespace Knoodle
                 return fail("no crossings but L(depart) != L(land) (check 3)");
             }
 
-            // -- Junctions (spec check 4). Being *some* quadrant at the anchor
-            //    is not enough: a crossing has four quadrants and only the two
-            //    flanking the port that W occupies are reachable by a strand
-            //    that keeps the anchor fixed. Naming either of the other two
-            //    says the rerouted strand leaves through a different port,
-            //    which changes the diagram at a crossing the move promised not
-            //    to touch -- so require the face's boundary to contain W's
-            //    first (resp. last) arc, and only then take the quadrant cell.
-            const Int dep_l  = LeftFace (mv.strand.front());
-            const Int dep_r  = RightFace(mv.strand.front());
-            const Int land_l = LeftFace (mv.strand.back());
-            const Int land_r = RightFace(mv.strand.back());
-
-            if ((F_dep != dep_l) && (F_dep != dep_r))
+            // -- Junctions (spec check 4). `depart` must be a darc OF the
+            //    strand's first arc and `land` a darc of its last. That says
+            //    the rerouted strand leaves (reaches) each anchor through the
+            //    very port W's end arc occupies -- a crossing has four
+            //    quadrants and only the two flanking that port are reachable
+            //    by a strand that keeps the anchor fixed -- and it is also the
+            //    descriptor's normal form, since many darcs can name one face.
+            //    See PassDescriptor::WellFormedQ, which is the authority here;
+            //    this copy exists only until RoutePassMove is handed the
+            //    diagram and can call it directly.
+            if( ArcOf(mv.depart) != ArcOf(mv.strand.front()) )
             {
-                return fail("depart face " + std::to_string(F_dep)
-                    + " does not have the strand's first arc "
-                    + std::to_string(mv.strand.front() / 2)
-                    + " on its boundary -- the rerouted strand would leave the"
-                      " tail anchor through the wrong port (check 4)");
+                return fail("depart darc " + std::to_string(mv.depart)
+                    + " names arc " + std::to_string(ArcOf(mv.depart))
+                    + ", but must name the strand's first arc "
+                    + std::to_string(ArcOf(mv.strand.front()))
+                    + " (check 4)");
             }
-            if ((F_land != land_l) && (F_land != land_r))
+            if( ArcOf(mv.land) != ArcOf(mv.strand.back()) )
             {
-                return fail("land face " + std::to_string(F_land)
-                    + " does not have the strand's last arc "
-                    + std::to_string(mv.strand.back() / 2)
-                    + " on its boundary -- the rerouted strand would reach the"
-                      " head anchor through the wrong port (check 4)");
+                return fail("land darc " + std::to_string(mv.land)
+                    + " names arc " + std::to_string(ArcOf(mv.land))
+                    + ", but must name the strand's last arc "
+                    + std::to_string(ArcOf(mv.strand.back()))
+                    + " (check 4)");
             }
 
             Point_T start, goal;

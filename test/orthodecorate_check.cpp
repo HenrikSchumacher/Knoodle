@@ -303,14 +303,14 @@ static int run_pass_tests(Int xg, Int yg)
     // The doc's cautionary variant: chain rule holds (f3 -> f2 via darc 3,
     // land L(9)=f2) but f2 neither flanks arc 5 nor is a quadrant at the head
     // anchor — spec check 4 must reject it.
-    expect({ {11}, 7, {3}, {false}, 9 }, false, 0, "land-not-at-anchor");
+    expect({ {11}, 11, {3}, {false}, 9 }, false, 0, "land-not-canonical");
 
     // Wrong port: this is what the doc example used to say. The chain rule
     // holds and L(1)={1,6} IS a quadrant at arc 5's head anchor, so the old
     // check 4 accepted it -- but {1,6} sits between arcs 0 and 3, on the far
     // side of the crossing from arc 5's port, so the rerouted strand would
     // attach somewhere the move promised not to touch.
-    expect({ {11}, 7, {7}, {false}, 1 }, false, 0, "land-wrong-port");
+    expect({ {11}, 11, {7}, {false}, 1 }, false, 0, "land-wrong-port");
 
     // Both anchors the same crossing: the strand is the whole component, so
     // it leaves and returns to one crossing and "which port" is not well
@@ -318,15 +318,15 @@ static int run_pass_tests(Int xg, Int yg)
     expect({ {1, 3, 5, 7, 9, 11}, 1, {}, {}, 1 }, false, 0, "anchors-coincide");
 
     // Two-arc strand (arcs 5 then 0), corridor f3 -> f1 crossing arc 3.
-    expect({ {11, 1}, 7, {7}, {false}, 1 }, true, 1, "two-arc-strand");
+    expect({ {11, 1}, 11, {7}, {false}, 1 }, true, 1, "two-arc-strand");
 
     // Face-revisiting corridor: f3 -> f2 -> f3 crossing arc 1 twice.
-    expect({ {11}, 7, {3, 2}, {false, false}, 11 }, true, 2, "face-revisit");
+    expect({ {11}, 11, {3, 2}, {false, false}, 11 }, true, 2, "face-revisit");
 
     // kind=middlepass: the same mixed-tag corridor must be ACCEPTED once
     // per-crossing tags are declared (check 5 dropped).
     {
-        Deco_T::PassMove_T mp{ {11}, 7, {3, 2}, {false, true}, 11 };
+        Deco_T::PassMove_T mp{ {11}, 11, {3, 2}, {false, true}, 11 };
         mp.middlepassQ = true;
         expect(mp, true, 2, "middlepass-mixed");
     }
@@ -351,12 +351,12 @@ static int run_pass_tests(Int xg, Int yg)
     std::printf("  exterior-independence sweep: 5 exteriors\n");
 
     // Rejections:
-    expect({ {11}, 7, {3, 2}, {false, true}, 11 }, false, 0, "mixed-tags");
-    expect({ {11}, 7, {11}, {false}, 10 },         false, 0, "cross-own-strand");
-    expect({ {11, 3}, 7, {7}, {false}, 1 },        false, 0, "broken-strand");
+    expect({ {11}, 11, {3, 2}, {false, true}, 11 }, false, 0, "mixed-tags");
+    expect({ {11}, 11, {11}, {false}, 10 },        false, 0, "cross-own-strand");
+    expect({ {11, 3}, 11, {7}, {false}, 1 },       false, 0, "broken-strand");
     expect({ {}, 7, {}, {}, 7 },                   false, 0, "empty-strand");
-    expect({ {11}, 7, {2}, {false}, 3 },           false, 0, "wrong-chain-start");
-    expect({ {11}, 9, {}, {}, 9 },                 false, 0, "depart-not-at-anchor");
+    expect({ {11}, 11, {2}, {false}, 3 },          false, 0, "wrong-chain-start");
+    expect({ {11}, 9, {}, {}, 9 },                 false, 0, "depart-not-canonical");
 
     std::printf(ok ? "CASE OK\n" : "CASE FAILED\n");
     return ok ? 0 : 1;

@@ -67,6 +67,8 @@ namespace Knoodle
 
 #include "src/PlanarDiagram.hpp"
 #include "src/PlanarDiagramComplex.hpp"
+#include "src/PassDescriptor.hpp"
+
 #include "src/OrthoDraw.hpp"
 #include "src/OrthoDecorate.hpp"
 #include "src/Reapr.hpp"

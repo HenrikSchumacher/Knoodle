@@ -186,13 +186,19 @@ head anchor through face `L(0)` = `{0,4,8}`. Checks: `L(cross₁) = L(depart)`
 flanking W), so the rerouted strand leaves and arrives on the port arc 0
 occupies.
 
-Check 4 has teeth. The descriptor
+Check 4 has teeth, in two ways. The descriptor
 `strand=11 depart=7 cross=7:u land=1` — reroute arc 5 under arc 3 —
 satisfies the chain rule, and `L(1)` = `{1,6}` *is* a quadrant at arc 5's head
-anchor, so the old, weaker check 4 accepted it. But arc 5's two flanking faces
-are `{3,11,7}` and `{5,10}`; `{1,6}` is the quadrant between arcs 0 and 3, on
-the far side of the crossing from arc 5's port. A strand landing there is not
-the strand we started with. It is rejected.
+anchor, so the old, weaker check 4 accepted it. But `land=1` names arc 0, not
+the strand's last arc 5: `{1,6}` is the quadrant between arcs 0 and 3, on the
+far side of the crossing from arc 5's port, while arc 5's own two faces are
+`{3,11,7}` and `{5,10}`. A strand landing there is not the strand we started
+with. Rejected.
+
+Separately, `depart=7` names arc 3 rather than the strand's first arc 5, even
+though `L(7)` = `{3,11,7}` *is* the right face — `depart=11` is the same face
+by its canonical name. That one is not a wrong move, just a non-normal spelling
+of a right one, and it is rejected too.
 
 (This example was itself wrong in earlier revisions of this document, in
 exactly that way — which is the argument for the stronger check in miniature.)
