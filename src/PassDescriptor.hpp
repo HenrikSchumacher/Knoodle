@@ -60,8 +60,8 @@ namespace Knoodle
         static constexpr bool DirOf( Int da ) { return (da % Int(2)) != Int(0); }
 
         /*!@brief The face to the left of darc `da`, in `pd.FaceDarcs()`
-         * numbering. `ArcFaces()(a,1)` is documented as the face to the right
-         * of the forward darc `ToDarc(a,Head)`, so `(a,0)` is its left.
+         * numbering -- which is the numbering `OrthoDecorate` uses, so face
+         * indices agree with the drawing code.
          */
         static Int LeftFace( cref<PD_T> pd, Int da )
         {
@@ -72,11 +72,13 @@ namespace Knoodle
             const Int a = ArcOf(da);
             if( !pd.ArcActiveQ(a) ) { return Int(-1); }
 
-            // Verified against a map built from `pd.FaceDarcs()` (which is
-            // what OrthoDecorate uses, so the numbering matches): the darc's
-            // direction bit indexes `ArcFaces` directly. Note this contradicts
-            // the doc comment on `ArcFaces`, which calls `(a,1)` the face to
-            // the *right* of `ToDarc(a,Head)`; the orbit says it is the left.
+            // `ArcFaces()(a,d)` is the face to the LEFT of `ToDarc(a,d)`, so
+            // the darc's direction bit indexes it directly. (Faces.hpp says so
+            // upstream since PR #29; the older comment there called `(a,1)` the
+            // *right* face, which is what this branch still carries until it
+            // merges main -- do not follow it.) Cross-checked against a map
+            // built from `pd.FaceDarcs()` on all 282 arcs of a trefoil and the
+            // two handoff reproducers.
             return pd.ArcFaces()(a, DirOf(da) ? Int(1) : Int(0));
         }
 
