@@ -1,6 +1,6 @@
 public:
 
-static PDC_T ReadFromFile( cref<std::filesystem::path> file )
+static PDC_T FromFile( cref<std::filesystem::path> file )
 {
     Tools::InString s (file);
     

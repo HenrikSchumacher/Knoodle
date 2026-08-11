@@ -1,7 +1,7 @@
 public:
 
 // TODO: Check and read color.
-static LinkEmbedding_T ReadFromFile(
+static LinkEmbedding_T FromFile(
     cref<std::filesystem::path> file, bool Sterbenz_shiftQ = true
 )
 {
@@ -46,7 +46,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
     
     if( s.FailedQ() )
     {
-        eprint(MethodName("ReadFromFile") + ": Reading file failed. Returning invalid object.");
+        eprint(MethodName("FromFile") + ": Reading file failed. Returning invalid object.");
         return LinkEmbedding_T();
     }
     
@@ -68,76 +68,3 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
     
     return link;
 }
-
-//// TODO: Check and read color.
-//static LinkEmbedding_T ReadFromFile2(
-//    cref<std::filesystem::path> file, bool Sterbenz_shiftQ = true
-//)
-//{
-//    std::ifstream stream ( file );
-//    
-//    if( !stream )
-//    {
-//        eprint(MethodName("ReadFromFile") + ": Opening file " + file.string() + " failed. Returning invalid object.");
-//        return LinkEmbedding_T();
-//    }
-//    
-//    Int counter = 0;
-//    std::vector<Real> v_coordinates;
-//    std::vector<Int> component_ptr_agg;
-//    component_ptr_agg.push_back(Int(0));
-//    
-//    std::string line;
-//    std::string token;
-//    
-//    bool failedQ = false;
-//    
-//    while( std::getline(stream,line) )
-//    {
-//        if( line.size() == Size_T(0) )
-//        {
-//            component_ptr_agg.push_back(counter);
-//            continue;
-//        }
-//        
-//        std::stringstream s (line);
-//
-//        // TODO: Use std::from_chars here
-//        if( !(s >> token) ) { failedQ = true; break; }
-//        v_coordinates.push_back(std::stod(token));
-//        if( !(s >> std::ws) ) { failedQ = true; break; }
-//        
-//        if( !(s >> token) ) { failedQ = true; break; }
-//        v_coordinates.push_back(std::stod(token));
-//        if( !(s >> std::ws) ) { failedQ = true; break; }
-//        
-//        if( !(s >> token) ) { failedQ = true; break; }
-//        v_coordinates.push_back(std::stod(token));
-//        
-//        ++counter;
-//    }
-//    
-//    if( failedQ )
-//    {
-//        eprint(MethodName("ReadFromFile") + ": Reading file failed. Returning invalid object.");
-//        return LinkEmbedding_T();
-//    }
-//    
-//    component_ptr_agg.push_back(counter);
-//    
-//    LinkEmbedding_T link (
-//        Tensor1<Int,Int>( &component_ptr_agg[0], int_cast<Int>(component_ptr_agg.size())),
-//        iota<Int,Int>(component_ptr_agg.size()-Size_T(1))
-//    );
-//    
-//    if( Sterbenz_shiftQ )
-//    {
-//        link.template ReadVertexCoordinates<false,true>(&v_coordinates[0]);
-//    }
-//    else
-//    {
-//        link.template ReadVertexCoordinates<false,false>(&v_coordinates[0]);
-//    }
-//    
-//    return link;
-//}

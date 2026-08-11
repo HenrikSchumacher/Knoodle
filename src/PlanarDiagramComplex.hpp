@@ -200,8 +200,8 @@ namespace Knoodle
 #include "PlanarDiagramComplex/Connect.hpp"
 #include "PlanarDiagramComplex/Subcomplex.hpp"
         
-#include "PlanarDiagramComplex/WriteToFile.hpp"
-#include "PlanarDiagramComplex/ReadFromFile.hpp"
+#include "PlanarDiagramComplex/ToFile.hpp"
+#include "PlanarDiagramComplex/FromFile.hpp"
 #include "PlanarDiagramComplex/PDCode.hpp"
 #include "PlanarDiagramComplex/JenkinsCode.hpp"
         

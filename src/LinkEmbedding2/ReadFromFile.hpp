@@ -1,7 +1,7 @@
 public:
 
 // TODO: Check and read color.
-static LinkEmbedding_T ReadFromFile( cref<std::filesystem::path> file )
+static LinkEmbedding_T FromFile( cref<std::filesystem::path> file )
 {
     Tools::InString s (file);
     
@@ -44,7 +44,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s )
     
     if( s.FailedQ() )
     {
-        eprint(MethodName("ReadFromFile") + ": Reading file failed. Returning invalid object.");
+        eprint(MethodName("FromFile") + ": Reading file failed. Returning invalid object.");
         return LinkEmbedding_T();
     }
     

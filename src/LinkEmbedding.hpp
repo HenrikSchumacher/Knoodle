@@ -164,8 +164,8 @@ namespace Knoodle
 #include "LinkEmbedding/Helpers.hpp"
 #include "LinkEmbedding/BoundingBoxes.hpp"
 #include "LinkEmbedding/FindIntersections.hpp"
-#include "LinkEmbedding/WriteToFile.hpp"
-#include "LinkEmbedding/ReadFromFile.hpp"
+#include "LinkEmbedding/ToFile.hpp"
+#include "LinkEmbedding/FromFile.hpp"
 
     public:
         
