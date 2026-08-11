@@ -250,7 +250,7 @@ static int run_case(const char * name, std::vector<Int> pd, Int n,
         after({ {1}, 0, {4, 10, 3, 9}, {false, false, false, false}, 0 },
               Int(7), "face-revisit");
         // 2-arc strand (1 interior crossing), corridor of 1: 3 - 1 + 1
-        after({ {11, 1}, 11, {7}, {false}, 1 }, Int(3), "two-arc-strand");
+        after({ {11, 1}, 11, {7}, {true}, 1 }, Int(3), "two-arc-strand");
     }
 
     std::printf(ok ? "CASE OK\n" : "CASE FAILED\n");
@@ -357,7 +357,7 @@ static int run_pass_tests(Int xg, Int yg)
     expect({ {1, 3, 5, 7, 9, 11}, 1, {}, {}, 1 }, false, 0, "anchors-coincide");
 
     // Two-arc strand (arcs 5 then 0), corridor f3 -> f1 crossing arc 3.
-    expect({ {11, 1}, 11, {7}, {false}, 1 }, true, 1, "two-arc-strand");
+    expect({ {11, 1}, 11, {7}, {true}, 1 }, true, 1, "two-arc-strand");
 
     // Face-revisiting corridor, arc-disjoint: faces f0 -> f4 -> f3 -> f2 -> f0,
     // so f0 is entered twice while every crossed arc is distinct. (The old
@@ -402,7 +402,7 @@ static int run_pass_tests(Int xg, Int yg)
     // arcs. This is the descriptor the old face-revisit case used.
     expect({ {11}, 11, {3, 2}, {false, false}, 11 }, false, 0, "cross-arc-twice");
     expect({ {11}, 11, {11}, {false}, 10 },        false, 0, "cross-own-strand");
-    expect({ {11, 3}, 11, {7}, {false}, 1 },       false, 0, "broken-strand");
+    expect({ {11, 3}, 11, {7}, {true}, 1 },        false, 0, "broken-strand");
     expect({ {}, 7, {}, {}, 7 },                   false, 0, "empty-strand");
     expect({ {11}, 11, {2}, {false}, 3 },          false, 0, "wrong-chain-start");
     expect({ {11}, 9, {}, {}, 9 },                 false, 0, "depart-not-canonical");

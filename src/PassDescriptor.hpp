@@ -227,6 +227,56 @@ namespace Knoodle
                     " supported)");
             }
 
+            // -- The tags must describe the strand we actually have. A pass
+            //    move slides W; it cannot turn an over-strand into an under-
+            //    strand. So for a classical pass W must be uniformly over or
+            //    uniformly under at its interior crossings, and the corridor's
+            //    tags must agree with that. Without this a descriptor can ask
+            //    for a crossing change wearing a pass move's clothes -- and be
+            //    faithfully carried out, silently changing the knot.
+            //
+            //    (kind=middlepass is exempt: its tags are per-crossing by
+            //    definition, and what makes such a move legitimate is the
+            //    feasibility witness, not this.)
+            if( !middlepassQ && (m > std::size_t(1)) )
+            {
+                bool w_underQ = false;
+
+                for( std::size_t i = 1; i < m; ++i )
+                {
+                    const Int x = DarcHeadCrossing(pd,strand[i-1]);
+                    const Int a_in = ArcOf(strand[i-1]);
+
+                    const bool rightQ =
+                        (pd.CrossingStates()[x] == CrossingState_T::RightHanded);
+
+                    // The under-strand enters at X[0]: (In,Right) for a right-
+                    // handed crossing, (In,Left) for a left-handed one.
+                    const Int under_in = pd.Crossings()(
+                        x, PD_T::In, rightQ ? PD_T::Right : PD_T::Left );
+
+                    const bool here_underQ = (under_in == a_in);
+
+                    if( i == 1 ) { w_underQ = here_underQ; }
+                    else if( here_underQ != w_underQ )
+                    {
+                        return fail("the strand passes over at some of its"
+                            " interior crossings and under at others, so it is"
+                            " not a pass move at all (use kind=middlepass)");
+                    }
+                }
+
+                if( (k > 0) && (static_cast<bool>(over[0]) == w_underQ) )
+                {
+                    return fail(std::string("the corridor is tagged ")
+                        + (over[0] ? "over" : "under")
+                        + " but the strand runs "
+                        + (w_underQ ? "under" : "over")
+                        + " at its interior crossings; a pass move cannot swap"
+                          " the two (that is a crossing change)");
+                }
+            }
+
             const Int F_dep  = LeftFace(pd,depart);
             const Int F_land = LeftFace(pd,land);
 
