@@ -183,6 +183,15 @@ canon_check: canon_check.cpp ../Knoodle.hpp
 	    canon_check.cpp $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ canon_check compiled successfully"
 
+# pd_internal_state_check — round trip for PlanarDiagram's internal-state
+# serialization (WriteToOutString / ReadFromInString). Covers inactive slots
+# and max_* vs active counts, which PD codes cannot express, plus tolerance of
+# a PrintInfo dump lifted straight out of a log file. Light config.
+pd_internal_state_check: pd_internal_state_check.cpp ../Knoodle.hpp
+	@echo "=== Building pd_internal_state_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) pd_internal_state_check.cpp -o $@
+	@echo "✓ pd_internal_state_check compiled successfully"
+
 # component_check — regression guard for the CollapseArcRange unlink-loss bug
 # (Henrik's 5151f39). Embedded 8-crossing 2-component-unlink reproducer; default
 # Simplify must preserve the link-component count. Light config (no UMFPACK).
