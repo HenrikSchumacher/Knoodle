@@ -2481,124 +2481,17 @@ using Deco_T = Knoodle::OrthoDecorate<PD_T>;
  * All references are darcs (da = 2*arc + d, Tail=0/Head=1) against the
  * diagram being drawn. Returns false with a message in `err` on bad syntax.
  */
+/**
+ * @brief Parse a --move descriptor.
+ *
+ * The grammar and every check now live on the descriptor type itself
+ * (src/PassDescriptor.hpp), so knoodledraw, the unit tests and anything else
+ * that wants to read one all go through the same code.
+ */
 bool ParsePassMove(const std::string& spec, Deco_T::PassMove_T& mv,
                    std::string& err)
 {
-    bool have_strand = false, have_depart = false, have_land = false;
-
-    auto parse_int = [&](std::string_view tok, Int& out) -> bool
-    {
-        std::int64_t v = 0;
-        auto [p, ec] = std::from_chars(tok.data(), tok.data() + tok.size(), v);
-        if (ec != std::errc{} || p != tok.data() + tok.size()) return false;
-        out = static_cast<Int>(v);
-        return true;
-    };
-
-    auto for_each_item = [](std::string_view list, auto&& f) -> bool
-    {
-        while (!list.empty())
-        {
-            auto comma = list.find(',');
-            std::string_view item = list.substr(0, comma);
-            if (!f(item)) return false;
-            if (comma == std::string_view::npos) break;
-            list.remove_prefix(comma + 1);
-        }
-        return true;
-    };
-
-    std::istringstream iss(spec);
-    std::string tok;
-    while (iss >> tok)
-    {
-        if (tok == "#move") continue;
-
-        auto eq = tok.find('=');
-        if (eq == std::string::npos)
-        {
-            err = "expected key=value, got '" + tok + "'";
-            return false;
-        }
-        std::string key = tok.substr(0, eq);
-        std::string val = tok.substr(eq + 1);
-
-        if (key == "kind")
-        {
-            if (val == "pass")            { mv.middlepassQ = false; }
-            else if (val == "middlepass") { mv.middlepassQ = true;  }
-            else
-            {
-                err = "unsupported kind=" + val
-                    + " (want pass or middlepass)";
-                return false;
-            }
-        }
-        else if (key == "strand")
-        {
-            have_strand = true;
-            if (!for_each_item(val, [&](std::string_view item)
-                {
-                    Int da;
-                    if (!parse_int(item, da)) return false;
-                    mv.strand.push_back(da);
-                    return true;
-                }))
-            {
-                err = "bad strand darc list '" + val + "'";
-                return false;
-            }
-        }
-        else if (key == "depart")
-        {
-            have_depart = true;
-            if (!parse_int(val, mv.depart))
-            {
-                err = "bad depart darc '" + val + "'";
-                return false;
-            }
-        }
-        else if (key == "cross")
-        {
-            if (!for_each_item(val, [&](std::string_view item)
-                {
-                    auto colon = item.find(':');
-                    if (colon == std::string_view::npos) return false;
-                    Int da;
-                    if (!parse_int(item.substr(0, colon), da)) return false;
-                    std::string_view tag = item.substr(colon + 1);
-                    if (tag != "u" && tag != "o") return false;
-                    mv.cross.push_back(da);
-                    mv.over.push_back(tag == "o");
-                    return true;
-                }))
-            {
-                err = "bad cross list '" + val + "' (want DA:u or DA:o)";
-                return false;
-            }
-        }
-        else if (key == "land")
-        {
-            have_land = true;
-            if (!parse_int(val, mv.land))
-            {
-                err = "bad land darc '" + val + "'";
-                return false;
-            }
-        }
-        else
-        {
-            err = "unknown key '" + key + "'";
-            return false;
-        }
-    }
-
-    if (!have_strand || !have_depart || !have_land)
-    {
-        err = "descriptor needs strand=, depart= and land=";
-        return false;
-    }
-    return true;
+    return Deco_T::PassMove_T::Parse(spec, mv, err);
 }
 
 /**
@@ -2953,7 +2846,7 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
             constexpr Int move_margin = 2;
 
             Deco_T deco(H, move_margin);
-            auto pass_route = deco.RoutePassMove(move);
+            auto pass_route = deco.RoutePassMove(summands[i], move);
             if (pass_route.validQ)
             {
                 // Mark the strand W before padding, while the mask and the

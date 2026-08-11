@@ -264,7 +264,7 @@ static int run_pass_tests(Int xg, Int yg)
     auto expect = [&](const Deco_T::PassMove_T & mv, bool should_pass,
                       std::size_t n_cross, const char * name)
     {
-        auto pr = deco.RoutePassMove(mv);
+        auto pr = deco.RoutePassMove(diagram, mv);
         if (pr.validQ != should_pass)
         {
             std::printf("  pass %s: expected %s, got %s\n", name,
@@ -339,7 +339,7 @@ static int run_pass_tests(Int xg, Int yg)
     {
         OrthoDraw_T Hx(diagram, ext, settings);
         Deco_T dx(Hx, Int(2));
-        auto pr = dx.RoutePassMove(
+        auto pr = dx.RoutePassMove(diagram,
             { {1}, 1, {6, 3, 9}, {false, false, false}, 0 });
         if (!pr.validQ)
         {

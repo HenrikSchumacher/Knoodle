@@ -502,7 +502,7 @@ namespace Knoodle
         // (occupied), and its diagonal neighbors are the quadrant corner
         // cells — so the junction is the diagonal neighbor of the anchor
         // cell lying in face `f`. Fails iff `f` is not a free quadrant there
-        // (the operational form of spec check 4). If the same face occupies
+        // (a drawing-level failure, not a descriptor one). If the same face occupies
         // two quadrants, the first in fixed scan order (NE, NW, SW, SE) wins
         // — deterministic; flank disambiguation is an open spec question.
         //======================================================================
@@ -961,22 +961,13 @@ namespace Knoodle
         // and realizes the corridor geometrically.
         //======================================================================
 
-        struct PassMove_T
-        {
-            std::vector<Int>  strand;  // darcs of the rerouted strand, traversal order
-            Int               depart;  // darc: L(depart) = corridor's first face
-            std::vector<Int>  cross;   // darcs crossed, each left -> right
-            std::vector<bool> over;    // per crossing: new strand passes over?
-            Int               land;    // darc: L(land) = corridor's last face
-
-            // kind=middlepass (middlestrands' MiddleStrandSimplifier moves):
-            // identical grammar and checks, except the over/under tags are
-            // per-crossing (spec check 5 is dropped). Well-formedness only —
-            // soundness of a middlepass move additionally needs the
-            // quotient-simplicity / feasibility-witness checks, which are a
-            // VERIFIER concern, not a rendering concern.
-            bool middlepassQ = false;
-        };
+        /*!@brief The pass descriptor is a type of its own (src/PassDescriptor
+         * .hpp), owned by `PlanarDiagram` rather than by the drawing: its
+         * well-formedness is diagram combinatorics and has no business being
+         * decided here. This alias is kept so callers can keep saying
+         * `Deco_T::PassMove_T`.
+         */
+        using PassMove_T = PassDescriptor<Int>;
 
         struct PassRoute_T
         {
@@ -993,7 +984,17 @@ namespace Knoodle
         // L(depart) at the tail anchor crossing and ends in the quadrant of
         // face L(land) at the head anchor crossing — the new strand attaches
         // exactly where the old one did.
-        PassRoute_T RoutePassMove(const PassMove_T & mv) const
+        /*!@brief Route a pass descriptor in THIS drawing (tier 2).
+         *
+         * `pd` is the diagram the descriptor is written against and the one
+         * this drawing was built from. Tier 1 -- is the descriptor consistent
+         * with that diagram at all -- is `PassDescriptor::WellFormedQ`, which
+         * needs no drawing; everything below it here is geometry: can a
+         * corridor for it actually be laid out on this grid.
+         */
+        PassRoute_T RoutePassMove(
+            cref<PD_T> pd, const PassMove_T & mv
+        ) const
         {
             PassRoute_T result;
 
@@ -1003,153 +1004,36 @@ namespace Knoodle
                 return result;
             };
 
-            const std::size_t m = mv.strand.size();
-            const std::size_t k = mv.cross.size();
-
-            // -- Shape and tag checks (spec check 5: all tags equal) --------
-            if (m == 0) return fail("empty strand");
-            if (mv.over.size() != k)
-            {
-                return fail("cross and over lists differ in length");
-            }
-            if (!mv.middlepassQ)
-            {
-                for (std::size_t i = 1; i < k; ++i)
-                {
-                    if (mv.over[i] != mv.over[0])
-                    {
-                        return fail("over/under tags are not all equal"
-                            " (check 5; use kind=middlepass for mixed tags)");
-                    }
-                }
-            }
-
-            // -- Arc activity; strand arcs distinct; cross arcs not in strand
-            //    (spec check 1) ---------------------------------------------
-            for (Int da : mv.strand)
-            {
-                if (LeftFace(da) < 0)
-                {
-                    return fail("strand darc " + std::to_string(da)
-                        + " is inactive or out of range");
-                }
-            }
-            for (std::size_t i = 0; i < m; ++i)
-            {
-                for (std::size_t j = i + 1; j < m; ++j)
-                {
-                    if (mv.strand[i] / 2 == mv.strand[j] / 2)
-                    {
-                        return fail("strand repeats arc "
-                            + std::to_string(mv.strand[i] / 2) + " (check 1)");
-                    }
-                }
-            }
-            for (Int dc : mv.cross)
-            {
-                if (LeftFace(dc) < 0)
-                {
-                    return fail("crossed darc " + std::to_string(dc)
-                        + " is inactive or out of range");
-                }
-                for (Int ds : mv.strand)
-                {
-                    if (dc / 2 == ds / 2)
-                    {
-                        return fail("crossed darc " + std::to_string(dc)
-                            + " lies on the strand itself (check 1)");
-                    }
-                }
-            }
-
-            // -- Strand consecutiveness, checked geometrically: the head-end
-            //    vertex cell of each darc must be the tail-end vertex cell of
-            //    the next (vertex cells are unique per diagram crossing) -----
-            for (std::size_t i = 0; i + 1 < m; ++i)
-            {
-                if (DarcHeadCell(mv.strand[i]) != DarcTailCell(mv.strand[i + 1]))
-                {
-                    return fail("strand darcs " + std::to_string(mv.strand[i])
-                        + " and " + std::to_string(mv.strand[i + 1])
-                        + " are not consecutive (check 1)");
-                }
-            }
+            // -- Tier 1: is the descriptor consistent with the diagram at
+            //    all? Pure combinatorics, so it lives on the descriptor and
+            //    is equally available to Simplify, to unit tests, and to
+            //    anyone else who has no drawing in hand. -------------------
+            std::string why;
+            if( !mv.WellFormedQ(pd,why) ) { return fail(std::move(why)); }
 
             result.tail_anchor = DarcTailCell(mv.strand.front());
             result.head_anchor = DarcHeadCell(mv.strand.back());
 
-            // -- Both anchors the same crossing: W leaves and returns to one
-            //    crossing (an R_I curl at the head of the strand, and its
-            //    relatives). The two junctions would then be quadrants of the
-            //    same crossing and "which port" stops being well posed, so we
-            //    refuse rather than draw something we cannot justify. -------
-            if (result.tail_anchor == result.head_anchor)
-            {
-                return fail("tail and head anchors are the same crossing"
-                    " (strand closes on itself; R_I curls and friends are not"
-                    " supported)");
-            }
-
-            // -- Combinatorial face chain (spec checks 2 and 3; RouteAcross-
-            //    Darcs re-derives this, but failing early is clearer) --------
+            // -- Tier 2 begins here: everything from this point on is about
+            //    THIS drawing. The junction cell is the anchor's diagonal
+            //    neighbour in the depart/land face; a well-formed descriptor
+            //    can still fail here if the layout does not offer that
+            //    quadrant, which is a fact about the drawing, not the move.
             const Int F_dep  = LeftFace(mv.depart);
             const Int F_land = LeftFace(mv.land);
-            if (F_dep < 0)  return fail("depart darc is inactive or out of range");
-            if (F_land < 0) return fail("land darc is inactive or out of range");
-
-            if (k > 0)
-            {
-                if (LeftFace(mv.cross.front()) != F_dep)
-                {
-                    return fail("L(cross[0]) != L(depart) (check 2)");
-                }
-                if (RightFace(mv.cross.back()) != F_land)
-                {
-                    return fail("L(land) != R(cross[last]) (check 3)");
-                }
-            }
-            else if (F_dep != F_land)
-            {
-                return fail("no crossings but L(depart) != L(land) (check 3)");
-            }
-
-            // -- Junctions (spec check 4). `depart` must be a darc OF the
-            //    strand's first arc and `land` a darc of its last. That says
-            //    the rerouted strand leaves (reaches) each anchor through the
-            //    very port W's end arc occupies -- a crossing has four
-            //    quadrants and only the two flanking that port are reachable
-            //    by a strand that keeps the anchor fixed -- and it is also the
-            //    descriptor's normal form, since many darcs can name one face.
-            //    See PassDescriptor::WellFormedQ, which is the authority here;
-            //    this copy exists only until RoutePassMove is handed the
-            //    diagram and can call it directly.
-            if( ArcOf(mv.depart) != ArcOf(mv.strand.front()) )
-            {
-                return fail("depart darc " + std::to_string(mv.depart)
-                    + " names arc " + std::to_string(ArcOf(mv.depart))
-                    + ", but must name the strand's first arc "
-                    + std::to_string(ArcOf(mv.strand.front()))
-                    + " (check 4)");
-            }
-            if( ArcOf(mv.land) != ArcOf(mv.strand.back()) )
-            {
-                return fail("land darc " + std::to_string(mv.land)
-                    + " names arc " + std::to_string(ArcOf(mv.land))
-                    + ", but must name the strand's last arc "
-                    + std::to_string(ArcOf(mv.strand.back()))
-                    + " (check 4)");
-            }
 
             Point_T start, goal;
             if (!JunctionCell(result.tail_anchor, F_dep, start))
             {
-                return fail("depart face is not a quadrant at the tail anchor"
-                    " (check 4)");
+                return fail("the depart face has no free quadrant cell beside"
+                    " the tail anchor in this drawing (the descriptor is"
+                    " well-formed; the layout cannot carry it)");
             }
             if (!JunctionCell(result.head_anchor, F_land, goal))
             {
-                return fail("land face is not a quadrant at the head anchor"
-                    " (check 4)");
+                return fail("the land face has no free quadrant cell beside"
+                    " the head anchor in this drawing (the descriptor is"
+                    " well-formed; the layout cannot carry it)");
             }
 
             // -- Route ------------------------------------------------------
