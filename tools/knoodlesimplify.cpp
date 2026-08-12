@@ -1139,9 +1139,9 @@ bool ProcessXYZFile(const std::string& filepath,
             // independently, which would distort the link's actual geometric
             // arrangement) with a proper random rotation -- the same mechanism
             // already used elsewhere (PlanarDiagramComplex/Simplify.hpp:
-            // emb.Rotate(reapr.RandomRotation())).
+            // emb.Transform(reapr.RandomRotation())).
             Reapr_T reapr;
-            link.Rotate(reapr.RandomRotation());
+            link.Transform(reapr.RandomRotation());
         }
 
         // PDC constructor from LinkEmbedding calls FindIntersections internally

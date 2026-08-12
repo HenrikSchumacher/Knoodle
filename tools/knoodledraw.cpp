@@ -2458,9 +2458,9 @@ bool ProcessXYZFile(const std::string& filepath, const Config& config)
         // Rotate the whole embedding at once (not each component independently,
         // which would distort the link's actual geometric arrangement) with a
         // proper random rotation -- the same mechanism already used elsewhere
-        // (PlanarDiagramComplex/Simplify.hpp: emb.Rotate(reapr.RandomRotation())).
+        // (PlanarDiagramComplex/Simplify.hpp: emb.Transform(reapr.RandomRotation())).
         Reapr_T reapr;
-        link.Rotate(reapr.RandomRotation());
+        link.Transform(reapr.RandomRotation());
     }
 
     PDC_T pdc(std::move(link));
