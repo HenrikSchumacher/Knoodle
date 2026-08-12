@@ -58,6 +58,7 @@ OutString ToOutString( const bool colorQ = true ) const
         
         if ( colorQ )
         {
+            // Note: Lines with `#color` attribute must be preceded by a blank line (comment lines are ignored), unless it is the first line with no preceding newline (in which case it preceeds the first link component). Otherwise KnotPlot won't interpret this as the start of a new link component,
             s.PutChars("#color ");
             s.Put(component_color[lc]);
             s.PutChar('\n');

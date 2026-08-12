@@ -4,7 +4,6 @@
 
 namespace Knoodle
 {
-    
     /*!@brief **EXPERIMENTAL.** This class is mostly intended for reading in 3D vertex coordinates, applying a planar projection, and computing the crossings. Then it can be handed over to class `PlanarDiagram` or `PlanarDiagramComplex`.
      *
      *  This class's main routine is `RequireIntersections`. It uses a static binary tree, exact integer computations, and _symbolic_ perturbation techniques to compute the planar diagram as exactly as possible. It can deal with many geometric degeneracies: line segments that have length 0, line segments that project to a point, line segments whose endpoints project to the projections of other line segments, multiple intersections at a single point, intersecting line segments that a parallel. In particular, this class can deal with lattice links.
@@ -44,6 +43,7 @@ namespace Knoodle
         using IReal = IReal_;
         
         static constexpr Int AmbDim = 3;
+        static constexpr Int InvalidColor = PlanarDiagram<Int>::InvalidColor;
         
         using Base_T          = Link<Int>;
         using LinkEmbedding_T = LinkEmbedding2;
@@ -185,9 +185,6 @@ namespace Knoodle
 #include "LinkEmbedding2/BoundingBoxes.hpp"
 #include "LinkEmbedding2/Intersections.hpp"
         
-//#include "LinkEmbedding2/FindIntersections.hpp"
-
-
     public:
         
         /*!@brief Return the ambient diemension (== 3).*/
