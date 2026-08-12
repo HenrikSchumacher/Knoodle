@@ -84,18 +84,38 @@ template<bool shiftQ = true>
 void Transform( cref<Matrix3x3_T> A )
 {
     TOOLS_PTIMER(timer,MethodName("Transform"));
-    
+
+    // The transformation the current coordinates already represent. It has to be
+    // read before SetTransformationMatrix below overwrites R, because the
+    // accumulated transformation is A * R_old -- not A * A.
+    const Matrix3x3_T R_old = R;
+
     Tensor2<Real,Int> v_coords( edge_count, AmbDim );
-    
+
     WriteVertexCoordinates(v_coords.data());
 
+    // WriteVertexCoordinates hands back the raw edge_coords, which already carry
+    // the Sterbenz shift, so that shift has to come off before we rotate.
+    // Otherwise ReadVertexCoordinates rotates the old shift along with the
+    // geometry and then adds a fresh one on top, and Transform translates the
+    // link as well as rotating it. Repeated calls compound the translation and
+    // walk the coordinates away from the origin, which spends the mantissa on
+    // position instead of shape and makes degenerate projections likelier.
+    for( Int i = 0; i < edge_count; ++i )
+    {
+        for( Int k = 0; k < AmbDim; ++k )
+        {
+            v_coords(i,k) -= Sterbenz_shift[k];
+        }
+    }
+
     SetTransformationMatrix(A);
-    
+
     this->template ReadVertexCoordinates<true,shiftQ>(v_coords.data());
-    
+
     // We make it so that we can restore the original coordinates up to shift from R.
     // That is: we rotate both the coordinates and R by A; then we set R to the rotated matrix.
-    SetTransformationMatrix(Dot(A,R));
+    SetTransformationMatrix(Dot(A,R_old));
 }
 
 template<bool shiftQ = true>
