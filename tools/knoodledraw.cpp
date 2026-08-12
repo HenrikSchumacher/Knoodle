@@ -51,6 +51,7 @@ struct Config
     bool randomize_projection = false;
     bool ascii_mode           = false;
     bool mono_mode            = false;  // --mono : no ANSI; weight carries meaning
+    bool verify_trace         = false;  // --verify : check each move against the next snapshot
     bool wolfram_mode         = false;  // --format=wl : emit WL geometry association
     bool help_requested       = false;
     bool label_crossings      = false;
@@ -152,6 +153,11 @@ void PrintUsage()
     std::cerr << "                              heavy gold strokes, anchors in red; rejected\n";
     std::cerr << "                              descriptors report the failed check and exit nonzero\n";
     std::cerr << "  --trace                     Input is a move-trace stream (#step/#move/#view headed\n";
+    std::cerr << "  --verify                    With --trace: check each pass move against the\n";
+    std::cerr << "                              NEXT record's snapshot -- delete the strand from\n";
+    std::cerr << "                              the drawing and the result must be that diagram.\n";
+    std::cerr << "                              Reports VERIFIED / MISMATCH per move; a mismatch\n";
+    std::cerr << "                              exits nonzero.\n";
     std::cerr << "                              PD records, docs/move-descriptor.md): each record is\n";
     std::cerr << "                              drawn under its echoed headers, pass moves as overlays\n";
     std::cerr << "\n";
@@ -303,6 +309,10 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg == "--mono")
         {
             config.mono_mode = true;
+        }
+        else if (arg == "--verify")
+        {
+            config.verify_trace = true;
         }
         else if (arg == "--trace")
         {
@@ -2982,6 +2992,21 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
     std::vector<Int> code;
     bool in_record = false;
 
+    // --verify: the second of the two deletions. A record's pass move claims
+    // that deleting the strand from the picture leaves the NEXT record's
+    // snapshot, so the check needs exactly one record of lookahead. We carry
+    // the pending claim forward instead of buffering the stream.
+    std::optional<PD_T> pending_after;   // what the previous move should produce
+    std::string pending_label;
+    bool verify_failed = false;
+
+    auto macleod = [](PD_T & pd) -> std::vector<Int>
+    {
+        std::vector<Int> s(static_cast<std::size_t>(2 * pd.CrossingCount()), Int(0));
+        if (pd.CrossingCount() > Int(0)) { pd.WriteMacLeodCode(s.data()); }
+        return s;
+    };
+
     auto fail = [&](const std::string& msg) -> bool
     {
         std::cerr << "knoodledraw: trace line " << line_no << ": " << msg << "\n";
@@ -3038,6 +3063,49 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                 }
                 // ArcFaces()(a,d) = face left of darc 2a+d
                 rc.exterior_face = dia.ArcFaces()(a, da % Int(2));
+            }
+
+            if (config.verify_trace && pending_after)
+            {
+                PD_T claimed = dia;                 // this record's snapshot
+                PD_T expected = std::move(*pending_after);
+                pending_after.reset();
+
+                const bool okQ = (claimed.CrossingCount() == expected.CrossingCount())
+                              && (macleod(claimed) == macleod(expected));
+
+                std::cout << "#verify " << pending_label << ": "
+                          << (okQ ? "VERIFIED" : "MISMATCH")
+                          << " (" << expected.CrossingCount() << " crossings expected, "
+                          << claimed.CrossingCount() << " found)\n";
+
+                if (!okQ) { verify_failed = true; }
+            }
+
+            if (config.verify_trace && rc.move_spec)
+            {
+                // Stage what this record's move claims, to be checked against
+                // the next record. AfterDiagram works from the descriptor, so
+                // this is independent of whatever produced the trace.
+                OrthoDraw_T Hv(dia, rc.exterior_face ? *rc.exterior_face : Int(-1),
+                               BuildSettings(rc));
+                Deco_T dv(Hv, Int(2));
+
+                Deco_T::PassMove_T mvv;
+                std::string perr, vwhy;
+                if (Deco_T::PassMove_T::Parse(*rc.move_spec, mvv, perr))
+                {
+                    PD_T ad = dv.AfterDiagram(dia, mvv, vwhy);
+                    if (vwhy.empty())
+                    {
+                        pending_after = std::move(ad);
+                        pending_label = "step " + std::to_string(records_drawn);
+                    }
+                    else
+                    {
+                        return fail("--verify: AfterDiagram: " + vwhy);
+                    }
+                }
             }
 
             std::vector<PD_T> summands;
@@ -3153,6 +3221,13 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
     }
 
     if (!flush()) return false;
+
+    if (config.verify_trace && pending_after)
+    {
+        std::cout << "#verify " << pending_label
+                  << ": UNCHECKED (no following record to compare against)\n";
+    }
+    if (verify_failed) { return false; }
 
     if (records_drawn == 0)
     {

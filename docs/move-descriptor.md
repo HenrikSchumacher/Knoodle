@@ -447,6 +447,16 @@ and any seeded choice an emitter makes must be recorded in the stream.
   drawing — heavy gold strokes, corridor visibly broken at under-crossings,
   anchors emphasized in red. A rejected descriptor prints which spec check
   failed and exits nonzero.
+- **Also implemented**: `knoodledraw --trace --verify` checks the second of
+  the two deletions. A record's pass move claims that deleting the strand from
+  the picture leaves the *next* record's snapshot, so with one record of
+  lookahead the claim is checkable: `OrthoDecorate::AfterDiagram` builds the
+  result from the descriptor alone -- never calling the applier that produced
+  the trace -- and the two are compared by MacLeod code, which is an invariant
+  of the oriented diagram and so ignores relabelling. Each move reports
+  `#verify step <n>: VERIFIED | MISMATCH`, and a mismatch exits nonzero. This
+  is the check that would have caught the arc-label aliasing of PR #30 without
+  anyone noticing a corridor attached oddly.
 - **Also implemented**: `knoodledraw --trace` reads a trace stream of this
   spec's records and renders each snapshot under its echoed headers:
   `#move kind=pass` becomes the corridor overlay on that record's diagram,
