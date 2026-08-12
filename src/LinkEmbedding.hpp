@@ -46,8 +46,10 @@ namespace Knoodle
         
         using Intersector_T   = PlanarLineSegmentIntersector<Real,Int>;
         using IntersectionFlagCounts_T = Tiny::Vector<9,Size_T,Int>;
+
         
         static constexpr Int AmbDim = 3;
+        static constexpr Int InvalidColor = PlanarDiagram<Int>::InvalidColor;
         
     protected:
         
@@ -468,5 +470,3 @@ namespace Knoodle
     };
     
 } // namespace Knoodle
-
-

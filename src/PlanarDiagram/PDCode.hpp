@@ -864,14 +864,9 @@ static PD_T FromPDCodeString(
         s.Take(x);
         pd_buffer.push_back(x);
         
-        if( s.CurrentChar() == '\n' )
-        {
-            break;
-        }
-        else
-        {
-            ++code_width;
-        }
+        if( s.NewlineQ() ) { break; }
+        
+        ++code_width;
     }
     
     ++crossing_counter;
@@ -891,7 +886,7 @@ static PD_T FromPDCodeString(
     
     while( !s.EmptyQ() && !s.FailedQ() )
     {
-        // We have to be careful here, because the last line may easily end with an '\n'.
+        // We have to be careful here, because the last line may easily end with a newline character sequence.
         for( Size_T i = 0; i < code_width; ++i )
         {
             s.SkipWhiteSpace();

@@ -1,10 +1,13 @@
 public:
 
-bool WriteToFile(
-    cref<std::filesystem::path> file,
-    const bool colorQ,
-    [[maybe_unused]] const int  prec = (SameQ<Real,double> ? 18 : 9)
-) const
+/*!@brief Write the vertex coordinates of the link to file `file`. The vertex coordinates of each link component are write in `x y z` lines in the order they appear in the link component. Link components are separated by blank lines.
+ *
+ * @param file The file to write to.
+ *
+ * @param colorQ Whether the colors of the link components shall be exported in the format `#color <int>` at the start of each component. In any case, the output should be compatible with KnotPlot.
+ *
+ */
+bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) const
 {
     std::ofstream stream;
 
@@ -22,10 +25,30 @@ bool WriteToFile(
         return false;
     };
 
-    const Int comp_count = component_ptr.Dim(0) - 1;
-
-    OutString s;
+    OutString s = ToOutString(colorQ);
     
+    stream << s;
+    
+    if( !stream )
+    {
+        eprint(MethodName("WriteToFile") + ": Failed to write to file. Aborting.");
+        return false;
+    }
+    
+    return true;
+}
+
+
+/*!@brief Create an `OutString` object and write the vertex coordinates of the link to it. The vertex coordinates of each link component are written in `x y z` lines in the order they appear in the link component. Link components are separated by blank lines.
+ *
+ * @param colorQ Whether the colors of the link components shall be exported in the format `#color <int>` at the start of each component. In any case, the output should be compatible with KnotPlot. CAUTION: If this is a multiple-component link and if several components have the same color, then not writing the colors leads to a loss/change of some important topological information. We provide this option only to allow export for downstream application that cannot handle the `#color` statement and that do not treat it as comment.
+ *
+ */
+
+OutString ToOutString( const bool colorQ = true ) const
+{
+    OutString s;
+
     for( Int lc = 0; lc < component_count; ++lc )
     {
         const Int i_begin = component_ptr[lc    ];
@@ -35,27 +58,27 @@ bool WriteToFile(
         
         if ( colorQ )
         {
-            stream << "#color " << ToString(component_color[lc]) << "\n";
+            // Note: Lines with `#color` attribute must be preceded by a blank line (comment lines are ignored), unless it is the first line with no preceding newline (in which case it preceeds the first link component). Otherwise KnotPlot won't interpret this as the start of a new link component,
+            s.PutChars("#color ");
+            s.Put(component_color[lc]);
+            s.PutChar('\n');
         }
         
         const Int m = i_end - i_begin;
         const Int n = 3;
 
-        s.Clear();
         s.PutArray(
-            [this,i_begin]( const Int i, const Int j ) { return vertex_coords(i_begin + i,j); },
+            [this,i_begin]( const Int i, const Int j ) { return edge_coords(i_begin + i,Int(0),j); },
             true,
             m, "", "\n", "",
             n, "", " ", ""
         );
         
-        stream << s;
-
-        if( (lc + 1) != comp_count )
+        if( (lc + Int(1)) != component_count )
         {
-            stream << "\n\n";
+            s.PutChars("\n\n");
         }
     }
     
-    return true;
+    return s;
 }
