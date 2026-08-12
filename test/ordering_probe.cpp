@@ -34,6 +34,8 @@
 #include <cstdio>
 #include <map>
 #include <set>
+#include <algorithm>
+#include <utility>
 #include <string>
 #include <vector>
 
@@ -193,7 +195,7 @@ struct Stats
     // Lagging descriptors kept for phase C (sign surgery). Capped: we only
     // need enough to convert, not the whole population.
     std::vector<Desc_T> hits;
-    static constexpr std::size_t hit_cap = 400;
+    static constexpr std::size_t hit_cap = 4000;
 };
 
 /*!@brief Enumerate every strictly shortening, well-formed corridor for one
@@ -476,8 +478,13 @@ static bool ReducibleAlongStrandQ(
  */
 static void ConvertHits(
     Knoodle::cref<PD_T> pd0, Knoodle::cref<std::vector<Int>> code0,
-    Knoodle::cref<std::vector<Desc_T>> hits, const int report_cap )
+    Knoodle::cref<std::vector<Desc_T>> hits, const int report_cap,
+    const char * dump_path )
 {
+    struct Survivor { Int L; Int k; std::string spec; std::vector<Incidence> inc;
+                      std::vector<Int> code; };
+    std::vector<Survivor> survivors;
+
     long long tried = 0, converted = 0, lag_kept = 0, faces_kept = 0;
     long long bigon_free = 0;
     int reported = 0;
@@ -517,24 +524,70 @@ static void ConvertHits(
         if( ReducibleAlongStrandQ(pd, e.strand) ) { continue; }
         ++bigon_free;
 
-        if( reported < report_cap )
+        survivors.push_back( Survivor{
+            static_cast<Int>(e.strand.size()),
+            static_cast<Int>(e.cross.size()),
+            e.ToString(), inc, code } );
+    }
+
+    // Smallest first: fewest corridor crossings, then shortest strand. The
+    // smallest survivor is the one worth hand-checking and drawing.
+    std::sort(survivors.begin(), survivors.end(),
+        []( Knoodle::cref<Survivor> x, Knoodle::cref<Survivor> y )
         {
-            ++reported;
-            std::printf("\n  *** SURVIVOR: plain kind=pass, strictly shortening,"
-                        " lagging, R1/R2-free along W ***\n");
-            std::printf("      L=%lld k=%lld\n",
-                (long long)e.strand.size(), (long long)e.cross.size());
-            std::printf("      %s\n", e.ToString().c_str());
-            for( Knoodle::cref<Incidence> z : inc )
+            if( x.k != y.k ) { return x.k < y.k; }
+            return x.L < y.L;
+        });
+
+    for( std::size_t n = 0; (n < survivors.size())
+                         && (n < static_cast<std::size_t>(report_cap)); ++n )
+    {
+        Knoodle::cref<Survivor> v = survivors[n];
+        ++reported;
+        std::printf("\n  *** SURVIVOR #%zu: W has %lld arcs -> reroute has %lld arcs"
+                    " (%lld crossings -> %lld) ***\n",
+            n+1, (long long)v.L, (long long)(v.k + Int(1)),
+            (long long)(v.L - Int(1)), (long long)v.k);
+        std::printf("      %s\n", v.spec.c_str());
+        for( Knoodle::cref<Incidence> z : v.inc )
+        {
+            if( z.j > z.i )
             {
-                if( z.j > z.i )
-                {
-                    std::printf("      lag: i=%lld j=%lld arc=%lld x=%lld\n",
-                        (long long)z.i, (long long)z.j,
-                        (long long)z.arc, (long long)z.cx);
-                }
+                std::printf("      lag: i=%lld j=%lld arc=%lld x=%lld\n",
+                    (long long)z.i, (long long)z.j,
+                    (long long)z.arc, (long long)z.cx);
             }
         }
+    }
+
+    // The smallest survivor's diagram, so it can be drawn.
+    if( (dump_path != nullptr) && !survivors.empty() )
+    {
+        Knoodle::cref<Survivor> v = survivors[0];
+        std::FILE * f = std::fopen(dump_path, "w");
+        if( f != nullptr )
+        {
+            for( std::size_t r = 0; r < v.code.size()/5; ++r )
+            {
+                std::fprintf(f, "%lld\t%lld\t%lld\t%lld\t%lld\n",
+                    (long long)v.code[5*r+0], (long long)v.code[5*r+1],
+                    (long long)v.code[5*r+2], (long long)v.code[5*r+3],
+                    (long long)v.code[5*r+4]);
+            }
+            std::fclose(f);
+            std::printf("\n  wrote smallest survivor's diagram to %s\n", dump_path);
+            std::printf("  descriptor: %s\n", v.spec.c_str());
+        }
+    }
+
+    // (L,k) histogram over survivors
+    std::map<std::pair<Int,Int>,long long> hist;
+    for( Knoodle::cref<Survivor> v : survivors ) { ++hist[{v.L,v.k}]; }
+    std::printf("\n  survivor shapes (L = strand arcs, k = corridor crossings):\n");
+    for( auto & kv : hist )
+    {
+        std::printf("      L=%2lld k=%2lld : %lld\n",
+            (long long)kv.first.first, (long long)kv.first.second, kv.second);
     }
 
     std::printf("\n=== phase C: sign surgery -> plain kind=pass ===\n");
@@ -545,7 +598,7 @@ static void ConvertHits(
     std::printf("  ... and R1/R2-FREE along W (SURVIVORS) %lld\n", bigon_free);
 }
 
-int main()
+int main( int argc, char ** argv )
 {
     PD_T pd = PD_T::FromSignedPDCode(
         &zf061098_underpass[0],
@@ -638,7 +691,8 @@ int main()
     const Stats st = RunSearch(pd, /*max_L=*/Int(10), /*report_cap=*/3);
 
     std::vector<Int> code0( zf061098_underpass.begin(), zf061098_underpass.end() );
-    ConvertHits(pd, code0, st.hits, /*report_cap=*/3);
+    ConvertHits(pd, code0, st.hits, /*report_cap=*/3,
+                (argc > 1) ? argv[1] : nullptr);
 
     return ok ? 0 : 1;
 }
