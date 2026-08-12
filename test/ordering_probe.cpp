@@ -206,6 +206,14 @@ struct Stats
     long long shortest_lag   = 0;
     long long shortest_nolag = 0;
 
+    // CNP = crossing-number-preserving, k == L-1. In a pass-reduced diagram
+    // these are automatically shortest, so cnp_shortest_lag is the number that
+    // decides whether a saving-zero tier would be safe there.
+    long long cnp_any          = 0;
+    long long cnp_shortest     = 0;
+    long long cnp_lag          = 0;
+    long long cnp_shortest_lag = 0;
+
     // Lagging descriptors kept for phase C (sign surgery). Capped: we only
     // need enough to convert, not the whole population.
     std::vector<Desc_T> hits;
@@ -265,9 +273,16 @@ struct Searcher
             ++st.corridors;
             if( at.mpQ ) { ++st.middlepass; } else { ++st.plain_pass; }
 
-            const bool shortestQ =
-                (kmin >= Int(0)) && (static_cast<Int>(corridor.size()) == kmin);
+            const Int kk  = static_cast<Int>(corridor.size());
+            const Int LL   = static_cast<Int>(strand.size());
+            const bool cnpQ      = (kk == LL - Int(1));
+            const bool shortestQ = (kmin >= Int(0)) && (kk == kmin);
             if( shortestQ ) { ++st.shortest_any; }
+            if( cnpQ )
+            {
+                ++st.cnp_any;
+                if( shortestQ ) { ++st.cnp_shortest; }
+            }
 
             const std::vector<Incidence> inc = Classify(pd, d);
             if( !inc.empty() ) { ++st.with_inc; }
@@ -284,6 +299,8 @@ struct Searcher
             {
                 if( lagQ ) { ++st.shortest_lag; } else { ++st.shortest_nolag; }
             }
+            if( cnpQ && lagQ )       { ++st.cnp_lag; }
+            if( cnpQ && shortestQ && lagQ ) { ++st.cnp_shortest_lag; }
 
             if( lagQ )
             {
@@ -380,7 +397,11 @@ static Stats RunSearch( Knoodle::cref<PD_T> pd, const Int max_L, const int repor
             strand.reserve(arcs.size());
             for( Int x : arcs ) { strand.push_back( Int(2) * x + Int(1) ); }
 
-            const Int max_k = L - Int(2);     // STRICTLY shortening
+            // k <= L-1 is check 6's bound: CNP (k == L-1) included, because
+            // a pass-reduced diagram has kmin >= L-1, so its CNP corridors are
+            // automatically SHORTEST -- exactly the case Reroute's precondition
+            // would then admit.
+            const Int max_k = L - Int(1);
 
             for( Int dep_d : { Int(2)*arcs.front(), Int(2)*arcs.front()+Int(1) } )
             {
@@ -412,9 +433,9 @@ static Stats RunSearch( Knoodle::cref<PD_T> pd, const Int max_L, const int repor
         }
     }
 
-    std::printf("\n=== search: strictly shortening, well-formed corridors ===\n");
+    std::printf("\n=== search: well-formed corridors, k <= L-1 ===\n");
     std::printf("  strands examined                      %lld\n", st.strands);
-    std::printf("  well-formed corridors (k <= L-2)      %lld\n", st.corridors);
+    std::printf("  well-formed corridors (k <= L-1)           %lld\n", st.corridors);
     std::printf("    of which kind=pass                  %lld\n", st.plain_pass);
     std::printf("    of which kind=middlepass            %lld\n", st.middlepass);
     std::printf("  ... touching a transversal at all     %lld\n", st.with_inc);
@@ -426,6 +447,11 @@ static Stats RunSearch( Knoodle::cref<PD_T> pd, const Int max_L, const int repor
     std::printf("    shortest, total                     %lld\n", st.shortest_any);
     std::printf("    shortest AND lagging                %lld\n", st.shortest_lag);
     std::printf("    shortest AND not lagging            %lld\n", st.shortest_nolag);
+    std::printf("\n  CNP corridors (k == L-1, the saving-zero tier):\n");
+    std::printf("    CNP, total                          %lld\n", st.cnp_any);
+    std::printf("    CNP and lagging                     %lld\n", st.cnp_lag);
+    std::printf("    CNP and SHORTEST                    %lld\n", st.cnp_shortest);
+    std::printf("    CNP and shortest AND LAGGING        %lld\n", st.cnp_shortest_lag);
     return st;
 }
 
@@ -793,6 +819,21 @@ int main( int argc, char ** argv )
             // better not be reducible along W.
             check(!ReducibleAlongStrandQ(pd, d.strand),
                   "control: filter agrees the repro strand is R1/R2-free");
+
+            // THE CRUX. The repro is a CNP move (k = L-1) that lags. If its
+            // corridor is a SHORTEST path between the merged endpoint faces,
+            // then "shortest => no lag" is false and the mechanism is dead.
+            {
+                std::set<Int> w_arcs;
+                for( Int da : d.strand ) { w_arcs.insert(Desc_T::ArcOf(da)); }
+                const Int kmin = MergedDualDistance(
+                    pd, w_arcs,
+                    Desc_T::LeftFace(pd, d.depart), Desc_T::LeftFace(pd, d.land) );
+                std::printf("  control: k=%lld, kmin=%lld  -> excess %lld\n",
+                    (long long)k, (long long)kmin, (long long)(k - kmin));
+                check(kmin < k,
+                      "control: repro corridor is NOT shortest (mechanism holds)");
+            }
         }
     }
 
