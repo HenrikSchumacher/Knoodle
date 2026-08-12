@@ -192,7 +192,8 @@ canon_check: canon_check.cpp ../Knoodle.hpp
 # descriptor's spec checks (docs/move-descriptor.md) and the margin regression.
 # Light config (no UMFPACK). Depends on the header it exercises, so editing
 # OrthoDecorate.hpp actually rebuilds the test.
-orthodecorate_check: orthodecorate_check.cpp ../Knoodle.hpp ../src/OrthoDecorate.hpp
+orthodecorate_check: orthodecorate_check.cpp ../Knoodle.hpp ../src/OrthoDecorate.hpp \
+                     knot_determinant.hpp pass_fixtures.hpp
 	@echo "=== Building orthodecorate_check on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) orthodecorate_check.cpp -o $@
 	@echo "✓ orthodecorate_check compiled successfully"

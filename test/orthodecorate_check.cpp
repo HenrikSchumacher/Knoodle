@@ -18,6 +18,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <vector>
+#include "knot_determinant.hpp"
+#include "pass_fixtures.hpp"
 
 using Int         = std::int64_t;
 using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
@@ -237,15 +239,84 @@ static int run_case(const char * name, std::vector<Int> pd, Int n,
             }
             const bool cleanQ = ad.CheckAll();
             const bool countQ = (ad.CrossingCount() == expect_cx);
-            std::printf("  after %s: %lld crossings, CheckAll %s%s\n", name,
-                (long long)ad.CrossingCount(), cleanQ ? "PASS" : "FAIL",
-                countQ ? "" : "  *** wrong crossing count ***");
-            if (!cleanQ || !countQ) { ok = false; }
+
+            // The move is an isotopy, so the determinant must survive it.
+            // CheckAll alone is far too weak here: it passes for a legal
+            // diagram of the WRONG knot, which is exactly how a wrong splice
+            // presents.
+            const Int det_before = DeterminantModP(diagram);
+            const Int det_after  = DeterminantModP(ad);
+            // The determinant is defined up to sign, and which sign the
+            // minor comes out with depends on the row/column dropped, so
+            // compare up to negation mod p.
+            constexpr Int P = Int(1000003);
+            const bool detQ = (det_before == det_after)
+                           || (det_before == (P - det_after) % P);
+
+            std::printf("  after %s: %lld crossings, CheckAll %s, det %lld -> %lld %s\n",
+                name, (long long)ad.CrossingCount(), cleanQ ? "PASS" : "FAIL",
+                (long long)det_before, (long long)det_after,
+                (countQ ? (detQ ? "OK" : "*** DETERMINANT CHANGED ***")
+                        : "*** wrong crossing count ***"));
+            if (!cleanQ || !countQ || !detQ) { ok = false; }
         };
 
         // 2-arc strand (1 interior crossing), corridor of 1: 3 - 1 + 1
         after({ {1, 3}, 1, {6}, {false}, 3 }, Int(3), "doc-example");
         after({ {11, 1}, 11, {7}, {true}, 1 }, Int(3), "two-arc-strand");
+    }
+
+    // ---- multi-crossing corridors, on a real diagram -------------------
+    // The trefoil and figure-eight cannot host these (see pass_fixtures.hpp),
+    // so they run on the 73-crossing reproducer from PR #30. The k = 8 case is
+    // the one that triggers the arc-label aliasing in Reroute.
+    if( diagram.CrossingCount() == Int(3) )   // run once, not per grid size
+    {
+        PD_T big = PD_T::FromSignedPDCode(
+            zf061098_underpass.data(),
+            Int(zf061098_underpass.size() / 5), false, false );
+
+        OrthoDraw_T Hb(big, Int(-1), settings);
+        Deco_T db(Hb, Int(2));
+
+        const Int det_big = DeterminantModP(big);
+        constexpr Int P = Int(1000003);
+
+        auto big_case = [&](const char * spec, Int expect_cx, const char * name)
+        {
+            Deco_T::PassMove_T mv; std::string err, why;
+            if (!Deco_T::PassMove_T::Parse(spec, mv, err))
+            { std::printf("  big %s: parse %s\n", name, err.c_str()); ok = false; return; }
+
+            auto pr = db.RoutePassMove(big, mv);
+            if (!pr.validQ)
+            { std::printf("  big %s: route rejected (%s)\n", name, pr.why.c_str()); ok = false; return; }
+
+            PD_T ad = db.AfterDiagram(big, mv, why);
+            if (!why.empty())
+            { std::printf("  big %s: AfterDiagram %s\n", name, why.c_str()); ok = false; return; }
+
+            const Int det_after = DeterminantModP(ad);
+            const bool cleanQ = ad.CheckAll();
+            const bool countQ = (ad.CrossingCount() == expect_cx);
+            const bool detQ   = (det_big == det_after)
+                             || (det_big == (P - det_after) % P);
+
+            std::printf("  big %-14s k=%zu: %lld cx, CheckAll %s, det %s\n",
+                name, mv.cross.size(), (long long)ad.CrossingCount(),
+                cleanQ ? "PASS" : "FAIL", detQ ? "preserved" : "*** CHANGED ***");
+            if (!cleanQ || !countQ || !detQ) { ok = false; }
+        };
+
+        // the aliasing case: 8 corridor crossings replacing 8 strand crossings
+        big_case("strand=81,83,85,87,89,91,93,95,97 depart=80"
+                 " cross=7:u,42:u,8:u,230:u,131:u,281:u,260:u,290:u land=96",
+                 Int(73), "aliasing k=8");
+        // harvested shorter corridors on the same diagram
+        big_case("strand=1,3,5 depart=0 cross=51:o,122:o land=4",
+                 Int(73), "harvested k=2");
+        big_case("strand=1,3,5,7 depart=0 cross=51:o,122:o,239:o land=6",
+                 Int(73), "harvested k=3");
     }
 
     std::printf(ok ? "CASE OK\n" : "CASE FAILED\n");
