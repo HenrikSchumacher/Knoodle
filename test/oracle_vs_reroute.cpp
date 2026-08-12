@@ -25,6 +25,14 @@
 // (Henrik approved it 2026-08-12); nothing here reimplements the applier.
 //
 // usage: oracle_vs_reroute DIAGRAM.tsv "descriptor" [--expect-shortest]
+//        oracle_vs_reroute DIAGRAM.tsv --find A B
+//
+// `--find A B` asks `PlanarDiagramComplex::FindShortestRerouting` for the
+// shortest rerouting of the strand from arc A to arc B and compares that. It
+// is the knoodleprove pipeline end to end -- Henrik's own public finder
+// supplies the corridor, so the move is IN CONTRACT by construction -- and it
+// is the positive control for this driver: on such a move the two sides must
+// AGREE, which is what makes a disagreement elsewhere meaningful.
 
 #include "../Knoodle.hpp"
 #include "pass_oracle.hpp"
@@ -32,6 +40,7 @@
 #include "knot_determinant.hpp"
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <fstream>
@@ -138,14 +147,81 @@ int main( int argc, char ** argv )
 
     Deco::PassMove_T mv;
     std::string err, why;
-    if( !Deco::PassMove_T::Parse(argv[2], mv, err) )
+
+    PD_T pd_a = PD_T::FromSignedPDCode(&code[0], n, false, false);
+
+    const bool findQ = (std::strcmp(argv[2],"--find") == 0);
+
+    if( findQ )
+    {
+        if( argc < 5 )
+        {
+            std::fprintf(stderr,"--find needs two arc indices\n");
+            return 2;
+        }
+        const Int a = static_cast<Int>(std::atoll(argv[3]));
+        const Int b = static_cast<Int>(std::atoll(argv[4]));
+
+        PDC_T pdc_f { PD_T(pd_a) };
+        pdc_f.Unlock();
+        auto found = pdc_f.FindShortestRerouting(
+            Int(0), a, b, pd_a.MaxArcCount(),
+            PDC_T::Dijkstra_T::Bidirectional );
+
+        if( found.Size() < Int(2) )
+        {
+            std::fprintf(stderr,
+                "FindShortestRerouting found no rerouting for arcs %lld..%lld\n",
+                (long long)a, (long long)b);
+            return 1;
+        }
+
+        // Rebuild the pass the finder was asked about. `overQ` is W's own
+        // uniform role; `WellFormedQ` (check 5) is what decides it, so try
+        // both rather than re-derive the convention here.
+        bool builtQ = false;
+        for( bool overval : { false, true } )
+        {
+            typename PS_T::Pass_T pass;
+            pass.first     = a;
+            pass.last      = b;
+            pass.overQ     = overval;
+            pass.activeQ   = true;
+            pass.arc_count = Int(0);
+            {   // count the strand's arcs along the orientation
+                Int x = a, guard = 0;
+                const Int lim = Int(2) * pd_a.MaxArcCount() + Int(2);
+                ++pass.arc_count;
+                while( (x != b) && (guard++ < lim) )
+                {
+                    x = pd_a.NextArc(x, PD_T::Head);
+                    ++pass.arc_count;
+                }
+            }
+
+            Deco::PassMove_T cand;
+            if( Deco::PassMove_T::FromPassAndPath(pd_a, pass, found, cand, why)
+                && cand.WellFormedQ(pd_a, why) )
+            {
+                mv = cand; builtQ = true; break;
+            }
+        }
+        if( !builtQ )
+        {
+            std::fprintf(stderr,
+                "could not build a well-formed descriptor from the found "
+                "path: %s\n", why.c_str());
+            return 1;
+        }
+        std::printf("--find: %s\n", mv.ToString().c_str());
+    }
+    else if( !Deco::PassMove_T::Parse(argv[2], mv, err) )
     {
         std::fprintf(stderr,"bad descriptor: %s\n", err.c_str());
         return 2;
     }
 
     // ---- where this move sits relative to Reroute's contract ------------
-    PD_T pd_a = PD_T::FromSignedPDCode(&code[0], n, false, false);
 
     std::set<Int> w_arcs;
     for( Int da : mv.strand ) { w_arcs.insert(Desc_T::ArcOf(da)); }
@@ -208,11 +284,22 @@ int main( int argc, char ** argv )
         (long long)pd_b.CrossingCount(), pd_b.CheckAll() ? "PASS" : "FAIL");
 
     // ---- determinant: independent of the structural comparison ----------
-    const Int det_o = DeterminantModP(oracle);
-    const Int det_r = DeterminantModP(pd_b);
-    const bool det_agreeQ = (det_o == det_r) || (det_o == -det_r);
-    std::printf("determinant: oracle %lld, Reroute %lld  -> %s\n",
-        (long long)det_o, (long long)det_r,
+    //
+    // The knot determinant is only defined UP TO SIGN -- which sign the minor
+    // yields depends on which row and column were dropped -- so the two runs
+    // may legitimately differ by a factor of -1. These are residues mod p, so
+    // that comparison has to be made in the ring: -x is p-x, NOT the negative
+    // integer. Testing `det_o == -det_r` on residues can never fire and would
+    // report a spurious DIFFERENT KNOT on any sign-flipped pair.
+    constexpr Int det_p = Int(1000003);
+    const Int det_o = DeterminantModP(oracle, det_p);
+    const Int det_r = DeterminantModP(pd_b,   det_p);
+
+    const bool det_agreeQ =
+        (det_o == det_r) || (((det_o + det_r) % det_p) == Int(0));
+
+    std::printf("determinant (mod %lld): oracle %lld, Reroute %lld  -> %s\n",
+        (long long)det_p, (long long)det_o, (long long)det_r,
         det_agreeQ ? "agree (up to sign)" : "DIFFERENT KNOT");
 
     // ---- structural comparison, seeded at an untouched anchor -----------
