@@ -1131,7 +1131,7 @@ bool ProcessXYZFile(const std::string& filepath,
 
     {
         ScopedTimer timer(input_time);
-        LinkEmb_T link = LinkEmb_T::ReadFromFile(std::filesystem::path(filepath));
+        LinkEmb_T link = LinkEmb_T::FromFile(std::filesystem::path(filepath));
 
         if (config.randomize_projection)
         {

@@ -1680,6 +1680,7 @@
 		AF860F272F66C08A00F08C51 /* experimental */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = experimental; sourceTree = "<group>"; };
 		AF8611C22F66C0A600F08C51 /* submodules */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = submodules; sourceTree = "<group>"; };
 		AF8612BC2F66C0AA00F08C51 /* src */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = src; sourceTree = "<group>"; };
+		AF8C883E302CAABE0062AC7B /* tools */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = tools; sourceTree = "<group>"; };
 		AFAC10632F0293FA0029A41C /* Dev_ClisbyTree2 */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_ClisbyTree2; sourceTree = "<group>"; };
 		AFBB9A9B2EF54467000CA528 /* Example_Knoodle */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Example_Knoodle; sourceTree = "<group>"; };
 		AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDraw */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_OrthoDraw; sourceTree = "<group>"; };
@@ -1897,6 +1898,7 @@
 				AFF305482B7AF300009ABC74 /* Knoodle.hpp */,
 				AF7F30FF2FE04489008E25C0 /* test */,
 				AFC2F3FD2D4D00A400FF8621 /* Reapr_Legacy.hpp */,
+				AF8C883E302CAABE0062AC7B /* tools */,
 				AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */,
 				AF7FD1D62D87464900D802C0 /* PolyFold */,
 				AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDraw */,
