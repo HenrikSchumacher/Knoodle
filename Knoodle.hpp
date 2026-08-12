@@ -56,6 +56,13 @@ namespace Knoodle
 {
     template<IntQ Int> class PlanarDiagram;
     template<IntQ Int> class PlanarDiagramComplex;
+
+    // Test-only harness that compares `OrthoDecorate::AfterDiagram` against
+    // `PassSimplifier::Reroute` on the same pass move. Defined in
+    // `test/pass_oracle.hpp`, never in a shipped translation unit; the friend
+    // declaration in `PassSimplifier` is what it exists for. Henrik approved
+    // the access 2026-08-12 -- see handoff/reroute-arc-label-aliasing/.
+    template<IntQ Int> class PassOracle;
     template<FloatQ Real, IntQ Int, FloatQ BReal> class Reapr;
     template<typename PD_T> class OrthoDraw;
     template<typename PD_T> class OrthoDecorate;

@@ -289,3 +289,15 @@ ordering_probe: ordering_probe.cpp ../Knoodle.hpp ../src/PassDescriptor.hpp \
 	@echo "=== Building ordering_probe on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) ordering_probe.cpp -o $@
 	@echo "✓ ordering_probe compiled successfully"
+
+# oracle_vs_reroute — compares OrthoDecorate::AfterDiagram (built from the
+# descriptor, never calling the applier) against PassSimplifier::Reroute on the
+# same pass move, by DiagramsAgreeQ and by determinant. Needs the friend access
+# Henrik approved 2026-08-12 (Knoodle.hpp forward decl + friend line in
+# PassSimplifier); the harness is test/pass_oracle.hpp. Light config.
+oracle_vs_reroute: oracle_vs_reroute.cpp pass_oracle.hpp diagram_agreement.hpp \
+                   knot_determinant.hpp ../src/OrthoDecorate.hpp \
+                   ../src/PassDescriptor.hpp ../Knoodle.hpp
+	@echo "=== Building oracle_vs_reroute on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) oracle_vs_reroute.cpp -o $@
+	@echo "✓ oracle_vs_reroute compiled successfully"
