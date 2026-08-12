@@ -9,11 +9,17 @@ static LinkEmbedding_T FromFile(
     return FromInString(s, Sterbenz_shiftQ);
 }
 
-// TODO: Once we have agreed on a good default behavior for a missing #color attribute, we need to document it.
-
 /*!@brief Read an embedding from `InString` `s`: one `x y z` line per vertex, components
  * separated by blank lines, each component optionally preceded by a
  * `#color <int>` line.
+ *
+ * The `#color` attribute has to be given for every link component or for none.
+ * A file that tags only some components is rejected as malformed and an invalid
+ * object is returned, because an untagged component takes its index as its color
+ * and that can silently collide with a color declared for another component.
+ *
+ * With no `#color` line anywhere, each component takes its own index as color,
+ * which is the historical behavior and keeps KnotPlot output readable.
  */
 static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shiftQ = true )
 {
@@ -31,7 +37,16 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
         if( s.NewlineQ() )
         {
             s.SkipNewline();
-            component_ptr_agg.push_back(vertex_counter);
+
+            // A blank line ends the current component -- but only if that
+            // component actually collected vertices. Pushing unconditionally
+            // manufactures empty phantom components from a leading blank line,
+            // a trailing one, or two blank lines in a row, none of which the
+            // user can see in the file.
+            if( vertex_counter > component_ptr_agg.back() )
+            {
+                component_ptr_agg.push_back(vertex_counter);
+            }
             continue;
         }
 
@@ -111,29 +126,56 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
         return LinkEmbedding_T();
     }
 
-    component_ptr_agg.push_back(vertex_counter);
+    // Close the final component, unless a trailing blank line already did.
+    if( vertex_counter > component_ptr_agg.back() )
+    {
+        component_ptr_agg.push_back(vertex_counter);
+    }
 
     const Size_T comp_count = component_ptr_agg.size() - Size_T(1);
 
-    Tensor1<Int,Int> component_color ( int_cast<Int>(comp_count) );
+    // The '#color' attribute has to appear for every link component or for none;
+    // anything in between is rejected as malformed.
+    //
+    // The reason is that a component without the attribute falls back to its own
+    // index, and that fallback can silently collide with a color the user
+    // declared for a different component: an untagged component 0 next to a
+    // '#color 0' component 1 yields the colors `0 0`. Colors are not decoration
+    // here -- `PlanarDiagramComplex` reads them as component identity -- so a
+    // collision the user never asked for is a foot-gun, and there is no reading
+    // of a mixed file that is obviously the intended one. Refusing beats
+    // guessing.
+    //
+    // What counts as an invalid color is dictated by `PlanarDiagram<Int>`. Note
+    // a `color_agg[lc] >= Int(0)` test would be meaningless when `Int` is
+    // unsigned, hence the comparison against `InvalidColor`.
+    Size_T declared_count = 0;
 
     for( Size_T lc = 0; lc < comp_count; ++lc )
     {
-        // The check color_agg[lc] >= Int(0) does not work if `Int` is an unsigned type.
-        // const bool declaredQ = (lc < color_agg.size()) && (color_agg[lc] >= Int(0));
+        if( (lc < color_agg.size()) && (color_agg[lc] != InvalidColor) )
+        {
+            ++declared_count;
+        }
+    }
 
-        // What is an invalid color is dictated by the class `PlanarDiagram<Int>`.
-        const bool declaredQ = (lc < color_agg.size()) && (color_agg[lc] != InvalidColor);
-        
-        // I don't know whether I like this default behavior.
-        // If the #color attribute is present for every link component, then this will simply read in the colors. Fine.
-        // If no #color keywords have appeared, then a new color is assigned to each link component,starting from `0` and going up to `comp_count - 1`. That is the old behavior; it is meaningful and it reflects best what the user expects. Plus it this should make this import format compatible with KnotPlot's outputs. (I am not 100% sure about floating-point numbers in scientific form.)
-        // But if the #color attribute misses only for _some_ link components and if it is specified for others, then just using the number of the link component as color is dangerous: this color may coincide with some of the user-defined colors. This forces `PlanarDiagramComplex` to interpret these two components as a connected sum. So this behavior might affect the topology of the resulting link in an unintended/unexpected way. For example, the user might expect that the present specified color is used until it is changed.
-        // I don't know yet, what exact default behavior we should use here. I think it is important to have a simple rule that meets the users expectations. This must not be a foot gun. This is part of the reason why I had not implemented the color import, yet: I simply was not sure what exactly to do here.
-        // Thinking of this, the best action might be to require that the #color attribute appears either for all link components or for none.
-        
+    if( (declared_count != Size_T(0)) && (declared_count != comp_count) )
+    {
+        eprint(MethodName("FromInString") + ": The '#color' attribute is present for " + ToString(declared_count) + " of " + ToString(comp_count) + " link components. It has to be present for all of them or for none, because an untagged component takes its index as color and that can collide with a declared one. Returning invalid object.");
+        return LinkEmbedding_T();
+    }
+
+    Tensor1<Int,Int> component_color ( int_cast<Int>(comp_count) );
+
+    // Either every component declared a color or none did. When none did, each
+    // component takes its own index: that is the historical behavior, it is what
+    // a user expects, and it keeps the format readable for KnotPlot output.
+    const bool colorsDeclaredQ = (declared_count > Size_T(0));
+
+    for( Size_T lc = 0; lc < comp_count; ++lc )
+    {
         component_color[int_cast<Int>(lc)] =
-            declaredQ ? color_agg[lc] : int_cast<Int>(lc);
+            colorsDeclaredQ ? color_agg[lc] : int_cast<Int>(lc);
     }
 
     LinkEmbedding_T link (

@@ -25,8 +25,6 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) c
         return false;
     };
 
-    const Int comp_count = component_ptr.Dim(0) - 1;
-
     OutString s = ToOutString(colorQ);
     
     stream << s;
@@ -50,8 +48,6 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) c
 OutString ToOutString( const bool colorQ = true ) const
 {
     OutString s;
-
-    const Int comp_count = component_ptr.Dim(0) - 1;
 
     for( Int lc = 0; lc < component_count; ++lc )
     {
@@ -77,7 +73,7 @@ OutString ToOutString( const bool colorQ = true ) const
             n, "", " ", ""
         );
         
-        if( (lc + Int(1)) != comp_count )
+        if( (lc + Int(1)) != component_count )
         {
             s.PutChars("\n\n");
         }
