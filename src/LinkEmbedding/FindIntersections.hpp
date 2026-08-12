@@ -73,7 +73,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    eprint(MethodName("FindIntersections")+": Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval). Try to randomly rotate the input coordinates.");
+                    wprint(MethodName("FindIntersections")+": Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval). Try to randomly rotate the input coordinates.");
                 }
                 return 5;
             }
