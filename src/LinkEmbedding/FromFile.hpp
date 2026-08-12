@@ -1,6 +1,6 @@
 public:
 
-static LinkEmbedding_T ReadFromFile(
+static LinkEmbedding_T FromFile(
     cref<std::filesystem::path> file, bool Sterbenz_shiftQ = true
 )
 {

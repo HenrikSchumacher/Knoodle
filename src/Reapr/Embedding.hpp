@@ -3,18 +3,13 @@ public:
 /*!@brief Compute and return an embedding of the planar diagram into 3-space. */
 LinkEmbedding_T Embedding( cref<PD_T> pd )
 {
-    return Embedding(pd, [](Point_T && p) { return p; });
+    Matrix_T A;
+    A.SetIdentity();
+    return Embedding(pd, std::forward<Matrix_T>(A));
 }
 
 /*!@brief Compute an embedding of the planar diagram into 3-space, apply the transformation matrix `A`, and return the resulting embedding. */
 LinkEmbedding_T Embedding( cref<PD_T> pd, Matrix_T && A )
-{
-    return Embedding(pd, [&A](Point_T && p) { return Dot(A,p); });
-}
-
-/*!@brief Compute an embedding of the planar diagram into 3-space, apply the transformation `f`, and return the resulting embedding. */
-template<typename Transformation_T>
-LinkEmbedding_T Embedding( cref<PD_T> pd, Transformation_T && f )
 {
     TOOLS_PTIMER(timer,MethodName("Embedding"));
     
@@ -28,30 +23,28 @@ LinkEmbedding_T Embedding( cref<PD_T> pd, Transformation_T && f )
     
     if( settings.permute_randomQ )
     {
-        return Embedding_impl(pd.CreatePermutedRandom(random_engine),f);
+        return Embedding_impl(pd.CreatePermutedRandom(random_engine),std::forward<Matrix_T>(A));
     }
     else
     {
-        return Embedding_impl(pd,f);
+        return Embedding_impl(pd,std::forward<Matrix_T>(A));
     }
 }
 
-
 private:
 
-template<typename Transformation_T>
-LinkEmbedding_T Embedding_impl( cref<PD_T> pd, Transformation_T && f )
+LinkEmbedding_T Embedding_impl( cref<PD_T> pd, Matrix_T && A )
 {
     TOOLS_PTIMER(timer,MethodName("Embedding_impl"));
     
     OrthoDraw_T H ( pd, PD_T::Uninitialized, settings.ortho_draw_settings );
     Tensor1<Real,Int> L = Levels(pd);
     
-    auto [comp_ptr,comp_color,x] = Embedding_VertexCoordinates(pd, H, L, f);
+    auto [comp_ptr,comp_color,x] = Embedding_VertexCoordinates(pd, H, L);
                          
     LinkEmbedding<Real,Int> emb ( std::move(comp_ptr), std::move(comp_color) );
-
-    emb.template ReadVertexCoordinates<false,true>( &x.data()[0][0] );
+    emb.SetTransformationMatrix(A);
+    emb.template ReadVertexCoordinates<true,true>( &x.data()[0][0] );
 
     return emb;
 }
@@ -59,9 +52,9 @@ LinkEmbedding_T Embedding_impl( cref<PD_T> pd, Transformation_T && f )
 
 // Taking the x-y-coordinates from OrthoDraw literally. As z-coordinates we use the scaled levels function. For settings.scaling == 1, we scale the length of the bounding in z-direction roughly matches the smaller of the lengths of the bounding box in x- and y-direction.
 // TODO: This typically contains long edges that are bad for Reapr. We should better find a way to subdivide the edges nicely, e.g., to make it so that each x in x-direction has length H.HorizontalGridSize()/2), each edge in y-direction has length H.VerticalGridSize()/2). I am not sure what the idea length in z-direction would be. Maybe the minimum of the two? Also, we have to beware that we have to incoporate the jump somewhere.
-template<typename Transformation_T>
 std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_VertexCoordinates(
-    cref<PD_T> pd, cref<OrthoDraw_T> H, cref<Tensor1<Real,Int>> L, Transformation_T & f )
+        cref<PD_T> pd, cref<OrthoDraw_T> H, cref<Tensor1<Real,Int>> L
+    )
 {
     auto [L_min,L_max] = L.MinMax();
     
@@ -120,7 +113,7 @@ std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_Ver
                 const Int v = V[k];
                 const Real x = static_cast<Real>(V_coords(v,0));
                 const Real y = static_cast<Real>(V_coords(v,1));
-                V_agg.Push( f(Point_T{x,y,L_a}) );
+                V_agg.Push( Point_T{x,y,L_a} );
             }
             
             if( n % Int(2) )
@@ -132,7 +125,7 @@ std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_Ver
                     const Int v = V[k_half];
                     const Real x = static_cast<Real>(V_coords(v,0));
                     const Real y = static_cast<Real>(V_coords(v,1));
-                    V_agg.Push( f(Point_T{x,y,L_a}) );
+                    V_agg.Push( Point_T{x,y,L_a} );
                 }
             }
             else
@@ -144,12 +137,12 @@ std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_Ver
                 
                 const Real x = Scalar::Half<Real> * static_cast<Real>(V_coords(v_0,0) + V_coords(v_1,0));
                 const Real y = Scalar::Half<Real> * static_cast<Real>(V_coords(v_0,1) + V_coords(v_1,1));
-                V_agg.Push( f(Point_T{x,y,L_a}) );
+                V_agg.Push( Point_T{x,y,L_a} );
                 
                 if( L_b != L_a )
                 {
                     // In the case of a jump we need a duplicate.
-                    V_agg.Push( f(Point_T{x,y,L_b}) );
+                    V_agg.Push( Point_T{x,y,L_b} );
                 }
             }
             
@@ -158,7 +151,7 @@ std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_Ver
                 const Int v = V[k];
                 const Real x = static_cast<Real>(V_coords(v,0));
                 const Real y = static_cast<Real>(V_coords(v,1));
-                V_agg.Push( f(Point_T{x,y,L_b}) ); // Caution: Here we use the level of next arc's tail.
+                V_agg.Push( Point_T{x,y,L_b} ); // Caution: Here we use the level of next arc's tail.
             }
         }
         

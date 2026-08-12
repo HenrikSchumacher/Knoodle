@@ -66,6 +66,9 @@ struct Config
     bool tsv            = false;             ///< Per-summand TSV output
     bool quiet          = false;             ///< Suppress stderr summary/warnings
     bool randomize_projection = false;       ///< Apply random shear to 3D geometry projection
+    ki::Size_T escalation_rounds = ki::IdentifyParams{}.cap;      ///< Reapr escalation rounds per candidate
+    Int        escalation_band   = ki::IdentifyParams{}.deep_cx;  ///< deep rounds only while stalled <= this
+    ki::Size_T rotation_trials   = ki::IdentifyParams{}.rot;      ///< reprojections per embedding
     std::vector<std::string> input_files;    ///< Input file paths (empty = stdin)
     bool help_requested = false;
 };
@@ -108,6 +111,18 @@ void PrintUsage()
         "                      else data/Klut next to this executable's parent,\n"
         "                      else ./data/Klut.\n"
         "  --max-crossings=N   Use subtables up to N crossings (3-13, default 13).\n"
+        "  --escalation-rounds=N  Max Reapr escalation rounds per candidate\n"
+        "                      (default 4). Each round doubles embedding trials.\n"
+        "                      The first 2 rounds always run; deeper rounds are\n"
+        "                      banded (see --escalation-band), so a high N does\n"
+        "                      not tax genuinely irreducible diagrams.\n"
+        "  --escalation-band=C Rounds beyond the first 2 run only while the\n"
+        "                      stalled diagram has <= C crossings (default 16 =\n"
+        "                      table range + 3): a fixpoint near table range\n"
+        "                      plausibly hides a table knot, one far above it\n"
+        "                      does not. Set large to disable banding.\n"
+        "  --rotation-trials=N Reprojections per embedding during escalation\n"
+        "                      (default 5).\n"
         "  --expanded          One line per knot, summands joined by ' # ' (uses\n"
         "                      the raw K[...] table names).\n"
         "  --tsv               Per-summand output: knot_index, summand_index,\n"
@@ -167,6 +182,39 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg.starts_with("--data-dir="))
         {
             config.data_dir = std::string(arg.substr(11));
+        }
+        else if (arg.starts_with("--escalation-rounds="))
+        {
+            auto parsed = ParseInt(arg.substr(20));
+            if (!parsed || *parsed < 1 || *parsed > 64)
+            {
+                LogError("Invalid --escalation-rounds (expected 1-64)");
+                config.help_requested = true;
+                return config;
+            }
+            config.escalation_rounds = static_cast<ki::Size_T>(*parsed);
+        }
+        else if (arg.starts_with("--escalation-band="))
+        {
+            auto parsed = ParseInt(arg.substr(18));
+            if (!parsed || *parsed < 0)
+            {
+                LogError("Invalid --escalation-band (expected >= 0)");
+                config.help_requested = true;
+                return config;
+            }
+            config.escalation_band = *parsed;
+        }
+        else if (arg.starts_with("--rotation-trials="))
+        {
+            auto parsed = ParseInt(arg.substr(18));
+            if (!parsed || *parsed < 1 || *parsed > 1024)
+            {
+                LogError("Invalid --rotation-trials (expected 1-1024)");
+                config.help_requested = true;
+                return config;
+            }
+            config.rotation_trials = static_cast<ki::Size_T>(*parsed);
         }
         else if (arg.starts_with("--max-crossings="))
         {
@@ -580,7 +628,13 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
         const Int input_crossings =
             (pdc.DiagramCount() > Int(0)) ? pdc.CrossingCount() : Int(0);
 
-        ki::IdentifyResult res = ki::Identify(klut, std::move(pdc), reapr);
+        ki::IdentifyParams params;
+        params.cap     = config.escalation_rounds;
+        params.deep_cx = config.escalation_band;
+        params.rot     = config.rotation_trials;
+
+        ki::IdentifyResult res =
+            ki::Identify(klut, std::move(pdc), reapr, params);
 
         std::vector<Summand> summands;
 
@@ -693,6 +747,13 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
 
 int main(int argc, char* argv[])
 {
+    // Count the library's "ERROR: " lines for the whole run, so an identification
+    // made from a diagram the core has disclaimed cannot be reported as success.
+    // knoodleidentify writes only to stdout, so the nonzero exit and the notice
+    // below are the whole contract -- there is no file to withhold.
+    CerrErrorTap cerr_tap;
+    g_cerr_tap = &cerr_tap;
+
     auto config_opt = ParseArguments(argc, argv);
     if (!config_opt)
     {
@@ -712,6 +773,16 @@ int main(int argc, char* argv[])
     {
         return EXIT_FAILURE;
     }
+
+    // knoodleidentify always writes its results to stdout, so rule 1 (put the
+    // diagnostics beside the output file) never applies -- it is rule 2 every
+    // time: a per-process directory under the system temp dir. This has to
+    // happen before any call into Simplify, because ki::Identify escalates with
+    // embedding_trials > 0 (klut_identify.hpp) and can therefore reach Rattle,
+    // whose failure bundles would otherwise land in the user's home directory.
+    const std::filesystem::path diag_dir =
+        ChooseDiagnosticDir("knoodleidentify", /*streaming_mode=*/true, std::nullopt);
+    const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
 
     Klut klut(*data_dir, static_cast<Knoodle::Size_T>(config.max_crossings));
     auto names = LoadNames(*data_dir, config.max_crossings);
@@ -762,6 +833,36 @@ int main(int argc, char* argv[])
             std::to_string(stats.links) + " links, " +
             std::to_string(stats.invalid) + " invalid)");
     }
+
+    if (ErrorsSeen())
+    {
+        std::cerr << "\nknoodleidentify: " << ErrorSummary()
+                  << " during this run -- the identifications above are UNRELIABLE"
+                     " (the library discards diagrams it has flagged as invalid).\n";
+
+        std::string invocation;
+        for (int i = 0; i < argc; ++i)
+        {
+            invocation += (i ? " " : "");
+            invocation += argv[i];
+        }
+
+        const auto report = WriteDiagnosticReport("knoodleidentify", {
+            { "command line", "  " + invocation + "\n" },
+            { "what to send", "  This file, plus the input that produced it.\n" },
+        });
+
+        if (!report.empty())
+        {
+            std::cerr << "Wrote a diagnostic report to " << report.string()
+                      << " -- please send it with any bug report.\n";
+        }
+
+        FinishDiagnostics(diag_dir, bundles_before, "knoodleidentify", true);
+        return EXIT_FAILURE;
+    }
+
+    FinishDiagnostics(diag_dir, bundles_before, "knoodleidentify", !success);
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }

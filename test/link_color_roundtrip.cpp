@@ -76,7 +76,7 @@ int main()
     {
         check(src.WriteToFile(colored, true), "WriteToFile(colorQ=true) succeeded");
 
-        Link_T back = Link_T::ReadFromFile(colored);
+        Link_T back = Link_T::FromFile(colored);
 
         check(back.ValidQ(), "colored file reads back as a valid object");
         check(back.ComponentCount() == Int(2), "component count round-trips (2)");
@@ -96,7 +96,7 @@ int main()
     {
         check(src.WriteToFile(uncolored, false), "WriteToFile(colorQ=false) succeeded");
 
-        Link_T back = Link_T::ReadFromFile(uncolored);
+        Link_T back = Link_T::FromFile(uncolored);
 
         check(back.ValidQ(), "uncolored file reads back as a valid object");
         check(back.ComponentCount() == Int(2), "component count round-trips (2)");
@@ -119,7 +119,7 @@ int main()
               << "0 0 0\n1 0 0\n0 1 0\n";
         }
 
-        Link_T back = Link_T::ReadFromFile(commented);
+        Link_T back = Link_T::FromFile(commented);
 
         check(back.ValidQ(), "commented file reads back as a valid object");
         check(back.EdgeCount() == Int(3), "vertex count is 3 (comments not counted)");

@@ -31,7 +31,7 @@ cref<RaggedList<Int,Int>> FaceDarcs() const
     return this->template GetCache<RaggedList<Int,Int>>(tag);
 }
 
-/*!@brief For each arc list the two faces. The convention is that `ArcFaces()(a,1)` is the face to the _right_ of the forward arc `ToDarc(a,Head)` of `a`. This convention may seem odd, but we have to stick to it.*/
+/*!@brief For each arc list the two faces. The convention is that `ArcFaces()(a,d)` is the face to the _left_ of the directed arc `ToDarc(a,d)`; in particular, `ArcFaces()(a,1)` lies to the left of the forward arc `ToDarc(a,Head)` of `a`, and `ArcFaces()(a,0)` to its right. (This matches the "right face first" convention documented in `ComputeFaces`, and the face-on-left orientation of `FaceDarcs()`.)*/
 cref<ArcContainer_T> ArcFaces()  const
 {
     std::string tag ("ArcFaces");
