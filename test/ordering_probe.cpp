@@ -33,6 +33,7 @@
 
 #include <cstdio>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -134,6 +135,9 @@ static std::vector<Incidence> Classify( Knoodle::cref<PD_T> pd, Knoodle::cref<De
 /*!@brief Does this descriptor LAG -- i.e. does any corridor step name the
  * transversal of an already-processed crossing? That is the aliasing trigger.
  */
+static bool ReducibleAlongStrandQ(
+    Knoodle::cref<PD_T> pd, Knoodle::cref<std::vector<Int>> strand );
+
 static bool LagsQ( Knoodle::cref<std::vector<Incidence>> inc )
 {
     for( Knoodle::cref<Incidence> e : inc ) { if( e.j > e.i ) { return true; } }
@@ -427,6 +431,41 @@ static void ChangeCrossing( std::vector<Int> & code, const Int x )
     r[4] = -s;
 }
 
+/*!@brief Is a Reidemeister I or II move available along the strand?
+ *
+ * `Reroute`'s doc comment names their absence as a precondition ("It is
+ * typically not safe to call this function without the invariants guaranteed
+ * by `SimplifyStrands` ... the absence of possible Reidemeister I and II moves
+ * along that strand"). A monogon or bigon face carrying a strand arc on its
+ * boundary is exactly such a move: the bigon's two edges are a strand arc and
+ * one other arc meeting at both of its ends, and phase C has made W a uniform
+ * underpass, so W passes under at both corners and the pair cancels.
+ *
+ * Faces are unchanged by the sign surgery, so it does not matter which of the
+ * two diagrams this is evaluated on.
+ */
+static bool ReducibleAlongStrandQ(
+    Knoodle::cref<PD_T> pd, Knoodle::cref<std::vector<Int>> strand )
+{
+    std::set<Int> w;
+    for( Int da : strand ) { w.insert(Desc_T::ArcOf(da)); }
+
+    const auto & F_dA = pd.FaceDarcs();
+
+    for( Int f = 0; f < pd.FaceCount(); ++f )
+    {
+        Int n = 0;
+        for( Int da : F_dA[f] ) { (void)da; ++n; }
+        if( n > Int(2) ) { continue; }
+
+        for( Int da : F_dA[f] )
+        {
+            if( w.count(Desc_T::ArcOf(da)) > 0 ) { return true; }
+        }
+    }
+    return false;
+}
+
 /*!@brief For each lagging hit, flip the crossings where W runs over so that W
  * becomes a uniform UNDERpass, and check the descriptor is then a well-formed
  * plain `kind=pass` on the modified diagram -- with the lag intact.
@@ -440,6 +479,7 @@ static void ConvertHits(
     Knoodle::cref<std::vector<Desc_T>> hits, const int report_cap )
 {
     long long tried = 0, converted = 0, lag_kept = 0, faces_kept = 0;
+    long long bigon_free = 0;
     int reported = 0;
 
     for( Knoodle::cref<Desc_T> d : hits )
@@ -472,10 +512,16 @@ static void ConvertHits(
         if( !LagsQ(inc) ) { continue; }
         ++lag_kept;
 
+        // Reroute's stated precondition. Without this the call is out of
+        // contract for a reason that has nothing to do with the aliasing.
+        if( ReducibleAlongStrandQ(pd, e.strand) ) { continue; }
+        ++bigon_free;
+
         if( reported < report_cap )
         {
             ++reported;
-            std::printf("\n  *** PLAIN kind=pass, STRICTLY SHORTENING, LAGGING ***\n");
+            std::printf("\n  *** SURVIVOR: plain kind=pass, strictly shortening,"
+                        " lagging, R1/R2-free along W ***\n");
             std::printf("      L=%lld k=%lld\n",
                 (long long)e.strand.size(), (long long)e.cross.size());
             std::printf("      %s\n", e.ToString().c_str());
@@ -496,6 +542,7 @@ static void ConvertHits(
     std::printf("  rebuilt with face count preserved     %lld\n", faces_kept);
     std::printf("  well-formed as kind=pass afterwards   %lld\n", converted);
     std::printf("  ... and STILL LAGGING                 %lld\n", lag_kept);
+    std::printf("  ... and R1/R2-FREE along W (SURVIVORS) %lld\n", bigon_free);
 }
 
 int main()
@@ -569,6 +616,13 @@ int main()
                 (long long)L, (long long)k, (k < L - Int(1)) ? "YES" : "NO");
             check(k == L - Int(1),
                   "control: is saving-zero (k == L-1), i.e. out of contract");
+
+            // The R1/R2 filter used in phase C, checked against the one
+            // strand we know was actually handed to Reroute: middlestrands
+            // built this underpass and fed it to the applier, so it had
+            // better not be reducible along W.
+            check(!ReducibleAlongStrandQ(pd, d.strand),
+                  "control: filter agrees the repro strand is R1/R2-free");
         }
     }
 
