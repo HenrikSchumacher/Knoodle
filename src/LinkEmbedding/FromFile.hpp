@@ -1,15 +1,17 @@
 public:
 
 // TODO: Check and read color.
-static LinkEmbedding_T ReadFromFile( cref<std::filesystem::path> file )
+static LinkEmbedding_T FromFile(
+    cref<std::filesystem::path> file, bool Sterbenz_shiftQ = true
+)
 {
     Tools::InString s (file);
     
-    return FromInString(s);
+    return FromInString(s, Sterbenz_shiftQ);
 }
 
 // TODO: Check and read color.
-static LinkEmbedding_T FromInString( mref<Tools::InString> s )
+static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shiftQ = true )
 {
     Int counter = 0;
     std::vector<Real> v_coords;
@@ -44,7 +46,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s )
     
     if( s.FailedQ() )
     {
-        eprint(MethodName("ReadFromFile") + ": Reading file failed. Returning invalid object.");
+        eprint(MethodName("FromFile") + ": Reading file failed. Returning invalid object.");
         return LinkEmbedding_T();
     }
     
@@ -55,7 +57,14 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s )
         iota<Int,Int>(component_ptr_agg.size()-Size_T(1))
     );
     
-    link.template ReadVertexCoordinates<false>(&v_coords[0]);
+    if( Sterbenz_shiftQ )
+    {
+        link.template ReadVertexCoordinates<false,true>(&v_coords[0]);
+    }
+    else
+    {
+        link.template ReadVertexCoordinates<false,false>(&v_coords[0]);
+    }
     
     return link;
 }

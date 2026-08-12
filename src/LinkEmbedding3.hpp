@@ -179,8 +179,8 @@ namespace Knoodle
         
     public:
 
-#include "LinkEmbedding2/WriteToFile.hpp"
-#include "LinkEmbedding2/ReadFromFile.hpp"
+#include "LinkEmbedding2/ToFile.hpp"
+#include "LinkEmbedding2/FromFile.hpp"
 #include "LinkEmbedding2/VertexCoordinates.hpp"
 #include "LinkEmbedding2/EdgeCoordinates.hpp"
 #include "LinkEmbedding2/BoundingBoxes.hpp"
