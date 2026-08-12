@@ -227,6 +227,25 @@ namespace Knoodle
                     " supported)");
             }
 
+            // -- check 6: the corridor may not be longer than the strand.
+            //    An applier rebuilds the strand in place out of the labels the
+            //    move frees -- W's own arcs and the transversal halves it heals
+            //    away -- so a corridor with more crossings than W had simply
+            //    has nowhere to live; the diagram would have to grow, which
+            //    `Reroute` cannot do. It does not refuse such input either: its
+            //    loop walks path positions while the strand pointer runs off
+            //    the end of W, and it returns a diagram unrelated to the move
+            //    (on a trefoil, 2 crossings out of 3). A lengthening pass is a
+            //    perfectly good isotopy; it is just not expressible here.
+            if( k + Int(1) > static_cast<Int>(m) )
+            {
+                return fail("the corridor has " + Tools::ToString(k)
+                    + " crossings but the strand has only "
+                    + Tools::ToString(static_cast<Int>(m) - Int(1))
+                    + "; a pass move cannot lengthen the strand, there is no"
+                      " room in the diagram for the extra crossings (check 6)");
+            }
+
             // -- The tags must describe the strand we actually have. A pass
             //    move slides W; it cannot turn an over-strand into an under-
             //    strand. So for a classical pass W must be uniformly over or

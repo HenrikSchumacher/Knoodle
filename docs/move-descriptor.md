@@ -142,7 +142,28 @@ entirely over or entirely under everything it crosses.
 4. `L(depart)` has the strand's **first** arc on its boundary, and `L(land)`
    has its **last** arc on its boundary. Also, the two anchors must be
    distinct crossings.
-5. All over/under tags equal.
+5. All over/under tags equal, and equal to the strand's own role: W must run
+   uniformly over, or uniformly under, at its interior crossings, and the tags
+   must say which. A pass move slides a strand; it cannot turn an over-strand
+   into an under-strand, and a descriptor that asks for that is a crossing
+   change wearing a pass move's clothes.
+6. The corridor is no longer than the strand: `k <= L - 1`, i.e.
+   `path.CrossingCount() <= pass.CrossingCount()`.
+
+Check 6 is a statement about the data structure, not about topology. A
+lengthening pass is a perfectly good isotopy; it is simply not expressible
+here. An applier rebuilds the strand in place out of the labels the move frees
+-- W's own arcs and the transversal halves it heals away -- so a corridor with
+more crossings than W had has nowhere to live, and the diagram would have to
+grow. `Reroute` does not refuse such input either: its loop walks path
+positions while the strand pointer runs off the end of W, and it returns a
+diagram unrelated to the move (on a trefoil, 2 crossings out of 3). So this
+must be caught before anything is applied or drawn.
+
+One consequence worth knowing: a corridor with two or more crossings needs a
+strand of three or more arcs, and neither the trefoil nor the figure-eight
+admits one that satisfies the rest of the checks. Small diagrams support only
+`L = 2, k = 1` pass moves.
 
 Check 4 is deliberately stronger than "names a face incident to the anchor
 crossing", which is what it used to say. A crossing has four quadrant faces,
@@ -182,19 +203,18 @@ boundary darc cycles `{0,4,8}`, `{1,6}`, `{2,9}`, `{3,11,7}`, `{5,10}`.
 An illustrative (not necessarily simplifying) descriptor:
 
 ```
-#move kind=pass strand=1 depart=1 cross=6:u,3:u,9:u land=0
+#move kind=pass strand=1,3 depart=1 cross=6:u land=3
 ```
 
-reads: reroute the strand consisting of arc 0 (traversed along its
-orientation: darc 1 = 2·0 + Head; it runs from crossing 0 to crossing 2),
-leaving its tail anchor through face `L(1)` = `{1,6}`, passing **under** arcs
-3, 1 and 4 in turn — darc 6 steps `{1,6}` → `{3,11,7}`, darc 3 steps
-`{3,11,7}` → `{2,9}`, darc 9 steps `{2,9}` → `{0,4,8}` — and reaching the
-head anchor through face `L(0)` = `{0,4,8}`. Checks: `L(cross₁) = L(depart)`
-✓, the chain is consecutive ✓, `L(land) = R(cross₃)` ✓, and both `{1,6}` and
-`{0,4,8}` have arc 0 itself on their boundary ✓ (they are the two faces
-flanking W), so the rerouted strand leaves and arrives on the port arc 0
-occupies.
+reads: reroute the strand consisting of arcs 0 then 1 (traversed along their
+orientation: darcs 1 = 2·0 + Head and 3 = 2·1 + Head), leaving its tail anchor
+through face `L(1)` = `{1,6}`, passing **under** arc 3 by crossing darc 6
+(stepping from `L(6)` = `{1,6}` to `R(6)` = `{3,11,7}`), and reaching the head
+anchor through face `L(3)` = `{3,11,7}`. Checks: `L(cross₁) = L(depart)` ✓,
+`L(land) = R(cross₁)` ✓, `depart` names arc 0 and `land` names arc 1, the
+strand's first and last ✓ (check 4), the strand runs under at its one interior
+crossing and the tag says `u` ✓ (check 5), and one corridor crossing replaces
+one strand crossing ✓ (check 6).
 
 Check 4 has teeth, in two ways. The descriptor
 `strand=11 depart=7 cross=7:u land=1` — reroute arc 5 under arc 3 —

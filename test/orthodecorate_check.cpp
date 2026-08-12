@@ -243,13 +243,8 @@ static int run_case(const char * name, std::vector<Int> pd, Int n,
             if (!cleanQ || !countQ) { ok = false; }
         };
 
-        // strand of 1 arc (0 interior crossings), corridor of 3: 3 - 0 + 3
-        after({ {1}, 1, {6, 3, 9}, {false, false, false}, 0 }, Int(6),
-              "doc-example");
-        // same shape, 4 corridor crossings: 3 - 0 + 4
-        after({ {1}, 0, {4, 10, 3, 9}, {false, false, false, false}, 0 },
-              Int(7), "face-revisit");
         // 2-arc strand (1 interior crossing), corridor of 1: 3 - 1 + 1
+        after({ {1, 3}, 1, {6}, {false}, 3 }, Int(3), "doc-example");
         after({ {11, 1}, 11, {7}, {true}, 1 }, Int(3), "two-arc-strand");
     }
 
@@ -336,8 +331,7 @@ static int run_pass_tests(Int xg, Int yg)
     // Doc worked example: W = arc 0, under arcs 3, 1, 4; depart f1 and land
     // f0 are the two faces flanking arc 0, so the strand leaves and arrives
     // on the port it already occupies (check 4).
-    expect({ {1}, 1, {6, 3, 9}, {false, false, false}, 0 }, true, 3,
-           "doc-example");
+    expect({ {1, 3}, 1, {6}, {false}, 3 }, true, 1, "doc-example");
 
     // The doc's cautionary variant: chain rule holds (f3 -> f2 via darc 3,
     // land L(9)=f2) but f2 neither flanks arc 5 nor is a quadrant at the head
@@ -359,19 +353,23 @@ static int run_pass_tests(Int xg, Int yg)
     // Two-arc strand (arcs 5 then 0), corridor f3 -> f1 crossing arc 3.
     expect({ {11, 1}, 11, {7}, {true}, 1 }, true, 1, "two-arc-strand");
 
-    // Face-revisiting corridor, arc-disjoint: faces f0 -> f4 -> f3 -> f2 -> f0,
-    // so f0 is entered twice while every crossed arc is distinct. (The old
-    // version of this case revisited the face by crossing arc 1 twice, which
-    // check 1 now refuses -- see cross-arc-twice below.)
+    // A corridor longer than the strand it replaces. The applier rebuilds the
+    // strand out of the labels the move frees, so there is nowhere to put the
+    // extra crossings -- check 6. (This descriptor used to be the face-revisit
+    // case; a face revisit needs k >= 2, hence a strand of >= 3 arcs, and no
+    // such move exists on a trefoil or a figure-eight once lengthening is
+    // barred. Multi-crossing coverage lives in the handoff reproducer.)
     expect({ {1}, 0, {4, 10, 3, 9}, {false, false, false, false}, 0 },
-           true, 4, "face-revisit");
+           false, 0, "lengthening-corridor");
 
     // kind=middlepass: the same mixed-tag corridor must be ACCEPTED once
     // per-crossing tags are declared (check 5 dropped).
+    // kind=middlepass drops the uniform-tag rule (check 5) but not check 6:
+    // it has no more room for extra crossings than a plain pass does.
     {
         Deco_T::PassMove_T mp{ {1}, 1, {6, 3, 9}, {false, true, false}, 0 };
         mp.middlepassQ = true;
-        expect(mp, true, 3, "middlepass-mixed");
+        expect(mp, false, 0, "middlepass-still-bounded");
     }
 
     // Margin regression (the mv0009 bug class): the doc-example corridor
@@ -382,8 +380,7 @@ static int run_pass_tests(Int xg, Int yg)
     {
         OrthoDraw_T Hx(diagram, ext, settings);
         Deco_T dx(Hx, Int(2));
-        auto pr = dx.RoutePassMove(diagram,
-            { {1}, 1, {6, 3, 9}, {false, false, false}, 0 });
+        auto pr = dx.RoutePassMove(diagram, { {1, 3}, 1, {6}, {false}, 3 });
         if (!pr.validQ)
         {
             std::printf("  exterior=%lld: REJECTED (%s)\n",
