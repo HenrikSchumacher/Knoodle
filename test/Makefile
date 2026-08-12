@@ -301,3 +301,13 @@ oracle_vs_reroute: oracle_vs_reroute.cpp pass_oracle.hpp diagram_agreement.hpp \
 	@echo "=== Building oracle_vs_reroute on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) oracle_vs_reroute.cpp -o $@
 	@echo "✓ oracle_vs_reroute compiled successfully"
+
+# checkall_planarity_check — CheckAll passes on a NON-PLANAR object. It is all
+# local incidence checks (crossings, arcs, degrees, colors); nothing tests
+# V - E + F == 2. The Reroute arc-label aliasing rewires the map onto a genus-2
+# surface and CheckAll still returns true. Needs the friend access (pass_oracle.hpp).
+checkall_planarity_check: checkall_planarity_check.cpp pass_oracle.hpp \
+                          pass_fixtures.hpp ../Knoodle.hpp
+	@echo "=== Building checkall_planarity_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) checkall_planarity_check.cpp -o $@
+	@echo "✓ checkall_planarity_check compiled successfully"
