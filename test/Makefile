@@ -206,9 +206,10 @@ klut_e2e: klut_e2e.cpp ../Knoodle.hpp
 	@echo "✓ klut_e2e compiled successfully"
 
 # pd_internal_state_check — round trip for PlanarDiagram's internal-state
-# serialization (WriteToOutString / FromInString). Covers inactive slots
-# and max_* vs active counts, which PD codes cannot express, plus tolerance of
-# a PrintInfo dump lifted straight out of a log file. Light config.
+# serialization (WriteToOutString / FromInString, and the file pair
+# WriteToFile / FromFile). Covers inactive slots and max_* vs active counts,
+# which PD codes cannot express, and that malformed input yields an invalid
+# diagram rather than a silently empty one. Light config.
 pd_internal_state_check: pd_internal_state_check.cpp ../Knoodle.hpp
 	@echo "=== Building pd_internal_state_check on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) pd_internal_state_check.cpp -o $@
