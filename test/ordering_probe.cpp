@@ -32,8 +32,10 @@
 #include "pass_fixtures.hpp"
 
 #include <cstdio>
+#include <cstdlib>
 #include <map>
 #include <set>
+#include <deque>
 #include <algorithm>
 #include <utility>
 #include <string>
@@ -140,6 +142,10 @@ static std::vector<Incidence> Classify( Knoodle::cref<PD_T> pd, Knoodle::cref<De
 static bool ReducibleAlongStrandQ(
     Knoodle::cref<PD_T> pd, Knoodle::cref<std::vector<Int>> strand );
 
+static Int MergedDualDistance(
+    Knoodle::cref<PD_T> pd, Knoodle::cref<std::set<Int>> w_arcs,
+    const Int src, const Int dst );
+
 static bool LagsQ( Knoodle::cref<std::vector<Incidence>> inc )
 {
     for( Knoodle::cref<Incidence> e : inc ) { if( e.j > e.i ) { return true; } }
@@ -192,6 +198,14 @@ struct Stats
     long long plain_pass   = 0;   // ... of which kind=pass
     long long middlepass   = 0;   // ... of which kind=middlepass
 
+    // Henrik's precondition: the corridor must be a SHORTEST path between the
+    // merged endpoint faces. shortest_nolag is the control -- without it, a
+    // zero in shortest_lag would just mean the enumeration finds no shortest
+    // paths at all.
+    long long shortest_any   = 0;
+    long long shortest_lag   = 0;
+    long long shortest_nolag = 0;
+
     // Lagging descriptors kept for phase C (sign surgery). Capped: we only
     // need enough to convert, not the whole population.
     std::vector<Desc_T> hits;
@@ -215,6 +229,7 @@ struct Searcher
     Stats &                  st;
     int &                    reported;
     int                      report_cap;
+    Int                      kmin = Int(-1);   // shortest corridor for this triple
 
     void Emit()
     {
@@ -250,6 +265,10 @@ struct Searcher
             ++st.corridors;
             if( at.mpQ ) { ++st.middlepass; } else { ++st.plain_pass; }
 
+            const bool shortestQ =
+                (kmin >= Int(0)) && (static_cast<Int>(corridor.size()) == kmin);
+            if( shortestQ ) { ++st.shortest_any; }
+
             const std::vector<Incidence> inc = Classify(pd, d);
             if( !inc.empty() ) { ++st.with_inc; }
 
@@ -259,6 +278,11 @@ struct Searcher
                 if     ( e.j <  e.i ) { ++st.j_lt_i; }
                 else if( e.j == e.i ) { ++st.j_eq_i; }
                 else                  { ++st.j_gt_i; lagQ = true; }
+            }
+
+            if( shortestQ )
+            {
+                if( lagQ ) { ++st.shortest_lag; } else { ++st.shortest_nolag; }
             }
 
             if( lagQ )
@@ -374,7 +398,13 @@ static Stats RunSearch( Knoodle::cref<PD_T> pd, const Int max_L, const int repor
                     };
 
                     // The corridor may not cross the strand's own arcs.
-                    for( Int x : arcs ) { s.arc_used[static_cast<std::size_t>(x)] = true; }
+                    std::set<Int> w_arcs;
+                    for( Int x : arcs )
+                    {
+                        s.arc_used[static_cast<std::size_t>(x)] = true;
+                        w_arcs.insert(x);
+                    }
+                    s.kmin = MergedDualDistance(pd, w_arcs, f0, ft);
 
                     s.Dfs(f0, max_k);
                 }
@@ -392,6 +422,10 @@ static Stats RunSearch( Knoodle::cref<PD_T> pd, const Int max_L, const int repor
     std::printf("  incidences at j == i (guarded case)   %lld\n", st.j_eq_i);
     std::printf("  incidences at j >  i (THE TRIGGER)    %lld\n", st.j_gt_i);
     std::printf("  corridors that LAG                    %lld\n", st.lagging);
+    std::printf("\n  CONTROL -- corridors that are SHORTEST (k == kmin):\n");
+    std::printf("    shortest, total                     %lld\n", st.shortest_any);
+    std::printf("    shortest AND lagging                %lld\n", st.shortest_lag);
+    std::printf("    shortest AND not lagging            %lld\n", st.shortest_nolag);
     return st;
 }
 
@@ -431,6 +465,57 @@ static void ChangeCrossing( std::vector<Int> & code, const Int x )
     if( s > Int(0) ) { r[0]=d; r[1]=a; r[2]=b; r[3]=c; }   // over ran d -> b
     else             { r[0]=b; r[1]=c; r[2]=d; r[3]=a; }   // over ran b -> d
     r[4] = -s;
+}
+
+/*!@brief Shortest dual distance from `src` to `dst` in the graph
+ * `FindShortestPath` actually searches: the dual of D with the strand HIDDEN.
+ *
+ * `hiddenQ` makes the face walk step THROUGH a strand arc
+ * (`de = LeftDarc(ReverseDarc(de))`), so the two faces along a strand arc are
+ * one node and crossing it is free; every other arc costs one crossing. That
+ * is a 0-1 shortest path, hence the deque.
+ *
+ * This is what makes the search blind to which SIDE of W a corridor leaves
+ * from -- both faces at the first arc are the same node -- and it is why the
+ * search runs fronts from both ends without having to choose a side.
+ */
+static Int MergedDualDistance(
+    Knoodle::cref<PD_T> pd, Knoodle::cref<std::set<Int>> w_arcs,
+    const Int src, const Int dst )
+{
+    const Int nf = pd.FaceCount();
+    if( (src < Int(0)) || (dst < Int(0)) || (src >= nf) || (dst >= nf) )
+    {
+        return Int(-1);
+    }
+
+    std::vector<Int> dist( static_cast<std::size_t>(nf), Int(-1) );
+    std::deque<Int>  dq;
+
+    dist[static_cast<std::size_t>(src)] = Int(0);
+    dq.push_back(src);
+
+    while( !dq.empty() )
+    {
+        const Int f  = dq.front(); dq.pop_front();
+        const Int df = dist[static_cast<std::size_t>(f)];
+
+        for( Int da : pd.FaceDarcs()[f] )
+        {
+            const Int g = Desc_T::LeftFace(pd, da ^ Int(1));
+            if( g < Int(0) ) { continue; }
+
+            const Int w  = (w_arcs.count(Desc_T::ArcOf(da)) > 0) ? Int(0) : Int(1);
+            const Int dg = dist[static_cast<std::size_t>(g)];
+
+            if( (dg < Int(0)) || (df + w < dg) )
+            {
+                dist[static_cast<std::size_t>(g)] = df + w;
+                if( w == Int(0) ) { dq.push_front(g); } else { dq.push_back(g); }
+            }
+        }
+    }
+    return dist[static_cast<std::size_t>(dst)];
 }
 
 /*!@brief Is a Reidemeister I or II move available along the strand?
@@ -486,7 +571,8 @@ static void ConvertHits(
     std::vector<Survivor> survivors;
 
     long long tried = 0, converted = 0, lag_kept = 0, faces_kept = 0;
-    long long bigon_free = 0;
+    long long bigon_free = 0, shortest = 0;
+    std::map<Int,long long> excess_hist;
     int reported = 0;
 
     for( Knoodle::cref<Desc_T> d : hits )
@@ -523,6 +609,23 @@ static void ConvertHits(
         // contract for a reason that has nothing to do with the aliasing.
         if( ReducibleAlongStrandQ(pd, e.strand) ) { continue; }
         ++bigon_free;
+
+        // Henrik's ONLY stated precondition for Reroute: the path came from
+        // FindShortestPath and is a SHORTEST path. So a corridor that is
+        // merely legal is out of contract unless its length equals the true
+        // minimum between the merged endpoint faces. Anything longer is one
+        // the search would never have returned.
+        std::set<Int> w_arcs;
+        for( Int da : e.strand ) { w_arcs.insert(Desc_T::ArcOf(da)); }
+
+        const Int kmin = MergedDualDistance(
+            pd, w_arcs,
+            Desc_T::LeftFace(pd, e.depart), Desc_T::LeftFace(pd, e.land) );
+
+        const Int k = static_cast<Int>(e.cross.size());
+        ++excess_hist[ (kmin >= Int(0)) ? (k - kmin) : Int(-1) ];
+        if( (kmin < Int(0)) || (k != kmin) ) { continue; }
+        ++shortest;
 
         survivors.push_back( Survivor{
             static_cast<Int>(e.strand.size()),
@@ -595,7 +698,21 @@ static void ConvertHits(
     std::printf("  rebuilt with face count preserved     %lld\n", faces_kept);
     std::printf("  well-formed as kind=pass afterwards   %lld\n", converted);
     std::printf("  ... and STILL LAGGING                 %lld\n", lag_kept);
-    std::printf("  ... and R1/R2-FREE along W (SURVIVORS) %lld\n", bigon_free);
+    std::printf("  ... and R1/R2-FREE along W             %lld\n", bigon_free);
+    std::printf("  ... and a SHORTEST path (IN CONTRACT)  %lld\n", shortest);
+    std::printf("\n  excess over the true minimum (k - kmin), among R1/R2-free:\n");
+    for( auto & kv : excess_hist )
+    {
+        if( kv.first < Int(0) )
+        {
+            std::printf("      unreachable : %lld\n", kv.second);
+        }
+        else
+        {
+            std::printf("      k - kmin = %lld : %lld\n",
+                (long long)kv.first, kv.second);
+        }
+    }
 }
 
 int main( int argc, char ** argv )
@@ -691,7 +808,8 @@ int main( int argc, char ** argv )
     const Stats st = RunSearch(pd, /*max_L=*/Int(10), /*report_cap=*/3);
 
     std::vector<Int> code0( zf061098_underpass.begin(), zf061098_underpass.end() );
-    ConvertHits(pd, code0, st.hits, /*report_cap=*/3,
+    const int rcap = (argc > 2) ? std::atoi(argv[2]) : 3;
+    ConvertHits(pd, code0, st.hits, rcap,
                 (argc > 1) ? argv[1] : nullptr);
 
     return ok ? 0 : 1;
