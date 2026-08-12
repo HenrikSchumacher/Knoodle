@@ -78,6 +78,34 @@ static std::vector<Int> ReadCode( const char * f )
     return code;
 }
 
+/*!@brief Round-trip a diagram through its own PD code.
+ *
+ * WHY THIS EXISTS. After a `Reroute` that corrupts the diagram, reading
+ * `C_arcs` directly and reading the diagram's own `PDCode()` output give
+ * DIFFERENT KNOTS -- measured on the PR #30 reproducer: 115 from the live
+ * slots, 247 from the traversal. `CheckAll` passes on both. So the corrupted
+ * object is not merely the wrong knot, it is not self-consistent between the
+ * two ways of reading it.
+ *
+ * The determinant is therefore measured on the traversal view, which is what
+ * `PDCode` emits, what every downstream consumer sees, and what the handoff's
+ * independent `det.py` was run on. With this normalisation our determinant
+ * agrees with `det.py` exactly (247 and 5, up to sign).
+ *
+ * `ClearCache()` before `PDCode()` is REQUIRED -- without it the emitted code
+ * is stale traversal garbage.
+ *
+ * NOTE: `DiagramsAgreeQ` is deliberately NOT given normalised diagrams. It
+ * pins crossings by index and seeds at an untouched anchor, which only works
+ * on the live labels; a round trip renumbers and destroys that.
+ */
+static PD_T ThroughPDCode( Knoodle::mref<PD_T> pd )
+{
+    pd.ClearCache();
+    auto t = pd.template PDCode<Int,{.signQ=true,.colorQ=false}>();
+    return PD_T::FromSignedPDCode(t.data(), pd.CrossingCount(), false, false);
+}
+
 /*!@brief Shortest corridor length between the merged endpoint faces -- the
  * graph `FindShortestPath` actually searches. Strand arcs are hidden, so the
  * faces along them are one node and crossing one is free; every other arc
@@ -292,8 +320,10 @@ int main( int argc, char ** argv )
     // integer. Testing `det_o == -det_r` on residues can never fire and would
     // report a spurious DIFFERENT KNOT on any sign-flipped pair.
     constexpr Int det_p = Int(1000003);
-    const Int det_o = DeterminantModP(oracle, det_p);
-    const Int det_r = DeterminantModP(pd_b,   det_p);
+    PD_T oracle_n = ThroughPDCode(oracle);
+    PD_T pd_b_n   = ThroughPDCode(pd_b);
+    const Int det_o = DeterminantModP(oracle_n, det_p);
+    const Int det_r = DeterminantModP(pd_b_n,   det_p);
 
     const bool det_agreeQ =
         (det_o == det_r) || (((det_o + det_r) % det_p) == Int(0));
