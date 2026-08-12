@@ -184,7 +184,7 @@ canon_check: canon_check.cpp ../Knoodle.hpp
 	@echo "✓ canon_check compiled successfully"
 
 # pd_internal_state_check — round trip for PlanarDiagram's internal-state
-# serialization (WriteToOutString / ReadFromInString). Covers inactive slots
+# serialization (WriteToOutString / FromInString). Covers inactive slots
 # and max_* vs active counts, which PD codes cannot express, plus tolerance of
 # a PrintInfo dump lifted straight out of a log file. Light config.
 pd_internal_state_check: pd_internal_state_check.cpp ../Knoodle.hpp

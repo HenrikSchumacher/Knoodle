@@ -1,7 +1,7 @@
 public:
 
-/*!@brief Reconstruct a diagram from the text written by
- * `InternalStateString` / `WriteToOutString`.
+/*!@brief **EXPERIMENTAL** Reconstruct a diagram from the text written by
+ * `ToInternalStateString` / `WriteToOutString0`.
  *
  * Deliberately tolerant: it looks up each field by name and ignores
  * everything else, so a `PrintInfo` dump lifted out of a log file -- which
@@ -12,18 +12,21 @@ public:
  * diagram is returned, so a failed read cannot be mistaken for an empty one.
  */
 
-static PD_T ReadFromInString( mref<Tools::InString> s )
+[[deprecated("Better use FromInString.")]]
+static PD_T FromInString0( mref<Tools::InString> s )
 {
     return FromInternalStateString( s.View() );
 }
 
-static PD_T ReadFromFile( cref<std::filesystem::path> file )
+[[deprecated("Better use FromFile.")]]
+static PD_T FromFile0( cref<std::filesystem::path> file )
 {
     Tools::InString s (file);
 
-    return ReadFromInString(s);
+    return FromInString0(s);
 }
 
+[[deprecated]]
 static PD_T FromInternalStateString( std::string_view text )
 {
     auto fail = [&]( const std::string & msg ) -> PD_T
@@ -194,9 +197,9 @@ static PD_T FromInternalStateString( std::string_view text )
         }
         for( Size_T i = 0; i < n_c; ++i )
         {
-            if     ( tok[i] == "RightHanded" ) { c_states[i] = CrossingState_T::RightHanded; }
-            else if( tok[i] == "LeftHanded"  ) { c_states[i] = CrossingState_T::LeftHanded;  }
-            else if( tok[i] == "Inactive"    ) { c_states[i] = CrossingState_T::Inactive;    }
+            if     ( tok[i] ==  "1" ) { c_states[i] = CrossingState_T::RightHanded; }
+            else if( tok[i] == "-1" ) { c_states[i] = CrossingState_T::LeftHanded;  }
+            else if( tok[i] ==  "0" ) { c_states[i] = CrossingState_T::Inactive;    }
             else { return fail("unknown crossing state `" + tok[i] + "`"); }
         }
     }
@@ -212,8 +215,8 @@ static PD_T FromInternalStateString( std::string_view text )
         }
         for( Size_T i = 0; i < n_a; ++i )
         {
-            if     ( tok[i] == "Active"   ) { a_states[i] = ArcState_T::Active;   }
-            else if( tok[i] == "Inactive" ) { a_states[i] = ArcState_T::Inactive; }
+            if     ( tok[i] == "1" ) { a_states[i] = ArcState_T::Active;   }
+            else if( tok[i] == "0" ) { a_states[i] = ArcState_T::Inactive; }
             else { return fail("unknown arc state `" + tok[i] + "`"); }
         }
     }

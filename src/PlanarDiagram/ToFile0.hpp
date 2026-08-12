@@ -4,7 +4,7 @@ public:
 //##    Internal-state serialization (debugging aid)
 //##########################################################################
 
-/*!@brief Serialize the diagram's full internal state as text.
+/*!@brief **EXPERIMENTAL** Serialize the diagram's full internal state as text.
  *
  * PD codes (and everything built on them) are produced by `Traverse` and
  * therefore renumber crossings and arcs, drop inactive slots, and lose the
@@ -25,6 +25,7 @@ public:
  * that has to survive a version change should use a PD code.
  */
 
+[[deprecated]]
 std::string InternalStateString() const
 {
     std::string s;
@@ -47,20 +48,22 @@ std::string InternalStateString() const
     return s;
 }
 
-/*!@brief Append `InternalStateString` to an `OutString`. */
+/*!@brief **EXPERIMENTAL** Append `InternalStateString` to an `OutString`. */
 
-void WriteToOutString( mref<Tools::OutString> s ) const
+[[deprecated("Better use WriteToOutString.")]]
+void WriteToOutString0( mref<Tools::OutString> s ) const
 {
     const std::string str = InternalStateString();
 
     s.PutChars( str.data(), str.size() );
 }
 
-/*!@brief Write the internal state to a file. Returns `false` if the file
+/*!@brief **EXPERIMENTAL** Write the internal state to a file. Returns `false` if the file
  * could not be opened.
  */
 
-bool WriteToFile( cref<std::filesystem::path> file ) const
+[[deprecated("Better use WriteToFile.")]]
+bool WriteToFile0( cref<std::filesystem::path> file ) const
 {
     std::ofstream stream;
 
@@ -68,7 +71,7 @@ bool WriteToFile( cref<std::filesystem::path> file ) const
 
     if( !stream )
     {
-        eprint(MethodName("WriteToFile") + ": Could not open file "
+        eprint(MethodName("WriteToFile0") + ": Could not open file "
                + file.string() + ". Aborting.");
         return false;
     }

@@ -1,5 +1,5 @@
 // Round-trip test for PlanarDiagram's internal-state serialization
-// (WriteToOutString / ReadFromInString).
+// (WriteToOutString / FromInString).
 //
 // What it has to demonstrate, beyond "it parses":
 //   1. the text round trip is exact on an ordinary diagram;
@@ -33,9 +33,9 @@ int main()
         Int code[] = { 0,4,1,3,1,  2,0,3,5,1,  4,2,5,1,1 };
         PD_T pd = PD_T::FromSignedPDCode(&code[0], Int(3), false, false);
 
-        const std::string a  = pd.InternalStateString();
+        const std::string a  = pd.ToInternalStateString();
         PD_T              pd2 = PD_T::FromInternalStateString(a);
-        const std::string b  = pd2.InternalStateString();
+        const std::string b  = pd2.ToInternalStateString();
 
         check(a == b,            "trefoil: text round trip is exact");
         check(pd2.CheckAll(),    "trefoil: rebuilt diagram passes CheckAll");
@@ -85,7 +85,7 @@ int main()
         check(pd.ArcCount() == Int(6),
               "inactive slots: active arc count is 6");
         check(pd.CheckAll(), "inactive slots: CheckAll passes");
-        check(pd.InternalStateString() == padded,
+        check(pd.ToInternalStateString() == padded,
               "inactive slots: re-serializes to the identical text");
     }
 
@@ -94,7 +94,7 @@ int main()
         Int code[] = { 0,4,1,3,1,  2,0,3,5,1,  4,2,5,1,1 };
         PD_T pd = PD_T::FromSignedPDCode(&code[0], Int(3), false, false);
 
-        const std::string body = pd.InternalStateString();
+        const std::string body = pd.ToInternalStateString();
 
         std::string logged =
             "PlanarDiagram<I64>::PrintInfo -- begin\n"
@@ -105,7 +105,7 @@ int main()
         PD_T pd2 = PD_T::FromInternalStateString(logged);
 
         check(pd2.CheckAll(), "log dump: parses with surrounding log lines");
-        check(pd2.InternalStateString() == body,
+        check(pd2.ToInternalStateString() == body,
               "log dump: recovers the same state");
     }
 
