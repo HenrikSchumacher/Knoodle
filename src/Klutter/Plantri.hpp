@@ -62,7 +62,7 @@ void LoadPlantriPDCodes(
             
             if( s.EmptyQ() ) { break; }
             
-            s.SkipChar('\n');
+            s.SkipNewline();
         }
 //        toc("Reading inputs");
     }

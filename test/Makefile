@@ -109,6 +109,15 @@ embedding_inflation_check: embedding_inflation_check.cpp ../Knoodle.hpp \
 	@echo "=== Building embedding_inflation_check on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) embedding_inflation_check.cpp -o $@
 	@echo "✓ embedding_inflation_check compiled successfully"
+# intersection_flag_reset_check — pins that LinkEmbedding's intersection flag
+# counters describe one projection, not the embedding's lifetime. Needs the src
+# header as an explicit dep: this is a src-only change, and without it make would
+# not rebuild and the test would appear to pass against unfixed code.
+intersection_flag_reset_check: intersection_flag_reset_check.cpp ../Knoodle.hpp \
+                               ../src/LinkEmbedding/FindIntersections.hpp
+	@echo "=== Building intersection_flag_reset_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) intersection_flag_reset_check.cpp -o $@
+	@echo "✓ intersection_flag_reset_check compiled successfully"
 
 # reapr_corner_probe — reproduce/diagnose the FindIntersections CornerCorner
 # degeneracy that makes Rattle bail after 10 failed random rotations.
@@ -187,6 +196,16 @@ canon_check: canon_check.cpp ../Knoodle.hpp
 	    canon_check.cpp $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ canon_check compiled successfully"
 
+# pd_internal_state_check — round trip for PlanarDiagram's internal-state
+# serialization (WriteToOutString / FromInString, and the file pair
+# WriteToFile / FromFile). Covers inactive slots and max_* vs active counts,
+# which PD codes cannot express, and that malformed input yields an invalid
+# diagram rather than a silently empty one. Light config.
+pd_internal_state_check: pd_internal_state_check.cpp ../Knoodle.hpp
+	@echo "=== Building pd_internal_state_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) pd_internal_state_check.cpp -o $@
+	@echo "✓ pd_internal_state_check compiled successfully"
+
 # component_check — regression guard for the CollapseArcRange unlink-loss bug
 # (Henrik's 5151f39). Embedded 8-crossing 2-component-unlink reproducer; default
 # Simplify must preserve the link-component count. Light config (no UMFPACK).
@@ -194,6 +213,15 @@ component_check: component_check.cpp ../Knoodle.hpp
 	@echo "=== Building component_check on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) component_check.cpp -o $@
 	@echo "✓ component_check compiled successfully"
+
+# link_color_roundtrip — regression guard for LinkEmbedding's colored .kndlxyz
+# round trip: WriteToFile(colorQ=true) emits "#color <int>" headers that
+# FromInString used to reject, so the writer produced files its own reader could
+# not read. Light config (no UMFPACK).
+link_color_roundtrip: link_color_roundtrip.cpp ../Knoodle.hpp
+	@echo "=== Building link_color_roundtrip on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) link_color_roundtrip.cpp -o $@
+	@echo "✓ link_color_roundtrip compiled successfully"
 
 # klut_identify_check — PR test for the Identify routine (test/klut_identify.hpp):
 # single knots (perturbed), connect sums (multi-diagram PDC + single spliced

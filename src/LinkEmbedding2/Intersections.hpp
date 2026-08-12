@@ -51,7 +51,7 @@ template<bool verboseQ = true> // whether to print errors and warnings
     
     edge_ptr.Fill(0);
     
-    FindIntersectingEdges_DFS_ManualStack();
+    FindIntersectingEdges_DFS();
     
     if( intersection_count_3D > Int(0) )
     {
@@ -66,55 +66,59 @@ template<bool verboseQ = true> // whether to print errors and warnings
     
     intersection_count = static_cast<Int>(intersections.size());
     
-    // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
-    edge_ctr.template RequireSize<false>( edge_ptr.Size() );
-    edge_ctr.Read( edge_ptr.data() );
-
-    if( edge_intersections.Size() != edge_ptr.Last() )
     {
-        edge_intersections = Tensor1<Int   ,Int>( edge_ptr.Last() );
-        edge_times         = Tensor1<Time_T,Int>( edge_ptr.Last() );
-        edge_state         = Tensor1<Int8  ,Int>( edge_ptr.Last() );
-    }
-    
-    if( intersection_count <= Int(0) ) { return 0; }
+        TOOLS_PTIMER(timer,MethodName("ComputeIntersections") + ": sorting.");
+        
+        // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
+        edge_ctr.template RequireSize<false>( edge_ptr.Size() );
+        edge_ctr.Read( edge_ptr.data() );
 
-    for( Int k = intersection_count; k --> Int(0);  )
-    {
-        Intersection_T & inter = intersections[static_cast<Size_T>(k)];
-
-        // We have to write BEFORE the positions specified by edge_ctr (and decrease it for the next write;
-
-        const Int pos_0 = --edge_ctr[inter.edges[0]+Int(1)];
-        const Int pos_1 = --edge_ctr[inter.edges[1]+Int(1)];
-
-        edge_intersections[pos_0] = k;
-        edge_times        [pos_0] = inter.times[0];
-        edge_state        [pos_0] = static_cast<Int8>(inter.handedness << 1) | 1;
-
-        edge_intersections[pos_1] = k;
-        edge_times        [pos_1] = inter.times[1];
-        edge_state        [pos_1] = static_cast<Int8>(inter.handedness << 1) | 0;
-    }
-
-    // Sort intersections edgewise w.r.t. edge_times.
-    ThreeArraySort<Time_T,Int,Int8,Int> sort ( intersection_count );
-
-    for( Int i = 0; i < edge_count; ++i )
-    {
-        // This is the range of data in edge_intersections/edge_times that belongs to edge i.
-        const Int k_begin = edge_ptr[i  ];
-        const Int k_end   = edge_ptr[i+1];
-
-        // We need to sort only if there are at least two intersections on that edge.
-        if( k_begin + Int(1) < k_end )
+        if( edge_intersections.Size() != edge_ptr.Last() )
         {
-            sort(
-                &edge_times[k_begin],
-                &edge_intersections[k_begin],
-                &edge_state[k_begin],
-                k_end - k_begin
-            );
+            edge_intersections = Tensor1<Int   ,Int>( edge_ptr.Last() );
+            edge_times         = Tensor1<Time_T,Int>( edge_ptr.Last() );
+            edge_state         = Tensor1<Int8  ,Int>( edge_ptr.Last() );
+        }
+
+        if( intersection_count <= Int(0) ) { return 0; }
+
+        for( Int k = intersection_count; k --> Int(0);  )
+        {
+            Intersection_T & inter = intersections[static_cast<Size_T>(k)];
+
+            // We have to write BEFORE the positions specified by edge_ctr (and decrease it for the next write;
+
+            const Int pos_0 = --edge_ctr[inter.edges[0]+Int(1)];
+            const Int pos_1 = --edge_ctr[inter.edges[1]+Int(1)];
+
+            edge_intersections[pos_0] = k;
+            edge_times        [pos_0] = inter.times[0];
+            edge_state        [pos_0] = static_cast<Int8>(inter.handedness << 1) | 1;
+
+            edge_intersections[pos_1] = k;
+            edge_times        [pos_1] = inter.times[1];
+            edge_state        [pos_1] = static_cast<Int8>(inter.handedness << 1) | 0;
+        }
+
+        // Sort intersections edgewise w.r.t. edge_times.
+        ThreeArraySort<Time_T,Int,Int8,Int> sort ( intersection_count );
+
+        for( Int i = 0; i < edge_count; ++i )
+        {
+            // This is the range of data in edge_intersections/edge_times that belongs to edge i.
+            const Int k_begin = edge_ptr[i  ];
+            const Int k_end   = edge_ptr[i+1];
+
+            // We need to sort only if there are at least two intersections on that edge.
+            if( k_begin + Int(1) < k_end )
+            {
+                sort(
+                    &edge_times[k_begin],
+                    &edge_intersections[k_begin],
+                    &edge_state[k_begin],
+                    k_end - k_begin
+                );
+            }
         }
     }
     
@@ -129,8 +133,10 @@ template<bool verboseQ = true> // whether to print errors and warnings
 
 private:
 
-void FindIntersectingEdges_DFS_ManualStack()
+void FindIntersectingEdges_DFS()
 {
+    TOOLS_PTIMER(timer,MethodName("FindIntersectingEdges_DFS"));
+    
     constexpr Int stack_max_size = Int(4) * max_depth + Int(1);
     constexpr Int stack_limit    = Int(4) * max_depth - Int(4);
     
@@ -173,7 +179,7 @@ void FindIntersectingEdges_DFS_ManualStack()
         {
             if ( overflowQ ) [[unlikely]]
             {
-                eprint(this->MethodName("FindIntersectingEdges_DFS_ManualStack")+": Stack overflow.");
+                eprint(this->MethodName("FindIntersectingEdges_DFS")+": Stack overflow.");
             }
             return false;
         }
@@ -241,7 +247,7 @@ void FindIntersectingEdges_DFS_ManualStack()
         }
     }
     
-} // FindIntersectingEdges_DFS_ManualStack
+} // FindIntersectingEdges_DFS
 
 void ComputeEdgeEdgeIntersection( const Int k, const Int l )
 {

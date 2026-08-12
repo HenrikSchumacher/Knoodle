@@ -329,13 +329,6 @@ bool HandleOptions( int argc, char** argv )
     // Use this path for profiles and general log files.
     Profiler::Clear(path,true);
     
-    if( !Profiler::log )
-    {
-        throw std::runtime_error(
-             ClassName()+"::Initialize: Failed to create file \"" + Profiler::log_file.string() + "\"."
-        );
-    }
-    
     if( vm.count("input") )
     {
         input_file = std::filesystem::path ( vm["input"].as<std::string>() );

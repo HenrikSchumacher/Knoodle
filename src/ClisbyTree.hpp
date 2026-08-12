@@ -501,15 +501,15 @@ namespace Knoodle
         static constexpr std::string ClassName()
         {
             return std::string("ClisbyTree")
-                + "<" + ToString(AmbDim)
+                + "<" + Tools::ToString(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<LInt>
-                + "," + ToString(clang_matrixQ)
-                + "," + ToString(quaternionsQ)
-                + "," + ToString(countersQ)
-                + "," + ToString(manual_stackQ)
-                + "," + ToString(witnessesQ)
+                + "," + Tools::ToString(clang_matrixQ)
+                + "," + Tools::ToString(quaternionsQ)
+                + "," + Tools::ToString(countersQ)
+                + "," + Tools::ToString(manual_stackQ)
+                + "," + Tools::ToString(witnessesQ)
                 + ">";
         }
         

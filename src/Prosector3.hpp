@@ -432,24 +432,11 @@ namespace Knoodle
             // told me how to determine which edge "goes over".
             
             if constexpr ( verboseQ ) { TOOLS_LOGDUMP(uxv); }
-            
-//            LLInt det_3   = LLInt{y_1[0]-x_0[0]} * uxv[0]
-//                          + LLInt{y_1[1]-x_0[1]} * uxv[1]
-//                          + LLInt{y_1[2]-x_0[2]} * uxv[2];
-            
-//            LLInt det_3   = LLInt{y_1[0]-x_0[0]} * LLInt{uxv[0]}
-//                          + LLInt{y_1[1]-x_0[1]} * LLInt{uxv[1]}
-//                          + LLInt{y_1[2]-x_0[2]} * LLInt{uxv[2]};
-            
+
             LLInt det_3 = long_mul(y_1[0]-x_0[0],uxv[0])
                         + long_mul(y_1[1]-x_0[1],uxv[1])
                         + long_mul(y_1[2]-x_0[2],uxv[2]);
-            
-//            Vector3_T d = p - v; // == u - q
-//            LLInt det_3_d = LLInt{d[0]} * LLInt{uxv[0]}
-//                          + LLInt{d[1]} * LLInt{uxv[1]}
-//                          + LLInt{d[2]} * LLInt{uxv[2]};
-//
+
 //            std::cout << "det_3 = " << det_3 << "\n";
 //            std::cout << "det_3_d = " << det_3_d << std::endl;
             
@@ -474,7 +461,6 @@ namespace Knoodle
             // Det_Perturbed(d,v) == Det_Perturbed(p - v,v) == Det_Perturbed(p,v)
             // Det_Perturbed(d,u) == Det_Perturbed(u - q,u) == Det_Perturbed(u,q)
 
-            
             IntersectionTime t_0 { Polynomial3{ -vxp[2], -vxp[0], -vxp[1] }, Q };
             IntersectionTime t_1 { Polynomial3{  uxq[2],  uxq[0],  uxq[1] }, Q };
             
