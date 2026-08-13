@@ -25,5 +25,10 @@ Conventions:
 - [inflate-check.md](inflate-check.md) — randomized stress test: inflate a knot
   to ~100k crossings, Alexander tripwire per round, then Simplify must collapse
   it back with HOMFLY/Alexander preserved.
+- [embedding-check.md](embedding-check.md) — degeneracy + performance test for the
+  LinkEmbedding family. How to run it, the exact-shear oracle that reproduces
+  Prosector's `{ε,ε³,1}` symbolic perturbation in integer arithmetic (so a
+  degenerate projection can be checked crossing-for-crossing rather than merely
+  up to knot type), the fixture set, and six findings with reproducers.
 - [upstream-issues.md](upstream-issues.md) — bugs found in src/ to report to
   Henrik, with evidence.

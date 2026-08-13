@@ -3,6 +3,75 @@
 Bugs we've found reading/using the core library. Each needs a minimal repro
 before filing. Status: `found` → `confirmed` → `filed` → `fixed upstream`.
 
+## 8. `FromInString` aborts on every input (two inverted assertions)
+
+**Status:** confirmed 2026-08-13, branch `dev_prosector` @ `0a821267`.
+**Severity:** any build without `-DNDEBUG` cannot read an embedding file at all.
+
+`src/LinkEmbedding2/FromFile.hpp:139` asserts
+`component_ptr_agg.size() != color_agg.size()` and line 157 asserts
+`!coords_may_followQ`. Both are true-when-they-should-be-false and fire on the
+first vertex of any well-formed file, `#color`-tagged or not. `-DNDEBUG` builds
+parse correctly, so the parse itself is fine. Full derivation and the
+confirm-the-second-one experiment: [embedding-check.md §5F](embedding-check.md#f-frominstring-has-two-inverted-assertions).
+
+## 7. `FromLinkEmbedding(LinkEmbedding2&)` treats every success as an error
+
+**Status:** confirmed 2026-08-13, branch `dev_prosector` @ `0a821267`.
+**Severity:** high — the main construction path returns `InvalidDiagram()` for
+every successful projection.
+
+`RequireIntersections` returns `bool` (true = success) on `LinkEmbedding2/3/4`
+but `int` (0 = success) on `LinkEmbedding`; the two disagree about the meaning
+of `1`. `src/PlanarDiagram/FromEmbeddings.hpp:122` still does
+`int err = ...; if(err != 0)`, so `true` takes the failure branch. Reproduced on
+an ordinary lattice curve: 19 intersections computed, then discarded. Detail:
+[embedding-check.md §5A](embedding-check.md#a-planardiagramfromlinkembeddinglinkembedding2-returns-an-invalid-diagram-for-every-successful-projection).
+
+Worth fixing the convention split, not just the caller.
+
+## 6. `LinkEmbedding::RequireIntersections` segfaults on a triple point
+
+**Status:** confirmed 2026-08-13. Possibly the crash noted in `6c63b82a`.
+**Severity:** hard crash, no graceful error. `LinkEmbedding2/3/4` are fine.
+
+Three segments projecting through one common point crash the intersection
+computation. Six-vertex reproducer committed as
+`test/embeddings/deg_triple_point.crd`; bisected to the concurrency itself
+(moving any one edge off the point, or widening the z-separation, both fix it).
+Detail: [embedding-check.md §5E](embedding-check.md#e-linkembeddingrequireintersections-segfaults-on-a-triple-point).
+
+## 5. Zero-length edges rejected as 3D intersections by `LinkEmbedding2/3/4`
+
+**Status:** confirmed 2026-08-13.
+**Severity:** medium — contradicts the class docs, and regresses vs `LinkEmbedding`.
+
+The class documentation lists "line segments that have length 0" as handled;
+they are reported as the unfixable 3D-intersection case instead. Inherent: a
+zero-length edge always makes its two neighbours share a point of 3-space while
+their indices are non-consecutive. A planar square with one duplicated vertex
+reproduces it. Fix = collapse zero-length-joined vertices before the 3D test.
+Detail: [embedding-check.md §5B](embedding-check.md#b-zero-length-edges-are-rejected-as-3d-intersections).
+
+## 4. `LinkEmbedding2/3/4` do not compile with the 32-bit backend
+
+**Status:** confirmed 2026-08-13. **Severity:** low, but the class docs
+recommend the `Real_ = float`, `IReal_ = int32_t` pairing.
+
+`Prosector2` — `call to 'Sign' is ambiguous`, `src/Prosector2/Helpers.hpp:16`
+(also 19, 21). `Prosector3`/`Prosector4` — `excess elements in array
+initializer`, `src/WideInt.hpp:112`.
+
+## 3. Integral `Real_` is documented but unimplemented
+
+**Status:** confirmed 2026-08-13. **Severity:** low.
+
+`src/LinkEmbedding2/EdgeCoordinates.hpp:71`: *"Let's handle only case 1.2.a) for
+now"*, followed by `static_assert(FloatQ<Real>)`. The class docs say `Real_` may
+be a signed integral type; that instantiation does not build. Integral input
+still gets an exact path via the `input_integralQ` branch, so this is a docs/code
+mismatch rather than a functional gap.
+
 ## 2. `Alexander_UMFPACK::Alexander` (single-value overload) takes outputs by value
 
 **Status:** found 2026-06-13 (writing `test/inflate_check.cpp`).
