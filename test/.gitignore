@@ -15,6 +15,7 @@ klut_bench_boost
 canon_check
 component_check
 error_tap_check
+embedding_inflation_check
 intersection_flag_reset_check
 klut_identify_check
 klut_identify_random_check
@@ -22,6 +23,7 @@ plantri_check
 link_alex_probe
 link_inflate_check
 link_split_check
+link_color_roundtrip
 vendor/plantri/plantri
 inflate_fail_*.tsv
 link_inflate_fail_*.tsv

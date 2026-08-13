@@ -134,6 +134,7 @@ namespace Knoodle
             component_ptr[1] = edge_count;
         }
 
+#include "KnotEmbedding/VertexCoordinates.hpp"
 #include "LinkEmbedding/Helpers.hpp"
 #include "LinkEmbedding/BoundingBoxes.hpp"
 #include "LinkEmbedding/FindIntersections.hpp"
@@ -184,65 +185,6 @@ namespace Knoodle
         Vector3_T EdgeVector3( const Int edge, const bool k ) const
         {
             return Vector3_T( vertex_coords.data(edge + k) );
-        }
-        
-        template<bool transformQ = false,bool shiftQ = true>
-        void ReadVertexCoordinates( cptr<Real> v )
-        {
-            TOOLS_PTIMER(timer,MethodName("ReadVertexCoordinates")+"<" + ToString(transformQ) + "," + ToString(shiftQ) + ">");
-            
-            Vector3_T lo;
-            Vector3_T hi;
-            
-            Vector3_T x;
-            Vector3_T y;
-
-            intersections_computedQ  = false;
-            bounding_boxes_computedQ = false;
-            intersections.clear();
-            
-            ComputeBoundingBox( v, edge_count, lo, hi );
-            
-            if constexpr ( shiftQ )
-            {
-                // Compute Sterbenz shift.
-                Sterbenz_shift[0] = std::fma(-Real(2), lo[0], hi[0]);
-                Sterbenz_shift[1] = std::fma(-Real(2), lo[1], hi[1]);
-                Sterbenz_shift[2] = std::fma(-Real(2), lo[2], hi[2]);
-            }
-            
-            for( Int edge = 0; edge < edge_count; ++edge )
-            {
-                cptr<Real> source = &v[AmbDim * edge];
-                mptr<Real> target = vertex_coords.data(edge);
-                
-                if constexpr ( transformQ )
-                {
-                    y.Read(source);
-                    x = Dot(R,y);
-                }
-                else
-                {
-                    x.Read(source);
-                }
-                
-                if constexpr ( shiftQ )
-                {
-                    x += Sterbenz_shift;
-                }
-
-                x.Write(target);
-            }
-
-            // Copy the coordinates for the first vertex to the last's.
-            copy_buffer<AmbDim>(vertex_coords.data(),vertex_coords.data(edge_count));
-        }
-        
-        void WriteVertexCoordinates( mptr<Real> v ) const
-        {
-            TOOLS_PTIMER(timer,MethodName("WriteVertexCoordinates"));
-            
-            copy_buffer(vertex_coords.data(),v,edge_count * AmbDim);
         }
         
         void ComputeBoundingBoxes()

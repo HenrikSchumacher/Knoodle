@@ -73,7 +73,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    eprint(MethodName("FindIntersections")+": Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval). Try to randomly rotate the input coordinates.");
+                    wprint(MethodName("FindIntersections")+": Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval). Try to randomly rotate the input coordinates.");
                 }
                 return 5;
             }
@@ -117,7 +117,48 @@ public:
             eprint(MethodName("FindIntersections")+": More intersections found than can be handled by integer type " + TypeName<Int> + "." );
         }
         
-        intersection_count = static_cast<Int>(intersections.size());
+
+        intersection_count = int_cast<Int>(intersections.size());
+
+        // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
+        edge_ctr.template RequireSize<false>( edge_ptr.Size() );
+        edge_ctr.Read( edge_ptr.data() );
+        
+        if( edge_intersections.Size() != edge_ptr.Last() )
+        {
+            edge_intersections = Tensor1<Int, Size_T>( edge_ptr.Last() );
+            edge_times         = Tensor1<Real,Size_T>( edge_ptr.Last() );
+            edge_state         = Tensor1<Int8,Size_T>( edge_ptr.Last() );
+        }
+
+        // We are going to fill edge_intersections so that data of the i-th edge lies in edge_intersections[edge_ptr[i]],..,edge_intersections[edge_ptr[i+1]].
+        // To this end, we use (and modify!) edge_ctr so that edge_ctr[i] points AFTER the position to insert.
+        
+        if( intersection_count <= Int(0) ) { return 0; }
+        
+        for( Int k = intersection_count; k --> Int(0);  )
+        {
+            Intersection_T & inter = intersections[static_cast<Size_T>(k)];
+            
+            // We have to write BEFORE the positions specified by edge_ctr (and decrease it for the next write;
+
+            const Int pos_0 = --edge_ctr[inter.edges[0]+1];
+            const Int pos_1 = --edge_ctr[inter.edges[1]+1];
+
+            edge_intersections[pos_0] = k;
+            edge_times        [pos_0] = inter.times[0];
+            edge_state        [pos_0] = static_cast<Int8>(inter.handedness << 1) | 1;
+
+            edge_intersections[pos_1] = k;
+            edge_times        [pos_1] = inter.times[1];
+            edge_state        [pos_1] = static_cast<Int8>(inter.handedness << 1) | 0;
+        }
+        
+        // We don't need this anymore.
+        intersections = std::vector<Intersection_T>();
+
+        // Sort intersections edgewise w.r.t. edge_times.
+        ThreeArraySort<Real,Int,Int8,Int> sort ( intersection_count );
         
         Size_T close_counter = 0;
         

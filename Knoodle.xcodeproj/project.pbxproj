@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 73;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXContainerItemProxy section */
@@ -350,6 +350,55 @@
 			remoteGlobalIDString = AF7C6C152C5E903800EA899D;
 			remoteInfo = Scratch;
 		};
+		AF301E45302D01DC00D6545C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF3017E8302CF15300D6545C /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFD9EA0929337F7E00FC8A85;
+			remoteInfo = QRAlgorithm;
+		};
+		AF301E47302D01DC00D6545C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF3017E8302CF15300D6545C /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF8BDDDF295A1FBD001D8CCF;
+			remoteInfo = Example_SparseCholesky;
+		};
+		AF301E49302D01DC00D6545C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF3017E8302CF15300D6545C /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF9A9286298E5BF600242813;
+			remoteInfo = UnitTests;
+		};
+		AF301E4B302D01DC00D6545C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF3017E8302CF15300D6545C /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFFAC624298ECE5800A2CF4B;
+			remoteInfo = Unit_Test_SpMM;
+		};
+		AF301E4D302D01DC00D6545C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF3017E8302CF15300D6545C /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF5D050B2B52F09000E946CA;
+			remoteInfo = DenseBLAS;
+		};
+		AF301E4F302D01DC00D6545C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF3017E8302CF15300D6545C /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFD4A1572C58C94200510A91;
+			remoteInfo = Experiment_SpMM;
+		};
+		AF301E51302D01DC00D6545C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF3017E8302CF15300D6545C /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF7C6C152C5E903800EA899D;
+			remoteInfo = Scratch;
+		};
 		AF3C1E282FEC3513000094CE /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AF3C1CCE2FEC34F8000094CE /* Tensors.xcodeproj */;
@@ -399,51 +448,51 @@
 			remoteGlobalIDString = AF7C6C152C5E903800EA899D;
 			remoteInfo = Scratch;
 		};
-		AF4373593029AA1B00814FEC /* PBXContainerItemProxy */ = {
+		AF5074F8302CB4AF00E5618B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = AF436D0C3028C4AB00814FEC /* Tensors.xcodeproj */;
+			containerPortal = AF506E9B302CB30A00E5618B /* Tensors.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AFD9EA0929337F7E00FC8A85;
 			remoteInfo = QRAlgorithm;
 		};
-		AF43735B3029AA1B00814FEC /* PBXContainerItemProxy */ = {
+		AF5074FA302CB4AF00E5618B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = AF436D0C3028C4AB00814FEC /* Tensors.xcodeproj */;
+			containerPortal = AF506E9B302CB30A00E5618B /* Tensors.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AF8BDDDF295A1FBD001D8CCF;
 			remoteInfo = Example_SparseCholesky;
 		};
-		AF43735D3029AA1B00814FEC /* PBXContainerItemProxy */ = {
+		AF5074FC302CB4AF00E5618B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = AF436D0C3028C4AB00814FEC /* Tensors.xcodeproj */;
+			containerPortal = AF506E9B302CB30A00E5618B /* Tensors.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AF9A9286298E5BF600242813;
 			remoteInfo = UnitTests;
 		};
-		AF43735F3029AA1B00814FEC /* PBXContainerItemProxy */ = {
+		AF5074FE302CB4AF00E5618B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = AF436D0C3028C4AB00814FEC /* Tensors.xcodeproj */;
+			containerPortal = AF506E9B302CB30A00E5618B /* Tensors.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AFFAC624298ECE5800A2CF4B;
 			remoteInfo = Unit_Test_SpMM;
 		};
-		AF4373613029AA1B00814FEC /* PBXContainerItemProxy */ = {
+		AF507500302CB4AF00E5618B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = AF436D0C3028C4AB00814FEC /* Tensors.xcodeproj */;
+			containerPortal = AF506E9B302CB30A00E5618B /* Tensors.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AF5D050B2B52F09000E946CA;
 			remoteInfo = DenseBLAS;
 		};
-		AF4373633029AA1B00814FEC /* PBXContainerItemProxy */ = {
+		AF507502302CB4AF00E5618B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = AF436D0C3028C4AB00814FEC /* Tensors.xcodeproj */;
+			containerPortal = AF506E9B302CB30A00E5618B /* Tensors.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AFD4A1572C58C94200510A91;
 			remoteInfo = Experiment_SpMM;
 		};
-		AF4373653029AA1B00814FEC /* PBXContainerItemProxy */ = {
+		AF507504302CB4AF00E5618B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = AF436D0C3028C4AB00814FEC /* Tensors.xcodeproj */;
+			containerPortal = AF506E9B302CB30A00E5618B /* Tensors.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AF7C6C152C5E903800EA899D;
 			remoteInfo = Scratch;
@@ -840,51 +889,51 @@
 			remoteGlobalIDString = AF7C6C152C5E903800EA899D;
 			remoteInfo = Scratch;
 		};
-		AF8C7DFD302B2D700062AC7B /* PBXContainerItemProxy */ = {
+		AF8C880E302B9ABD0062AC7B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = AF8C779C302B2D0A0062AC7B /* Tensors.xcodeproj */;
+			containerPortal = AF8C81C0302B9A1B0062AC7B /* Tensors.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AFD9EA0929337F7E00FC8A85;
 			remoteInfo = QRAlgorithm;
 		};
-		AF8C7DFF302B2D700062AC7B /* PBXContainerItemProxy */ = {
+		AF8C8810302B9ABD0062AC7B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = AF8C779C302B2D0A0062AC7B /* Tensors.xcodeproj */;
+			containerPortal = AF8C81C0302B9A1B0062AC7B /* Tensors.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AF8BDDDF295A1FBD001D8CCF;
 			remoteInfo = Example_SparseCholesky;
 		};
-		AF8C7E01302B2D700062AC7B /* PBXContainerItemProxy */ = {
+		AF8C8812302B9ABD0062AC7B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = AF8C779C302B2D0A0062AC7B /* Tensors.xcodeproj */;
+			containerPortal = AF8C81C0302B9A1B0062AC7B /* Tensors.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AF9A9286298E5BF600242813;
 			remoteInfo = UnitTests;
 		};
-		AF8C7E03302B2D700062AC7B /* PBXContainerItemProxy */ = {
+		AF8C8814302B9ABD0062AC7B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = AF8C779C302B2D0A0062AC7B /* Tensors.xcodeproj */;
+			containerPortal = AF8C81C0302B9A1B0062AC7B /* Tensors.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AFFAC624298ECE5800A2CF4B;
 			remoteInfo = Unit_Test_SpMM;
 		};
-		AF8C7E05302B2D700062AC7B /* PBXContainerItemProxy */ = {
+		AF8C8816302B9ABD0062AC7B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = AF8C779C302B2D0A0062AC7B /* Tensors.xcodeproj */;
+			containerPortal = AF8C81C0302B9A1B0062AC7B /* Tensors.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AF5D050B2B52F09000E946CA;
 			remoteInfo = DenseBLAS;
 		};
-		AF8C7E07302B2D700062AC7B /* PBXContainerItemProxy */ = {
+		AF8C8818302B9ABD0062AC7B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = AF8C779C302B2D0A0062AC7B /* Tensors.xcodeproj */;
+			containerPortal = AF8C81C0302B9A1B0062AC7B /* Tensors.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AFD4A1572C58C94200510A91;
 			remoteInfo = Experiment_SpMM;
 		};
-		AF8C7E09302B2D700062AC7B /* PBXContainerItemProxy */ = {
+		AF8C881A302B9ABD0062AC7B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = AF8C779C302B2D0A0062AC7B /* Tensors.xcodeproj */;
+			containerPortal = AF8C81C0302B9A1B0062AC7B /* Tensors.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AF7C6C152C5E903800EA899D;
 			remoteInfo = Scratch;
@@ -1477,6 +1526,55 @@
 			remoteGlobalIDString = AF7C6C152C5E903800EA899D;
 			remoteInfo = Scratch;
 		};
+		AFDEBF1F302E2723001C88F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFD9EA0929337F7E00FC8A85;
+			remoteInfo = QRAlgorithm;
+		};
+		AFDEBF21302E2723001C88F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF8BDDDF295A1FBD001D8CCF;
+			remoteInfo = Example_SparseCholesky;
+		};
+		AFDEBF23302E2723001C88F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF9A9286298E5BF600242813;
+			remoteInfo = UnitTests;
+		};
+		AFDEBF25302E2723001C88F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFFAC624298ECE5800A2CF4B;
+			remoteInfo = Unit_Test_SpMM;
+		};
+		AFDEBF27302E2723001C88F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF5D050B2B52F09000E946CA;
+			remoteInfo = DenseBLAS;
+		};
+		AFDEBF29302E2723001C88F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFD4A1572C58C94200510A91;
+			remoteInfo = Experiment_SpMM;
+		};
+		AFDEBF2B302E2723001C88F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF7C6C152C5E903800EA899D;
+			remoteInfo = Scratch;
+		};
 		AFECEE8C2FA2177B00550AA4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AFECED642FA2162300550AA4 /* Tensors.xcodeproj */;
@@ -1671,9 +1769,10 @@
 		AF2088612FED624600963995 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF298AE42F75A2C600DE1933 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF2D42522E3118C7004C6CE0 /* Dev_ClisbyTree */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_ClisbyTree; sourceTree = BUILT_PRODUCTS_DIR; };
+		AF3017E8302CF15300D6545C /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF3B5BD82E36499C00A14D16 /* Dev_PlanarityChecker */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_PlanarityChecker; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF3C1CCE2FEC34F8000094CE /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
-		AF436D0C3028C4AB00814FEC /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
+		AF506E9B302CB30A00E5618B /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF5530323016B26000BD98BB /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF5B87F32BAE053100CB5CAF /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		AF5EADD53014F44400F7E87C /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
@@ -1686,7 +1785,7 @@
 		AF7FD1D52D87464900D802C0 /* PolyFold */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PolyFold; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF82D21330166A220075A2D9 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF8611BD2F66C0A600F08C51 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
-		AF8C779C302B2D0A0062AC7B /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
+		AF8C81C0302B9A1B0062AC7B /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF9EB6222FF4E21400CFD64F /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AFA7410B300E568400BC50C5 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AFA753A0300F72D400BC50C5 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
@@ -1703,36 +1802,35 @@
 		AFD3C7283018C32B00DFA94A /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AFD8D49830092F5400AD9194 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AFD8DDF5300DE7FA00AD9194 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
+		AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AFECED642FA2162300550AA4 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AFF305482B7AF300009ABC74 /* Knoodle.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Knoodle.hpp; sourceTree = "<group>"; };
 		AFFAEBA630010A640048B9A3 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		AF82D87230167B6B0075A2D9 /* PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = AF6C85D82E29315B0051B919 /* Sources */;
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AFDEBF36302E272C001C88F5 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				main.cpp__,
+				Example_Knoodle/main.cpp,
 			);
+			target = AFBB9A992EF54467000CA528 /* Example_Knoodle */;
 		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AF05A27E2D6B573E0065E75A /* deps */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = deps; sourceTree = "<group>"; };
-		AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_PlanarDiagram; sourceTree = "<group>"; };
-		AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_ClisbyTree; sourceTree = "<group>"; };
+		AF301E5A302E260A00D6545C /* dev */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = dev; sourceTree = "<group>"; };
 		AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Kyoto; sourceTree = "<group>"; };
-		AF6C85DD2E29315B0051B919 /* WorkBench */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AF82D87230167B6B0075A2D9 /* PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = WorkBench; sourceTree = "<group>"; };
 		AF7F30FF2FE04489008E25C0 /* test */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = test; sourceTree = "<group>"; };
 		AF7FD1D62D87464900D802C0 /* PolyFold */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold; sourceTree = "<group>"; };
 		AF860E6A2F66AD8300F08C51 /* legacy */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = legacy; sourceTree = "<group>"; };
 		AF860F272F66C08A00F08C51 /* experimental */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = experimental; sourceTree = "<group>"; };
 		AF8611C22F66C0A600F08C51 /* submodules */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = submodules; sourceTree = "<group>"; };
 		AF8612BC2F66C0AA00F08C51 /* src */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = src; sourceTree = "<group>"; };
-		AFAC10632F0293FA0029A41C /* Dev_ClisbyTree2 */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_ClisbyTree2; sourceTree = "<group>"; };
-		AFBB9A9B2EF54467000CA528 /* Example_Knoodle */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Example_Knoodle; sourceTree = "<group>"; };
-		AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDraw */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_OrthoDraw; sourceTree = "<group>"; };
+		AF8C883E302CAABE0062AC7B /* tools */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = tools; sourceTree = "<group>"; };
+		AFDEBF17302E2721001C88F5 /* examples */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AFDEBF36302E272C001C88F5 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = examples; sourceTree = "<group>"; };
+		AFDEBF79302E28E6001C88F5 /* devel */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = devel; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1900,6 +1998,20 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		AF3017ED302CF15300D6545C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AF301E46302D01DC00D6545C /* QRAlgorithm */,
+				AF301E48302D01DC00D6545C /* Example_SparseCholesky */,
+				AF301E4A302D01DC00D6545C /* UnitTests */,
+				AF301E4C302D01DC00D6545C /* Unit_Test_SpMM */,
+				AF301E4E302D01DC00D6545C /* DenseBLAS */,
+				AF301E50302D01DC00D6545C /* Experiment_SpMM */,
+				AF301E52302D01DC00D6545C /* Scratch */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		AF3C1CD32FEC34F8000094CE /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -1914,16 +2026,16 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		AF436D113028C4AB00814FEC /* Products */ = {
+		AF506EA0302CB30A00E5618B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AF43735A3029AA1B00814FEC /* QRAlgorithm */,
-				AF43735C3029AA1B00814FEC /* Example_SparseCholesky */,
-				AF43735E3029AA1B00814FEC /* UnitTests */,
-				AF4373603029AA1B00814FEC /* Unit_Test_SpMM */,
-				AF4373623029AA1B00814FEC /* DenseBLAS */,
-				AF4373643029AA1B00814FEC /* Experiment_SpMM */,
-				AF4373663029AA1B00814FEC /* Scratch */,
+				AF5074F9302CB4AF00E5618B /* QRAlgorithm */,
+				AF5074FB302CB4AF00E5618B /* Example_SparseCholesky */,
+				AF5074FD302CB4AF00E5618B /* UnitTests */,
+				AF5074FF302CB4AF00E5618B /* Unit_Test_SpMM */,
+				AF507501302CB4AF00E5618B /* DenseBLAS */,
+				AF507503302CB4AF00E5618B /* Experiment_SpMM */,
+				AF507505302CB4AF00E5618B /* Scratch */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1959,16 +2071,14 @@
 				AF8611C22F66C0A600F08C51 /* submodules */,
 				AF8612BC2F66C0AA00F08C51 /* src */,
 				AFF305482B7AF300009ABC74 /* Knoodle.hpp */,
+				AFDEBF79302E28E6001C88F5 /* devel */,
+				AFDEBF17302E2721001C88F5 /* examples */,
+				AF301E5A302E260A00D6545C /* dev */,
 				AF7F30FF2FE04489008E25C0 /* test */,
 				AFC2F3FD2D4D00A400FF8621 /* Reapr_Legacy.hpp */,
+				AF8C883E302CAABE0062AC7B /* tools */,
 				AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */,
 				AF7FD1D62D87464900D802C0 /* PolyFold */,
-				AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDraw */,
-				AF6C85DD2E29315B0051B919 /* WorkBench */,
-				AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */,
-				AFAC10632F0293FA0029A41C /* Dev_ClisbyTree2 */,
-				AFBB9A9B2EF54467000CA528 /* Example_Knoodle */,
-				AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,
 				AF5B87F22BAE053100CB5CAF /* Frameworks */,
 			);
@@ -2088,16 +2198,16 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		AF8C77A1302B2D0A0062AC7B /* Products */ = {
+		AF8C81C5302B9A1B0062AC7B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AF8C7DFE302B2D700062AC7B /* QRAlgorithm */,
-				AF8C7E00302B2D700062AC7B /* Example_SparseCholesky */,
-				AF8C7E02302B2D700062AC7B /* UnitTests */,
-				AF8C7E04302B2D700062AC7B /* Unit_Test_SpMM */,
-				AF8C7E06302B2D700062AC7B /* DenseBLAS */,
-				AF8C7E08302B2D700062AC7B /* Experiment_SpMM */,
-				AF8C7E0A302B2D700062AC7B /* Scratch */,
+				AF8C880F302B9ABD0062AC7B /* QRAlgorithm */,
+				AF8C8811302B9ABD0062AC7B /* Example_SparseCholesky */,
+				AF8C8813302B9ABD0062AC7B /* UnitTests */,
+				AF8C8815302B9ABD0062AC7B /* Unit_Test_SpMM */,
+				AF8C8817302B9ABD0062AC7B /* DenseBLAS */,
+				AF8C8819302B9ABD0062AC7B /* Experiment_SpMM */,
+				AF8C881B302B9ABD0062AC7B /* Scratch */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -2270,6 +2380,20 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		AFDEB8B7302E26E8001C88F5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AFDEBF20302E2723001C88F5 /* QRAlgorithm */,
+				AFDEBF22302E2723001C88F5 /* Example_SparseCholesky */,
+				AFDEBF24302E2723001C88F5 /* UnitTests */,
+				AFDEBF26302E2723001C88F5 /* Unit_Test_SpMM */,
+				AFDEBF28302E2723001C88F5 /* DenseBLAS */,
+				AFDEBF2A302E2723001C88F5 /* Experiment_SpMM */,
+				AFDEBF2C302E2723001C88F5 /* Scratch */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		AFECED692FA2162300550AA4 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -2314,7 +2438,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram */,
+				AF301E5A302E260A00D6545C /* dev */,
 			);
 			name = Dev_PlanarDiagram2;
 			packageProductDependencies = (
@@ -2334,9 +2458,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */,
 			);
 			name = Dev_ClisbyTree;
 			packageProductDependencies = (
@@ -2395,9 +2516,6 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				AF6C85DD2E29315B0051B919 /* WorkBench */,
-			);
 			name = WorkBench;
 			packageProductDependencies = (
 			);
@@ -2439,9 +2557,6 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				AFAC10632F0293FA0029A41C /* Dev_ClisbyTree2 */,
-			);
 			name = Dev_ClisbyTree2;
 			packageProductDependencies = (
 			);
@@ -2461,9 +2576,6 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				AFBB9A9B2EF54467000CA528 /* Example_Knoodle */,
-			);
 			name = Example_Knoodle;
 			packageProductDependencies = (
 			);
@@ -2482,9 +2594,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDraw */,
 			);
 			name = Dev_OrthoDraw;
 			packageProductDependencies = (
@@ -2532,6 +2641,7 @@
 				};
 			};
 			buildConfigurationList = AF5BC0AE29D1AF1C008CA8B7 /* Build configuration list for PBXProject "Knoodle" */;
+			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -2539,29 +2649,16 @@
 				Base,
 			);
 			mainGroup = AF5BC0AA29D1AF1C008CA8B7;
-			preferredProjectObjectVersion = 56;
 			productRefGroup = AF5BC0B429D1AF1C008CA8B7 /* Products */;
 			projectDirPath = "";
 			projectReferences = (
-				{
-					ProductGroup = AFD3C72D3018C32B00DFA94A /* Products */;
-					ProjectRef = AFD3C7283018C32B00DFA94A /* Tensors.xcodeproj */;
-				},
 				{
 					ProductGroup = AF5F6AC1301684CA00AD10EA /* Products */;
 					ProjectRef = AF5F6ABC301684CA00AD10EA /* Tensors.xcodeproj */;
 				},
 				{
-					ProductGroup = AFCFD1B72F73C17400D9EBBF /* Products */;
-					ProjectRef = AFCFD1B22F73C17400D9EBBF /* Tensors.xcodeproj */;
-				},
-				{
 					ProductGroup = AFCAB7C12FFA21BA002EACA7 /* Products */;
 					ProjectRef = AFCAB7BC2FFA21BA002EACA7 /* Tensors.xcodeproj */;
-				},
-				{
-					ProductGroup = AF0DBAA330236ACD00D2B90D /* Products */;
-					ProjectRef = AF0DBA9E30236ACD00D2B90D /* Tensors.xcodeproj */;
 				},
 				{
 					ProductGroup = AF3C1CD32FEC34F8000094CE /* Products */;
@@ -2576,44 +2673,12 @@
 					ProjectRef = AF9EB6222FF4E21400CFD64F /* Tensors.xcodeproj */;
 				},
 				{
-					ProductGroup = AF7F341D2FE07B44008E25C0 /* Products */;
-					ProjectRef = AF7F34182FE07B44008E25C0 /* Tensors.xcodeproj */;
-				},
-				{
 					ProductGroup = AFA74110300E568400BC50C5 /* Products */;
 					ProjectRef = AFA7410B300E568400BC50C5 /* Tensors.xcodeproj */;
 				},
 				{
 					ProductGroup = AF82D21830166A220075A2D9 /* Products */;
 					ProjectRef = AF82D21330166A220075A2D9 /* Tensors.xcodeproj */;
-				},
-				{
-					ProductGroup = AF436D113028C4AB00814FEC /* Products */;
-					ProjectRef = AF436D0C3028C4AB00814FEC /* Tensors.xcodeproj */;
-				},
-				{
-					ProductGroup = AF8611C32F66C0A600F08C51 /* Products */;
-					ProjectRef = AF8611BD2F66C0A600F08C51 /* Tensors.xcodeproj */;
-				},
-				{
-					ProductGroup = AF5530373016B26000BD98BB /* Products */;
-					ProjectRef = AF5530323016B26000BD98BB /* Tensors.xcodeproj */;
-				},
-				{
-					ProductGroup = AF1AEC2D3014DF1F00B64478 /* Products */;
-					ProjectRef = AF1AEC283014DF1F00B64478 /* Tensors.xcodeproj */;
-				},
-				{
-					ProductGroup = AF8C77A1302B2D0A0062AC7B /* Products */;
-					ProjectRef = AF8C779C302B2D0A0062AC7B /* Tensors.xcodeproj */;
-				},
-				{
-					ProductGroup = AF1AD6C23012195000B64478 /* Products */;
-					ProjectRef = AF1AD6BD3012195000B64478 /* Tensors.xcodeproj */;
-				},
-				{
-					ProductGroup = AF0DCEA73025045E00D2B90D /* Products */;
-					ProjectRef = AF0DCEA23025045E00D2B90D /* Tensors.xcodeproj */;
 				},
 				{
 					ProductGroup = AFBC69962FA0ABF500D1661E /* Products */;
@@ -2624,14 +2689,6 @@
 					ProjectRef = AFAECC422F6DDA9F00852B78 /* Tensors.xcodeproj */;
 				},
 				{
-					ProductGroup = AFD8DDFA300DE7FA00AD9194 /* Products */;
-					ProjectRef = AFD8DDF5300DE7FA00AD9194 /* Tensors.xcodeproj */;
-				},
-				{
-					ProductGroup = AF7F2F952FE02296008E25C0 /* Products */;
-					ProjectRef = AF7F2F902FE02296008E25C0 /* Tensors.xcodeproj */;
-				},
-				{
 					ProductGroup = AFECED692FA2162300550AA4 /* Products */;
 					ProjectRef = AFECED642FA2162300550AA4 /* Tensors.xcodeproj */;
 				},
@@ -2640,24 +2697,12 @@
 					ProjectRef = AF1911152F9F344300685967 /* Tensors.xcodeproj */;
 				},
 				{
-					ProductGroup = AF2088662FED624600963995 /* Products */;
-					ProjectRef = AF2088612FED624600963995 /* Tensors.xcodeproj */;
-				},
-				{
 					ProductGroup = AFD8D49D30092F5400AD9194 /* Products */;
 					ProjectRef = AFD8D49830092F5400AD9194 /* Tensors.xcodeproj */;
 				},
 				{
-					ProductGroup = AFB44674301540880004600A /* Products */;
-					ProjectRef = AFB4466F301540880004600A /* Tensors.xcodeproj */;
-				},
-				{
 					ProductGroup = AFD3B3303017EE9100DFA94A /* Products */;
 					ProjectRef = AFD3B32B3017EE9100DFA94A /* Tensors.xcodeproj */;
-				},
-				{
-					ProductGroup = AF298AE92F75A2C600DE1933 /* Products */;
-					ProjectRef = AF298AE42F75A2C600DE1933 /* Tensors.xcodeproj */;
 				},
 				{
 					ProductGroup = AFA753A5300F72D400BC50C5 /* Products */;
@@ -2670,6 +2715,78 @@
 				{
 					ProductGroup = AF7C7FB0300FCC47008DD093 /* Products */;
 					ProjectRef = AF7C7FAB300FCC47008DD093 /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AFD3C72D3018C32B00DFA94A /* Products */;
+					ProjectRef = AFD3C7283018C32B00DFA94A /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AFCFD1B72F73C17400D9EBBF /* Products */;
+					ProjectRef = AFCFD1B22F73C17400D9EBBF /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AF0DBAA330236ACD00D2B90D /* Products */;
+					ProjectRef = AF0DBA9E30236ACD00D2B90D /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AF7F341D2FE07B44008E25C0 /* Products */;
+					ProjectRef = AF7F34182FE07B44008E25C0 /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AF8611C32F66C0A600F08C51 /* Products */;
+					ProjectRef = AF8611BD2F66C0A600F08C51 /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AF5530373016B26000BD98BB /* Products */;
+					ProjectRef = AF5530323016B26000BD98BB /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AF8C81C5302B9A1B0062AC7B /* Products */;
+					ProjectRef = AF8C81C0302B9A1B0062AC7B /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AF1AEC2D3014DF1F00B64478 /* Products */;
+					ProjectRef = AF1AEC283014DF1F00B64478 /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AF1AD6C23012195000B64478 /* Products */;
+					ProjectRef = AF1AD6BD3012195000B64478 /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AF0DCEA73025045E00D2B90D /* Products */;
+					ProjectRef = AF0DCEA23025045E00D2B90D /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AFD8DDFA300DE7FA00AD9194 /* Products */;
+					ProjectRef = AFD8DDF5300DE7FA00AD9194 /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AFDEB8B7302E26E8001C88F5 /* Products */;
+					ProjectRef = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AF7F2F952FE02296008E25C0 /* Products */;
+					ProjectRef = AF7F2F902FE02296008E25C0 /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AF506EA0302CB30A00E5618B /* Products */;
+					ProjectRef = AF506E9B302CB30A00E5618B /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AF3017ED302CF15300D6545C /* Products */;
+					ProjectRef = AF3017E8302CF15300D6545C /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AFB44674301540880004600A /* Products */;
+					ProjectRef = AFB4466F301540880004600A /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AF2088662FED624600963995 /* Products */;
+					ProjectRef = AF2088612FED624600963995 /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AF298AE92F75A2C600DE1933 /* Products */;
+					ProjectRef = AF298AE42F75A2C600DE1933 /* Tensors.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -3031,6 +3148,55 @@
 			remoteRef = AF298C102F75BE3000DE1933 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
+		AF301E46302D01DC00D6545C /* QRAlgorithm */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = QRAlgorithm;
+			remoteRef = AF301E45302D01DC00D6545C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF301E48302D01DC00D6545C /* Example_SparseCholesky */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Example_SparseCholesky;
+			remoteRef = AF301E47302D01DC00D6545C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF301E4A302D01DC00D6545C /* UnitTests */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = UnitTests;
+			remoteRef = AF301E49302D01DC00D6545C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF301E4C302D01DC00D6545C /* Unit_Test_SpMM */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Unit_Test_SpMM;
+			remoteRef = AF301E4B302D01DC00D6545C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF301E4E302D01DC00D6545C /* DenseBLAS */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = DenseBLAS;
+			remoteRef = AF301E4D302D01DC00D6545C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF301E50302D01DC00D6545C /* Experiment_SpMM */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Experiment_SpMM;
+			remoteRef = AF301E4F302D01DC00D6545C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF301E52302D01DC00D6545C /* Scratch */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Scratch;
+			remoteRef = AF301E51302D01DC00D6545C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		AF3C1E292FEC3513000094CE /* QRAlgorithm */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
@@ -3080,53 +3246,53 @@
 			remoteRef = AF3C1E342FEC3513000094CE /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AF43735A3029AA1B00814FEC /* QRAlgorithm */ = {
+		AF5074F9302CB4AF00E5618B /* QRAlgorithm */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = QRAlgorithm;
-			remoteRef = AF4373593029AA1B00814FEC /* PBXContainerItemProxy */;
+			remoteRef = AF5074F8302CB4AF00E5618B /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AF43735C3029AA1B00814FEC /* Example_SparseCholesky */ = {
+		AF5074FB302CB4AF00E5618B /* Example_SparseCholesky */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = Example_SparseCholesky;
-			remoteRef = AF43735B3029AA1B00814FEC /* PBXContainerItemProxy */;
+			remoteRef = AF5074FA302CB4AF00E5618B /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AF43735E3029AA1B00814FEC /* UnitTests */ = {
+		AF5074FD302CB4AF00E5618B /* UnitTests */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = UnitTests;
-			remoteRef = AF43735D3029AA1B00814FEC /* PBXContainerItemProxy */;
+			remoteRef = AF5074FC302CB4AF00E5618B /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AF4373603029AA1B00814FEC /* Unit_Test_SpMM */ = {
+		AF5074FF302CB4AF00E5618B /* Unit_Test_SpMM */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = Unit_Test_SpMM;
-			remoteRef = AF43735F3029AA1B00814FEC /* PBXContainerItemProxy */;
+			remoteRef = AF5074FE302CB4AF00E5618B /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AF4373623029AA1B00814FEC /* DenseBLAS */ = {
+		AF507501302CB4AF00E5618B /* DenseBLAS */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = DenseBLAS;
-			remoteRef = AF4373613029AA1B00814FEC /* PBXContainerItemProxy */;
+			remoteRef = AF507500302CB4AF00E5618B /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AF4373643029AA1B00814FEC /* Experiment_SpMM */ = {
+		AF507503302CB4AF00E5618B /* Experiment_SpMM */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = Experiment_SpMM;
-			remoteRef = AF4373633029AA1B00814FEC /* PBXContainerItemProxy */;
+			remoteRef = AF507502302CB4AF00E5618B /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AF4373663029AA1B00814FEC /* Scratch */ = {
+		AF507505302CB4AF00E5618B /* Scratch */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = Scratch;
-			remoteRef = AF4373653029AA1B00814FEC /* PBXContainerItemProxy */;
+			remoteRef = AF507504302CB4AF00E5618B /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		AF55368A30171AA900BD98BB /* QRAlgorithm */ = {
@@ -3521,53 +3687,53 @@
 			remoteRef = AF8611D82F66C0A700F08C51 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AF8C7DFE302B2D700062AC7B /* QRAlgorithm */ = {
+		AF8C880F302B9ABD0062AC7B /* QRAlgorithm */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = QRAlgorithm;
-			remoteRef = AF8C7DFD302B2D700062AC7B /* PBXContainerItemProxy */;
+			remoteRef = AF8C880E302B9ABD0062AC7B /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AF8C7E00302B2D700062AC7B /* Example_SparseCholesky */ = {
+		AF8C8811302B9ABD0062AC7B /* Example_SparseCholesky */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = Example_SparseCholesky;
-			remoteRef = AF8C7DFF302B2D700062AC7B /* PBXContainerItemProxy */;
+			remoteRef = AF8C8810302B9ABD0062AC7B /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AF8C7E02302B2D700062AC7B /* UnitTests */ = {
+		AF8C8813302B9ABD0062AC7B /* UnitTests */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = UnitTests;
-			remoteRef = AF8C7E01302B2D700062AC7B /* PBXContainerItemProxy */;
+			remoteRef = AF8C8812302B9ABD0062AC7B /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AF8C7E04302B2D700062AC7B /* Unit_Test_SpMM */ = {
+		AF8C8815302B9ABD0062AC7B /* Unit_Test_SpMM */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = Unit_Test_SpMM;
-			remoteRef = AF8C7E03302B2D700062AC7B /* PBXContainerItemProxy */;
+			remoteRef = AF8C8814302B9ABD0062AC7B /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AF8C7E06302B2D700062AC7B /* DenseBLAS */ = {
+		AF8C8817302B9ABD0062AC7B /* DenseBLAS */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = DenseBLAS;
-			remoteRef = AF8C7E05302B2D700062AC7B /* PBXContainerItemProxy */;
+			remoteRef = AF8C8816302B9ABD0062AC7B /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AF8C7E08302B2D700062AC7B /* Experiment_SpMM */ = {
+		AF8C8819302B9ABD0062AC7B /* Experiment_SpMM */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = Experiment_SpMM;
-			remoteRef = AF8C7E07302B2D700062AC7B /* PBXContainerItemProxy */;
+			remoteRef = AF8C8818302B9ABD0062AC7B /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AF8C7E0A302B2D700062AC7B /* Scratch */ = {
+		AF8C881B302B9ABD0062AC7B /* Scratch */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
 			path = Scratch;
-			remoteRef = AF8C7E09302B2D700062AC7B /* PBXContainerItemProxy */;
+			remoteRef = AF8C881A302B9ABD0062AC7B /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		AF9EB77E2FF4E36200CFD64F /* QRAlgorithm */ = {
@@ -4156,6 +4322,55 @@
 			fileType = "compiled.mach-o.executable";
 			path = Scratch;
 			remoteRef = AFD8E424300E1ADB00AD9194 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AFDEBF20302E2723001C88F5 /* QRAlgorithm */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = QRAlgorithm;
+			remoteRef = AFDEBF1F302E2723001C88F5 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AFDEBF22302E2723001C88F5 /* Example_SparseCholesky */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Example_SparseCholesky;
+			remoteRef = AFDEBF21302E2723001C88F5 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AFDEBF24302E2723001C88F5 /* UnitTests */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = UnitTests;
+			remoteRef = AFDEBF23302E2723001C88F5 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AFDEBF26302E2723001C88F5 /* Unit_Test_SpMM */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Unit_Test_SpMM;
+			remoteRef = AFDEBF25302E2723001C88F5 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AFDEBF28302E2723001C88F5 /* DenseBLAS */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = DenseBLAS;
+			remoteRef = AFDEBF27302E2723001C88F5 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AFDEBF2A302E2723001C88F5 /* Experiment_SpMM */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Experiment_SpMM;
+			remoteRef = AFDEBF29302E2723001C88F5 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AFDEBF2C302E2723001C88F5 /* Scratch */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Scratch;
+			remoteRef = AFDEBF2B302E2723001C88F5 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		AFECEE8D2FA2177B00550AA4 /* QRAlgorithm */ = {

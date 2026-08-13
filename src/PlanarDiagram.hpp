@@ -461,6 +461,12 @@ namespace Knoodle
 #ifdef KNOODLE_USE_BOOST_PLANARITY
 #include "PlanarDiagram/Planarity.hpp"
 #endif
+
+#include "PlanarDiagram/ToFile0.hpp"
+#include "PlanarDiagram/FromFile0.hpp"
+        
+#include "PlanarDiagram/ToFile.hpp"
+#include "PlanarDiagram/FromFile.hpp"
         
     public:
         
@@ -725,6 +731,7 @@ namespace Knoodle
         
     public:
         
+        /*!@brief Writes internal state of the diagram to log file. Meant for debugging purposes only.*/
         void PrintInfo() const
         {
             logprint(MethodName("PrintInfo") + " -- begin");

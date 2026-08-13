@@ -243,66 +243,66 @@ namespace Knoodle
 
 namespace Tools
 {
-    template<> struct ToChars<Knoodle::CrossingState_T>
-    {
-        using U = std::underlying_type_t<Knoodle::CrossingState_T>;
-        
-        static constexpr bool implementedQ = true;
-        
-        static constexpr Size_T char_count = 11;
-        
-        ToCharResult operator()( char * & begin, char * end, const Knoodle::CrossingState_T & s ) const
-        {
-            switch( s )
-            {
-                case Knoodle::CrossingState_T::Inactive:
-                {
-                    return CharArray("Inactive").ToChars(begin,end);
-                }
-                case Knoodle::CrossingState_T::RightHanded:
-                {
-                    return CharArray("RightHanded").ToChars(begin,end);
-                }
-                case Knoodle::CrossingState_T::LeftHanded:
-                {
-                    return CharArray("LeftHanded").ToChars(begin,end);
-                }
-                default:
-                {
-                    return CharArray("Unknown").ToChars(begin,end);
-                }
-            }
-        }
-    };
-    
-    
-    template<> struct ToChars<Knoodle::ArcState_T>
-    {
-        using U = std::underlying_type_t<Knoodle::ArcState_T>;
-        
-        static constexpr bool implementedQ = true;
-        
-        static constexpr Size_T char_count = 8;
-        
-        ToCharResult operator()( char * & begin, char * end, const Knoodle::ArcState_T & s ) const
-        {
-            switch( s )
-            {
-                case Knoodle::ArcState_T::Inactive:
-                {
-                    return CharArray("Inactive").ToChars(begin,end);
-                }
-                case Knoodle::ArcState_T::Active:
-                {
-                    return CharArray("Active").ToChars(begin,end);
-                }
-                default:
-                {
-                    return CharArray("Unknown").ToChars(begin,end);
-                }
-            }
-        }
-    };
+//    template<> struct ToChars<Knoodle::CrossingState_T>
+//    {
+//        using U = std::underlying_type_t<Knoodle::CrossingState_T>;
+//        
+//        static constexpr bool implementedQ = true;
+//        
+//        static constexpr Size_T char_count = 11;
+//        
+//        ToCharResult operator()( char * & begin, char * end, const Knoodle::CrossingState_T & s ) const
+//        {
+//            switch( s )
+//            {
+//                case Knoodle::CrossingState_T::Inactive:
+//                {
+//                    return CharArray("Inactive").ToChars(begin,end);
+//                }
+//                case Knoodle::CrossingState_T::RightHanded:
+//                {
+//                    return CharArray("RightHanded").ToChars(begin,end);
+//                }
+//                case Knoodle::CrossingState_T::LeftHanded:
+//                {
+//                    return CharArray("LeftHanded").ToChars(begin,end);
+//                }
+//                default:
+//                {
+//                    return CharArray("Unknown").ToChars(begin,end);
+//                }
+//            }
+//        }
+//    };
+//    
+//    
+//    template<> struct ToChars<Knoodle::ArcState_T>
+//    {
+//        using U = std::underlying_type_t<Knoodle::ArcState_T>;
+//        
+//        static constexpr bool implementedQ = true;
+//        
+//        static constexpr Size_T char_count = 8;
+//        
+//        ToCharResult operator()( char * & begin, char * end, const Knoodle::ArcState_T & s ) const
+//        {
+//            switch( s )
+//            {
+//                case Knoodle::ArcState_T::Inactive:
+//                {
+//                    return CharArray("Inactive").ToChars(begin,end);
+//                }
+//                case Knoodle::ArcState_T::Active:
+//                {
+//                    return CharArray("Active").ToChars(begin,end);
+//                }
+//                default:
+//                {
+//                    return CharArray("Unknown").ToChars(begin,end);
+//                }
+//            }
+//        }
+//    };
     
 }
 

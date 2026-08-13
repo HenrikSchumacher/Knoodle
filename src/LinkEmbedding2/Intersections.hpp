@@ -1,25 +1,128 @@
 public:
 
+/*!@brief Guarantee that the intersections are computed.
+ *
+ * @param force_recomputeQ If set to `true`, a recomputation of the intersections is enforced, even if the intersections are already computed. (Probably only useful for benchmarking and debugging.)
+ *
+ * @return A boolean. If `true` is returned, the intersections have been computed successfully. If `false` is returned, then either no vertex coordinates are loaded (check `VertexCoordinatesLoadedQ()`) or some self-intersection of the link in 3-space have been detected (check `IntersectionCount3D()`.)
+ */
+template<bool verboseQ = true> // whether to print errors and warnings
+[[nodiscard]] bool RequireIntersections( bool force_recomputeQ = false )
+{
+   [[maybe_unused]] auto tag = [](){ return MethodName("RequireIntersections"); };
+       
+    
+    if( force_recomputeQ || !intersections_computedQ )
+    {
+        ComputeIntersections();
+    }
+    
+    if( !intersections_computedQ )
+    {
+        if( !vertex_coords_loadedQ )
+        {
+            wprint(tag() + ": Failed to compute intersections because not vertex coordinates have been loaded, yet." );
+        }
+        else
+        {
+            wprint(tag() + ": Failed to compute intersections for an unknown reason." );
+        }
+        return false;
+    }
+    
+    if( intersection_count_3D > Int(0) )
+    {
+        wprint(tag() + ": Detected at least "  + ToString(intersection_count_3D)+ " self-intersections in 3-space after perturbation. Link is not an embedding." );
+        return false;
+    }
+    
+    return true;
+}
+
+
 /*!@brief Return flag that signals whether the intersections after projecting to the x-y-plane have been loaded already.*/
 bool IntersectionsComputedQ() const
 {
     return intersections_computedQ;
 }
 
-/*!@brief Guarantee that the intersections are computed.*/
-
-template<bool verboseQ = true> // whether to print errors and warnings
-[[nodiscard]] int RequireIntersections()
+/*!@brief Return the number of intersections after (symbolically perturbed) projection to the x-y-plane.
+ *
+ * Calls `RequireIntersections()`.
+ * */
+Int IntersectionCount()
 {
-    if( intersections_computedQ ) { return 0; }
-    
-    return ComputeIntersections();
+    (void)RequireIntersections();
+    return intersection_count;
 }
 
-/*!@brief (Re)compute the intersections.*/
+/*!@brief Return the number of intersections in the 3-space.
+ *
+ * Calls `RequireIntersections()`.
+ */
+Int IntersectionCount3D()
+{
+    (void)RequireIntersections();
+    return intersection_count_3D;
+}
 
+/*!@brief Return a vector `p` of size `EdgeCount() + 1` so that `p[e+1] - p[e]` is the number of intersections on edge `e`.
+ *
+ * Calls `RequireIntersections()`.
+ */
+cref<Tensor1<Int,Int>> EdgePointers()
+{
+    (void)RequireIntersections();
+    return edge_ptr;
+}
+
+/*!@brief Return a vector `a` intersection information. The labels of the intersections on edge `e` are `[ a[p[e]],...,a[p[e+1]-1]`, where `p = EdgePointers()`.
+ *
+ * Calls `RequireIntersections()`.
+ */
+cref<Tensor1<Int,Int>> EdgeIntersections()
+{
+    (void)RequireIntersections();
+    return edge_intersections;
+}
+
+/*!@brief Return a vector `t` with intersection time information. The times of intersection on edge `e` are `[ t[p[e]],...,t[p[e+1]-1]`, where `p = EdgePointers()`.
+ *
+ * Instead of giving the precise times (which are rational functions in the symbolic perturbation paramater `eps` with wide integer coefficient s), these are `double` approximations (for perturbation `eps = 0`).
+ *
+ * Calls `RequireIntersections()`.
+ */
+Tensor1<double,Int> EdgeIntersectionTimesAsDouble()
+{
+    (void)RequireIntersections();
+    
+    Tensor1<double,Int> result ( edge_times.Size() );
+    
+    for( Int i = 0; i < edge_times.Size(); ++i )
+    {
+        result[i] = ToDouble(edge_times[i]);
+    }
+        
+    return result;
+}
+
+/*!@brief Return a vector `s` with intersection state information. The states of intersection on edge `e` are `[ s[p[e]],...,s[p[e+1]-1]`, where `p = EdgePointers()`.
+ *
+ * The state is given by `(h << 1) | b`, where `h` is the handedness crossing and where `b` is `true` if this edge is the upper strand for the crossing `a[p[e]]` (and false otherwise), where `a = EdgeIntersections()`.
+ *
+ * Calls `RequireIntersections()`.
+ */
+cref<Tensor1<Int8,Int>> EdgeStates()
+{
+    (void)RequireIntersections();
+    return edge_state;
+}
+
+private:
+
+/*!@brief (Re)compute the intersections.*/
 template<bool verboseQ = true> // whether to print errors and warnings
-[[nodiscard]] int ComputeIntersections()
+void ComputeIntersections()
 {
     [[maybe_unused]] auto tag = [](){ return MethodName("ComputeIntersections"); };
     
@@ -41,30 +144,34 @@ template<bool verboseQ = true> // whether to print errors and warnings
     if( !bounding_boxes_computedQ )
     {
         wprint(tag() + ": Boundung boxes not computed, yet. Aborting.");
-        return 0;
     }
     
-    if( intersections.capacity() < ToSize_T(2 * EdgeCount()) )
     {
-        intersections.reserve( ToSize_T(2 * EdgeCount()) );
+        Size_T size_estimate = Size_T(2) * ToSize_T(EdgeCount());
+        if( intersections.capacity() < size_estimate )
+        {
+            intersections.reserve( size_estimate );
+        }
     }
     
     edge_ptr.Fill(0);
     
     FindIntersectingEdges_DFS();
+
     
-    if( intersection_count_3D > Int(0) )
+    if( std::in_range<Int>( Size_T(8) * intersections.size()) )
     {
-        if constexpr ( verboseQ )
-        {
-            eprint(tag()+": Detected " + ToString(intersection_count_3D) + " cases where line segments intersected in 3D.");
-        }
-        return 6;
+        eprint(tag() + ": More intersections found (intersections.size() = " + ToString(intersections.size()) + ") than can be handled by integer type Int = " + TypeName<Int> + " = " + std::string(PrettyTypeName<Int>()) + ". Please try again with a wider integer type." );
+        
+        intersections_computedQ = true;
+        return;
     }
+    
+    // Earlier versions of this function checked `intersection_count_3D > 0` and stopped here or threw warnings or errors. We just let it flow. Computing the other planar intersections might still be worthwhile. Moreover, `RequireIntersections` will finally report on this issue. Makes the control flow simpler and better maintainable.
         
     edge_ptr.Accumulate();
     
-    intersection_count = static_cast<Int>(intersections.size());
+    intersection_count = int_cast<Int>(intersections.size());
     
 //    Int64 sort_edge_count = 0;
 //    Int64 sort_intersection_count = 0;
@@ -82,9 +189,7 @@ template<bool verboseQ = true> // whether to print errors and warnings
             edge_times         = Tensor1<Time_T,Int>( edge_ptr.Last() );
             edge_state         = Tensor1<Int8  ,Int>( edge_ptr.Last() );
         }
-        
-        if( intersection_count <= Int(0) ) { return 0; }
-        
+
         for( Int k = intersection_count; k --> Int(0);  )
         {
             Intersection_T & inter = intersections[static_cast<Size_T>(k)];
@@ -143,15 +248,8 @@ template<bool verboseQ = true> // whether to print errors and warnings
     }
     
     // From now on we can safely cycle around each component and generate vertices, edges, crossings, etc. in their order.
-
     intersections_computedQ = true;
-    
-    return 0;
 }
-
-
-
-private:
 
 void FindIntersectingEdges_DFS()
 {
@@ -277,7 +375,6 @@ void ComputeEdgeEdgeIntersection( const Int k, const Int l )
         this->template ComputeEdgeEdgeIntersection_impl<false>(k,l);
     }
 }
-
 template<bool verboseQ>
 void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
 {
@@ -309,9 +406,12 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
         case Flag_T::Error:
         {
             eprint(tag() +": Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
-            // TODO: We need a check for overflow here.
             
-            ++intersection_count_3D;
+            // Prevent overflow by min - function.
+            intersection_count_3D = std::min(
+                 intersection_count_3D,
+                 std::numeric_limits<Int>::max() - Int(1)
+             ) + Int(1);
             return;
         }
         default:

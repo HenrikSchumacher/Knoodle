@@ -362,6 +362,7 @@ int main(int argc, char* argv[])
     Int inflate_target = 0;      // --inflate=N: inflate inputs to ~N crossings
     ki::Size_T n0  = 1;          // --n0=N: initial Reapr embedding_trials in ki::Identify
     ki::Size_T cap_escalate = ki::IdentifyParams{}.cap; // --escalate-cap=N: max escalation rounds
+    Int band_escalate = ki::IdentifyParams{}.deep_cx;   // --escalate-band=C: deep rounds only while stalled <= C
     ki::Size_T rot_trials   = ki::IdentifyParams{}.rot; // --rot=N: reprojections per embedding
     ki::Size_T seed_local_opt = ki::IdentifyParams{}.seed_local_opt; // --seed-local-opt=N: seed
                                                         // local_opt_level (0=off default,1=R1,2=R1+R2,
@@ -392,6 +393,7 @@ int main(int argc, char* argv[])
         else if (a.rfind("--inflate=", 0) == 0)  inflate_target = std::stoll(v("--inflate="));
         else if (a.rfind("--n0=", 0) == 0)       n0 = static_cast<ki::Size_T>(std::stoull(v("--n0=")));
         else if (a.rfind("--escalate-cap=", 0) == 0) cap_escalate = static_cast<ki::Size_T>(std::stoull(v("--escalate-cap=")));
+        else if (a.rfind("--escalate-band=", 0) == 0) band_escalate = static_cast<Int>(std::stoll(v("--escalate-band=")));
         else if (a.rfind("--rot=", 0) == 0) rot_trials = static_cast<ki::Size_T>(std::stoull(v("--rot=")));
         else if (a.rfind("--seed-local-opt=", 0) == 0) seed_local_opt = static_cast<ki::Size_T>(std::stoull(v("--seed-local-opt=")));
         else if (a.rfind("--seed-reroute=", 0) == 0) seed_reroute = std::stoi(v("--seed-reroute="));
@@ -405,7 +407,8 @@ int main(int argc, char* argv[])
         else if (a.rfind("--pool-file=", 0) == 0) pool_file = v("--pool-file=");
     }
 
-    const ki::IdentifyParams idp{ .n0 = n0, .cap = cap_escalate, .rot = rot_trials,
+    const ki::IdentifyParams idp{ .n0 = n0, .cap = cap_escalate,
+                                  .deep_cx = band_escalate, .rot = rot_trials,
                                   .max_cx = static_cast<Int>(c_max),
                                   .seed_local_opt = seed_local_opt,
                                   .seed_reroute = (seed_reroute != 0) };

@@ -80,29 +80,9 @@ cref<Matrix3x3_T> TransformationMatrix() const
     return R;
 }
 
-template<bool shiftQ = true>
-void Transform( cref<Matrix3x3_T> A )
+Matrix3x3_T InverseTransformationMatrix() const
 {
-    TOOLS_PTIMER(timer,MethodName("Transform"));
-    
-    Tensor2<Real,Int> v_coords( edge_count, AmbDim );
-    
-    WriteVertexCoordinates(v_coords.data());
-
-    SetTransformationMatrix(A);
-    
-    this->template ReadVertexCoordinates<true,shiftQ>(v_coords.data());
-    
-    // We make it so that we can restore the original coordinates up to shift from R.
-    // That is: we rotate both the coordinates and R by A; then we set R to the rotated matrix.
-    SetTransformationMatrix(Dot(A,R));
-}
-
-template<bool shiftQ = true>
-[[deprecated("This is a misnomer; changed name to `Transform`")]]
-void Rotate( cref<Matrix3x3_T> A )
-{
-    Transform(A);
+    return Inverse_Kahan(R);
 }
 
 

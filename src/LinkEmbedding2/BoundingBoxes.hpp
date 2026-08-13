@@ -1,8 +1,10 @@
 public:
 
-bool BoundingBoxesComputedQ() const
+cref<BContainer_T> BoundingBoxes()
 {
-    return bounding_boxes_computedQ;
+    RequireBoundingBoxes();
+    
+    return box_coords;
 }
 
 void RequireBoundingBoxes()
@@ -12,11 +14,9 @@ void RequireBoundingBoxes()
     ComputeBoundingBoxes();
 }
 
-cref<BContainer_T> BoundingBoxes()
+bool BoundingBoxesComputedQ() const
 {
-    RequireBoundingBoxes();
-    
-    return box_coords;
+    return bounding_boxes_computedQ;
 }
 
 private:
