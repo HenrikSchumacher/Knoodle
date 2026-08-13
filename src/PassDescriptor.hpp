@@ -559,11 +559,45 @@ namespace Knoodle
         // Templated on `Pass_T`/`Path_T` so that this header depends on
         // `PlanarDiagram` alone and not on `PlanarDiagramComplex`.
         //
-        // CAUTION: `Path_T`'s low bit is read by `Reroute` as `left_to_rightQ`
-        // -- a side flag -- whereas in `cross` it is the darc's Head/Tail bit.
-        // These agreed on every case we have checked, and `RoundTripQ` below
-        // pins down that the *encoding* is self-consistent, but that the two
-        // readings coincide in general is not proven here.
+        // The low bit: SETTLED (2026-08-13). `Reroute` reads `Path_T`'s low
+        // bit as `left_to_rightQ`, a side flag, while in `cross` it is the
+        // darc's Head/Tail bit. This used to be recorded here as an
+        // unproven coincidence. It is not a coincidence; the two are the same
+        // proposition, and it is worth writing down why, because a prescribed
+        // (non-shortest) path is exactly where an accidental agreement would
+        // stop being safe.
+        //
+        // It is literally the same bit: `Reroute` takes it via
+        // `FromDarc(path[p])`, whose second component is `da % 2`, and
+        // `ToPassAndPath` below copies `cross[i]` into `path[i+1]` untouched.
+        // So only the MEANINGS need to agree, and they do:
+        //
+        //   - Here, `cross = da` means the corridor steps from `L(da)` to
+        //     `R(da)`. For `d = Head`, `L(2b+Head)` is the face to the left of
+        //     `b`'s forward direction, so the corridor crosses `b` from `b`'s
+        //     left to `b`'s right. For `d = Tail` it is the other way.
+        //
+        //   - In `Reroute` (PassSimplifier/Reroute.hpp), the
+        //     `left_to_rightQ == true` diagram draws the rerouted strand
+        //     running EAST across a `b` that runs NORTH -- from `b`'s left to
+        //     `b`'s right -- and the `false` branch draws it running WEST.
+        //
+        // Same statement, so `left_to_rightQ == DirOf(da)`. The handedness
+        // formula that consumes it agrees too: `Reroute` sets the new
+        // crossing to `overQ` when left-to-right and `!overQ` otherwise, which
+        // is exactly what `OrthoDecorate::AfterDiagram` computes, and the two
+        // are checked against each other end-to-end by
+        // `test/oracle_vs_reroute` (up to a 4-crossing corridor found by
+        // Knoodle's own search).
+        //
+        // CAUTION that remains, and it is the live one: `Pass_T::overQ` is a
+        // SINGLE bool, so these conversions can only express a move whose
+        // corridor is uniformly over or uniformly under. A `kind=middlepass`
+        // with mixed tags has no `Pass_T` to convert to. Check 5 does NOT
+        // catch that -- middlepass exists to drop check 5 -- so
+        // `ToPassAndPath` guards it explicitly; without that guard it read
+        // `over[0]` and discarded the rest, handing the applier a different
+        // move that happened to typecheck.
         //======================================================================
 
         template<typename Pass_T, typename Path_T>
@@ -574,6 +608,29 @@ namespace Knoodle
         {
             std::string ignored;
             if( !WellFormedQ(pd,why) ) { return false; }
+
+            // `Pass_T` carries ONE `overQ` for the whole move, so a corridor
+            // with mixed tags has nothing to convert to. Check 5 would have
+            // caught this for a classical pass, but `kind=middlepass` exists
+            // precisely to drop check 5, and the assignment below reads only
+            // `over[0]` -- so without this guard a middlepass would be handed
+            // to the applier with every tag after the first silently
+            // discarded, i.e. as a DIFFERENT MOVE that happens to typecheck.
+            //
+            // Per-crossing over/under needs an applier that accepts it, which
+            // `Reroute` is not. Refusing here is the honest answer until one
+            // exists.
+            for( std::size_t i = 1; i < over.size(); ++i )
+            {
+                if( over[i] != over[0] )
+                {
+                    why = "this corridor is over at some crossings and under at"
+                          " others, and Pass_T has a single overQ for the whole"
+                          " move, so it cannot be expressed as (Pass_T,Path_T)."
+                          " A per-crossing applier is needed for it.";
+                    return false;
+                }
+            }
 
             // `Reroute` walks the strand with `NextArc(a,Head)`, i.e. along the
             // arcs' own orientation, so a descriptor whose strand darcs run

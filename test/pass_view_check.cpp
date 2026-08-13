@@ -290,6 +290,71 @@ static void RunPlainRoundTrip(
     }
 }
 
+// Per-crossing over/under has nowhere to go in `Pass_T`, which carries ONE
+// `overQ` for the whole move. Check 5 does not catch that, because
+// `kind=middlepass` exists precisely to drop check 5 -- so `ToPassAndPath`
+// has to refuse a mixed-tag corridor itself. Before it did, it read `over[0]`
+// and discarded the rest, handing the applier a DIFFERENT move that happened
+// to typecheck. That is the exact shape of the bug that produced the zf075886
+// incident downstream, so it is worth a test of its own.
+static void RunMixedTagTests( const PD_T & pd )
+{
+    // PassSimplifier's nested Pass_T / Path_T cannot be NAMED until a
+    // PassSimplifier has been constructed -- it and PlanarDiagramComplex are
+    // mutually dependent, so the nested types are not complete before then.
+    // Build PD -> PDC -> PS first, exactly as oracle_vs_reroute does.
+    PDC_T pdc { PD_T(pd) };
+    PS_T  ps( pdc, Knoodle::DijkstraStrategy_T::Bidirectional );
+    (void)ps;
+
+    auto attempt = [&]( const char * spec, bool middlepassQ, bool expect_okQ,
+                        const char * name )
+    {
+        Deco_T::PassMove_T mv;
+        std::string err, why;
+        if( !Deco_T::PassMove_T::Parse(spec, mv, err) )
+        {
+            std::printf("  tags %-22s parse failed: %s\n", name, err.c_str());
+            ok = false;
+            return;
+        }
+        mv.middlepassQ = middlepassQ;
+
+        // Well-formedness first, so a refusal below is about the conversion
+        // and not about the descriptor being bad in some other way.
+        if( !mv.WellFormedQ(pd,why) )
+        {
+            std::printf("  tags %-22s not well-formed: %s\n", name, why.c_str());
+            ok = false;
+            return;
+        }
+
+        typename PS_T::Pass_T pass;
+        typename PS_T::Path_T path( pd.MaxArcCount() + Int(4) );
+
+        const bool gotQ = mv.ToPassAndPath(pd, pass, path, why);
+
+        std::printf("  tags %-22s %s\n", name,
+            (gotQ == expect_okQ)
+                ? (gotQ ? "converted (as expected)" : "REFUSED (as expected)")
+                : "*** WRONG ANSWER ***");
+
+        if( gotQ != expect_okQ ) { ok = false; }
+        else if( !gotQ ) { std::printf("       reason: %s\n", why.c_str()); }
+    };
+
+    // Uniform tags: converts, and must keep converting.
+    attempt("strand=1,3,5 depart=0 cross=12:o,17:o land=4", true,  true,
+            "middlepass, uniform");
+    attempt("strand=1,3,5 depart=0 cross=12:o,17:o land=4", false, true,
+            "pass, uniform");
+
+    // Mixed tags. Well-formed as a middlepass (check 5 is dropped), so the
+    // refusal has to come from the conversion.
+    attempt("strand=1,3,5 depart=0 cross=12:o,17:u land=4", true,  false,
+            "middlepass, mixed");
+}
+
 // The swept disk: the region the strand covers as it slides over to the
 // corridor. W and the corridor share their two endpoints (the dots), so
 // between them they close into a loop, and the disk is what that loop bounds.
@@ -642,6 +707,9 @@ int main()
             }
         }
     }
+
+    std::printf("=== per-crossing tags have nowhere to go in Pass_T ===\n");
+    RunMixedTagTests(l6n1);
 
     std::printf("=== the swept disk, bounded by w and p ===\n");
     for( Int xg : {4, 8} )
