@@ -229,6 +229,77 @@ void StampPassOverlay(std::string& diagram, std::vector<HighlightType>& mask,
  * plus `margin`, the same system the routed corridor uses. The corridor is
  * stamped separately (StampPassOverlay) after this runs.
  */
+/*!@brief One drawn cell of an arc's gapless vertex-chain walk (tail -> head).
+ *
+ * `dir`: 0=E, 1=N, 2=W, 3=S, the direction of the segment the cell lies on.
+ * `pos` numbers the cells along the walk, matching `OrthoDecorate`'s own
+ * `TraverseArcCells` (and hence `PortalPoint_T::pos`), so a dot's `pos` can be
+ * looked up here.
+ */
+template<class PD_T>
+struct ArcCell_T
+{
+    typename PD_T::Int x, y, pos;
+    int dir;
+};
+
+/*!@brief Walk arc `a`'s drawn cells, tail to head, in canvas coordinates.
+ *
+ * This is `ArcVertices()` + `VertexCoordinates()`, NOT `ArcLines()`: the
+ * latter shortens an arc wherever it runs under a crossing (that is how the
+ * drawing shows the interruption), and those gaps would put holes in a walk
+ * that is supposed to be the arc's true, gapless geometry.
+ */
+template<class PD_T>
+std::vector<ArcCell_T<PD_T>> ArcWalkCells(
+    Knoodle::OrthoDraw<PD_T>& H, typename PD_T::Int a, typename PD_T::Int margin)
+{
+    using Int = typename PD_T::Int;
+
+    static const Int sdx[] = {1, 0, -1, 0};
+    static const Int sdy[] = {0, 1, 0, -1};
+
+    const auto& A_V      = H.ArcVertices();
+    const auto& V_coords = H.VertexCoordinates();
+
+    std::vector<ArcCell_T<PD_T>> cells;
+
+    auto verts = A_V[a];
+    auto it  = verts.begin();
+    auto end = verts.end();
+    if (it == end) return cells;
+
+    Int px = V_coords(*it, 0) + margin;
+    Int py = V_coords(*it, 1) + margin;
+    ++it;
+
+    Int pos = 0;
+    bool first = true;
+
+    for (; it != end; ++it)
+    {
+        Int qx = V_coords(*it, 0) + margin;
+        Int qy = V_coords(*it, 1) + margin;
+        if (px == qx && py == qy) continue;
+
+        int dir = (qx > px) ? 0 : (qy > py) ? 1 : (qx < px) ? 2 : 3;
+
+        if (first) { cells.push_back({px, py, pos, dir}); first = false; }
+
+        Int steps = std::abs(qx - px) + std::abs(qy - py);
+        for (Int s = 1; s < steps; ++s)
+        {
+            ++pos;
+            cells.push_back({px + s * sdx[dir], py + s * sdy[dir], pos, dir});
+        }
+        ++pos;
+        cells.push_back({qx, qy, pos, dir});
+
+        px = qx; py = qy;
+    }
+    return cells;
+}
+
 template<class PD_T>
 void ApplyAfterView(Knoodle::OrthoDraw<PD_T>& H, std::string& diagram,
                     std::vector<HighlightType>& mask,
@@ -247,55 +318,11 @@ void ApplyAfterView(Knoodle::OrthoDraw<PD_T>& H, std::string& diagram,
         return x >= 0 && x < n_x - 1 && y >= 0 && y < n_y;
     };
 
-    const auto& A_V      = H.ArcVertices();
-    const auto& V_coords = H.VertexCoordinates();
-
-    // One drawn cell of an arc's gapless vertex-chain walk (tail -> head).
-    // `dir`: 0=E, 1=N, 2=W, 3=S, the direction of the segment the cell lies
-    // on. Same geometry OrthoDecorate rasterizes; ArcLines() would have gaps.
-    struct CellRec { Int x, y, pos; int dir; };
+    using CellRec = ArcCell_T<PD_T>;
 
     auto collect = [&](Int a) -> std::vector<CellRec>
     {
-        static const Int sdx[] = {1, 0, -1, 0};
-        static const Int sdy[] = {0, 1, 0, -1};
-
-        std::vector<CellRec> cells;
-
-        auto verts = A_V[a];
-        auto it  = verts.begin();
-        auto end = verts.end();
-        if (it == end) return cells;
-
-        Int px = V_coords(*it, 0) + margin;
-        Int py = V_coords(*it, 1) + margin;
-        ++it;
-
-        Int pos = 0;
-        bool first = true;
-
-        for (; it != end; ++it)
-        {
-            Int qx = V_coords(*it, 0) + margin;
-            Int qy = V_coords(*it, 1) + margin;
-            if (px == qx && py == qy) continue;
-
-            int dir = (qx > px) ? 0 : (qy > py) ? 1 : (qx < px) ? 2 : 3;
-
-            if (first) { cells.push_back({px, py, pos, dir}); first = false; }
-
-            Int steps = std::abs(qx - px) + std::abs(qy - py);
-            for (Int s = 1; s < steps; ++s)
-            {
-                ++pos;
-                cells.push_back({px + s * sdx[dir], py + s * sdy[dir], pos, dir});
-            }
-            ++pos;
-            cells.push_back({qx, qy, pos, dir});
-
-            px = qx; py = qy;
-        }
-        return cells;
+        return ArcWalkCells<PD_T>(H, a, margin);
     };
 
     auto erase_cell = [&](Int x, Int y)
@@ -461,6 +488,206 @@ Canvas_T<PD_T> RenderPassView(
     StampPassOverlay<PD_T>(diagram, mask, n_x, n_y, cells, '\0');
 
     return Canvas_T<PD_T>{ std::move(diagram), n_x, n_y };
+}
+
+//==============================================================================
+// The swept disk
+//
+// Between the two dots, the strand W and the corridor P are two paths with the
+// same endpoints, so together they close up into a loop. When they do not
+// cross each other that loop is a Jordan curve and the region it bounds is
+// exactly the disk W sweeps out as it slides over to P -- the move's "before"
+// and "after" positions are its two sides. When they do cross, the loop is not
+// simple and the complement has several bounded pieces; we take the LARGEST,
+// which is what the eye reads as the disk anyway.
+//
+// Note the disk is a region of the PLANE, not a face of the diagram: other
+// strands run across it, and it is the union of every face they cut it into.
+// So the flood below walls off only W and P and passes freely over everything
+// else.
+//==============================================================================
+
+/*!@brief The cells of the closed curve formed by W (between the dots) and the
+ * corridor, in canvas coordinates.
+ */
+template<class PD_T>
+std::vector<std::array<typename PD_T::Int,2>> PassLoopCells(
+    Knoodle::OrthoDraw<PD_T>& H,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassMove_T& move,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassRoute_T& pr,
+    typename PD_T::Int margin)
+{
+    using Int    = typename PD_T::Int;
+    using Deco_T = Knoodle::OrthoDecorate<PD_T>;
+    using Cell_T = std::array<Int,2>;
+
+    std::vector<Cell_T> loop;
+
+    // The corridor, dots included (they are its first and last cells).
+    for (const auto& c : pr.route.path) { loop.push_back(Cell_T{c[0], c[1]}); }
+
+    auto pos_of = [](const std::vector<ArcCell_T<PD_T>>& cells,
+                     const std::array<Int,2>& dot) -> Int
+    {
+        for (const auto& c : cells)
+        {
+            if (c.x == dot[0] && c.y == dot[1]) return c.pos;
+        }
+        return Int(-1);
+    };
+
+    const std::size_t L = move.strand.size();
+
+    for (std::size_t i = 0; i < L; ++i)
+    {
+        const Int  a   = Deco_T::PassMove_T::ArcOf(move.strand[i]);
+        const bool fwd = Deco_T::PassMove_T::DirOf(move.strand[i]);
+        const bool firstQ = (i == 0);
+        const bool lastQ  = (i + 1 == L);
+
+        if (!H.EdgeActiveQ(a)) continue;
+
+        auto cells = ArcWalkCells<PD_T>(H, a, margin);
+
+        // Same spans ApplyAfterView deletes, but INCLUSIVE of the dots: the
+        // dots are where the loop closes.
+        Int lo = std::numeric_limits<Int>::min();
+        Int hi = std::numeric_limits<Int>::max();
+
+        if (firstQ && lastQ)
+        {
+            const Int tp = pos_of(cells, pr.tail_dot);
+            const Int hp = pos_of(cells, pr.head_dot);
+            if (tp < 0 || hp < 0) continue;
+            lo = std::min(tp, hp);
+            hi = std::max(tp, hp);
+        }
+        else if (firstQ)
+        {
+            const Int tp = pos_of(cells, pr.tail_dot);
+            if (tp < 0) continue;
+            if (fwd) { lo = tp; } else { hi = tp; }
+        }
+        else if (lastQ)
+        {
+            const Int hp = pos_of(cells, pr.head_dot);
+            if (hp < 0) continue;
+            if (fwd) { hi = hp; } else { lo = hp; }
+        }
+
+        for (const auto& c : cells)
+        {
+            if (c.pos >= lo && c.pos <= hi) { loop.push_back(Cell_T{c.x, c.y}); }
+        }
+    }
+
+    return loop;
+}
+
+/*!@brief Which canvas cells lie in the swept disk.
+ *
+ * Returns a flat `n_x * n_y` flag array (canvas indexing, as everywhere else
+ * here). Empty if the loop encloses nothing -- which is the honest answer when
+ * W and P run alongside each other with no room between them.
+ */
+template<class PD_T>
+std::vector<char> PassDiskCells(
+    Knoodle::OrthoDraw<PD_T>& H,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassMove_T& move,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassRoute_T& pr,
+    typename PD_T::Int margin,
+    typename PD_T::Int n_x, typename PD_T::Int n_y)
+{
+    using Int = typename PD_T::Int;
+
+    const auto N = static_cast<std::size_t>(n_x * n_y);
+
+    auto idx = [n_x, n_y](Int x, Int y) -> std::size_t {
+        return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y));
+    };
+    auto in_bounds = [n_x, n_y](Int x, Int y) -> bool {
+        return x >= 0 && x < n_x - 1 && y >= 0 && y < n_y;
+    };
+
+    std::vector<char> wall(N, char(0));
+    for (const auto& c : PassLoopCells<PD_T>(H, move, pr, margin))
+    {
+        if (in_bounds(c[0], c[1])) { wall[idx(c[0], c[1])] = char(1); }
+    }
+
+    // Flood the outside. 4-connected against a 4-connected loop: a closed
+    // 4-connected curve does block a 4-connected flood, which is what makes
+    // "inside" well defined on the grid at all.
+    static const Int dx4[] = {1, 0, -1, 0};
+    static const Int dy4[] = {0, 1, 0, -1};
+
+    std::vector<char> outside(N, char(0));
+    std::vector<std::array<Int,2>> stack;
+
+    for (Int y = 0; y < n_y; ++y)
+    {
+        for (Int x = 0; x < n_x - 1; ++x)
+        {
+            const bool ringQ = (x == 0) || (x == n_x - 2)
+                            || (y == 0) || (y == n_y - 1);
+            if (!ringQ) continue;
+            const auto i = idx(x,y);
+            if (wall[i] || outside[i]) continue;
+            outside[i] = char(1);
+            stack.push_back({x,y});
+        }
+    }
+
+    while (!stack.empty())
+    {
+        const auto p = stack.back(); stack.pop_back();
+        for (int d = 0; d < 4; ++d)
+        {
+            const Int qx = p[0] + dx4[d], qy = p[1] + dy4[d];
+            if (!in_bounds(qx,qy)) continue;
+            const auto j = idx(qx,qy);
+            if (wall[j] || outside[j]) continue;
+            outside[j] = char(1);
+            stack.push_back({qx,qy});
+        }
+    }
+
+    // What is left, minus the loop itself, is the enclosed area -- possibly in
+    // several pieces if W and P cross. Keep the biggest.
+    std::vector<char> seen(N, char(0));
+    std::vector<char> best;
+    std::size_t best_size = 0;
+
+    for (Int y = 0; y < n_y; ++y)
+    for (Int x = 0; x < n_x - 1; ++x)
+    {
+        const auto i0 = idx(x,y);
+        if (wall[i0] || outside[i0] || seen[i0]) continue;
+
+        std::vector<char> comp(N, char(0));
+        std::size_t size = 0;
+
+        seen[i0] = char(1); comp[i0] = char(1); ++size;
+        stack.push_back({x,y});
+
+        while (!stack.empty())
+        {
+            const auto p = stack.back(); stack.pop_back();
+            for (int d = 0; d < 4; ++d)
+            {
+                const Int qx = p[0] + dx4[d], qy = p[1] + dy4[d];
+                if (!in_bounds(qx,qy)) continue;
+                const auto j = idx(qx,qy);
+                if (wall[j] || outside[j] || seen[j]) continue;
+                seen[j] = char(1); comp[j] = char(1); ++size;
+                stack.push_back({qx,qy});
+            }
+        }
+
+        if (size > best_size) { best_size = size; best = std::move(comp); }
+    }
+
+    return best;
 }
 
 //==============================================================================

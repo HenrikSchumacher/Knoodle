@@ -290,6 +290,108 @@ static void RunPlainRoundTrip(
     }
 }
 
+// The swept disk: the region the strand covers as it slides over to the
+// corridor. W and the corridor share their two endpoints (the dots), so
+// between them they close into a loop, and the disk is what that loop bounds.
+//
+// What is asserted here is the DEFINING property -- that the region really is
+// "bounded by arcs in p and arcs in w": every cell next to a disk cell is
+// either in the disk or on the loop, so nothing else can be part of its
+// boundary. Plus that it touches BOTH W and the corridor, which is what makes
+// it the region BETWEEN them rather than some unrelated pocket of the drawing.
+static void RunDiskTests( const char * name, const PD_T & pd,
+                          const char * spec, Int xg, Int yg )
+{
+    Deco_T::PassMove_T mv;
+    std::string err;
+    if( !Deco_T::PassMove_T::Parse(spec, mv, err) ) { ok = false; return; }
+
+    OrthoDraw_T H(pd, Int(-1), GridSettings(xg,yg));
+    Deco_T deco(H, margin);
+
+    auto pr = deco.RoutePassMove(pd, mv);
+    if( !pr.validQ ) { ok = false; return; }
+
+    const Int n_x = H.Width()  * xg + Int(2) + Int(2) * margin;
+    const Int n_y = H.Height() * yg + Int(1) + Int(2) * margin;
+
+    auto disk = KnoodlePassView::PassDiskCells<PD_T>(
+        H, mv, pr, margin, n_x, n_y);
+
+    auto idx = [n_x,n_y]( Int x, Int y ) -> std::size_t
+    { return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y)); };
+
+    // Split the loop into its two arcs: the corridor, and W between the dots.
+    std::set<std::array<Int,2>> p_cells;
+    for( const auto & c : pr.route.path ) { p_cells.insert({c[0],c[1]}); }
+
+    std::set<std::array<Int,2>> loop, w_cells;
+    for( const auto & c : KnoodlePassView::PassLoopCells<PD_T>(H,mv,pr,margin) )
+    {
+        loop.insert({c[0],c[1]});
+        if( !p_cells.count({c[0],c[1]}) ) { w_cells.insert({c[0],c[1]}); }
+    }
+
+    if( disk.empty() )
+    {
+        std::printf("  disk %-18s %lldx%-2lld  encloses nothing\n",
+            name, (long long)xg, (long long)yg);
+        return;
+    }
+
+    std::size_t cells = 0;
+    bool borderQ = false, on_loopQ = false, leakQ = false;
+    bool touch_wQ = false, touch_pQ = false;
+
+    static const Int dx4[] = {1,0,-1,0};
+    static const Int dy4[] = {0,1,0,-1};
+
+    for( Int y = 0; y < n_y; ++y )
+    for( Int x = 0; x < n_x - Int(1); ++x )
+    {
+        const auto i = idx(x,y);
+        if( i >= disk.size() || !disk[i] ) { continue; }
+        ++cells;
+
+        if( loop.count({x,y}) ) { on_loopQ = true; }
+        if( (x == 0) || (x == n_x - Int(2)) || (y == 0) || (y == n_y - Int(1)) )
+        {
+            borderQ = true;
+        }
+
+        for( int d = 0; d < 4; ++d )
+        {
+            const Int qx = x + dx4[d], qy = y + dy4[d];
+            if( (qx < 0) || (qx >= n_x - Int(1)) || (qy < 0) || (qy >= n_y) )
+            {
+                leakQ = true; continue;
+            }
+            const std::array<Int,2> q{qx,qy};
+            if( loop.count(q) )
+            {
+                if( w_cells.count(q) ) { touch_wQ = true; }
+                if( p_cells.count(q) ) { touch_pQ = true; }
+                continue;
+            }
+            const auto j = idx(qx,qy);
+            if( (j >= disk.size()) || !disk[j] ) { leakQ = true; }
+        }
+    }
+
+    const bool goodQ = !borderQ && !on_loopQ && !leakQ && touch_wQ && touch_pQ;
+
+    std::printf("  disk %-18s %lldx%-2lld  %zu cells%s\n",
+        name, (long long)xg, (long long)yg, cells,
+        goodQ ? ", bounded by w and p"
+              : (borderQ  ? "  *** reaches the canvas border ***"
+              : (on_loopQ ? "  *** includes loop cells ***"
+              : (leakQ    ? "  *** has a boundary cell that is neither disk nor loop ***"
+              : (!touch_wQ ? "  *** does not touch the strand ***"
+                           : "  *** does not touch the corridor ***")))));
+
+    if( !goodQ ) { ok = false; }
+}
+
 // The other way to name a pass move: give the strand's first and last arc and
 // let Knoodle's own search supply the corridor (knoodledraw --find-pass=A,B,
 // oracle_vs_reroute --find A B). Whatever it returns is inside Reroute's
@@ -538,6 +640,22 @@ int main()
             {
                 RunCase(kase, xg, yg);
             }
+        }
+    }
+
+    std::printf("=== the swept disk, bounded by w and p ===\n");
+    for( Int xg : {4, 8} )
+    {
+        for( Int yg : {2, 4} )
+        {
+            RunDiskTests("trefoil doc", trefoil,
+                "strand=1,3 depart=1 cross=6:u land=3", xg, yg);
+            RunDiskTests("big k=3", big,
+                "strand=1,3,5,7 depart=0 cross=51:o,122:o,239:o land=6", xg, yg);
+            RunDiskTests("L6n1 3cpt", l6n1,
+                "strand=1,3,5 depart=0 cross=12:o,17:o land=4", xg, yg);
+            RunDiskTests("L10n104 4cpt", l10a,
+                "strand=15,17,19,9 depart=14 cross=33:o,0:o,22:o land=8", xg, yg);
         }
     }
 

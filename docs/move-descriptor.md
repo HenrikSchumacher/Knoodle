@@ -538,6 +538,21 @@ and any seeded choice an emitter makes must be recorded in the stream.
   `Reroute` through the friend harness and compare port-by-port and by
   determinant. Shared via `tools/find_pass.hpp`, so the picture and the check
   cannot disagree about what was found.
+- **Also implemented**: `--pass-disk` shades the **swept disk**. Between the
+  two dots, `W` and the corridor are two paths with the same endpoints, so
+  together they close into a loop; when they do not cross each other that loop
+  is a Jordan curve, and the region it bounds is exactly the disk `W` sweeps
+  out as it slides over to the corridor — the move's before and after
+  positions are its two sides. When they do cross, the loop is not simple and
+  the complement has several bounded pieces; the largest is shaded.
+
+  The disk is a region of the *plane*, not a face of the diagram: other
+  strands run across it, and it is the union of every face they cut it into.
+  It is shaded exactly the way `--checkerboard-coloring` shades faces (a dim
+  background, `.` in `--ascii`), and only blank cells are shaded, so arcs
+  crossing the disk stay legible. Its defining property — every cell on its
+  boundary belongs to `W` or to the corridor, and it touches both — is
+  asserted in `test/pass_view_check.cpp`.
 - **Also implemented**: `--pass-view=both|before|after` selects which of the
   two deletions to draw (see "The two deletions" above). `both` is the default
   superposition; `before` deletes the corridor, leaving the input diagram with

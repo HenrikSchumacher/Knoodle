@@ -102,6 +102,10 @@ struct Config
     //               healed, corridor attached through the shared stubs)
     std::string pass_view = "both";
 
+    // --pass-disk : shade the region the strand sweeps as it slides to the
+    // corridor, the way --checkerboard-coloring shades faces.
+    bool pass_disk = false;
+
     // Trace mode (--trace): input is a move-trace stream of
     // #step/#move/#view-headed PD records per docs/move-descriptor.md.
     bool trace_mode = false;
@@ -172,6 +176,12 @@ void PrintUsage()
     std::cerr << "                              promise. If no shorter route exists, that is\n";
     std::cerr << "                              reported and the strand is drawn highlighted\n";
     std::cerr << "                              with no corridor -- not an error.\n";
+    std::cerr << "  --pass-disk                 Shade the region the strand sweeps as it slides\n";
+    std::cerr << "                              to the corridor -- the disk bounded by W and the\n";
+    std::cerr << "                              corridor between the two dots. Shaded like\n";
+    std::cerr << "                              --checkerboard-coloring ('.' in --ascii). If the\n";
+    std::cerr << "                              two cross, the loop is not simple and the largest\n";
+    std::cerr << "                              enclosed piece is shaded.\n";
     std::cerr << "  --pass-view=VIEW            With --move or --find-pass: which of the\n";
     std::cerr << "                              two-deletions views to\n";
     std::cerr << "                              draw. 'both' (default) superposes strand W and its\n";
@@ -494,6 +504,10 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             config.find_pass = std::make_pair(static_cast<Int>(*fa),
                                               static_cast<Int>(*fb));
         }
+        else if (arg == "--pass-disk")
+        {
+            config.pass_disk = true;
+        }
         // Two-deletions view selection (with --move)
         else if (arg.starts_with("--pass-view="))
         {
@@ -579,6 +593,17 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
     {
         std::cerr << "Error: --pass-view needs a --move descriptor,"
                      " --find-pass=A,B, or --trace to select a view of\n";
+        return std::nullopt;
+    }
+
+    // The disk is bounded by the strand and the corridor, so there has to be
+    // a move for it to be the disk OF.
+    if (config.pass_disk && !config.move_spec && !config.find_pass
+        && !config.trace_mode)
+    {
+        std::cerr << "Error: --pass-disk needs a --move descriptor,"
+                     " --find-pass=A,B, or --trace -- the disk is the region"
+                     " between a strand and its corridor\n";
         return std::nullopt;
     }
 
@@ -2889,6 +2914,52 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
 
                 PadCanvas<PD_T>(diagram, mask, component_map,
                                 n_x, n_y, move_margin);
+
+                // Shade the swept disk first, so W and the corridor keep
+                // their own colours on top of it. Only blank cells are
+                // shaded, exactly as --checkerboard-coloring does, which is
+                // what lets arcs crossing the disk stay legible.
+                if (config.pass_disk)
+                {
+                    auto disk = KnoodlePassView::PassDiskCells<PD_T>(
+                        H, move, pass_route, move_margin, n_x, n_y);
+
+                    if (disk.empty())
+                    {
+                        std::cerr << "knoodledraw: --pass-disk: the strand and"
+                                     " the corridor enclose nothing in this"
+                                     " layout\n";
+                    }
+                    else
+                    {
+                        if (mask.empty())
+                        {
+                            mask.assign(static_cast<std::size_t>(n_x * n_y),
+                                        HighlightType::None);
+                        }
+                        for (std::size_t c = 0;
+                             c < disk.size() && c < mask.size()
+                             && c < diagram.size(); ++c)
+                        {
+                            if (disk[c] && diagram[c] == ' ')
+                            {
+                                mask[c] = HighlightType::Face;
+                            }
+                        }
+
+                        // The ASCII pass over the mask happens further up,
+                        // before the move is even routed, so the shading has
+                        // to be rendered here. (Unicode mode reads the mask
+                        // at the very end and needs nothing extra.) The
+                        // corridor is stamped after this and wins any cell
+                        // it lands on -- though it cannot land on the disk,
+                        // being part of the loop that bounds it.
+                        if (config.ascii_mode)
+                        {
+                            ApplyHighlightASCII(diagram, mask);
+                        }
+                    }
+                }
 
                 auto cells = deco.RenderPassRoute(pass_route);
 
