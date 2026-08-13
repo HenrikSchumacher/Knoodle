@@ -87,6 +87,14 @@ struct Config
     // --move=..., e.g. "kind=pass strand=11 depart=7 cross=7:u land=1".
     std::optional<std::string> move_spec;
 
+    // Which of the two-deletions views to draw (with --move):
+    //   "both"   -- the superposition: diagram + strand W + corridor (default)
+    //   "before" -- delete the corridor: the input diagram, dots marked
+    //   "after"  -- delete W: the diagram the move produces, in the frozen
+    //               before-layout (W erased beyond the dots, transversals
+    //               healed, corridor attached through the shared stubs)
+    std::string pass_view = "both";
+
     // Trace mode (--trace): input is a move-trace stream of
     // #step/#move/#view-headed PD records per docs/move-descriptor.md.
     bool trace_mode = false;
@@ -152,6 +160,12 @@ void PrintUsage()
     std::cerr << "                              darc DA = 2*arc+d (Tail=0/Head=1); corridor drawn in\n";
     std::cerr << "                              heavy gold strokes, anchors in red; rejected\n";
     std::cerr << "                              descriptors report the failed check and exit nonzero\n";
+    std::cerr << "  --pass-view=VIEW            With --move: which of the two-deletions views to\n";
+    std::cerr << "                              draw. 'both' (default) superposes strand W and its\n";
+    std::cerr << "                              corridor, branching at the dots; 'before' deletes\n";
+    std::cerr << "                              the corridor (the input diagram, dots marked);\n";
+    std::cerr << "                              'after' deletes W (the diagram the move produces,\n";
+    std::cerr << "                              in the frozen before-layout)\n";
     std::cerr << "  --trace                     Input is a move-trace stream (#step/#move/#view headed\n";
     std::cerr << "  --verify                    With --trace: check each pass move against the\n";
     std::cerr << "                              NEXT record's snapshot -- delete the strand from\n";
@@ -444,6 +458,18 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.move_spec = arg.substr(7);
         }
+        // Two-deletions view selection (with --move)
+        else if (arg.starts_with("--pass-view="))
+        {
+            config.pass_view = arg.substr(12);
+            if (config.pass_view != "both" && config.pass_view != "before"
+                && config.pass_view != "after")
+            {
+                std::cerr << "Error: --pass-view wants both, before or after"
+                             " (got '" << config.pass_view << "')\n";
+                return std::nullopt;
+            }
+        }
         // Short combinable flags: -c, -a, -f, -caf, -ac, etc.
         else if (arg.starts_with("-") && !arg.starts_with("--") && arg.size() > 1)
         {
@@ -509,6 +535,14 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.input_files.emplace_back(arg);
         }
+    }
+
+    // A view selection is meaningless without a move to view.
+    if (config.pass_view != "both" && !config.move_spec && !config.trace_mode)
+    {
+        std::cerr << "Error: --pass-view needs a --move descriptor (or --trace)"
+                     " to select a view of\n";
+        return std::nullopt;
     }
 
     // Debug preset enables all labels (before auto-sizing so grid adapts)
@@ -675,7 +709,7 @@ std::string UnicodeifyDiagram(const std::string& ascii,
                 case ']': char_out = mono ? "\xe2\x94\x93"  // ┓ (S+W)
                                           : "\xe2\x95\xae"; // ╮
                           break;
-                case '*': char_out = "\xe2\x97\x8f"; break; // ● U+25CF (junction)
+                case '*': char_out = "\xe2\x97\x8f"; break; // ● U+25CF (dot: corridor/strand branch point)
 
                 case '+':
                 {
@@ -2668,6 +2702,185 @@ void StampPassOverlay(std::string& diagram, std::vector<HighlightType>& mask,
 }
 
 /**
+ * @brief Turn the padded canvas into the AFTER view of the two-deletions
+ * contract (docs/move-descriptor.md): delete the strand W.
+ *
+ * W's strokes are erased beyond the dots -- the shared stubs (anchor -> dot
+ * on the strand's end arcs) survive, because they are the start of the
+ * rerouted strand as much as they were the start of W. At each of W's
+ * interior crossings the transversal was interrupted (if W ran over) or ran
+ * through the crossing cell (if W ran under, in which case the cell held the
+ * transversal's own glyph and erasing W's chain blanked it); either way the
+ * strand runs STRAIGHT through a crossing in an orthogonal drawing, so the
+ * healed transversal is the perpendicular stroke through that cell.
+ *
+ * Coordinates are padded-canvas coordinates: OrthoDraw vertex coordinates
+ * plus `margin`, the same system the routed corridor uses. The corridor is
+ * stamped separately (StampPassOverlay) after this runs.
+ */
+void ApplyAfterView(OrthoDraw_T& H, std::string& diagram,
+                    std::vector<HighlightType>& mask,
+                    Int n_x, Int n_y, Int margin,
+                    const Deco_T::PassMove_T& move,
+                    const Deco_T::PassRoute_T& pr)
+{
+    auto idx = [n_x, n_y](Int x, Int y) -> std::size_t {
+        return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y));
+    };
+    auto in_bounds = [n_x, n_y](Int x, Int y) -> bool {
+        return x >= 0 && x < n_x - 1 && y >= 0 && y < n_y;
+    };
+
+    const auto& A_V      = H.ArcVertices();
+    const auto& V_coords = H.VertexCoordinates();
+
+    // One drawn cell of an arc's gapless vertex-chain walk (tail -> head).
+    // `dir`: 0=E, 1=N, 2=W, 3=S, the direction of the segment the cell lies
+    // on. Same geometry OrthoDecorate rasterizes; ArcLines() would have gaps.
+    struct CellRec { Int x, y, pos; int dir; };
+
+    auto collect = [&](Int a) -> std::vector<CellRec>
+    {
+        static const Int sdx[] = {1, 0, -1, 0};
+        static const Int sdy[] = {0, 1, 0, -1};
+
+        std::vector<CellRec> cells;
+
+        auto verts = A_V[a];
+        auto it  = verts.begin();
+        auto end = verts.end();
+        if (it == end) return cells;
+
+        Int px = V_coords(*it, 0) + margin;
+        Int py = V_coords(*it, 1) + margin;
+        ++it;
+
+        Int pos = 0;
+        bool first = true;
+
+        for (; it != end; ++it)
+        {
+            Int qx = V_coords(*it, 0) + margin;
+            Int qy = V_coords(*it, 1) + margin;
+            if (px == qx && py == qy) continue;
+
+            int dir = (qx > px) ? 0 : (qy > py) ? 1 : (qx < px) ? 2 : 3;
+
+            if (first) { cells.push_back({px, py, pos, dir}); first = false; }
+
+            Int steps = std::abs(qx - px) + std::abs(qy - py);
+            for (Int s = 1; s < steps; ++s)
+            {
+                ++pos;
+                cells.push_back({px + s * sdx[dir], py + s * sdy[dir], pos, dir});
+            }
+            ++pos;
+            cells.push_back({qx, qy, pos, dir});
+
+            px = qx; py = qy;
+        }
+        return cells;
+    };
+
+    auto erase_cell = [&](Int x, Int y)
+    {
+        if (!in_bounds(x, y)) return;
+        auto i = idx(x, y);
+        if (i >= diagram.size()) return;
+        diagram[i] = ' ';
+        if (i < mask.size()) mask[i] = HighlightType::None;
+    };
+
+    const std::size_t L = move.strand.size();
+
+    auto pos_of = [](const std::vector<CellRec>& cells,
+                     const std::array<Int,2>& dot) -> Int
+    {
+        for (const auto& c : cells)
+        {
+            if (c.x == dot[0] && c.y == dot[1]) return c.pos;
+        }
+        return Int(-1);
+    };
+
+    for (std::size_t i = 0; i < L; ++i)
+    {
+        const Int  a   = Deco_T::PassMove_T::ArcOf(move.strand[i]);
+        const bool fwd = Deco_T::PassMove_T::DirOf(move.strand[i]);
+        const bool firstQ = (i == 0);
+        const bool lastQ  = (i + 1 == L);
+
+        if (!H.EdgeActiveQ(a)) continue;
+
+        auto cells = collect(a);
+
+        // Which walk positions get erased. Interior arcs vanish whole; end
+        // arcs keep the shared stub between their anchor and their dot.
+        Int lo = std::numeric_limits<Int>::min();
+        Int hi = std::numeric_limits<Int>::max();   // erase pos in (lo, hi)
+
+        if (firstQ && lastQ)
+        {
+            // One-arc strand: keep both stubs, erase strictly between the
+            // dots (RoutePassMove guarantees the tail dot precedes the head
+            // dot along the strand).
+            const Int tp = pos_of(cells, pr.tail_dot);
+            const Int hp = pos_of(cells, pr.head_dot);
+            if (tp < 0 || hp < 0) continue;   // cannot happen for a routed move
+            lo = std::min(tp, hp);
+            hi = std::max(tp, hp);
+        }
+        else if (firstQ)
+        {
+            const Int tp = pos_of(cells, pr.tail_dot);
+            if (tp < 0) continue;
+            // Anchor sits at the walk's start iff the strand runs the arc
+            // forward; the stub is the anchor side of the dot.
+            if (fwd) { lo = tp; }
+            else     { hi = tp; }
+        }
+        else if (lastQ)
+        {
+            const Int hp = pos_of(cells, pr.head_dot);
+            if (hp < 0) continue;
+            if (fwd) { hi = hp; }
+            else     { lo = hp; }
+        }
+
+        for (const auto& c : cells)
+        {
+            if (c.pos > lo && c.pos < hi) erase_cell(c.x, c.y);
+        }
+    }
+
+    // Heal the transversals. The interior crossing between strand arcs i-1
+    // and i sits at the end of arc i-1's walk (its head end if the strand
+    // runs it forward, its tail end otherwise); the endpoint record's `dir`
+    // is W's direction through the crossing, and the transversal is the
+    // perpendicular stroke.
+    for (std::size_t i = 1; i < L; ++i)
+    {
+        const Int  a   = Deco_T::PassMove_T::ArcOf(move.strand[i - 1]);
+        const bool fwd = Deco_T::PassMove_T::DirOf(move.strand[i - 1]);
+
+        if (!H.EdgeActiveQ(a)) continue;
+
+        auto cells = collect(a);
+        if (cells.empty()) continue;
+
+        const CellRec& x = fwd ? cells.back() : cells.front();
+
+        if (!in_bounds(x.x, x.y)) continue;
+        auto ci = idx(x.x, x.y);
+        if (ci >= diagram.size()) continue;
+
+        const bool w_horizontalQ = (x.dir % 2 == 0);
+        diagram[ci] = w_horizontalQ ? '|' : '-';
+        if (ci < mask.size()) mask[ci] = HighlightType::None;
+    }
+}
+
+/**
  * @brief Draw all summands of a knot to stdout.
  *
  * unknot_colors has one entry per bare unknot (0-crossing) summand that
@@ -2870,10 +3083,15 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
             auto pass_route = deco.RoutePassMove(summands[i], move);
             if (pass_route.validQ)
             {
+                const bool before_viewQ = (config.pass_view == "before");
+                const bool after_viewQ  = (config.pass_view == "after");
+
                 // Mark the strand W before padding, while the mask and the
                 // drawing still share OrthoDraw's coordinates. W keeps the
                 // diagram's own strokes; only its colour (or, in --mono, its
                 // weight and a 'w' marker) sets it apart from the corridor.
+                // In the after view W is erased, so there is nothing to mark.
+                if (!after_viewQ)
                 {
                     std::vector<Int> strand_arcs;
                     strand_arcs.reserve(move.strand.size());
@@ -2898,8 +3116,31 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
                 }
 
                 PadCanvas(diagram, mask, component_map, n_x, n_y, move_margin);
-                StampPassOverlay(diagram, mask, n_x, n_y,
-                                 deco.RenderPassRoute(pass_route),
+
+                auto cells = deco.RenderPassRoute(pass_route);
+
+                if (after_viewQ)
+                {
+                    // Delete W: erase it beyond the dots, heal the
+                    // transversals; the corridor then attaches through the
+                    // shared stubs and the drawing is the after-diagram in
+                    // the frozen before-layout.
+                    ApplyAfterView(H, diagram, mask, n_x, n_y, move_margin,
+                                   move, pass_route);
+                }
+                else if (before_viewQ)
+                {
+                    // Delete the corridor: the input diagram, with only the
+                    // dots (and anchor emphasis) marking where the move
+                    // would branch off.
+                    std::erase_if(cells, [](const Deco_T::OverlayCell_T& c)
+                    {
+                        return (c.kind != Deco_T::OverlayKind::Dot)
+                            && (c.kind != Deco_T::OverlayKind::Anchor);
+                    });
+                }
+
+                StampPassOverlay(diagram, mask, n_x, n_y, cells,
                                  (config.mono_mode || config.ascii_mode)
                                      ? 'p' : '\0');
                 move_applied = true;
