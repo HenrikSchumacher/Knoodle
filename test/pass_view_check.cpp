@@ -39,9 +39,12 @@
 #include "../tools/pass_view.hpp"
 #include "../tools/diagram_agreement.hpp"
 #include "../tools/drawing_extractor.hpp"
+#include "../tools/find_pass.hpp"
 #include "pass_fixtures.hpp"
 
 using Int         = std::int64_t;
+using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
+using PS_T        = Knoodle::PassSimplifier<Int>;
 using PD_T        = Knoodle::PlanarDiagram<Int>;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Deco_T      = Knoodle::OrthoDecorate<PD_T>;
@@ -287,6 +290,84 @@ static void RunPlainRoundTrip(
     }
 }
 
+// The other way to name a pass move: give the strand's first and last arc and
+// let Knoodle's own search supply the corridor (knoodledraw --find-pass=A,B,
+// oracle_vs_reroute --find A B). Whatever it returns is inside Reroute's
+// contract by construction, so it is the move class that actually matters --
+// and its drawings must satisfy the two deletions like any other.
+//
+// Finding nothing is a legitimate answer, not a failure: FindShortestRerouting
+// caps the corridor at L-2, so a strand with no strictly shorter route through
+// the faces simply has none. Only what it DOES return is checked here.
+static void RunFoundPassTests( const char * name, const PD_T & pd,
+                               Int first_arc, Int last_arc )
+{
+    std::string why;
+    Deco_T::PassMove_T mv;
+
+    if( !KnoodleFindPass::FindPassDescriptor<PD_T,PDC_T,PS_T,
+            Deco_T::PassMove_T>(pd, first_arc, last_arc, mv, why) )
+    {
+        std::printf("  found %-16s arcs %lld..%lld: none (%s)\n",
+            name, (long long)first_arc, (long long)last_arc, why.c_str());
+        return;
+    }
+
+    // The corridor came from the shortest-path search, so it must shorten:
+    // FindShortestRerouting caps at L-2, i.e. k <= L-2.
+    const Int L = static_cast<Int>(mv.strand.size());
+    const Int k = static_cast<Int>(mv.cross.size());
+    if( k > L - Int(2) )
+    {
+        std::printf("  found %-16s k=%lld exceeds the L-2 = %lld cap\n",
+            name, (long long)k, (long long)(L - Int(2)));
+        ok = false;
+        return;
+    }
+
+    int drawn = 0;
+    for( Int xg : {4, 6, 8} )
+    {
+        for( Int yg : {2, 3, 4} )
+        {
+            OrthoDraw_T H(pd, Int(-1), GridSettings(xg,yg));
+            Deco_T deco(H, margin);
+
+            auto pr = deco.RoutePassMove(pd, mv);
+            if( !pr.validQ )
+            {
+                std::printf("  found %-16s %lldx%lld: routing failed (%s)\n",
+                    name, (long long)xg, (long long)yg, pr.why.c_str());
+                ok = false;
+                continue;
+            }
+
+            PD_T after = deco.AfterDiagram(pd, mv, why);
+            if( !why.empty() )
+            {
+                std::printf("  found %-16s AfterDiagram: %s\n", name, why.c_str());
+                ok = false;
+                continue;
+            }
+
+            if( !KnoodlePassView::CheckBothDeletions<PD_T>(
+                    H, deco, pd, mv, pr, after, margin, why) )
+            {
+                std::printf("  found %-16s %lldx%lld: %s\n",
+                    name, (long long)xg, (long long)yg, why.c_str());
+                ok = false;
+                continue;
+            }
+            ++drawn;
+        }
+    }
+
+    std::printf("  found %-16s arcs %lld..%lld -> k=%lld, %lld->%lld crossings,"
+        " %d grids OK\n", name, (long long)first_arc, (long long)last_arc,
+        (long long)k, (long long)pd.CrossingCount(),
+        (long long)(pd.CrossingCount() - (L - Int(1)) + k), drawn);
+}
+
 // `knoodledraw --trace --verify` leans on DiagramsIsomorphicQ for the one
 // comparison that has no shared labelling to appeal to -- a record's snapshot
 // against what the previous record's move produced, across a PD code that
@@ -459,6 +540,12 @@ int main()
             }
         }
     }
+
+    std::printf("=== moves found by Knoodle's own search (in contract) ===\n");
+    RunFoundPassTests("big",     big,   Int(40), Int(48));
+    RunFoundPassTests("trefoil", trefoil, Int(0), Int(1));
+    RunFoundPassTests("L6n1",    l6n1,  Int(0),  Int(2));
+    RunFoundPassTests("L10n104", l10a,  Int(7),  Int(4));
 
     std::printf("=== unrooted isomorphism (what --verify's trace check uses) ===\n");
     RunIsomorphismTests();

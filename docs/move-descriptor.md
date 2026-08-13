@@ -511,6 +511,33 @@ and any seeded choice an emitter makes must be recorded in the stream.
   anchors emphasized in red, and a dot at each end where the corridor branches
   off the strand's own arc. A rejected descriptor prints which spec check
   failed and exits nonzero.
+- **Also implemented**: `knoodledraw --find-pass=A,B` names only the strand's
+  **first and last arc** and lets Knoodle's own
+  `PlanarDiagramComplex::FindShortestRerouting` supply the corridor.
+
+  This is the form to prefer, because of what `Reroute`'s contract actually
+  says. Its one stated precondition is that the corridor came from the
+  shortest-path search and *is* a shortest path — not well-formedness, not
+  strict shortening, optimality. A hand-written `--move=` descriptor cannot
+  promise that, and a well-formed descriptor outside the contract can have the
+  applier do something unrelated to it (the PR #30 reproducer is exactly that:
+  `k = 8` against a minimum of `4`). Naming the endpoints instead of the
+  corridor puts the move inside the contract **by construction**, so the
+  drawing depicts a move production would actually accept and carry out.
+
+  `FindShortestRerouting` caps the corridor at `L-2`, so what it returns is
+  both optimal and strictly simplifying, and it does not reroute — it returns a
+  path and leaves the diagram alone. **Finding nothing is an answer, not a
+  failure:** a strand with no strictly shorter route through the faces simply
+  has none, and the tool says so, draws the diagram with that strand
+  highlighted and no corridor, and exits 0.
+
+  The same search backs `test/oracle_vs_reroute --find A B`, which runs the
+  whole chain in one command: find the corridor, confirm it is a shortest path,
+  verify both deletions of the drawing against `AfterDiagram`, then run
+  `Reroute` through the friend harness and compare port-by-port and by
+  determinant. Shared via `tools/find_pass.hpp`, so the picture and the check
+  cannot disagree about what was found.
 - **Also implemented**: `--pass-view=both|before|after` selects which of the
   two deletions to draw (see "The two deletions" above). `both` is the default
   superposition; `before` deletes the corridor, leaving the input diagram with

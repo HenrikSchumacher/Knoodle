@@ -296,6 +296,7 @@ ordering_probe: ordering_probe.cpp ../Knoodle.hpp ../src/PassDescriptor.hpp \
 # Henrik approved 2026-08-12 (Knoodle.hpp forward decl + friend line in
 # PassSimplifier); the harness is test/pass_oracle.hpp. Light config.
 oracle_vs_reroute: oracle_vs_reroute.cpp pass_oracle.hpp ../tools/diagram_agreement.hpp \
+                   ../tools/drawing_extractor.hpp ../tools/pass_view.hpp ../tools/find_pass.hpp \
                    knot_determinant.hpp ../src/OrthoDecorate.hpp \
                    ../src/PassDescriptor.hpp ../Knoodle.hpp
 	@echo "=== Building oracle_vs_reroute on $(UNAME_S) ==="

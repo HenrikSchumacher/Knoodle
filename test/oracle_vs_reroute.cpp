@@ -27,16 +27,29 @@
 // usage: oracle_vs_reroute DIAGRAM.tsv "descriptor" [--expect-shortest]
 //        oracle_vs_reroute DIAGRAM.tsv --find A B
 //
-// `--find A B` asks `PlanarDiagramComplex::FindShortestRerouting` for the
-// shortest rerouting of the strand from arc A to arc B and compares that. It
-// is the knoodleprove pipeline end to end -- Henrik's own public finder
-// supplies the corridor, so the move is IN CONTRACT by construction -- and it
-// is the positive control for this driver: on such a move the two sides must
-// AGREE, which is what makes a disagreement elsewhere meaningful.
+// `--find A B` names only the strand's FIRST and LAST arc and asks
+// `PlanarDiagramComplex::FindShortestRerouting` for the corridor. That is the
+// knoodleprove pipeline end to end, and every link in it is checked:
+//
+//   find      Henrik's own public search supplies the corridor, so the move is
+//             IN CONTRACT by construction -- `Reroute`'s one stated
+//             precondition is that the path is a shortest path;
+//   draw      both deletions of the resulting picture are verified against the
+//             oracle, before the applier is run at all;
+//   apply     `Reroute` is run through the friend harness and its result is
+//             compared to the oracle port-by-port, plus by determinant.
+//
+// It is also the positive control for this driver: on such a move the two
+// sides must AGREE, which is what makes a disagreement elsewhere meaningful.
+// The same search backs `knoodledraw --find-pass=A,B` (tools/find_pass.hpp),
+// so the picture and the check cannot disagree about what was found.
 
 #include "../Knoodle.hpp"
 #include "pass_oracle.hpp"
 #include "../tools/diagram_agreement.hpp"
+#include "../tools/drawing_extractor.hpp"
+#include "../tools/pass_view.hpp"
+#include "../tools/find_pass.hpp"
 #include "knot_determinant.hpp"
 
 #include <cstdio>
@@ -190,55 +203,12 @@ int main( int argc, char ** argv )
         const Int a = static_cast<Int>(std::atoll(argv[3]));
         const Int b = static_cast<Int>(std::atoll(argv[4]));
 
-        PDC_T pdc_f { PD_T(pd_a) };
-        pdc_f.Unlock();
-        auto found = pdc_f.FindShortestRerouting(
-            Int(0), a, b, pd_a.MaxArcCount(),
-            PDC_T::Dijkstra_T::Bidirectional );
-
-        if( found.Size() < Int(2) )
+        // Shared with knoodledraw's --find-pass, so the two cannot disagree
+        // about what "the shortest rerouting of this strand" means.
+        if( !KnoodleFindPass::FindPassDescriptor<PD_T,PDC_T,PS_T,Desc_T>(
+                pd_a, a, b, mv, why) )
         {
-            std::fprintf(stderr,
-                "FindShortestRerouting found no rerouting for arcs %lld..%lld\n",
-                (long long)a, (long long)b);
-            return 1;
-        }
-
-        // Rebuild the pass the finder was asked about. `overQ` is W's own
-        // uniform role; `WellFormedQ` (check 5) is what decides it, so try
-        // both rather than re-derive the convention here.
-        bool builtQ = false;
-        for( bool overval : { false, true } )
-        {
-            typename PS_T::Pass_T pass;
-            pass.first     = a;
-            pass.last      = b;
-            pass.overQ     = overval;
-            pass.activeQ   = true;
-            pass.arc_count = Int(0);
-            {   // count the strand's arcs along the orientation
-                Int x = a, guard = 0;
-                const Int lim = Int(2) * pd_a.MaxArcCount() + Int(2);
-                ++pass.arc_count;
-                while( (x != b) && (guard++ < lim) )
-                {
-                    x = pd_a.NextArc(x, PD_T::Head);
-                    ++pass.arc_count;
-                }
-            }
-
-            Deco::PassMove_T cand;
-            if( Deco::PassMove_T::FromPassAndPath(pd_a, pass, found, cand, why)
-                && cand.WellFormedQ(pd_a, why) )
-            {
-                mv = cand; builtQ = true; break;
-            }
-        }
-        if( !builtQ )
-        {
-            std::fprintf(stderr,
-                "could not build a well-formed descriptor from the found "
-                "path: %s\n", why.c_str());
+            std::fprintf(stderr,"--find: %s\n", why.c_str());
             return 1;
         }
         std::printf("--find: %s\n", mv.ToString().c_str());
@@ -283,6 +253,35 @@ int main( int argc, char ** argv )
     {
         std::fprintf(stderr,"AfterDiagram: %s\n", why.c_str());
         return 1;
+    }
+
+    // ---- the drawing: both deletions, checked against the oracle --------
+    //
+    // The picture is the deliverable, so it gets checked too, and it is
+    // checked BEFORE the applier runs: delete the corridor and the drawing is
+    // `pd_a`; delete the strand and it is `oracle`. Neither claim involves
+    // `Reroute`, so a disagreement below is still attributable.
+    {
+        Deco deco_v(H, Int(2));
+        auto pr = deco_v.RoutePassMove(pd_a, mv);
+
+        if( !pr.validQ )
+        {
+            std::printf("drawing: UNROUTABLE in this layout (%s)\n",
+                pr.why.c_str());
+        }
+        else
+        {
+            std::string dwhy;
+            const bool drawnQ = KnoodlePassView::CheckBothDeletions<PD_T>(
+                H, deco_v, pd_a, mv, pr, oracle, Int(2), dwhy);
+
+            std::printf("drawing: %s\n", drawnQ
+                ? "both deletions VERIFIED"
+                : ("MISMATCH -- " + dwhy).c_str());
+
+            if( !drawnQ ) { return 1; }
+        }
     }
 
     // ---- applier: Reroute, through the friend harness -------------------

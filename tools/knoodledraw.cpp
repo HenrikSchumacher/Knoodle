@@ -22,6 +22,7 @@
 
 #include "knoodle_io.hpp"
 #include "pass_view.hpp"
+#include "find_pass.hpp"
 
 #include <charconv>     // ParsePassMove
 #include <cmath>
@@ -87,6 +88,11 @@ struct Config
     // Pass-move overlay (docs/move-descriptor.md): descriptor text from
     // --move=..., e.g. "kind=pass strand=11 depart=7 cross=7:u land=1".
     std::optional<std::string> move_spec;
+
+    // --find-pass=A,B : name the strand's first and last arc and let Knoodle's
+    // own shortest-rerouting search supply the corridor, so the move drawn is
+    // inside PassSimplifier::Reroute's contract by construction.
+    std::optional<std::pair<Int,Int>> find_pass;
 
     // Which of the two-deletions views to draw (with --move):
     //   "both"   -- the superposition: diagram + strand W + corridor (default)
@@ -158,7 +164,16 @@ void PrintUsage()
     std::cerr << "                              darc DA = 2*arc+d (Tail=0/Head=1); corridor drawn in\n";
     std::cerr << "                              heavy gold strokes, anchors in red; rejected\n";
     std::cerr << "                              descriptors report the failed check and exit nonzero\n";
-    std::cerr << "  --pass-view=VIEW            With --move: which of the two-deletions views to\n";
+    std::cerr << "  --find-pass=A,B             Name the strand's FIRST and LAST arc and let\n";
+    std::cerr << "                              Knoodle's own FindShortestRerouting supply the\n";
+    std::cerr << "                              corridor. The move drawn is then inside\n";
+    std::cerr << "                              PassSimplifier::Reroute's contract (a shortest\n";
+    std::cerr << "                              path) by construction, which --move cannot\n";
+    std::cerr << "                              promise. If no shorter route exists, that is\n";
+    std::cerr << "                              reported and the strand is drawn highlighted\n";
+    std::cerr << "                              with no corridor -- not an error.\n";
+    std::cerr << "  --pass-view=VIEW            With --move or --find-pass: which of the\n";
+    std::cerr << "                              two-deletions views to\n";
     std::cerr << "                              draw. 'both' (default) superposes strand W and its\n";
     std::cerr << "                              corridor, branching at the dots; 'before' deletes\n";
     std::cerr << "                              the corridor (the input diagram, dots marked);\n";
@@ -459,6 +474,26 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.move_spec = arg.substr(7);
         }
+        // Find a pass move between two arcs, rather than spelling one out
+        else if (arg.starts_with("--find-pass="))
+        {
+            const std::string val{arg.substr(12)};
+            const auto comma = val.find(',');
+            std::optional<int> fa, fb;
+            if (comma != std::string::npos)
+            {
+                fa = ParseNonNegativeInt(val.substr(0, comma));
+                fb = ParseNonNegativeInt(val.substr(comma + 1));
+            }
+            if (!fa || !fb)
+            {
+                std::cerr << "Error: --find-pass wants two arc indices,"
+                             " as --find-pass=A,B (got '" << val << "')\n";
+                return std::nullopt;
+            }
+            config.find_pass = std::make_pair(static_cast<Int>(*fa),
+                                              static_cast<Int>(*fb));
+        }
         // Two-deletions view selection (with --move)
         else if (arg.starts_with("--pass-view="))
         {
@@ -539,10 +574,20 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
     }
 
     // A view selection is meaningless without a move to view.
-    if (config.pass_view != "both" && !config.move_spec && !config.trace_mode)
+    if (config.pass_view != "both" && !config.move_spec && !config.find_pass
+        && !config.trace_mode)
     {
-        std::cerr << "Error: --pass-view needs a --move descriptor (or --trace)"
-                     " to select a view of\n";
+        std::cerr << "Error: --pass-view needs a --move descriptor,"
+                     " --find-pass=A,B, or --trace to select a view of\n";
+        return std::nullopt;
+    }
+
+    // --move spells the corridor out; --find-pass asks for one. Taking both
+    // would mean silently ignoring one of them.
+    if (config.move_spec && config.find_pass)
+    {
+        std::cerr << "Error: --move and --find-pass both name a pass move;"
+                     " use one or the other\n";
         return std::nullopt;
     }
 
@@ -2513,6 +2558,7 @@ void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out)
 //==============================================================================
 
 using Deco_T = Knoodle::OrthoDecorate<PD_T>;
+using PS_T   = Knoodle::PassSimplifier<Int>;
 
 /**
  * @brief Parse a pass-move descriptor per docs/move-descriptor.md.
@@ -2582,6 +2628,13 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
             return false;
         }
     }
+
+    // --find-pass=A,B names the strand's ends and lets Knoodle's own search
+    // supply the corridor. Unlike a rejected --move, finding no rerouting is
+    // NOT a failure -- it is a fact about the diagram, and often the one you
+    // were asking about. In that case we say so and still draw, with the
+    // strand you named highlighted.
+    const bool find_requested = config.find_pass.has_value();
 
     // A rejected --move must leave no drawing behind. The descriptor is tried
     // against every summand (its darcs only resolve on the one it belongs to)
@@ -2723,10 +2776,64 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
             }
         }
 
+        // --find-pass: ask Knoodle for the corridor rather than being told it.
+        // Only the summand the two arcs actually live on can answer.
+        bool drew_moveQ = move_requested;
+
+        if (find_requested)
+        {
+            const Int fa = config.find_pass->first;
+            const Int fb = config.find_pass->second;
+
+            std::string fwhy;
+            Deco_T::PassMove_T found;
+
+            if (KnoodleFindPass::FindPassDescriptor<PD_T,PDC_T,PS_T,
+                    Deco_T::PassMove_T>(summands[i], fa, fb, found, fwhy))
+            {
+                move       = found;
+                drew_moveQ = true;
+                std::cerr << "knoodledraw: --find-pass=" << fa << "," << fb
+                          << ": " << move.ToString() << "\n";
+            }
+            else
+            {
+                drew_moveQ = false;
+
+                // Not a failure: say what was asked and what came back, then
+                // draw the strand anyway -- "there is no shorter route for
+                // this strand" is a picture worth having.
+                std::cerr << "knoodledraw: no reducing pass from arc " << fa
+                          << " to arc " << fb << " (" << fwhy << ")\n";
+
+                std::vector<Int> strand_arcs;
+                std::string swhy;
+                if (KnoodleFindPass::StrandArcs(summands[i], fa, fb,
+                                                strand_arcs, swhy))
+                {
+                    if (n_x == 0)
+                    {
+                        n_x = H.Width()  * config.x_grid_size + 2;
+                        n_y = H.Height() * config.y_grid_size + 1;
+                    }
+                    if (mask.empty())
+                    {
+                        mask.assign(static_cast<std::size_t>(n_x * n_y),
+                                    HighlightType::None);
+                    }
+
+                    const bool no_colorQ = config.mono_mode || config.ascii_mode;
+                    MarkArcCells(H, diagram, n_x, n_y, strand_arcs, mask,
+                                 HighlightType::Strand,
+                                 no_colorQ ? 'w' : '\0');
+                }
+            }
+        }
+
         // Pass-move overlay: stamped after labels so the corridor wins any
         // cell conflicts. The descriptor is tried on every summand; its darc
         // references only validate on the summand they belong to.
-        if (move_requested)
+        if (drew_moveQ)
         {
             if (n_x == 0)
             {
@@ -2858,6 +2965,8 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
 
     // Fail loud if a requested pass-move overlay applied to no summand: a
     // rejected descriptor is exactly what this mode exists to diagnose.
+    // --find-pass is exempt: "no reducing pass exists" is an answer, not a
+    // rejection, and the drawing that comes with it is the point.
     if (move_requested && !move_applied)
     {
         std::cerr << "knoodledraw: --move descriptor rejected: "

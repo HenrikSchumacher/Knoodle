@@ -152,7 +152,7 @@ orthodecorate_check: ../test/orthodecorate_check.cpp ../Knoodle.hpp ../src/Ortho
 # view of a pass move, parse the DRAWING back into a diagram, and compare it
 # port-by-port to what that view is supposed to be. Exit 0 = pass.
 pass_view_check: ../test/pass_view_check.cpp ../Knoodle.hpp ../src/OrthoDecorate.hpp \
-                 pass_view.hpp drawing_extractor.hpp diagram_agreement.hpp
+                 pass_view.hpp drawing_extractor.hpp diagram_agreement.hpp find_pass.hpp
 	@echo "=== Building pass_view_check on $(UNAME_S) ==="
 	@echo "Compiling ../test/pass_view_check.cpp..."
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) ../test/pass_view_check.cpp $(LDFLAGS) -o ../test/pass_view_check
