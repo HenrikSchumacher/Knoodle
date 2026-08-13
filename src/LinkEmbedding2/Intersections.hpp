@@ -157,9 +157,8 @@ void ComputeIntersections()
     edge_ptr.Fill(0);
     
     FindIntersectingEdges_DFS();
-
     
-    if( std::in_range<Int>( Size_T(8) * intersections.size()) )
+    if( !std::in_range<Int>( Size_T(8) * intersections.size()) )
     {
         eprint(tag() + ": More intersections found (intersections.size() = " + ToString(intersections.size()) + ") than can be handled by integer type Int = " + TypeName<Int> + " = " + std::string(PrettyTypeName<Int>()) + ". Please try again with a wider integer type." );
         

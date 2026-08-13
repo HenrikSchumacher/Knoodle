@@ -53,6 +53,14 @@ template<bool verboseQ = true> // whether to print errors and warnings
     
     FindIntersectingEdges_DFS();
     
+    if( !std::in_range<Int>( Size_T(8) * intersections.size()) )
+    {
+        eprint(tag() + ": More intersections found (intersections.size() = " + ToString(intersections.size()) + ") than can be handled by integer type Int = " + TypeName<Int> + " = " + std::string(PrettyTypeName<Int>()) + ". Please try again with a wider integer type." );
+        
+        intersections_computedQ = true;
+        return;
+    }
+    
     if( intersection_count_3D > Int(0) )
     {
         if constexpr ( verboseQ )

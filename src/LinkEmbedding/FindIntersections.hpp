@@ -11,7 +11,9 @@ public:
     template<bool verboseQ = true> // whether to print errors and warnings
     [[nodiscard]] int FindIntersections()
     {
-        TOOLS_PTIMER(timer,MethodName("FindIntersections"));
+        [[maybe_unused]] auto tag = [](){ return MethodName("FindIntersections"); };
+        
+        TOOLS_PTIMER(timer,tag());
         
         // Here we do something strange:
         // We hand over edge_coords, a Tensor3 of size edge_count x 2 x 3
@@ -27,7 +29,7 @@ public:
         {
             if constexpr ( verboseQ )
             {
-                eprint(MethodName("FindIntersections")+": Detected " + ToString(degenerate_edge_count) + " degenerate edges.");
+                eprint(tag()+": Detected " + ToString(degenerate_edge_count) + " degenerate edges.");
             }
             return 9;
         }
@@ -39,7 +41,7 @@ public:
         }
 
         FindIntersectingEdges_DFS();
-
+        
         intersections_computedQ = true;
         
         // Check for bad intersections.
@@ -49,7 +51,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    eprint(MethodName("FindIntersections")+": Detected " + ToString(count) + " cases where line segments intersection times were out of bounds.");
+                    eprint(tag() + ": Detected " + ToString(count) + " cases where line segments intersection times were out of bounds.");
                 }
                 return 7;
             }
@@ -61,7 +63,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    eprint(MethodName("FindIntersections")+": Detected " + ToString(count) + " cases where line segments intersected in 3D.");
+                    eprint(tag() + ": Detected " + ToString(count) + " cases where line segments intersected in 3D.");
                 }
                 return 6;
             }
@@ -73,7 +75,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    wprint(MethodName("FindIntersections")+": Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval). Try to randomly rotate the input coordinates.");
+                    wprint(tag() + ": Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval). Try to randomly rotate the input coordinates.");
                 }
                 return 5;
             }
@@ -86,7 +88,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    wprint(MethodName("FindIntersections")+": Detected " + ToString(count) + " cases where the line-line intersection was a point in the corners of two line segments. Try to randomly rotate the input coordinates.");
+                    wprint(tag() + ": Detected " + ToString(count) + " cases where the line-line intersection was a point in the corners of two line segments. Try to randomly rotate the input coordinates.");
                 }
                 return 4;
             }
@@ -101,7 +103,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    wprint(MethodName("FindIntersections")+": Detected " + ToString(count) + " cases where the line-line intersection was a point in a corner of a line segment. Try to randomly rotate the input coordinates.");
+                    wprint(tag() + ": Detected " + ToString(count) + " cases where the line-line intersection was a point in a corner of a line segment. Try to randomly rotate the input coordinates.");
                 }
                 return 3;
             }
@@ -114,10 +116,9 @@ public:
             )
         )
         {
-            eprint(MethodName("FindIntersections")+": More intersections found than can be handled by integer type " + TypeName<Int> + "." );
+            eprint(tag() + ": More intersections found than can be handled by integer type " + TypeName<Int> + "." );
         }
         
-
         intersection_count = int_cast<Int>(intersections.size());
 
         // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
@@ -162,100 +163,54 @@ public:
         
         Size_T close_counter = 0;
         
-        // Sorting
+        for( Int i = 0; i < edge_count; ++i )
         {
-            TOOLS_PTIMER(sort_timer,MethodName("FindIntersections") + ": sorting.");
-            
-            // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
-            edge_ctr.template RequireSize<false>( edge_ptr.Size() );
-            edge_ctr.Read( edge_ptr.data() );
-            
-            if( edge_intersections.Size() != edge_ptr.Last() )
+            // This is the range of data in edge_intersections/edge_times that belongs to edge i.
+            const Int k_begin = edge_ptr[i  ];
+            const Int k_end   = edge_ptr[i+1];
+                 
+            // We need to sort only if there are at least two intersections on that edge.
+            if( k_begin + Int(1) < k_end )
             {
-                edge_intersections = Tensor1<Int, Size_T>( edge_ptr.Last() );
-                edge_times         = Tensor1<Real,Size_T>( edge_ptr.Last() );
-                edge_state         = Tensor1<Int8,Size_T>( edge_ptr.Last() );
-            }
-
-            // We are going to fill edge_intersections so that data of the i-th edge lies in edge_intersections[edge_ptr[i]],..,edge_intersections[edge_ptr[i+1]].
-            // To this end, we use (and modify!) edge_ctr so that edge_ctr[i] points AFTER the position to insert.
-            
-            if( intersection_count <= Int(0) ) { return 0; }
-            
-            for( Int k = intersection_count; k --> Int(0);  )
-            {
-                Intersection_T & inter = intersections[static_cast<Size_T>(k)];
+                sort(
+                    &edge_times[k_begin],
+                    &edge_intersections[k_begin],
+                    &edge_state[k_begin],
+                    k_end - k_begin
+                );
                 
-                // We have to write BEFORE the positions specified by edge_ctr (and decrease it for the next write;
-
-                const Int pos_0 = --edge_ctr[inter.edges[0]+1];
-                const Int pos_1 = --edge_ctr[inter.edges[1]+1];
-
-                edge_intersections[pos_0] = k;
-                edge_times        [pos_0] = inter.times[0];
-                edge_state        [pos_0] = static_cast<Int8>(inter.handedness << 1) | 1;
-
-                edge_intersections[pos_1] = k;
-                edge_times        [pos_1] = inter.times[1];
-                edge_state        [pos_1] = static_cast<Int8>(inter.handedness << 1) | 0;
-            }
-            
-            // We don't need this anymore.
-            intersections = std::vector<Intersection_T>();
-
-            // Sort intersections edgewise w.r.t. edge_times.
-            ThreeArraySort<Real,Int,Int8,Int> sort ( intersection_count );
-            
-            for( Int i = 0; i < edge_count; ++i )
-            {
-                // This is the range of data in edge_intersections/edge_times that belongs to edge i.
-                const Int k_begin = edge_ptr[i  ];
-                const Int k_end   = edge_ptr[i+1];
-                     
-                // We need to sort only if there are at least two intersections on that edge.
-                if( k_begin + Int(1) < k_end )
+                constexpr Real intersection_time_tolerance = 0.000000000001;
+                
+                for( Int l = k_begin + Int(1); l < k_end; ++l )
                 {
-                    sort(
-                        &edge_times[k_begin],
-                        &edge_intersections[k_begin],
-                        &edge_state[k_begin],
-                        k_end - k_begin
-                    );
+                    const Real delta = edge_times[l] - edge_times[l-1];
                     
-                    constexpr Real intersection_time_tolerance = 0.000000000001;
-                    
-                    for( Int l = k_begin + Int(1); l < k_end; ++l )
+                    if( delta < intersection_time_tolerance )
                     {
-                        const Real delta = edge_times[l] - edge_times[l-1];
+                        ++close_counter;
                         
-                        if( delta < intersection_time_tolerance )
-                        {
-                            ++close_counter;
+                        // TODO: For the moment we _want_ to see this warning.
+                        // TODO: On the long run we need a more precise detector for the ordering of the intersection times.
+                        
+//                        if constexpr ( verboseQ )
+//                        {
+                            auto inter_0 = intersections[
+                                static_cast<Size_T>(edge_intersections[l-1])
+                            ];
+                            auto inter_1 = intersections[
+                                static_cast<Size_T>(edge_intersections[l  ])
+                            ];
                             
-                            // TODO: For the moment we _want_ to see this warning.
-                            // TODO: On the long run we need a more precise detector for the ordering of the intersection times.
+                            const Int j_0 = (inter_0.edges[0] == i) ? inter_0.edges[1] : inter_0.edges[0];
                             
-    //                        if constexpr ( verboseQ )
-    //                        {
-                                auto inter_0 = intersections[
-                                    static_cast<Size_T>(edge_intersections[l-1])
-                                ];
-                                auto inter_1 = intersections[
-                                    static_cast<Size_T>(edge_intersections[l  ])
-                                ];
-                                
-                                const Int j_0 = (inter_0.edges[0] == i) ? inter_0.edges[1] : inter_0.edges[0];
-                                
-                                const Int j_1 = (inter_1.edges[0] == i) ? inter_1.edges[1] : inter_1.edges[0];
-                                
-                                wprint(ClassName()+"::FindIntersections: Detected tiny difference of intersection times = " + ToString(delta) + " < " + ToString(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + ((edge_state[l-1] & 1) ? "over" : "under") + ") and " + ToString(j_1) + " (" + ((edge_state[l] & 1) ? "over" : "under") + ")." );
-    //                        }
-                        }
+                            const Int j_1 = (inter_1.edges[0] == i) ? inter_1.edges[1] : inter_1.edges[0];
+                            
+                            wprint(tag() + ": Detected tiny difference of intersection times = " + ToString(delta) + " < " + ToString(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + ((edge_state[l-1] & 1) ? "over" : "under") + ") and " + ToString(j_1) + " (" + ((edge_state[l] & 1) ? "over" : "under") + ")." );
+//                        }
                     }
                 }
             }
-            
-        } // Sorting
+        }
         
         intersection_flag_counts[8] = close_counter;
         
@@ -265,7 +220,7 @@ public:
             // TODO: On the long run we need a more precise detector for the ordering of the intersection times.
 //            if constexpr ( verboseQ )
 //            {
-                wprint(ClassName()+"::FindIntersections: Detected " + ToString(close_counter) + " case(s) of tiny difference between intersection times." );
+                wprint(tag() + ": Detected " + ToString(close_counter) + " case(s) of tiny difference between intersection times." );
 //            }
             return 8;
         }
