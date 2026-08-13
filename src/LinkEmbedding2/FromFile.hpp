@@ -193,7 +193,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s )
     
     LinkEmbedding_T link (
         Tensor1<Int,Int>( &component_ptr_agg[0], int_cast<Int>(component_ptr_agg.size()) ),
-        Tensor1<Int,Int>( &color_agg[0]        , int_cast<Int>(color_agg.size())         )
+        Tensor1<Int,Int>( &color_agg[0], int_cast<Int>(color_agg.size())         )
     );
     
     link.ReadVertexCoordinates(&v_coords[0][0]);

@@ -715,6 +715,8 @@ namespace Knoodle
          *  @param b The other end arc of the shortest path we are looking for.
          *
          *  @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
+         *
+         *  @param strategy The search strategy.
          */
         
         PassSimplifier_T::Path_T FindShortestPath(
@@ -733,6 +735,8 @@ namespace Knoodle
          *  @param b The last arc of the input strand (included).
          *
          *  @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
+         *
+         *  @param strategy The search strategy.
          */
         PassSimplifier_T::Path_T FindShortestRerouting(
             const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
