@@ -14,6 +14,9 @@
 
 #pragma once
 
+#include "diagram_agreement.hpp"
+#include "drawing_extractor.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -458,6 +461,180 @@ Canvas_T<PD_T> RenderPassView(
     StampPassOverlay<PD_T>(diagram, mask, n_x, n_y, cells, '\0');
 
     return Canvas_T<PD_T>{ std::move(diagram), n_x, n_y };
+}
+
+//==============================================================================
+// The two-deletions check (docs/move-descriptor.md)
+//
+// Render a deletion view, read it back with the drawing parser, and compare it
+// port-by-port to the diagram that view is supposed to be. The correspondence
+// is GEOMETRIC -- each parsed crossing is matched to the crossing whose grid
+// cell it was read from -- which makes this stronger than asking whether the
+// two are isomorphic. A corridor attached to the wrong port of an anchor draws
+// a perfectly legal diagram, often of the right knot; only insisting on the
+// map the geometry dictates catches it.
+//==============================================================================
+
+/*!@brief Match parsed crossings to crossings of the diagram that was drawn.
+ *
+ * `pr` may be null, in which case only crossings of `pd` are candidates (the
+ * BEFORE view). With it, a parsed crossing that is not one of `pd`'s may
+ * instead be one of the corridor's, identified by its position along the
+ * corridor -- which is exactly the order `AfterDiagram` appends them in.
+ */
+template<class PD_T>
+bool PassViewSeeds(
+    const typename KnoodleDrawIO::DrawingExtractor<PD_T>::Result_T & R,
+    const PD_T & pd,
+    const Knoodle::OrthoDraw<PD_T> & H,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassRoute_T * pr,
+    typename PD_T::Int margin,
+    std::vector<std::array<typename PD_T::Int,2>> & seeds,
+    std::string & why )
+{
+    using Int = typename PD_T::Int;
+
+    const auto & V   = H.VertexCoordinates();
+    const Int    n_c = pd.MaxCrossingCount();
+
+    seeds.clear();
+
+    for( std::size_t i = 0; i < R.crossing_cell.size(); ++i )
+    {
+        const Int x = R.crossing_cell[i][0], y = R.crossing_cell[i][1];
+
+        Int match = Int(-1);
+
+        for( Int c = 0; c < n_c; ++c )
+        {
+            if( !pd.CrossingActiveQ(c) ) { continue; }
+            if( (V(c,0) + margin == x) && (V(c,1) + margin == y) )
+            {
+                match = c;
+                break;
+            }
+        }
+
+        if( (match < 0) && (pr != nullptr) )
+        {
+            for( std::size_t j = 0; j < pr->route.crossing_indices.size(); ++j )
+            {
+                const auto & cell = pr->route.path[
+                    static_cast<std::size_t>(pr->route.crossing_indices[j])];
+                if( (cell[0] == x) && (cell[1] == y) )
+                {
+                    match = n_c + static_cast<Int>(j);
+                    break;
+                }
+            }
+        }
+
+        if( match < 0 )
+        {
+            why = "the drawing has a crossing at (" + std::to_string(x) + ","
+                + std::to_string(y) + ") that is neither a crossing of the"
+                " diagram nor a crossing of the corridor";
+            return false;
+        }
+
+        seeds.push_back({ static_cast<Int>(i), match });
+    }
+
+    return true;
+}
+
+/*!@brief Check one deletion view against the diagram it should depict.
+ *
+ * `view` selects the deletion; `truth` is what that view is supposed to be
+ * (the input diagram for Before, `AfterDiagram`'s result for After). Returns
+ * false with `why` set if the drawing does not parse, if a parsed crossing has
+ * no counterpart, or if the structures disagree.
+ */
+template<class PD_T>
+bool CheckPassView(
+    Knoodle::OrthoDraw<PD_T> & H,
+    Knoodle::OrthoDecorate<PD_T> & deco,
+    const PD_T & pd,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassMove_T & move,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassRoute_T & pr,
+    const PD_T & truth,
+    typename PD_T::Int margin,
+    PassViewKind view,
+    std::string & why )
+{
+    using Int       = typename PD_T::Int;
+    using Extract_T = KnoodleDrawIO::DrawingExtractor<PD_T>;
+
+    if( view == PassViewKind::Both )
+    {
+        why = "the superposition is not a deletion: at a dot the strand and the"
+              " corridor branch, so there is no single diagram to compare to";
+        return false;
+    }
+
+    auto canvas = RenderPassView<PD_T>(H, move, pr, deco, margin, view);
+
+    auto R = Extract_T::Extract(canvas.chars, canvas.n_x, canvas.n_y);
+    if( !R.okQ )
+    {
+        why = "the drawing does not parse: " + R.why;
+        return false;
+    }
+
+    std::vector<std::array<Int,2>> seeds;
+    const auto * prp = (view == PassViewKind::After) ? &pr : nullptr;
+
+    if( !PassViewSeeds<PD_T>(R, pd, H, prp, margin, seeds, why) )
+    {
+        return false;
+    }
+
+    if( !DiagramsAgreeQ(R.pd, truth, seeds, why) )
+    {
+        return false;
+    }
+
+    if( R.free_loops != Int(0) )
+    {
+        why = "the drawing has " + std::to_string(R.free_loops)
+            + " crossing-free closed curve(s) the diagram does not";
+        return false;
+    }
+
+    why.clear();
+    return true;
+}
+
+/*!@brief Both deletions at once: the full contract for one pass move.*/
+template<class PD_T>
+bool CheckBothDeletions(
+    Knoodle::OrthoDraw<PD_T> & H,
+    Knoodle::OrthoDecorate<PD_T> & deco,
+    const PD_T & pd,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassMove_T & move,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassRoute_T & pr,
+    const PD_T & after,
+    typename PD_T::Int margin,
+    std::string & why )
+{
+    if( !CheckPassView<PD_T>(H, deco, pd, move, pr, pd, margin,
+                             PassViewKind::Before, why) )
+    {
+        why = "deleting the corridor does not leave the diagram we were handed: "
+            + why;
+        return false;
+    }
+
+    if( !CheckPassView<PD_T>(H, deco, pd, move, pr, after, margin,
+                             PassViewKind::After, why) )
+    {
+        why = "deleting the strand does not leave the diagram the move produces: "
+            + why;
+        return false;
+    }
+
+    why.clear();
+    return true;
 }
 
 } // namespace KnoodlePassView

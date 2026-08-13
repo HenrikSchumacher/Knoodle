@@ -32,7 +32,7 @@
 // The seeds therefore carry the claim being tested. When comparing an applier
 // against an oracle, the seed is a crossing the move promised not to touch,
 // which both diagrams still hold at its original index. When comparing a
-// diagram parsed back out of a DRAWING (test/drawing_extractor.hpp), the seeds
+// diagram parsed back out of a DRAWING (tools/drawing_extractor.hpp), the seeds
 // come from the grid: each parsed crossing is matched to the crossing whose
 // cell it was read from. Seeding every crossing that way makes this check the
 // strongest available -- it verifies not just that the drawing depicts a
@@ -45,19 +45,38 @@
 #include <string>
 #include <vector>
 
-/*!@brief Check that a supplied crossing correspondence extends to an
- * isomorphism of oriented diagrams.
+/*!@brief The state of a partial correspondence, so that a caller can extend
+ * one seed pair at a time and roll back an attempt that fails.
+ */
+template<typename Int>
+struct DiagramMatch_T
+{
+    static constexpr Int None = Int(-1);
+
+    std::vector<Int>  cmap;    // d1 crossing -> d2 crossing
+    std::vector<Int>  amap;    // d1 arc      -> d2 arc
+    std::vector<char> ctaken;  // d2 crossing claimed?
+    std::vector<char> ataken;  // d2 arc claimed?
+
+    DiagramMatch_T( Int n1, Int m1, Int n2, Int m2 )
+    : cmap  (static_cast<std::size_t>(n1), None)
+    , amap  (static_cast<std::size_t>(m1), None)
+    , ctaken(static_cast<std::size_t>(n2), 0)
+    , ataken(static_cast<std::size_t>(m2), 0)
+    {}
+};
+
+/*!@brief Propagate a correspondence outward from `seeds`, extending `M`.
  *
- * `seeds` is a list of `{c1, c2}` pairs asserting that crossing `c1` of `d1`
- * is crossing `c2` of `d2`. At least one seed is required per connected
- * component; supplying more is a stronger check, since every one of them must
- * survive propagation. On failure `why` names the crossing or arc where the
- * claim broke.
+ * Does NOT check that every crossing was reached -- that is the caller's
+ * business, because a search over seeds wants to extend one component at a
+ * time. Returns false, with `why` set, at the first contradiction.
  */
 template<typename PD_T>
-bool DiagramsAgreeQ(
+bool ExtendDiagramMatch(
     const PD_T & d1, const PD_T & d2,
     const std::vector<std::array<typename PD_T::Int,2>> & seeds,
+    DiagramMatch_T<typename PD_T::Int> & M,
     std::string & why )
 {
     using Int = typename PD_T::Int;
@@ -68,29 +87,14 @@ bool DiagramsAgreeQ(
         return false;
     };
 
-    if( d1.CrossingCount() != d2.CrossingCount() )
-    {
-        return fail("crossing counts differ: " + std::to_string(d1.CrossingCount())
-            + " vs " + std::to_string(d2.CrossingCount()));
-    }
-    if( d1.ArcCount() != d2.ArcCount() )
-    {
-        return fail("arc counts differ: " + std::to_string(d1.ArcCount())
-            + " vs " + std::to_string(d2.ArcCount()));
-    }
-    if( seeds.empty() )
-    {
-        return fail("no seed correspondence was supplied");
-    }
-
     const Int n1 = d1.MaxCrossingCount(), n2 = d2.MaxCrossingCount();
     const Int m1 = d1.MaxArcCount(),      m2 = d2.MaxArcCount();
 
     constexpr Int None = Int(-1);
-    std::vector<Int> cmap(static_cast<std::size_t>(n1), None);
-    std::vector<Int> amap(static_cast<std::size_t>(m1), None);
-    std::vector<char> ctaken(static_cast<std::size_t>(n2), 0);
-    std::vector<char> ataken(static_cast<std::size_t>(m2), 0);
+    auto & cmap   = M.cmap;
+    auto & amap   = M.amap;
+    auto & ctaken = M.ctaken;
+    auto & ataken = M.ataken;
 
     std::vector<Int> queue;
 
@@ -191,16 +195,149 @@ bool DiagramsAgreeQ(
         }
     }
 
+    why.clear();
+    return true;
+}
+
+/*!@brief Check that a supplied crossing correspondence extends to an
+ * isomorphism of oriented diagrams.
+ *
+ * `seeds` is a list of `{c1, c2}` pairs asserting that crossing `c1` of `d1`
+ * is crossing `c2` of `d2`. At least one seed is required per connected
+ * component; supplying more is a stronger check, since every one of them must
+ * survive propagation. On failure `why` names the crossing or arc where the
+ * claim broke.
+ */
+template<typename PD_T>
+bool DiagramsAgreeQ(
+    const PD_T & d1, const PD_T & d2,
+    const std::vector<std::array<typename PD_T::Int,2>> & seeds,
+    std::string & why )
+{
+    using Int = typename PD_T::Int;
+
+    auto fail = [&why]( std::string msg ) -> bool
+    {
+        why = std::move(msg);
+        return false;
+    };
+
+    if( d1.CrossingCount() != d2.CrossingCount() )
+    {
+        return fail("crossing counts differ: " + std::to_string(d1.CrossingCount())
+            + " vs " + std::to_string(d2.CrossingCount()));
+    }
+    if( d1.ArcCount() != d2.ArcCount() )
+    {
+        return fail("arc counts differ: " + std::to_string(d1.ArcCount())
+            + " vs " + std::to_string(d2.ArcCount()));
+    }
+    if( seeds.empty() )
+    {
+        return fail("no seed correspondence was supplied");
+    }
+
+    DiagramMatch_T<Int> M(
+        d1.MaxCrossingCount(), d1.MaxArcCount(),
+        d2.MaxCrossingCount(), d2.MaxArcCount() );
+
+    if( !ExtendDiagramMatch(d1,d2,seeds,M,why) ) { return false; }
+
     // Everything active must have been reached; an unreached crossing means the
     // diagrams have different component structure, or that the seeds did not
     // cover every connected component.
-    for( Int c = 0; c < n1; ++c )
+    for( Int c = 0; c < d1.MaxCrossingCount(); ++c )
     {
-        if( d1.CrossingActiveQ(c) && (cmap[static_cast<std::size_t>(c)] == None) )
+        if( d1.CrossingActiveQ(c)
+         && (M.cmap[static_cast<std::size_t>(c)] == DiagramMatch_T<Int>::None) )
         {
             return fail("crossing " + std::to_string(c) + " of the first diagram"
                 " was never reached from the seeds (disconnected, structurally"
                 " different, or a component with no seed)");
+        }
+    }
+
+    why.clear();
+    return true;
+}
+
+/*!@brief Are the two diagrams isomorphic at all -- no correspondence supplied?
+ *
+ * This is the weaker question, and it is the right one only when there is
+ * genuinely no shared labelling to appeal to: comparing a diagram against one
+ * that has been round-tripped through a PD code, say, which renumbers
+ * everything. Prefer the seeded `DiagramsAgreeQ` whenever the caller knows
+ * where the crossings went.
+ *
+ * It needs no graph-isomorphism machinery. A rooted flag determines the whole
+ * map (see the note at the top of this file), so it is enough to fix one
+ * crossing of `d1` and try each crossing of `d2` as its partner, propagating
+ * each time: O(n) per attempt, O(n^2) overall -- the same bound as Weinberg's
+ * planar-graph test, for the same reason. Disconnected diagrams (split links)
+ * are handled by repeating that on each component in turn; greedy assignment
+ * is safe there, because if one component of `d1` matches two components of
+ * `d2` then those two are isomorphic to each other and interchangeable.
+ *
+ * Unlike the MacLeod code this replaced, it applies to LINKS -- MacLeod is a
+ * knot invariant and simply does not exist for a multi-component diagram.
+ */
+template<typename PD_T>
+bool DiagramsIsomorphicQ(
+    const PD_T & d1, const PD_T & d2, std::string & why )
+{
+    using Int = typename PD_T::Int;
+
+    auto fail = [&why]( std::string msg ) -> bool
+    {
+        why = std::move(msg);
+        return false;
+    };
+
+    if( d1.CrossingCount() != d2.CrossingCount() )
+    {
+        return fail("crossing counts differ: " + std::to_string(d1.CrossingCount())
+            + " vs " + std::to_string(d2.CrossingCount()));
+    }
+    if( d1.ArcCount() != d2.ArcCount() )
+    {
+        return fail("arc counts differ: " + std::to_string(d1.ArcCount())
+            + " vs " + std::to_string(d2.ArcCount()));
+    }
+
+    const Int n1 = d1.MaxCrossingCount(), n2 = d2.MaxCrossingCount();
+    constexpr Int None = Int(-1);
+
+    DiagramMatch_T<Int> M(n1, d1.MaxArcCount(), n2, d2.MaxArcCount());
+
+    for( Int c1 = 0; c1 < n1; ++c1 )
+    {
+        if( !d1.CrossingActiveQ(c1) ) { continue; }
+        if( M.cmap[static_cast<std::size_t>(c1)] != None ) { continue; }
+
+        bool placed = false;
+        std::string last;
+
+        for( Int c2 = 0; c2 < n2; ++c2 )
+        {
+            if( !d2.CrossingActiveQ(c2) ) { continue; }
+            if( M.ctaken[static_cast<std::size_t>(c2)] ) { continue; }
+
+            DiagramMatch_T<Int> trial = M;   // roll back on failure
+            std::vector<std::array<Int,2>> seed{ {c1,c2} };
+
+            if( ExtendDiagramMatch(d1,d2,seed,trial,last) )
+            {
+                M = std::move(trial);
+                placed = true;
+                break;
+            }
+        }
+
+        if( !placed )
+        {
+            return fail("no crossing of the second diagram can play the part of"
+                " crossing " + std::to_string(c1) + " of the first (last"
+                " attempt: " + last + ")");
         }
     }
 

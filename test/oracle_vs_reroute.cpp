@@ -36,7 +36,7 @@
 
 #include "../Knoodle.hpp"
 #include "pass_oracle.hpp"
-#include "diagram_agreement.hpp"
+#include "../tools/diagram_agreement.hpp"
 #include "knot_determinant.hpp"
 
 #include <cstdio>

@@ -287,13 +287,11 @@ corridor's new crossings by their order along the corridor (which is how
 isomorphism — a drawing isomorphic to the right diagram by *some* map, but not
 by the map the geometry dictates, is a failure, not a pass.
 
-**This supersedes MacLeod comparison** for the second deletion. The MacLeod
-code is an invariant of the oriented diagram, so it answers "same knot?" and
-nothing finer: it cannot see a right knot drawn with wrong labels, it localizes
-no failure, and — being a knot invariant — it does not exist for links, which
-rules it out as the foundation for a spec that is link-capable throughout.
-`--trace --verify` still uses it pending the switch; new checking work should
-use the extractor.
+**This has replaced MacLeod comparison.** The MacLeod code is an invariant of
+the oriented diagram, so it answered "same knot?" and nothing finer: it could
+not see a right knot drawn with wrong labels, it localized no failure, and —
+being a knot invariant — it does not exist for links, which ruled it out as the
+foundation for a spec that is link-capable throughout. Nothing uses it now.
 
 ## Conformance tiers: well-formed vs sound
 
@@ -521,18 +519,30 @@ and any seeded choice an emitter makes must be recorded in the stream.
   before-layout. The single-deletion views omit the `--mono` `w`/`p` marker
   letters — with only one of the two present there is nothing to disambiguate,
   and the letters would only corrupt the strokes for a reader.
-- **Also implemented**: `knoodledraw --trace --verify` checks the second of
-  the two deletions. A record's pass move claims that deleting the strand from
-  the picture leaves the *next* record's snapshot, so with one record of
-  lookahead the claim is checkable: `OrthoDecorate::AfterDiagram` builds the
-  result from the descriptor alone -- never calling the applier that produced
-  the trace -- and the two are compared by MacLeod code, which is an invariant
-  of the oriented diagram and so ignores relabelling. Each move reports
-  `#verify step <n>: VERIFIED | MISMATCH`, and a mismatch exits nonzero. This
-  is the check that would have caught the arc-label aliasing of PR #30 without
-  anyone noticing a corridor attached oddly. (The MacLeod comparison here is
-  now the weakest form of this check; see "Checking it: parse the drawing back"
-  above for the one that replaces it.)
+- **Also implemented**: `knoodledraw --trace --verify` makes two separate
+  claims good, and reports them separately because only one needs lookahead.
+
+  `#verify step <n> drawing:` is the two-deletions contract, checked entirely
+  inside one record — each view is rendered, parsed back, and compared
+  port-by-port under the geometric correspondence (above). This is the check
+  that would have caught the arc-label aliasing of PR #30 without anyone
+  noticing a corridor attached oddly.
+
+  `#verify step <n> trace:` is the claim that what the move produces really is
+  the *next* record's snapshot, so it needs one record of lookahead.
+  `OrthoDecorate::AfterDiagram` builds the result from the descriptor alone —
+  never calling the applier that produced the trace — and since a PD-code
+  snapshot renumbers everything, there is no shared labelling to appeal to;
+  this one therefore asks the weaker question of whether the two diagrams are
+  isomorphic at all. That needs no graph-isomorphism machinery: a rooted flag
+  determines the map, so fixing one crossing and trying each partner in turn is
+  O(n²), the same bound and the same reason as Weinberg's planar-graph test.
+  Unlike the MacLeod code it replaced, it applies to links.
+
+  Either reporting `MISMATCH` exits nonzero. A move whose corridor does not
+  route in the record's own layout reports `drawing: UNCHECKED` with the
+  routing failure — the descriptor may still be well formed, and that is a
+  fact about the layout, not the move.
 - **Also implemented**: `knoodledraw --trace` reads a trace stream of this
   spec's records and renders each snapshot under its echoed headers:
   `#move kind=pass` becomes the corridor overlay on that record's diagram,

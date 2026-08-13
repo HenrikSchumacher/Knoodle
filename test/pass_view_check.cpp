@@ -13,7 +13,7 @@
 // but never "right knot, wrong picture", localizes nothing, and does not exist
 // for links. This test checks the claim where it is actually made -- in the
 // drawing. Each view is RENDERED, then PARSED BACK into a diagram by
-// test/drawing_extractor.hpp (which reads structure from the characters and
+// tools/drawing_extractor.hpp (which reads structure from the characters and
 // never consults the diagram it is checking), and the result is compared
 // port-by-port to what that view is supposed to be.
 //
@@ -37,15 +37,15 @@
 #include <vector>
 
 #include "../tools/pass_view.hpp"
-#include "diagram_agreement.hpp"
-#include "drawing_extractor.hpp"
+#include "../tools/diagram_agreement.hpp"
+#include "../tools/drawing_extractor.hpp"
 #include "pass_fixtures.hpp"
 
 using Int         = std::int64_t;
 using PD_T        = Knoodle::PlanarDiagram<Int>;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Deco_T      = Knoodle::OrthoDecorate<PD_T>;
-using Extract_T   = KnoodleTest::DrawingExtractor<PD_T>;
+using Extract_T   = KnoodleDrawIO::DrawingExtractor<PD_T>;
 using View        = KnoodlePassView::PassViewKind;
 
 static bool ok = true;
@@ -60,96 +60,6 @@ static OrthoDraw_T::Settings_T GridSettings( Int xg, Int yg )
     s.x_gap_size  = Int(1);
     s.y_gap_size  = Int(1);
     return s;
-}
-
-// Seeds for the BEFORE view: every parsed crossing must sit exactly on a
-// crossing of the diagram that was drawn.
-static bool BeforeSeeds(
-    const Extract_T::Result_T & R, const PD_T & pd, const OrthoDraw_T & H,
-    std::vector<std::array<Int,2>> & seeds, std::string & why )
-{
-    const auto & V = H.VertexCoordinates();
-    seeds.clear();
-
-    for( std::size_t i = 0; i < R.crossing_cell.size(); ++i )
-    {
-        const Int x = R.crossing_cell[i][0], y = R.crossing_cell[i][1];
-
-        Int match = Int(-1);
-        for( Int c = 0; c < pd.MaxCrossingCount(); ++c )
-        {
-            if( !pd.CrossingActiveQ(c) ) { continue; }
-            if( (V(c,0) + margin == x) && (V(c,1) + margin == y) )
-            {
-                match = c; break;
-            }
-        }
-        if( match < 0 )
-        {
-            why = "the drawing has a crossing at (" + std::to_string(x) + ","
-                + std::to_string(y) + ") where the diagram has none";
-            return false;
-        }
-        seeds.push_back({ static_cast<Int>(i), match });
-    }
-    return true;
-}
-
-// Seeds for the AFTER view. Two kinds of crossing survive the deletion of W:
-// the ones the move promised not to touch (still at their drawn cells, and
-// still at their original indices in AfterDiagram), and the corridor's own new
-// crossings (at the corridor's crossing cells, numbered n_c + j in corridor
-// order -- which is exactly how AfterDiagram appends them).
-static bool AfterSeeds(
-    const Extract_T::Result_T & R, const PD_T & pd, const OrthoDraw_T & H,
-    const Deco_T::PassRoute_T & pr,
-    std::vector<std::array<Int,2>> & seeds, std::string & why )
-{
-    const auto & V   = H.VertexCoordinates();
-    const Int    n_c = pd.MaxCrossingCount();
-
-    seeds.clear();
-
-    for( std::size_t i = 0; i < R.crossing_cell.size(); ++i )
-    {
-        const Int x = R.crossing_cell[i][0], y = R.crossing_cell[i][1];
-
-        Int match = Int(-1);
-
-        for( Int c = 0; c < n_c; ++c )
-        {
-            if( !pd.CrossingActiveQ(c) ) { continue; }
-            if( (V(c,0) + margin == x) && (V(c,1) + margin == y) )
-            {
-                match = c; break;
-            }
-        }
-
-        if( match < 0 )
-        {
-            for( std::size_t j = 0; j < pr.route.crossing_indices.size(); ++j )
-            {
-                const auto & cell =
-                    pr.route.path[static_cast<std::size_t>(
-                        pr.route.crossing_indices[j])];
-                if( (cell[0] == x) && (cell[1] == y) )
-                {
-                    match = n_c + static_cast<Int>(j);
-                    break;
-                }
-            }
-        }
-
-        if( match < 0 )
-        {
-            why = "the after-drawing has a crossing at (" + std::to_string(x)
-                + "," + std::to_string(y) + ") that is neither a surviving"
-                " crossing of the diagram nor a corridor crossing";
-            return false;
-        }
-        seeds.push_back({ static_cast<Int>(i), match });
-    }
-    return true;
 }
 
 struct Case_T
@@ -196,60 +106,14 @@ static void RunCase( const Case_T & kase, Int xg, Int yg )
         return;
     }
 
-    // ---- deletion 1: delete the corridor, expect the input diagram --------
+    // Both deletions, through the very routine knoodledraw --verify calls, so
+    // the test cannot drift from what the tool checks.
+    if( !KnoodlePassView::CheckBothDeletions<PD_T>(
+            H, deco, pd, mv, pr, after, margin, why) )
     {
-        auto canvas = KnoodlePassView::RenderPassView<PD_T>(
-            H, mv, pr, deco, margin, View::Before);
-
-        auto R = Extract_T::Extract(canvas.chars, canvas.n_x, canvas.n_y);
-
-        if( !R.okQ )
-        {
-            std::printf("  %s  BEFORE parse failed: %s\n", tag, R.why.c_str());
-            ok = false;
-        }
-        else
-        {
-            std::vector<std::array<Int,2>> seeds;
-            if( !BeforeSeeds(R,pd,H,seeds,why) )
-            {
-                std::printf("  %s  BEFORE seeds: %s\n", tag, why.c_str());
-                ok = false;
-            }
-            else if( !DiagramsAgreeQ(R.pd, pd, seeds, why) )
-            {
-                std::printf("  %s  BEFORE disagrees: %s\n", tag, why.c_str());
-                ok = false;
-            }
-        }
-    }
-
-    // ---- deletion 2: delete W, expect the diagram the move produces -------
-    {
-        auto canvas = KnoodlePassView::RenderPassView<PD_T>(
-            H, mv, pr, deco, margin, View::After);
-
-        auto R = Extract_T::Extract(canvas.chars, canvas.n_x, canvas.n_y);
-
-        if( !R.okQ )
-        {
-            std::printf("  %s  AFTER parse failed: %s\n", tag, R.why.c_str());
-            ok = false;
-        }
-        else
-        {
-            std::vector<std::array<Int,2>> seeds;
-            if( !AfterSeeds(R,pd,H,pr,seeds,why) )
-            {
-                std::printf("  %s  AFTER seeds: %s\n", tag, why.c_str());
-                ok = false;
-            }
-            else if( !DiagramsAgreeQ(R.pd, after, seeds, why) )
-            {
-                std::printf("  %s  AFTER disagrees: %s\n", tag, why.c_str());
-                ok = false;
-            }
-        }
+        std::printf("  %s  %s\n", tag, why.c_str());
+        ok = false;
+        return;
     }
 
     std::printf("  %s  both deletions OK (k=%zu)\n", tag, mv.cross.size());
@@ -287,8 +151,8 @@ static void RunNegativeTests( const PD_T & pd, const char * spec )
         else
         {
             std::vector<std::array<Int,2>> seeds;
-            const bool seedQ = afterQ ? AfterSeeds(R,pd,H,pr,seeds,w)
-                                      : BeforeSeeds(R,pd,H,seeds,w);
+            const bool seedQ = KnoodlePassView::PassViewSeeds<PD_T>(
+                R, pd, H, afterQ ? &pr : nullptr, margin, seeds, w);
             if( !seedQ ) { caught = true; reason = "seeds: " + w; }
             else if( !DiagramsAgreeQ(R.pd, truth, seeds, w) )
             {
@@ -423,6 +287,60 @@ static void RunPlainRoundTrip(
     }
 }
 
+// `knoodledraw --trace --verify` leans on DiagramsIsomorphicQ for the one
+// comparison that has no shared labelling to appeal to -- a record's snapshot
+// against what the previous record's move produced, across a PD code that
+// renumbered everything. It replaced the MacLeod code, which does not exist
+// for links, so it had better be right about both what it accepts and what it
+// refuses.
+static void RunIsomorphismTests()
+{
+    auto build = []( std::vector<Int> code ) -> PD_T
+    {
+        return PD_T::FromSignedPDCode(
+            code.data(), static_cast<Int>(code.size() / 5));
+    };
+
+    auto expect = [&]( const PD_T & a, const PD_T & b, bool wantQ,
+                       const char * name )
+    {
+        std::string why;
+        const bool got = DiagramsIsomorphicQ(a,b,why);
+        std::printf("  iso %-28s %s\n", name,
+            (got == wantQ)
+                ? (got ? "isomorphic (as expected)" : "refused (as expected)")
+                : "*** WRONG ANSWER ***");
+        if( got != wantQ ) { ok = false; }
+        else if( !got ) { std::printf("      reason: %s\n", why.c_str()); }
+    };
+
+    PD_T trefoil = build({ 0,4,1,3,1,  2,0,3,5,1,  4,2,5,1,1 });
+
+    // Same diagram with its rows permuted: a relabelling, nothing more. This
+    // is the case the trace check actually meets, since a PD code renumbers.
+    PD_T trefoil_perm = build({ 4,2,5,1,1,  0,4,1,3,1,  2,0,3,5,1 });
+
+    // The mirror: identical crossing and arc counts, so the answer has to come
+    // from the propagation rather than from a count.
+    PD_T trefoil_mirror = build({ 4,1,3,0,-1,  0,3,5,2,-1,  2,5,1,4,-1 });
+
+    PD_T fig8 = build({ 3,1,4,0,1,  7,5,0,4,1,  5,2,6,3,-1,  1,6,2,7,-1 });
+
+    // Links: the whole reason MacLeod had to go.
+    PD_T hopf  = build({ 1,2,0,3,-1,  3,0,2,1,-1 });
+    PD_T hopf2 = build({ 3,0,2,1,-1,  1,2,0,3,-1 });          // rows swapped
+    PD_T hopf_mirror = build({ 2,0,3,1,1,  0,2,1,3,1 });
+
+    expect(trefoil, trefoil,        true,  "trefoil vs itself");
+    expect(trefoil, trefoil_perm,   true,  "trefoil vs relabelled");
+    expect(trefoil, trefoil_mirror, false, "trefoil vs mirror");
+    expect(trefoil, fig8,           false, "trefoil vs figure-eight");
+    expect(hopf,    hopf,           true,  "hopf vs itself");
+    expect(hopf,    hopf2,          true,  "hopf vs relabelled");
+    expect(hopf,    hopf_mirror,    false, "hopf vs mirror");
+    expect(hopf,    trefoil,        false, "hopf vs trefoil");
+}
+
 int main()
 {
     std::vector<Int> trefoil_code = {
@@ -503,6 +421,9 @@ int main()
             }
         }
     }
+
+    std::printf("=== unrooted isomorphism (what --verify's trace check uses) ===\n");
+    RunIsomorphismTests();
 
     std::printf("=== the oracle must be able to fail ===\n");
     RunNegativeTests(trefoil, "strand=1,3 depart=1 cross=6:u land=3");

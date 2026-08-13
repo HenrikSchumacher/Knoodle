@@ -57,7 +57,7 @@
 #include <utility>
 #include <vector>
 
-namespace KnoodleTest
+namespace KnoodleDrawIO
 {
     // Compass directions on the drawing grid: N = +y = up the page, matching
     // OrthoDraw's vertex coordinates and OrthoDecorate's overlay naming.
@@ -839,4 +839,4 @@ namespace KnoodleTest
 
     }; // class DrawingExtractor
 
-} // namespace KnoodleTest
+} // namespace KnoodleDrawIO
