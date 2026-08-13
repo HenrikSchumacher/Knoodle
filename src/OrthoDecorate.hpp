@@ -1265,10 +1265,29 @@ namespace Knoodle
         // attaches.
         //======================================================================
 
+        /*!@brief The diagram the move produces, plus the colours of any
+         * components that come FREE of it.
+         *
+         * A pass move can split a crossingless loop off the diagram: if a
+         * transversal closes up through nothing but interior crossings of W,
+         * then deleting W takes away every crossing it had. A
+         * `PlanarDiagram` cannot represent such a loop alongside crossings
+         * (`AnelloQ` is a state of a whole diagram), so those components are
+         * REPORTED instead -- one colour each, appended to `freed` -- exactly
+         * as `PlanarDiagram::FromLinkEmbedding` hands back its diagram and its
+         * unlinks side by side.
+         *
+         * The three-argument overload is for callers that do not expect a
+         * split. It FAILS rather than quietly hand back a diagram that is
+         * missing a component.
+         */
         PD_T AfterDiagram(
-            cref<PD_T> pd, const PassMove_T & mv, mref<std::string> why
+            cref<PD_T> pd, const PassMove_T & mv, mref<std::string> why,
+            mref<std::vector<Int>> freed
         ) const
         {
+            freed.clear();
+
             auto fail = [&why]( std::string msg ) -> PD_T
             {
                 why = std::move(msg);
@@ -1368,6 +1387,124 @@ namespace Knoodle
                 heal_next[static_cast<std::size_t>(a0)] = a1;
             }
 
+            // -- transversal CYCLES: the split-off components -----------------
+            //
+            // Following `heal_next` walks a transversal from one interior
+            // crossing of W to the next. Usually that walk ends -- the strand
+            // leaves W's neighbourhood and the chain has a first and a last
+            // arc. But it can also CLOSE UP, and then the transversal is a
+            // closed curve whose only crossings are interior crossings of W.
+            //
+            // That is a real move outcome, not a degenerate case: deleting W
+            // takes every one of those crossings away, so the curve survives
+            // the move as a component with NO crossings at all -- a free
+            // unknot, split from the rest of the diagram. (Middlestrands hit
+            // this from the other side: their applier calls
+            // `CreateUnlinkFromArc` when collapsing a strand closes a loop.)
+            //
+            // Two outcomes, and they differ by whether the new corridor
+            // crosses the loop:
+            //
+            //   nobody crosses it  ->  it really does come free. Its arcs
+            //                          leave the diagram and its colour is
+            //                          reported to the caller, because a PD
+            //                          cannot hold a crossingless component
+            //                          alongside crossings (`AnelloQ` is a
+            //                          whole-diagram state).
+            //
+            //   the corridor crosses it -> it is NOT free: the corridor gives
+            //                          it crossings back. Break the cycle open
+            //                          at a crossed arc and it heals like any
+            //                          other chain.
+            //
+            // Both were broken before. A cycle has no chain start, so the
+            // representative pass below skipped it entirely: the first case
+            // left arcs active while their crossings went inactive, and the
+            // second indexed `Aend(rep_of[b0], ...)` with `Uninitialized`.
+            std::vector<Int> heal_prev(static_cast<std::size_t>(m_a), PD_T::Uninitialized);
+            for( Int a = 0; a < m_a; ++a )
+            {
+                const Int nx = heal_next[static_cast<std::size_t>(a)];
+                if( nx != PD_T::Uninitialized )
+                {
+                    heal_prev[static_cast<std::size_t>(nx)] = a;
+                }
+            }
+
+            std::vector<Int> freed_arcs;     // arcs of genuinely split-off loops
+
+            {
+                std::vector<char> on_cycle(static_cast<std::size_t>(m_a), char(0));
+                std::vector<char> seen    (static_cast<std::size_t>(m_a), char(0));
+
+                for( Int a0 = 0; a0 < m_a; ++a0 )
+                {
+                    if( seen[static_cast<std::size_t>(a0)] ) { continue; }
+                    if( heal_next[static_cast<std::size_t>(a0)] == PD_T::Uninitialized
+                     && heal_prev[static_cast<std::size_t>(a0)] == PD_T::Uninitialized )
+                    {
+                        continue;
+                    }
+
+                    // Walk back to a start; if we return to a0 it is a cycle.
+                    Int cur = a0;
+                    bool cycleQ = false;
+                    for(;;)
+                    {
+                        const Int pv = heal_prev[static_cast<std::size_t>(cur)];
+                        if( pv == PD_T::Uninitialized ) { break; }
+                        if( pv == a0 ) { cycleQ = true; break; }
+                        cur = pv;
+                    }
+
+                    // Mark the whole orbit seen either way.
+                    std::vector<Int> orbit;
+                    Int walk = cycleQ ? a0 : cur;
+                    for(;;)
+                    {
+                        if( seen[static_cast<std::size_t>(walk)] ) { break; }
+                        seen[static_cast<std::size_t>(walk)] = char(1);
+                        orbit.push_back(walk);
+                        if( cycleQ ) { on_cycle[static_cast<std::size_t>(walk)] = char(1); }
+                        const Int nx = heal_next[static_cast<std::size_t>(walk)];
+                        if( nx == PD_T::Uninitialized ) { break; }
+                        walk = nx;
+                    }
+
+                    if( !cycleQ ) { continue; }
+
+                    // Does the corridor cross this loop anywhere?
+                    Int crossed = PD_T::Uninitialized;
+                    for( Int j = 0; j < k; ++j )
+                    {
+                        const Int b = PassMove_T::ArcOf(
+                            mv.cross[static_cast<std::size_t>(j)] );
+                        for( Int o : orbit )
+                        {
+                            if( o == b ) { crossed = b; break; }
+                        }
+                        if( crossed != PD_T::Uninitialized ) { break; }
+                    }
+
+                    if( crossed != PD_T::Uninitialized )
+                    {
+                        // Not free after all. Open the cycle just before the
+                        // crossed arc, so that arc becomes the chain's start
+                        // and the corridor splits it as usual.
+                        const Int pv = heal_prev[static_cast<std::size_t>(crossed)];
+                        if( pv != PD_T::Uninitialized )
+                        {
+                            heal_next[static_cast<std::size_t>(pv)] = PD_T::Uninitialized;
+                            heal_prev[static_cast<std::size_t>(crossed)] = PD_T::Uninitialized;
+                        }
+                    }
+                    else
+                    {
+                        for( Int o : orbit ) { freed_arcs.push_back(o); }
+                    }
+                }
+            }
+
             // -- healed-arc representatives (a transversal can chain) --------
             std::vector<Int> rep_of(static_cast<std::size_t>(m_a), PD_T::Uninitialized);
             {
@@ -1421,6 +1558,21 @@ namespace Knoodle
             {
                 AS[static_cast<std::size_t>(w[static_cast<std::size_t>(i)])]
                     = ArcState_T::Inactive;
+            }
+
+            // -- and retire the loops that came free -------------------------
+            // Their colours go to the caller: a PlanarDiagram cannot hold a
+            // crossingless component next to crossings, so the split-off
+            // unknots have to be reported rather than represented. This is the
+            // same convention `PlanarDiagram::FromLinkEmbedding` uses, which
+            // hands back the diagram and the unlinks' colours side by side.
+            for( Int a : freed_arcs )
+            {
+                if( AS[static_cast<std::size_t>(a)] == ArcState_T::Active )
+                {
+                    freed.push_back(AC[static_cast<std::size_t>(a)]);
+                }
+                AS[static_cast<std::size_t>(a)] = ArcState_T::Inactive;
             }
             for( Int x : interior ) { CS[static_cast<std::size_t>(x)] = CrossingState_T::Inactive; }
 
@@ -1535,6 +1687,32 @@ namespace Knoodle
                 m_c, C.data(), CS.data(), A.data(), AS.data(), AC.data(),
                 pd.LastColorDeactivated(), false, false
             );
+        }
+
+        /*!@brief `AfterDiagram` for callers that do not expect the move to
+         * split a component off.
+         *
+         * If one does come free, this FAILS instead of returning a diagram
+         * that is quietly missing it. A caller that gets `PD_T()` and a `why`
+         * mentioning split components wants the four-argument overload.
+         */
+        PD_T AfterDiagram(
+            cref<PD_T> pd, const PassMove_T & mv, mref<std::string> why
+        ) const
+        {
+            std::vector<Int> freed;
+            PD_T after = AfterDiagram(pd,mv,why,freed);
+
+            if( why.empty() && !freed.empty() )
+            {
+                why = "this move splits " + std::to_string(freed.size())
+                    + " crossingless component(s) off the diagram, which a"
+                      " PlanarDiagram cannot hold alongside crossings; use the"
+                      " overload that reports their colours";
+                return PD_T();
+            }
+
+            return after;
         }
 
         //======================================================================

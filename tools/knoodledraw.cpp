@@ -3195,10 +3195,25 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                 std::string perr, vwhy;
                 if (Deco_T::PassMove_T::Parse(*rc.move_spec, mvv, perr))
                 {
-                    PD_T ad = dv.AfterDiagram(dia, mvv, vwhy);
+                    // The reporting overload: a pass move can split a
+                    // crossingless component off, and that is an outcome, not
+                    // an error. The drawing has to account for the same
+                    // number of freed loops, which is what CheckBothDeletions
+                    // compares below.
+                    std::vector<Int> freed;
+                    PD_T ad = dv.AfterDiagram(dia, mvv, vwhy, freed);
                     if (!vwhy.empty())
                     {
                         return fail("--verify: AfterDiagram: " + vwhy);
+                    }
+                    if (!freed.empty())
+                    {
+                        std::cout << "#verify step " << records_drawn
+                                  << " split: " << freed.size()
+                                  << " crossingless component(s) came free"
+                                     " (colours";
+                        for (Int c : freed) { std::cout << " " << c; }
+                        std::cout << ")\n";
                     }
 
                     // The two deletions, checked in this record's own drawing.
@@ -3214,7 +3229,8 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                     {
                         const bool drawnQ =
                             KnoodlePassView::CheckBothDeletions<PD_T>(
-                                Hv, dv, dia, mvv, prv, ad, verify_margin, vwhy);
+                                Hv, dv, dia, mvv, prv, ad, verify_margin, vwhy,
+                                static_cast<Int>(freed.size()));
 
                         std::cout << "#verify step " << records_drawn
                                   << " drawing: "

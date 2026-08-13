@@ -787,7 +787,8 @@ bool CheckPassView(
     const PD_T & truth,
     typename PD_T::Int margin,
     PassViewKind view,
-    std::string & why )
+    std::string & why,
+    typename PD_T::Int expect_free_loops = 0 )
 {
     using Int       = typename PD_T::Int;
     using Extract_T = KnoodleDrawIO::DrawingExtractor<PD_T>;
@@ -821,10 +822,17 @@ bool CheckPassView(
         return false;
     }
 
-    if( R.free_loops != Int(0) )
+    // Crossingless closed curves. A pass move can genuinely produce these --
+    // when a transversal closes up through nothing but interior crossings of
+    // W, deleting W leaves it with no crossings at all -- so the count is
+    // CHECKED against what AfterDiagram reported splitting off, not merely
+    // required to be zero. The drawing and the surgery have to agree about how
+    // many components came free, which is a real claim about both.
+    if( R.free_loops != expect_free_loops )
     {
         why = "the drawing has " + std::to_string(R.free_loops)
-            + " crossing-free closed curve(s) the diagram does not";
+            + " crossing-free closed curve(s) but the move accounts for "
+            + std::to_string(expect_free_loops);
         return false;
     }
 
@@ -842,18 +850,22 @@ bool CheckBothDeletions(
     const typename Knoodle::OrthoDecorate<PD_T>::PassRoute_T & pr,
     const PD_T & after,
     typename PD_T::Int margin,
-    std::string & why )
+    std::string & why,
+    typename PD_T::Int freed_components = 0 )
 {
+    // Deleting the corridor restores the diagram exactly as handed to us, so
+    // nothing has come free in that view whatever the move goes on to do.
     if( !CheckPassView<PD_T>(H, deco, pd, move, pr, pd, margin,
-                             PassViewKind::Before, why) )
+                             PassViewKind::Before, why, 0) )
     {
         why = "deleting the corridor does not leave the diagram we were handed: "
             + why;
         return false;
     }
 
+    // Deleting the strand is where a component can come free.
     if( !CheckPassView<PD_T>(H, deco, pd, move, pr, after, margin,
-                             PassViewKind::After, why) )
+                             PassViewKind::After, why, freed_components) )
     {
         why = "deleting the strand does not leave the diagram the move produces: "
             + why;
