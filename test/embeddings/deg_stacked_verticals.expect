@@ -1,0 +1,8 @@
+# The curve visits the column above (2,2) twice, each time with a vertical edge
+# (z 1->2 and z 5->6). Six edges pass through the projected point (2,2).
+note = k segments through one projected point, two of them projecting to it
+knot = unknot
+vertical_edges       == 2
+max_point_multiplicity == 6
+multiple_points      >= 1
+spatial              == 0

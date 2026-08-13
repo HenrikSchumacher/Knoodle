@@ -1,0 +1,9 @@
+# Edge 3 runs from (2,0,5) to (2,0,2): same (x,y), so it projects to the single
+# point (2,0), which lies in the interior of edge 0. Its z-range excludes 0, so
+# it does not actually touch edge 0 in space.
+note = an edge projects to a point, and that point lies on another edge
+knot = unknot
+vertical_edges       == 1
+vertex_on_edge       >= 3
+max_point_multiplicity == 4
+spatial              == 0

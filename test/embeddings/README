@@ -1,0 +1,99 @@
+Fixtures for test/embedding_check
+=================================
+
+Each fixture is a `.crd` file: three whitespace-separated columns per vertex, a
+blank line between components, every component implicitly closed (last vertex
+back to first). This is exactly the format `LinkEmbedding*::FromFile`
+accepts and the format `ndmansfield` emits, so the files are fed to both the
+library reader and the test's own parser and the two are checked against each
+other (the `reader` tier).
+
+The extension is `.crd` and not `.tsv` on purpose: `.gitattributes` routes all
+`*.tsv` through git-lfs, and these files are small enough that LFS would be pure
+overhead.
+
+Every fixture may have a `.expect` sidecar. Those are read only by the test, so
+they may contain `#` comments; the `.crd` files must not, because the library
+reader does not accept them.
+
+`.expect` syntax
+----------------
+
+    <census-key> ==  n        exact count required
+    <census-key> >=  n        lower bound required
+    knot   = ...              documentation only
+    note   = ...              documentation only
+    xfail_<tier>  = [classes |] reason
+    xcrash_<tier> = [classes |] reason
+
+Census keys are the fields of `Census` in ../embedding_fixtures.hpp:
+`zero_length_edges`, `vertical_edges`, `coincident_vertices`, `vertex_on_edge`,
+`corner_corner`, `collinear_overlap`, `multiple_points`,
+`max_point_multiplicity`, `transversal`, `spatial`, `degenerate_total`,
+`vertices`, `edges`.
+
+The census is computed independently of the classes under test, in exact integer
+arithmetic. Its purpose is to make "we exercised the corner cases" checkable: if
+a fixture silently stops being degenerate, the declared counts stop matching and
+the test says so. `spatial == 0` is declared on every fixture -- a genuine 3D
+intersection is the one degeneracy no symbolic perturbation can repair, so a
+fixture containing one would make a correct error return look like a failure.
+
+`xfail_<tier>` marks a known wrong answer, `xcrash_<tier>` a known crash. Both
+take an optional comma-separated class list before a `|`, so a defect can be
+scoped to the classes that actually have it. Both are checked in both
+directions: if a marked check starts passing, that is reported as an XPASS
+failure so the stale marker gets removed rather than masking a later regression.
+
+Hand-built fixtures (`deg_*`)
+-----------------------------
+
+One degeneracy each, small enough to read, with the intended configuration
+spelled out in the `.expect` file:
+
+  deg_corner_corner       two vertices project onto each other (4 edges meet)
+  deg_vertex_on_edge      a vertex projects into a segment's interior
+  deg_vertical_edge       an edge projects to a point, on another edge
+  deg_stacked_verticals   6 edges through one projected point, 2 of them vertical
+  deg_collinear_overlap   two non-adjacent edges sharing a projected segment
+  deg_zero_length         a zero-length edge, plus a corner-corner
+  deg_triple_point        three non-adjacent segments concurrent at one point
+  deg_hopf_flat           2-component link; one component projects to a segment
+
+`deg_hopf_flat` is the one whose type is fixed by construction rather than by
+computation: component 1's vertical edge at (2,2) pierces the disk bounded by
+the square component 0 exactly once, so it is a Hopf link.
+
+Lattice fixtures (`lattice_NN`)
+-------------------------------
+
+Closed Hamiltonian cycles on the NN^3 cubic lattice -- space-filling knots with
+unit-length edges, which present every degeneracy class at once and in bulk
+(lattice_16 has a projected point with 30 edges through it). These are the
+motivating input for the exact-integer backends and the material for `--bench`.
+
+Generated with the `fastermansfield` fork of ndmansfield
+(https://github.com/jewettaij/ndmansfield), whose `-record-loops` mode collects
+Hamiltonian *paths* whose two ends sit one lattice unit apart; closing that last
+bond turns each into an exact lattice knot. The generator is not a build
+dependency -- the outputs are committed -- but the exact commands were:
+
+    ndmansfield -box  4  4  4 -record-loops -loop-count 1 -loop-dir D -seed 1  ->  lattice_04
+    ndmansfield -box  6  6  6 -record-loops -loop-count 1 -loop-dir D -seed 3  ->  lattice_06
+    ndmansfield -box  8  8  8 -record-loops -loop-count 1 -loop-dir D -seed 4  ->  lattice_08
+    ndmansfield -box 10 10 10 -record-loops -loop-count 1 -loop-dir D -seed 7  ->  lattice_10
+    ndmansfield -box 12 12 12 -record-loops -loop-count 1 -loop-dir D -seed 5  ->  lattice_12
+    ndmansfield -box 16 16 16 -record-loops -loop-count 1 -loop-dir D -seed 6  ->  lattice_16
+
+each followed by `loop_0000000.tsv` -> `lattice_NN.crd` verbatim. Before being
+committed, each was checked to have exactly NN^3 vertices, every consecutive
+pair one unit apart, and the two ends one unit apart (so the closing bond is a
+genuine lattice edge).
+
+Only even box sizes appear: a k^3 grid graph is bipartite with colour classes of
+sizes ceil(k^3/2) and floor(k^3/2), so for odd k^3 the two differ and no
+Hamiltonian *cycle* exists -- `-record-loops` simply never finds one.
+
+The knot types are not known a priori, and that is fine: the test does not need
+them. It compares the degenerate projection against explicit generic ones of the
+same curve, which is self-validating.

@@ -1,0 +1,21 @@
+# Component 0 is the unit square in z=0. Component 1 is a rectangle in the
+# plane y=2 whose projection collapses onto the single segment (2,2)-(8,2):
+# both of its "vertical" edges project to points, and its two long edges are
+# collinear and completely overlapping. Component 1's edge at (2,2) passes
+# through the interior of component 0's disk exactly once.
+note = a two-component link whose second component projects to a segment
+knot = Hopf link (linking number +/-1 by construction)
+vertical_edges       == 2
+collinear_overlap    >= 1
+transversal          == 2
+max_point_multiplicity >= 3
+spatial              == 0
+
+# KNOWN CRASH (2026-08-13), LinkEmbedding only. RequireIntersections segfaults
+# when three segments project through one common point. Bisected on this
+# fixture: moving any one of the three concurrent edges off the origin makes it
+# complete normally, and widening the z-separation does not help, so the trigger
+# is the concurrency itself and not a near-tie in depth. LinkEmbedding2/3/4
+# resolve it correctly (6 crossings, matching the explicit shear). Under
+# --isolate this is scored; otherwise it is skipped to keep the run alive.
+xcrash_invariant = 1 | segfault in LinkEmbedding::RequireIntersections on a triple point

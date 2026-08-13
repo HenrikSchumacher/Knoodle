@@ -153,6 +153,32 @@ link_split_check: link_split_check.cpp link_alexander.hpp homfly_invariance.hpp 
 	    link_split_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ link_split_check compiled successfully"
 
+# embedding_check — degeneracy + performance test for the LinkEmbedding family
+# (LinkEmbedding, LinkEmbedding2/3/4 over Prosector2/3/4). Checks that a
+# degenerate projection gives the same crossings as the explicit integer shear
+# realizing Prosector's {eps,eps^3,1} symbolic perturbation, that 2/3/4 agree
+# with each other, and that the knot type survives. Heavy config: HOMFLY needs
+# the vendored libhomfly objects, the large-diagram fallback needs Alexander
+# (UMFPACK + BLAS/LAPACK).
+#
+# The src headers are explicit prerequisites on purpose: this test exists to
+# catch src-only changes, and without them a `make` after editing a Prosector
+# would not rebuild -- the test would "pass" against the binary it built before
+# the change. Same trap intersection_flag_reset_check documents below.
+EMBEDDING_SRC_DEPS = ../src/LinkEmbedding.hpp  ../src/LinkEmbedding2.hpp \
+                     ../src/LinkEmbedding3.hpp ../src/LinkEmbedding4.hpp \
+                     ../src/Prosector2.hpp ../src/Prosector3.hpp \
+                     ../src/Prosector4.hpp  ../src/Prosector4_a.hpp \
+                     ../src/PlanarDiagram/FromEmbeddings.hpp
+
+embedding_check: embedding_check.cpp embedding_fixtures.hpp link_alexander.hpp \
+                 homfly_invariance.hpp $(LIBHOMFLY_OBJ) ../Knoodle.hpp \
+                 $(EMBEDDING_SRC_DEPS)
+	@echo "=== Building embedding_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
+	    embedding_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
+	@echo "✓ embedding_check compiled successfully"
+
 # klut_bench — throughput benchmark for the KLUT Identify path (construct ->
 # ki::Identify), single- and multi-threaded. See docs/klut-simplify-perf.md.
 # Note: with -include of a Tensors header (UMFPACK build), the KNOODLE->TOOLS
@@ -270,6 +296,6 @@ clean:
 	       klut_check klut_bench klut_bench_boost canon_check component_check \
 	       klut_identify_check klut_identify_random_check \
 	       plantri_check link_alex_probe link_inflate_check \
-	       link_split_check $(PLANTRI)
+	       link_split_check embedding_check $(PLANTRI)
 
 .PHONY: all libhomfly clean cli_stdin_check

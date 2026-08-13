@@ -1,0 +1,25 @@
+# Vertices 4 and 5 are identical, so edge 4 has length zero. The rest is the
+# corner_corner bowtie. Note that the two edges flanking a zero-length edge
+# share a point of 3-space -- the census collapses them, and any implementation
+# must treat that as adjacency rather than as an unresolvable 3D intersection.
+note = a zero-length edge, on top of a corner-corner degeneracy
+knot = unknot
+zero_length_edges    == 1
+corner_corner        >= 4
+coincident_vertices  >= 3
+spatial              == 0
+
+# KNOWN FAILURE (2026-08-13). LinkEmbedding2/3/4's class documentation lists
+# "line segments that have length 0" among the degeneracies they handle, but a
+# zero-length edge in a closed polygon necessarily makes its two neighbours
+# share a point of 3-space, and ComputeEdgeEdgeIntersection rejects that as the
+# unfixable "edges intersect in 3D" case (error code 6). This is not specific to
+# this fixture: a bare planar square with one duplicated vertex fails the same
+# way. The fix is to treat vertices joined by a zero-length edge as one point --
+# what TakeCensus in embedding_fixtures.hpp does -- before the 3D-intersection
+# test. Remove these markers once that lands.
+# Scoped to 2,3,4: LinkEmbedding (the floating-point class) handles a
+# zero-length edge without complaint, so this is a regression relative to it.
+xfail_exact     = 2,3,4 | zero-length edge rejected as a 3D intersection
+xfail_cross     = 2,3,4 | zero-length edge rejected as a 3D intersection
+xfail_invariant = 2,3,4 | zero-length edge rejected as a 3D intersection

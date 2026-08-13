@@ -24,6 +24,7 @@ link_alex_probe
 link_inflate_check
 link_split_check
 link_color_roundtrip
+embedding_check
 vendor/plantri/plantri
 inflate_fail_*.tsv
 link_inflate_fail_*.tsv
