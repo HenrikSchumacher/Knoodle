@@ -185,6 +185,43 @@ inline const std::vector<std::int64_t> L10n104_0_0_0 = {
       19,   12,   14,   13,   -1,
 };
 
+// L10a11_0 -- 10 crossings, 2 components. THE SPLIT-OFF FIXTURE.
+//
+// A pass move here frees a crossingless component: the transversal closes up
+// through nothing but interior crossings of the strand, so deleting the strand
+// takes away every crossing that loop had. Two descriptors use it:
+//
+//   k=0: strand=9,11,13,15,17,19,21 depart=8 land=20            (L=7)
+//   k=1: strand=9,11,13,15,17,19,21,23 depart=8 cross=32:u land=22   (L=8)
+//
+// Both need `middlepassQ = true` -- the strand is not uniformly over/under, so
+// check 5 refuses them as a classical pass -- and both take 10 crossings to 4,
+// freeing one component of colour 0.
+//
+// HONEST FRAMING: these are well-formed and routable, which is what a fixture
+// for the split-off machinery needs. They are NOT sound. Dropping 10 crossings
+// to 4 is not an isotopy, and middlepass soundness would need a feasibility
+// witness that nothing on this path checks. Do not describe them as isotopies;
+// the spec deliberately allows drawing well-formed moves that are
+// topologically infeasible, and this is one.
+//
+// Found by exhaustive search after L6a1_0 turned out to be structurally
+// incapable of hosting the case: there a transversal cycle only closes when
+// the strand consumes EVERY crossing, leaving an after-diagram of 0 crossings
+// and 1 arc that CheckAll rightly refuses.
+inline const std::vector<std::int64_t> L10a11_0 = {
+       3,    8,    0,    9,   -1,
+       5,    0,    6,    1,   -1,
+       1,    4,    2,    5,   -1,
+       9,    2,   10,    3,   -1,
+      19,   16,    4,   17,   -1,
+      13,    6,   14,    7,   -1,
+       7,   14,    8,   15,   -1,
+      15,   10,   16,   11,   -1,
+      11,   19,   12,   18,    1,
+      17,   13,   18,   12,    1,
+};
+
 // L10n104_1_0_0 -- the under-tagged counterpart of the above, on a different
 // orientation variant of the same link.
 // strand=13,15,17,19 depart=12 cross=31:u,2:u,24:u land=18   (k=3)

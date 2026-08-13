@@ -290,6 +290,112 @@ static void RunPlainRoundTrip(
     }
 }
 
+// A pass move can free a crossingless component: when a transversal closes up
+// through nothing but interior crossings of the strand, deleting the strand
+// takes away every crossing that loop had, and it survives as a free unknot
+// split from the rest. A PlanarDiagram cannot hold such a component alongside
+// crossings, so AfterDiagram reports it instead -- one colour per component.
+//
+// Three claims are checked here, and the third is the one worth having:
+//   1. the four-argument overload reports exactly one freed component, and the
+//      surviving diagram is legal;
+//   2. the three-argument overload REFUSES, rather than quietly returning a
+//      diagram that is missing a component;
+//   3. the DRAWING shows exactly one crossingless closed curve -- so the
+//      picture and the surgery agree about what came loose, which is a claim
+//      about both of them.
+static void RunSplitTests( const PD_T & pd, const char * spec,
+                           Int expect_cx, const char * name )
+{
+    Deco_T::PassMove_T mv;
+    std::string err, why;
+    if( !Deco_T::PassMove_T::Parse(spec, mv, err) )
+    {
+        std::printf("  split %-14s parse failed: %s\n", name, err.c_str());
+        ok = false;
+        return;
+    }
+    mv.middlepassQ = true;
+
+    OrthoDraw_T H(pd, Int(-1), GridSettings(Int(6),Int(3)));
+    Deco_T deco(H, margin);
+
+    // 1. The reporting overload.
+    std::vector<Int> freed;
+    PD_T after = deco.AfterDiagram(pd, mv, why, freed);
+
+    if( !why.empty() )
+    {
+        std::printf("  split %-14s AfterDiagram: %s\n", name, why.c_str());
+        ok = false;
+        return;
+    }
+
+    const bool countQ = (freed.size() == std::size_t(1));
+    const bool cleanQ = after.CheckAll();
+    const bool cxQ    = (after.CrossingCount() == expect_cx);
+
+    if( !countQ || !cleanQ || !cxQ )
+    {
+        std::printf("  split %-14s freed=%zu (want 1), CheckAll %s,"
+            " %lld crossings (want %lld)\n", name, freed.size(),
+            cleanQ ? "PASS" : "FAIL",
+            (long long)after.CrossingCount(), (long long)expect_cx);
+        ok = false;
+        return;
+    }
+
+    // 2. The plain overload must refuse rather than lose a component.
+    {
+        std::string w2;
+        PD_T bare = deco.AfterDiagram(pd, mv, w2);
+        if( w2.empty() )
+        {
+            std::printf("  split %-14s the 3-arg overload ACCEPTED a splitting"
+                " move\n", name);
+            ok = false;
+            return;
+        }
+        (void)bare;
+    }
+
+    // 3. The drawing has to show the freed loop, and exactly one of it.
+    auto pr = deco.RoutePassMove(pd, mv);
+    if( !pr.validQ )
+    {
+        std::printf("  split %-14s routing failed: %s\n", name, pr.why.c_str());
+        ok = false;
+        return;
+    }
+
+    if( !KnoodlePassView::CheckBothDeletions<PD_T>(
+            H, deco, pd, mv, pr, after, margin, why,
+            static_cast<Int>(freed.size())) )
+    {
+        std::printf("  split %-14s %s\n", name, why.c_str());
+        ok = false;
+        return;
+    }
+
+    // And the count really is load-bearing: claiming none must fail.
+    {
+        std::string w3;
+        if( KnoodlePassView::CheckBothDeletions<PD_T>(
+                H, deco, pd, mv, pr, after, margin, w3, Int(0)) )
+        {
+            std::printf("  split %-14s the drawing check passed while claiming"
+                " nothing came free\n", name);
+            ok = false;
+            return;
+        }
+    }
+
+    std::printf("  split %-14s k=%zu, %lld->%lld crossings, 1 component freed"
+        " (colour %lld), drawing agrees\n", name, mv.cross.size(),
+        (long long)pd.CrossingCount(), (long long)after.CrossingCount(),
+        (long long)freed.front());
+}
+
 // Per-crossing over/under has nowhere to go in `Pass_T`, which carries ONE
 // `overQ` for the whole move. Check 5 does not catch that, because
 // `kind=middlepass` exists precisely to drop check 5 -- so `ToPassAndPath`
@@ -706,6 +812,17 @@ int main()
                 RunCase(kase, xg, yg);
             }
         }
+    }
+
+    std::printf("=== moves that split a component off ===\n");
+    {
+        PD_T l10a11 = link(L10a11_0);
+        RunSplitTests(l10a11,
+            "strand=9,11,13,15,17,19,21 depart=8 land=20",
+            Int(4), "L10a11 k=0");
+        RunSplitTests(l10a11,
+            "strand=9,11,13,15,17,19,21,23 depart=8 cross=32:u land=22",
+            Int(4), "L10a11 k=1");
     }
 
     std::printf("=== per-crossing tags have nowhere to go in Pass_T ===\n");
