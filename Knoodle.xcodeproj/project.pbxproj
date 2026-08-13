@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 73;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXContainerItemProxy section */
@@ -1526,6 +1526,55 @@
 			remoteGlobalIDString = AF7C6C152C5E903800EA899D;
 			remoteInfo = Scratch;
 		};
+		AFDEBF1F302E2723001C88F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFD9EA0929337F7E00FC8A85;
+			remoteInfo = QRAlgorithm;
+		};
+		AFDEBF21302E2723001C88F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF8BDDDF295A1FBD001D8CCF;
+			remoteInfo = Example_SparseCholesky;
+		};
+		AFDEBF23302E2723001C88F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF9A9286298E5BF600242813;
+			remoteInfo = UnitTests;
+		};
+		AFDEBF25302E2723001C88F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFFAC624298ECE5800A2CF4B;
+			remoteInfo = Unit_Test_SpMM;
+		};
+		AFDEBF27302E2723001C88F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF5D050B2B52F09000E946CA;
+			remoteInfo = DenseBLAS;
+		};
+		AFDEBF29302E2723001C88F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFD4A1572C58C94200510A91;
+			remoteInfo = Experiment_SpMM;
+		};
+		AFDEBF2B302E2723001C88F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF7C6C152C5E903800EA899D;
+			remoteInfo = Scratch;
+		};
 		AFECEE8C2FA2177B00550AA4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AFECED642FA2162300550AA4 /* Tensors.xcodeproj */;
@@ -1753,27 +1802,26 @@
 		AFD3C7283018C32B00DFA94A /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AFD8D49830092F5400AD9194 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AFD8DDF5300DE7FA00AD9194 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
+		AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AFECED642FA2162300550AA4 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AFF305482B7AF300009ABC74 /* Knoodle.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Knoodle.hpp; sourceTree = "<group>"; };
 		AFFAEBA630010A640048B9A3 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		AF82D87230167B6B0075A2D9 /* PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = AF6C85D82E29315B0051B919 /* Sources */;
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AFDEBF36302E272C001C88F5 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				main.cpp__,
+				Example_Knoodle/main.cpp,
 			);
+			target = AFBB9A992EF54467000CA528 /* Example_Knoodle */;
 		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AF05A27E2D6B573E0065E75A /* deps */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = deps; sourceTree = "<group>"; };
-		AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_PlanarDiagram; sourceTree = "<group>"; };
-		AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_ClisbyTree; sourceTree = "<group>"; };
+		AF301E5A302E260A00D6545C /* dev */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = dev; sourceTree = "<group>"; };
 		AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Kyoto; sourceTree = "<group>"; };
-		AF6C85DD2E29315B0051B919 /* WorkBench */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AF82D87230167B6B0075A2D9 /* PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = WorkBench; sourceTree = "<group>"; };
 		AF7F30FF2FE04489008E25C0 /* test */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = test; sourceTree = "<group>"; };
 		AF7FD1D62D87464900D802C0 /* PolyFold */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold; sourceTree = "<group>"; };
 		AF860E6A2F66AD8300F08C51 /* legacy */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = legacy; sourceTree = "<group>"; };
@@ -1781,9 +1829,8 @@
 		AF8611C22F66C0A600F08C51 /* submodules */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = submodules; sourceTree = "<group>"; };
 		AF8612BC2F66C0AA00F08C51 /* src */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = src; sourceTree = "<group>"; };
 		AF8C883E302CAABE0062AC7B /* tools */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = tools; sourceTree = "<group>"; };
-		AFAC10632F0293FA0029A41C /* Dev_ClisbyTree2 */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_ClisbyTree2; sourceTree = "<group>"; };
-		AFBB9A9B2EF54467000CA528 /* Example_Knoodle */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Example_Knoodle; sourceTree = "<group>"; };
-		AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDraw */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_OrthoDraw; sourceTree = "<group>"; };
+		AFDEBF17302E2721001C88F5 /* examples */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AFDEBF36302E272C001C88F5 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = examples; sourceTree = "<group>"; };
+		AFDEBF79302E28E6001C88F5 /* devel */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = devel; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2024,17 +2071,14 @@
 				AF8611C22F66C0A600F08C51 /* submodules */,
 				AF8612BC2F66C0AA00F08C51 /* src */,
 				AFF305482B7AF300009ABC74 /* Knoodle.hpp */,
+				AFDEBF79302E28E6001C88F5 /* devel */,
+				AFDEBF17302E2721001C88F5 /* examples */,
+				AF301E5A302E260A00D6545C /* dev */,
 				AF7F30FF2FE04489008E25C0 /* test */,
 				AFC2F3FD2D4D00A400FF8621 /* Reapr_Legacy.hpp */,
 				AF8C883E302CAABE0062AC7B /* tools */,
 				AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */,
 				AF7FD1D62D87464900D802C0 /* PolyFold */,
-				AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDraw */,
-				AF6C85DD2E29315B0051B919 /* WorkBench */,
-				AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */,
-				AFAC10632F0293FA0029A41C /* Dev_ClisbyTree2 */,
-				AFBB9A9B2EF54467000CA528 /* Example_Knoodle */,
-				AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,
 				AF5B87F22BAE053100CB5CAF /* Frameworks */,
 			);
@@ -2336,6 +2380,20 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		AFDEB8B7302E26E8001C88F5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AFDEBF20302E2723001C88F5 /* QRAlgorithm */,
+				AFDEBF22302E2723001C88F5 /* Example_SparseCholesky */,
+				AFDEBF24302E2723001C88F5 /* UnitTests */,
+				AFDEBF26302E2723001C88F5 /* Unit_Test_SpMM */,
+				AFDEBF28302E2723001C88F5 /* DenseBLAS */,
+				AFDEBF2A302E2723001C88F5 /* Experiment_SpMM */,
+				AFDEBF2C302E2723001C88F5 /* Scratch */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		AFECED692FA2162300550AA4 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -2380,7 +2438,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram */,
+				AF301E5A302E260A00D6545C /* dev */,
 			);
 			name = Dev_PlanarDiagram2;
 			packageProductDependencies = (
@@ -2400,9 +2458,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */,
 			);
 			name = Dev_ClisbyTree;
 			packageProductDependencies = (
@@ -2461,9 +2516,6 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				AF6C85DD2E29315B0051B919 /* WorkBench */,
-			);
 			name = WorkBench;
 			packageProductDependencies = (
 			);
@@ -2505,9 +2557,6 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				AFAC10632F0293FA0029A41C /* Dev_ClisbyTree2 */,
-			);
 			name = Dev_ClisbyTree2;
 			packageProductDependencies = (
 			);
@@ -2527,9 +2576,6 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				AFBB9A9B2EF54467000CA528 /* Example_Knoodle */,
-			);
 			name = Example_Knoodle;
 			packageProductDependencies = (
 			);
@@ -2548,9 +2594,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDraw */,
 			);
 			name = Dev_OrthoDraw;
 			packageProductDependencies = (
@@ -2598,6 +2641,7 @@
 				};
 			};
 			buildConfigurationList = AF5BC0AE29D1AF1C008CA8B7 /* Build configuration list for PBXProject "Knoodle" */;
+			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -2605,7 +2649,6 @@
 				Base,
 			);
 			mainGroup = AF5BC0AA29D1AF1C008CA8B7;
-			preferredProjectObjectVersion = 56;
 			productRefGroup = AF5BC0B429D1AF1C008CA8B7 /* Products */;
 			projectDirPath = "";
 			projectReferences = (
@@ -2716,6 +2759,10 @@
 				{
 					ProductGroup = AFD8DDFA300DE7FA00AD9194 /* Products */;
 					ProjectRef = AFD8DDF5300DE7FA00AD9194 /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AFDEB8B7302E26E8001C88F5 /* Products */;
+					ProjectRef = AFDEB8B2302E26E8001C88F5 /* Tensors.xcodeproj */;
 				},
 				{
 					ProductGroup = AF7F2F952FE02296008E25C0 /* Products */;
@@ -4275,6 +4322,55 @@
 			fileType = "compiled.mach-o.executable";
 			path = Scratch;
 			remoteRef = AFD8E424300E1ADB00AD9194 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AFDEBF20302E2723001C88F5 /* QRAlgorithm */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = QRAlgorithm;
+			remoteRef = AFDEBF1F302E2723001C88F5 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AFDEBF22302E2723001C88F5 /* Example_SparseCholesky */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Example_SparseCholesky;
+			remoteRef = AFDEBF21302E2723001C88F5 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AFDEBF24302E2723001C88F5 /* UnitTests */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = UnitTests;
+			remoteRef = AFDEBF23302E2723001C88F5 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AFDEBF26302E2723001C88F5 /* Unit_Test_SpMM */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Unit_Test_SpMM;
+			remoteRef = AFDEBF25302E2723001C88F5 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AFDEBF28302E2723001C88F5 /* DenseBLAS */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = DenseBLAS;
+			remoteRef = AFDEBF27302E2723001C88F5 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AFDEBF2A302E2723001C88F5 /* Experiment_SpMM */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Experiment_SpMM;
+			remoteRef = AFDEBF29302E2723001C88F5 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AFDEBF2C302E2723001C88F5 /* Scratch */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Scratch;
+			remoteRef = AFDEBF2B302E2723001C88F5 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		AFECEE8D2FA2177B00550AA4 /* QRAlgorithm */ = {

@@ -40,22 +40,26 @@
 # MacOS cruft
 .DS_Store
 
-# More executables
+# More executables and outputs of devel code
 
-PolyFold/Polyfold
-PolyFold/PolyFold
-PolyFold/polyfold
-PolyFold_Kyoto/Polyfold
-Dev_OrthoDraw/TestOrthoDraw
+devel/*/Tools_Log.txt
+devel/*/Tools_Profile.tsv
+devel/PolyFold/Polyfold
+devel/PolyFold/PolyFold
+devel/PolyFold/polyfold
+devel/PolyFold_Kyoto/Polyfold
+devel/PolyFold_Kyoto/PolyFold
+devel/PolyFold_Kyoto/polyfold
+devel/Dev_OrthoDraw/TestOrthoDraw
 
-Example_Knoodle/Knoodle
-Example_Knoodle/Diagram_Reapr.txt
-Example_Knoodle/Diagram_Simplify3.txt
-Example_Knoodle/Diagram_Simplify4.txt
-Example_Knoodle/Diagram_Simplify5.txt
-Example_Knoodle/Diagram_unsimplified.txt
+devel/Example_Knoodle/Knoodle
+devel/Example_Knoodle/Diagram_Reapr.txt
+devel/Example_Knoodle/Diagram_Simplify3.txt
+devel/Example_Knoodle/Diagram_Simplify4.txt
+devel/Example_Knoodle/Diagram_Simplify5.txt
+devel/Example_Knoodle/Diagram_unsimplified.txt
 
-Dev_ClisbyTree2/Example_ClisbyTree2
+devel/Dev_ClisbyTree2/Example_ClisbyTree2
 
 tools/ExampleKnot_simplified.tsv
 tools/knoodlesimplify
@@ -80,21 +84,17 @@ test/build/
 # Markdown files
 *.md 
 doc/*
+doc.html
 
-<<<<<<< HEAD
+# Stuff that's only on Henrik's machine
 # user-specific XCode data
 *.xcuserstate
 *.xcodeproj/xcuserdata/*
 *.xcworkspace/
-xcuserdata/
-=======
-doc/*
-doc.html
-
 *.xcuserstate
-*.xcodeproj/xcuserdata/*
-*.xcuserstate
-*.xcworkspace/
 xcuserdata/
 
->>>>>>> 0cc297a73078bea7c48f2defcefe73daa5edc68c
+Literature/
+
+
+
