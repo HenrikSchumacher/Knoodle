@@ -494,40 +494,6 @@ namespace Knoodle
             return ArcEndCell(da / Int(2), (da % Int(2)) == Int(1));
         }
 
-        //======================================================================
-        // Junction placement. The corridor attaches at an anchor crossing;
-        // the descriptor's depart/land face says through which of the four
-        // quadrant faces around that crossing it leaves/arrives. In the grid,
-        // a crossing cell's 4-neighbors are the four incident arc stubs
-        // (occupied), and its diagonal neighbors are the quadrant corner
-        // cells — so the junction is the diagonal neighbor of the anchor
-        // cell lying in face `f`. Fails iff `f` is not a free quadrant there
-        // (a drawing-level failure, not a descriptor one). If the same face occupies
-        // two quadrants, the first in fixed scan order (NE, NW, SW, SE) wins
-        // — deterministic; flank disambiguation is an open spec question.
-        //======================================================================
-
-        bool JunctionCell(Point_T anchor, Int f, Point_T & out) const
-        {
-            RequireFaceMap();
-
-            static const Int diag_dx[] = {1, -1, -1,  1};
-            static const Int diag_dy[] = {1,  1, -1, -1};
-
-            for (int q = 0; q < 4; ++q)
-            {
-                Point_T c { anchor[0] + diag_dx[q], anchor[1] + diag_dy[q] };
-
-                if (FaceAt(c[0], c[1]) == f)
-                {
-                    out = c;
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         Int DistanceAt(const DistanceField & df, Int x, Int y) const
         {
             Int sx = (x - df.x0) * stretch_x;
@@ -605,12 +571,38 @@ namespace Knoodle
 
         Path_T RouteThroughFace(Int face_id, Point_T start, Point_T goal) const
         {
+            return RouteThroughFaceImpl(face_id, start, goal, nullptr,
+                                        Int(-1), Int(-1));
+        }
+
+    private:
+
+        // The workhorse behind RouteThroughFace. `blocked` (optional) marks
+        // cells that earlier routing has already drawn strokes through; once
+        // something is drawn it is really there, so A* treats those cells as
+        // walls. `avoid_a`/`avoid_b` are up to two additional grid indices to
+        // keep out of (used for the multi-route's final goal and a leg's own
+        // exit cell); -1 disables. The caller guarantees start and goal are
+        // themselves admissible.
+        Path_T RouteThroughFaceImpl(
+            Int face_id, Point_T start, Point_T goal,
+            const std::vector<char> * blocked, Int avoid_a, Int avoid_b
+        ) const
+        {
             RequireFaceMap();
             const DistanceField & df = RequireDistanceField(face_id);
 
             // Validate start and goal
             if (FaceAt(start[0], start[1]) != face_id) return {};
             if (FaceAt(goal[0], goal[1])   != face_id) return {};
+
+            if (blocked)
+            {
+                if ((*blocked)[static_cast<std::size_t>(
+                        GridIndex(start[0], start[1]))]) return {};
+                if ((*blocked)[static_cast<std::size_t>(
+                        GridIndex(goal[0], goal[1]))])   return {};
+            }
 
             // Trivial case
             if (start[0] == goal[0] && start[1] == goal[1])
@@ -674,6 +666,8 @@ namespace Knoodle
 
                     Int ni = GridIndex(nx, ny);
                     if (face_map[ni] != face_id) continue;
+                    if (blocked && (*blocked)[static_cast<std::size_t>(ni)]) continue;
+                    if ((ni == avoid_a) || (ni == avoid_b)) continue;
 
                     // Edge cost: prefer cells far from the boundary
                     Int cell_dist = DistanceAt(df, nx, ny);
@@ -710,6 +704,8 @@ namespace Knoodle
             return path;
         }
 
+    public:
+
         //======================================================================
         // Phase 2 — Public API: darc-level face lookup
         //
@@ -742,6 +738,10 @@ namespace Knoodle
             Point_T on_arc;  // cell of the crossed arc
             Point_T left;    // free perpendicular neighbor in LeftFace(da)
             Point_T right;   // free perpendicular neighbor in RightFace(da)
+            Int     pos;     // index of on_arc in the arc's tail->head cell walk
+                             // (orders portal points along the arc; the dot
+                             // placement of RoutePassMove needs this to keep
+                             // the two stubs of a one-arc strand disjoint)
         };
 
         // All grid positions where a route may cross the arc of darc `da`
@@ -769,9 +769,13 @@ namespace Knoodle
             const Int fl = LeftFace(da);
             const Int fr = RightFace(da);
 
+            Int walk_pos = -1;
+
             TraverseArcCells(a,
                 [&](Int x, Int y, int dir, bool interiorQ)
                 {
+                    ++walk_pos;
+
                     if (!interiorQ) return;
 
                     // Left of the tail->head walk = dir rotated CCW. A Tail
@@ -789,7 +793,7 @@ namespace Knoodle
                     if (FaceAt(l[0], l[1]) != fl) return;
                     if (FaceAt(r[0], r[1]) != fr) return;
 
-                    portal.push_back(PortalPoint_T{ {x, y}, l, r });
+                    portal.push_back(PortalPoint_T{ {x, y}, l, r, walk_pos });
                 });
 
             return portal;
@@ -814,15 +818,17 @@ namespace Knoodle
         // must equal L(darcs[0]); thereafter L(darcs[i]) must equal
         // R(darcs[i-1]); and `goal` must lie in R(darcs[k-1]).
         //
-        // Waypoints are chosen greedily with a one-portal look-ahead (score =
-        // distance from previous exit + distance toward the next portal's
-        // middle, final goal for the last); each leg is clearance-maximizing
-        // A* via RouteThroughFace. Deterministic: ties break to the first
-        // minimal portal point.
-        //
-        // Known limitation: if the face sequence revisits a face, legs are
-        // still routed independently and may cross each other; callers that
-        // need an embedded (simple) corridor must check for that.
+        // The corridor is SIMPLE by construction: once a leg is routed its
+        // cells are really there, and every later leg treats them (and the
+        // final goal cell) as walls -- so legs cannot cross each other even
+        // when the face sequence revisits a face. Per crossing, the portal
+        // candidates are tried in score order (one-portal look-ahead: score =
+        // distance from the previous exit + distance toward the next portal's
+        // middle, final goal for the last) until one admits a leg; each leg
+        // is clearance-maximizing A* via RouteThroughFaceImpl. Deterministic:
+        // ties break to the first minimal portal point. There is no
+        // backtracking across crossings; a crossing none of whose portal
+        // points admits a leg fails loudly.
         MultiRoute_T RouteAcrossDarcs(
             Point_T start, Point_T goal, const std::vector<Int> & darcs
         ) const
@@ -887,9 +893,27 @@ namespace Knoodle
                     static_cast<double>(p[1] - q[1]));
             };
 
-            // Greedy waypoint selection with one-portal look-ahead.
-            std::vector<PortalPoint_T> chosen(k);
-            Point_T prev = start;
+            // Sequential routing with walls (see the doc comment above).
+            std::vector<char> blocked(
+                static_cast<std::size_t>(n_x * n_y), char(0));
+
+            auto grid_idx = [this](Point_T p) -> Int
+            {
+                return GridIndex(p[0], p[1]);
+            };
+
+            const Int goal_idx = grid_idx(goal);
+
+            auto commit_leg = [&](const Path_T & leg)
+            {
+                for (const Point_T & c : leg)
+                {
+                    blocked[static_cast<std::size_t>(grid_idx(c))] = char(1);
+                    result.path.push_back(c);
+                }
+            };
+
+            Point_T at = start;
 
             for (std::size_t i = 0; i < k; ++i)
             {
@@ -897,55 +921,93 @@ namespace Knoodle
                     ? portals[i + 1][portals[i + 1].size() / 2].on_arc
                     : goal;
 
-                std::size_t best = 0;
-                double best_score = std::numeric_limits<double>::infinity();
+                // Candidate order: by look-ahead score, ties to the earlier
+                // portal point.
+                std::vector<std::size_t> order(portals[i].size());
+                std::iota(order.begin(), order.end(), std::size_t(0));
+                std::stable_sort(order.begin(), order.end(),
+                    [&](std::size_t a, std::size_t b)
+                    {
+                        const PortalPoint_T & pa = portals[i][a];
+                        const PortalPoint_T & pb = portals[i][b];
+                        return dist(at, pa.on_arc) + dist(pa.on_arc, target)
+                             < dist(at, pb.on_arc) + dist(pb.on_arc, target);
+                    });
 
-                for (std::size_t j = 0; j < portals[i].size(); ++j)
+                bool routed = false;
+
+                for (std::size_t j : order)
                 {
                     const PortalPoint_T & p = portals[i][j];
-                    double score = dist(prev, p.on_arc) + dist(p.on_arc, target);
-                    if (score < best_score)
+
+                    // A candidate whose cells the corridor has already used is
+                    // gone. The goal cell is reserved for the LAST leg's
+                    // arrival: no leg may end on it early (p.left == goal
+                    // commits it before the last leg needs it), and no
+                    // crossing but the final one may exit onto it (the exit
+                    // becomes the next leg's start, so the goal would be
+                    // visited twice). The final crossing exiting exactly onto
+                    // the goal is fine -- the last leg is then trivial.
+                    if (blocked[static_cast<std::size_t>(grid_idx(p.left))]
+                     || blocked[static_cast<std::size_t>(grid_idx(p.right))]
+                     || blocked[static_cast<std::size_t>(grid_idx(p.on_arc))])
                     {
-                        best_score = score;
-                        best = j;
+                        continue;
                     }
+                    if (grid_idx(p.left) == goal_idx)
+                    {
+                        continue;
+                    }
+                    if ((i + 1 < k) && (grid_idx(p.right) == goal_idx))
+                    {
+                        continue;
+                    }
+
+                    // The leg may not run through this candidate's own exit
+                    // cell either -- the next leg starts there.
+                    Path_T leg = RouteThroughFaceImpl(
+                        F[i], at, p.left, &blocked,
+                        goal_idx, grid_idx(p.right));
+
+                    if (leg.empty()) continue;
+
+                    commit_leg(leg);
+
+                    result.crossing_indices.push_back(
+                        static_cast<Int>(result.path.size()));
+                    result.path.push_back(p.on_arc);
+                    blocked[static_cast<std::size_t>(grid_idx(p.on_arc))] = char(1);
+
+                    at = p.right;
+                    routed = true;
+                    break;
                 }
 
-                chosen[i] = portals[i][best];
-                prev = chosen[i].right;
-            }
-
-            // Route the legs and assemble.
-            auto append_leg = [&](Int face, Point_T from, Point_T to) -> bool
-            {
-                Path_T leg = RouteThroughFace(face, from, to);
-                if (leg.empty())
+                if (!routed)
                 {
-                    result.why = "A* found no path in face "
-                        + std::to_string(face) + " from ("
-                        + std::to_string(from[0]) + ","
-                        + std::to_string(from[1]) + ") to ("
-                        + std::to_string(to[0]) + ","
-                        + std::to_string(to[1]) + ")";
-                    return false;
+                    return fail("no portal point of cross["
+                        + std::to_string(i) + "] (darc "
+                        + std::to_string(darcs[i]) + ", arc "
+                        + std::to_string(darcs[i] / 2) + ") admits a leg in"
+                        " face " + std::to_string(F[i]) + " from ("
+                        + std::to_string(at[0]) + "," + std::to_string(at[1])
+                        + ") that avoids the already-routed corridor");
                 }
-                result.path.insert(result.path.end(), leg.begin(), leg.end());
-                return true;
-            };
-
-            Point_T at = start;
-            for (std::size_t i = 0; i < k; ++i)
-            {
-                if (!append_leg(F[i], at, chosen[i].left)) return result;
-
-                result.crossing_indices.push_back(
-                    static_cast<Int>(result.path.size()));
-                result.path.push_back(chosen[i].on_arc);
-
-                at = chosen[i].right;
             }
 
-            if (!append_leg(F[k], at, goal)) return result;
+            Path_T last = RouteThroughFaceImpl(
+                F[k], at, goal, &blocked, Int(-1), Int(-1));
+
+            if (last.empty())
+            {
+                return fail("A* found no path in face "
+                    + std::to_string(F[k]) + " from ("
+                    + std::to_string(at[0]) + "," + std::to_string(at[1])
+                    + ") to (" + std::to_string(goal[0]) + ","
+                    + std::to_string(goal[1]) + ") that avoids the"
+                    " already-routed corridor");
+            }
+            commit_leg(last);
 
             result.validQ = true;
             return result;
@@ -971,19 +1033,30 @@ namespace Knoodle
 
         struct PassRoute_T
         {
-            MultiRoute_T      route;        // corridor incl. crossing cells
+            MultiRoute_T      route;        // corridor incl. dot + crossing cells
             std::vector<bool> over;         // per crossing (copied from the move)
             Point_T           tail_anchor;  // grid cell of the tail anchor crossing
             Point_T           head_anchor;  // grid cell of the head anchor crossing
+            Point_T           tail_dot;     // dot cell on the strand's first arc
+                                            //   (== route.path.front())
+            Point_T           head_dot;     // dot cell on the strand's last arc
+                                            //   (== route.path.back())
             bool              validQ = false;
             std::string       why;          // human-readable reason when !validQ
         };
 
         // Validate a pass-move descriptor (the local checks of the spec) and
-        // route its corridor. The corridor starts in the quadrant of face
-        // L(depart) at the tail anchor crossing and ends in the quadrant of
-        // face L(land) at the head anchor crossing — the new strand attaches
-        // exactly where the old one did.
+        // route its corridor. The corridor does not float beside the anchors:
+        // it BRANCHES OFF the strand's own end arcs. Each endpoint is a DOT
+        // at a portal point of that arc -- the same designated crossing sites
+        // the corridor uses to cross any other arc -- chosen so the corridor
+        // leaves the dot sideways into L(depart) (resp. arrives from
+        // L(land)). The piece of the arc between the anchor and the dot is
+        // SHARED by the two pictures of the two-deletions contract
+        // (docs/move-descriptor.md): delete the corridor and it is the start
+        // of W; delete W and it is the start of the rerouted strand, which
+        // therefore attaches to the anchor through exactly the port W
+        // vacated.
         /*!@brief Route a pass descriptor in THIS drawing (tier 2).
          *
          * `pd` is the diagram the descriptor is written against and the one
@@ -1015,34 +1088,155 @@ namespace Knoodle
             result.head_anchor = DarcHeadCell(mv.strand.back());
 
             // -- Tier 2 begins here: everything from this point on is about
-            //    THIS drawing. The junction cell is the anchor's diagonal
-            //    neighbour in the depart/land face; a well-formed descriptor
-            //    can still fail here if the layout does not offer that
-            //    quadrant, which is a fact about the drawing, not the move.
-            const Int F_dep  = LeftFace(mv.depart);
-            const Int F_land = LeftFace(mv.land);
+            //    THIS drawing. Check 4 guarantees depart/land are darcs OF
+            //    the strand's end arcs, so their portals are exactly the
+            //    candidate dot sites; a well-formed descriptor can still fail
+            //    here if the layout offers no portal point on the required
+            //    flank, which is a fact about the drawing, not the move.
+            const auto dep_portal  = Portal(mv.depart);
+            const auto land_portal = Portal(mv.land);
 
-            Point_T start, goal;
-            if (!JunctionCell(result.tail_anchor, F_dep, start))
+            if (dep_portal.empty())
             {
-                return fail("the depart face has no free quadrant cell beside"
-                    " the tail anchor in this drawing (the descriptor is"
+                return fail("the strand's first arc has no portal point on"
+                    " the depart flank in this drawing (the descriptor is"
                     " well-formed; the layout cannot carry it)");
             }
-            if (!JunctionCell(result.head_anchor, F_land, goal))
+            if (land_portal.empty())
             {
-                return fail("the land face has no free quadrant cell beside"
-                    " the head anchor in this drawing (the descriptor is"
+                return fail("the strand's last arc has no portal point on"
+                    " the land flank in this drawing (the descriptor is"
                     " well-formed; the layout cannot carry it)");
             }
+
+            const std::size_t k = mv.cross.size();
+
+            auto dist = [](Point_T p, Point_T q) -> double
+            {
+                return std::hypot(
+                    static_cast<double>(p[0] - q[0]),
+                    static_cast<double>(p[1] - q[1]));
+            };
+
+            std::size_t ti = 0, hi = 0;
+
+            if (k == 0)
+            {
+                // Joint choice: the shortest hop. When the strand is a single
+                // arc both dots live on it, and the tail dot must come FIRST
+                // in the strand's own direction: the two shared stubs
+                // (anchor -> dot) may not overlap, or neither deletion is a
+                // diagram.
+                const bool same_arcQ = (PassMove_T::ArcOf(mv.depart)
+                                     == PassMove_T::ArcOf(mv.land));
+                const bool fwdQ = PassMove_T::DirOf(mv.strand.front());
+
+                bool found = false;
+                double best = std::numeric_limits<double>::infinity();
+
+                for (std::size_t i = 0; i < dep_portal.size(); ++i)
+                {
+                    for (std::size_t j = 0; j < land_portal.size(); ++j)
+                    {
+                        if (same_arcQ)
+                        {
+                            const Int pt = dep_portal[i].pos;
+                            const Int ph = land_portal[j].pos;
+                            const bool tail_firstQ =
+                                fwdQ ? (pt < ph) : (pt > ph);
+                            if (!tail_firstQ) continue;
+                        }
+                        const double s =
+                            dist(dep_portal[i].left, land_portal[j].left);
+                        if (s < best)
+                        {
+                            best = s; ti = i; hi = j; found = true;
+                        }
+                    }
+                }
+
+                if (!found)
+                {
+                    return fail("no dot pair on the strand's arc leaves room"
+                        " for two disjoint stubs (the tail dot must precede"
+                        " the head dot along the strand)");
+                }
+            }
+            else
+            {
+                // Each dot leans toward the corridor's first / last crossing
+                // (middle-portal proxy, as in RouteAcrossDarcs); ties fall to
+                // the portal point nearest its anchor -- the shortest shared
+                // stub.
+                const auto c0 = Portal(mv.cross.front());
+                const auto ck = Portal(mv.cross.back());
+
+                if (c0.empty() || ck.empty())
+                {
+                    // RouteAcrossDarcs would say this too; saying it here
+                    // keeps the message tied to the failing darc.
+                    const Int bad = c0.empty() ? mv.cross.front()
+                                               : mv.cross.back();
+                    return fail("empty portal for a corridor crossing (darc "
+                        + std::to_string(bad) + ", arc "
+                        + std::to_string(bad / 2) + ")");
+                }
+
+                const Point_T t0 = c0[c0.size() / 2].on_arc;
+                const Point_T tk = ck[ck.size() / 2].on_arc;
+
+                const bool fwd0 = PassMove_T::DirOf(mv.strand.front());
+                const bool fwdL = PassMove_T::DirOf(mv.strand.back());
+
+                // Anchor proximity in strand order: the tail anchor sits at
+                // the arc's tail iff the strand runs the arc forward; the
+                // head anchor at the arc's head iff likewise.
+                auto pick = [&](const std::vector<PortalPoint_T> & cand,
+                                Point_T toward, bool anchor_at_tailQ)
+                    -> std::size_t
+                {
+                    std::size_t best_i = 0;
+                    double best_s = std::numeric_limits<double>::infinity();
+                    Int    best_key = 0;
+
+                    for (std::size_t i = 0; i < cand.size(); ++i)
+                    {
+                        const double s = dist(cand[i].left, toward);
+                        const Int key = anchor_at_tailQ ?  cand[i].pos
+                                                        : -cand[i].pos;
+                        if ((s < best_s)
+                         || ((s == best_s) && (key < best_key)))
+                        {
+                            best_s = s; best_key = key; best_i = i;
+                        }
+                    }
+                    return best_i;
+                };
+
+                ti = pick(dep_portal,  t0,  fwd0);
+                hi = pick(land_portal, tk, !fwdL);
+            }
+
+            const PortalPoint_T & tp = dep_portal[ti];
+            const PortalPoint_T & hp = land_portal[hi];
+
+            result.tail_dot = tp.on_arc;
+            result.head_dot = hp.on_arc;
 
             // -- Route ------------------------------------------------------
-            result.route = RouteAcrossDarcs(start, goal, mv.cross);
+            result.route = RouteAcrossDarcs(tp.left, hp.left, mv.cross);
             if (!result.route.validQ)
             {
                 return fail("face chain validated but geometric routing"
                     " failed: " + result.route.why);
             }
+
+            // The dots belong to the corridor polyline: the drawn corridor
+            // runs dot -> sideways off the arc -> ... -> sideways back onto
+            // the arc -> dot.
+            result.route.path.insert(result.route.path.begin(), tp.on_arc);
+            for (Int & ci : result.route.crossing_indices) { ci += Int(1); }
+            result.route.path.push_back(hp.on_arc);
 
             result.over   = mv.over;
             result.validQ = true;
@@ -1360,7 +1554,9 @@ namespace Knoodle
             CornerNW,     // arms N+W
             CornerSE,     // arms S+E
             CornerSW,     // arms S+W
-            Junction,     // corridor endpoint beside an anchor crossing
+            Dot,          // corridor endpoint: the dot ON the strand's end
+                          // arc where the corridor branches off (the piece
+                          // anchor->dot is shared by both deletion views)
             CrossOverH,   // corridor passes OVER the crossed arc, running E-W
             CrossOverV,   // corridor passes OVER the crossed arc, running N-S
             CrossUnder,   // corridor passes UNDER: the arc's own glyph stays
@@ -1423,7 +1619,7 @@ namespace Knoodle
                 }
                 else if (i == 0 || i + 1 == p.size())
                 {
-                    kind = OverlayKind::Junction;
+                    kind = OverlayKind::Dot;
                 }
                 else if (e && w) { kind = OverlayKind::Horizontal; }
                 else if (n && s) { kind = OverlayKind::Vertical; }

@@ -15,8 +15,10 @@
 
 #include "../Knoodle.hpp"
 
+#include <array>
 #include <cstdint>
 #include <cstdio>
+#include <set>
 #include <vector>
 #include "knot_determinant.hpp"
 #include "pass_fixtures.hpp"
@@ -140,6 +142,11 @@ static int run_case(const char * name, std::vector<Int> pd, Int n,
             { std::printf("  route %s: occupancy mismatch at %zu\n", name, i); return false; }
             if (is_crossing) ++ci;
         }
+
+        // The walls of RouteAcrossDarcs guarantee a simple corridor.
+        std::set<std::array<Int,2>> seen(mr.path.begin(), mr.path.end());
+        if (seen.size() != mr.path.size())
+        { std::printf("  route %s: path revisits a cell\n", name); return false; }
 
         std::printf("  route %s: %zu points, %zu crossings OK\n",
             name, mr.path.size(), n_crossings);
@@ -346,6 +353,10 @@ static int run_pass_tests(Int xg, Int yg)
 
     bool ok = true;
 
+    // Pass-route integrity. The path's first and last cells are the DOTS on
+    // the strand's end arcs (occupied by construction); every other occupied
+    // cell must be exactly a recorded crossing. The corridor must also be
+    // SIMPLE -- the walls in RouteAcrossDarcs guarantee no cell repeats.
     auto integrity = [&](const Deco_T::MultiRoute_T & mr) -> bool
     {
         for (std::size_t i = 1; i < mr.path.size(); ++i)
@@ -360,9 +371,12 @@ static int run_pass_tests(Int xg, Int yg)
             bool occ = deco.OccupiedQ(mr.path[i][0], mr.path[i][1]);
             bool is_x = (ci < mr.crossing_indices.size()
                 && mr.crossing_indices[ci] == static_cast<Int>(i));
-            if (occ != is_x) return false;
+            bool is_dot = (i == 0) || (i + 1 == mr.path.size());
+            if (occ != (is_x || is_dot)) return false;
             if (is_x) ++ci;
         }
+        std::set<std::array<Int,2>> seen(mr.path.begin(), mr.path.end());
+        if (seen.size() != mr.path.size()) return false;   // not simple
         return true;
     };
 
@@ -384,7 +398,12 @@ static int run_pass_tests(Int xg, Int yg)
             && pr.route.crossing_indices.size() == n_cross
             && pr.over.size() == n_cross
             && deco.OccupiedQ(pr.tail_anchor[0], pr.tail_anchor[1])
-            && deco.OccupiedQ(pr.head_anchor[0], pr.head_anchor[1]);
+            && deco.OccupiedQ(pr.head_anchor[0], pr.head_anchor[1])
+            // The dots are the corridor's endpoints, on the strand's end arcs.
+            && (pr.tail_dot == pr.route.path.front())
+            && (pr.head_dot == pr.route.path.back())
+            && deco.OccupiedQ(pr.tail_dot[0], pr.tail_dot[1])
+            && deco.OccupiedQ(pr.head_dot[0], pr.head_dot[1]);
 
         if (!good)
         {

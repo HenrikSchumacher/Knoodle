@@ -2642,7 +2642,7 @@ void StampPassOverlay(std::string& diagram, std::vector<HighlightType>& mask,
             case Deco_T::OverlayKind::CornerNW:   ch = '}'; break;
             case Deco_T::OverlayKind::CornerSE:   ch = '['; break;
             case Deco_T::OverlayKind::CornerSW:   ch = ']'; break;
-            case Deco_T::OverlayKind::Junction:   ch = '*'; break;
+            case Deco_T::OverlayKind::Dot:        ch = '*'; break;
             case Deco_T::OverlayKind::CrossOverH: ch = '='; break;
             case Deco_T::OverlayKind::CrossOverV: ch = ';'; break;
             // Orientation arrows on the corridor. These reuse the diagram's own
