@@ -25,6 +25,7 @@ link_inflate_check
 link_split_check
 link_color_roundtrip
 embedding_check
+reapr_corner_probe
 vendor/plantri/plantri
 inflate_fail_*.tsv
 link_inflate_fail_*.tsv
