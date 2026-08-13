@@ -23,9 +23,10 @@
 //   strokes      - < > =   run east-west;   | ^ v ;   run north-south
 //   corners      + (base, arms inferred), { } [ ] (corridor: NE NW SE SW)
 //   dots         * (corridor branch point; arms inferred)
-//   crossings    ANY stroke cell whose two PERPENDICULAR neighbours both
-//                point into it. The cell's own glyph is the over-strand
-//                (drawn straight through); the under-strand is the one
+//   crossings    a STRAIGHT stroke cell (never a corner) with a PERPENDICULAR
+//                neighbour pointing into it and something on the far side for
+//                that strand to continue into. The cell's own glyph is the
+//                over-strand, drawn through; the under-strand is the one
 //                interrupted by exactly this one cell.
 //
 // That last rule is the whole reason this works: `OrthoDraw::DiagramString`
@@ -34,6 +35,13 @@
 // same for corridor crossings (an over-crossing writes = or ; into the crossed
 // arc's cell; an under-crossing leaves the arc's glyph and breaks the
 // corridor). One rule reads both, so the corridor is not a special case.
+//
+// It asks for one side rather than both because a strand that enters has to
+// leave: two crossings can sit ADJACENT along a single under-strand -- a
+// corridor crossing an arc right beside a crossing that arc already had -- and
+// then the cell between them is itself a crossing whose glyph runs the other
+// way, so neither would see the other and both would go unrecognized. Demanding
+// both sides is the obvious rule and it is wrong; links hit this immediately.
 //
 // NO VIEW AWARENESS. It might look as though the parser would have to know
 // about pass moves -- to "detour" at a dot onto W or onto the corridor
@@ -245,9 +253,17 @@ namespace KnoodleDrawIO
                     const std::size_t i = idx(x,y);
                     if( !inferQ[i] ) { continue; }
 
-                    arms[i] = std::uint8_t(0);
+                    // ACCUMULATE, never reset. An arm appears only when a
+                    // neighbour genuinely points back, which is the very
+                    // condition the consistency check demands, so nothing
+                    // learned can later turn out to be wrong. Recomputing from
+                    // scratch each round would instead wipe what the forcing
+                    // rule below deduced, and two adjacent inference cells
+                    // would hand each other the same missing arm forever
+                    // rather than converging.
                     for( int d = 0; d < 4; ++d )
                     {
+                        if( hasarm(i,d) ) { continue; }
                         const Int nx = x + DirDX[d], ny = y + DirDY[d];
                         if( !inQ(nx,ny) ) { continue; }
                         const std::size_t j = idx(nx,ny);
@@ -259,7 +275,12 @@ namespace KnoodleDrawIO
                 for( Int x = 0; x < wide; ++x )
                 {
                     const std::size_t i = idx(x,y);
-                    if( !fullQ[i] || inferQ[i] || crossQ[i] ) { continue; }
+                    // Only a STRAIGHT stroke can be a crossing: the cell shows
+                    // the over-strand running through, and a corner does not
+                    // run through anything. (Without this a corner's own two
+                    // arms get read as an axis and it can be promoted, which
+                    // hands it two arms it does not have.)
+                    if( !fullQ[i] || !strokeQ[i] || crossQ[i] ) { continue; }
 
                     // Perpendicular to this cell's own glyph.
                     const int p0 = horizQ[i] ? DirN : DirE;
@@ -270,16 +291,42 @@ namespace KnoodleDrawIO
                     if( !inQ(ax,ay) || !inQ(bx,by) ) { continue; }
 
                     const std::size_t ja = idx(ax,ay), jb = idx(bx,by);
-                    if( fullQ[ja] && hasarm(ja,DirOpp(p0))
-                     && fullQ[jb] && hasarm(jb,DirOpp(p1)) )
+
+                    const bool a_inQ = fullQ[ja] && hasarm(ja,DirOpp(p0));
+                    const bool b_inQ = fullQ[jb] && hasarm(jb,DirOpp(p1));
+
+                    // A strand that enters cannot stop. So ONE perpendicular
+                    // neighbour pointing in is already enough, provided there
+                    // is something on the far side for it to continue into --
+                    // it has nowhere else to go, and this cell's own glyph is
+                    // the strand drawn over it.
+                    //
+                    // Requiring BOTH sides to point in (the obvious rule) is
+                    // too weak: two crossings can sit adjacent along one
+                    // under-strand -- a corridor crossing an arc right beside a
+                    // crossing that arc already had -- and then the cell
+                    // between them is itself a crossing whose glyph runs the
+                    // other way, so neither can see the other and both go
+                    // unrecognized. With this rule the first one detected gives
+                    // the next one its incoming arm, and the chain resolves.
+                    if( (a_inQ && fullQ[jb]) || (b_inQ && fullQ[ja]) )
                     {
                         crossQ[i] = char(1);
                         for( int d = 0; d < 4; ++d ) { setarm(i,d); }
                     }
                 }
 
-                // An inference cell still short of degree 2 forces a crossing
-                // on any neighbour it can only reach through one.
+                // Two inference cells side by side deadlock each other: a
+                // corner whose only free neighbour is a dot needs the dot to
+                // claim an arm first, and the dot needs the corner to. Neither
+                // moves, and both are left at degree 1.
+                //
+                // Counting breaks it. An inference cell has degree exactly 2,
+                // so if the arms it already has plus the neighbours that could
+                // still supply one come to exactly 2, every one of those is
+                // forced -- there is no other way to reach 2. Deliberately
+                // conservative: with more candidates than it needs, nothing is
+                // deduced and the consistency check below will report it.
                 for( Int y = 0; y < n_y; ++y )
                 for( Int x = 0; x < wide; ++x )
                 {
@@ -290,24 +337,81 @@ namespace KnoodleDrawIO
                     for( int d = 0; d < 4; ++d ) { deg += hasarm(i,d) ? 1 : 0; }
                     if( deg >= 2 ) { continue; }
 
+                    int cand = 0;
                     for( int d = 0; d < 4; ++d )
                     {
                         if( hasarm(i,d) ) { continue; }
+                        const Int nx = x + DirDX[d], ny = y + DirDY[d];
+                        if( !inQ(nx,ny) ) { continue; }
+                        if( fullQ[idx(nx,ny)] ) { ++cand; }
+                    }
+
+                    if( deg + cand != 2 ) { continue; }
+
+                    for( int d = 0; d < 4; ++d )
+                    {
+                        if( hasarm(i,d) ) { continue; }
+                        const Int nx = x + DirDX[d], ny = y + DirDY[d];
+                        if( !inQ(nx,ny) ) { continue; }
+                        if( fullQ[idx(nx,ny)] ) { setarm(i,d); }
+                    }
+                }
+
+                // LAST RESORT, and only for a cell that cannot reach degree 2
+                // any other way: a stroke lying ACROSS the direction we still
+                // need can only be the interrupted side of a crossing, since
+                // nothing else lets a strand continue through it that way.
+                //
+                // It has to be last. Fired eagerly it invents crossings: after
+                // the strand is deleted, the two dots of a pass move can end up
+                // flanking the healed transversal between them, and each would
+                // "deduce" a crossing there -- giving itself a third arm --
+                // even though it already has both the stub and the corridor. A
+                // cell that can reach degree 2 without promoting anything must
+                // be left alone.
+                for( Int y = 0; y < n_y; ++y )
+                for( Int x = 0; x < wide; ++x )
+                {
+                    const std::size_t i = idx(x,y);
+                    if( !inferQ[i] ) { continue; }
+
+                    int deg = 0, reachable = 0, promo = 0;
+                    int promo_dir[4] = {-1,-1,-1,-1};
+
+                    for( int d = 0; d < 4; ++d )
+                    {
+                        if( hasarm(i,d) ) { ++deg; continue; }
 
                         const Int nx = x + DirDX[d], ny = y + DirDY[d];
                         if( !inQ(nx,ny) ) { continue; }
 
                         const std::size_t j = idx(nx,ny);
-                        if( !fullQ[j] || !strokeQ[j] || crossQ[j] ) { continue; }
+                        if( !fullQ[j] ) { continue; }
 
-                        // Does the neighbour's own glyph already run the way
-                        // we need? Then it is an ordinary continuation and
-                        // will have been picked up above. Only a stroke lying
-                        // ACROSS us has to be a crossing.
-                        const bool alongQ = horizQ[j] ? ((d == DirE) || (d == DirW))
-                                                      : ((d == DirN) || (d == DirS));
-                        if( alongQ ) { continue; }
+                        // A neighbour that may still come to point back on its
+                        // own, with no crossing invented for it.
+                        if( inferQ[j] || crossQ[j] ) { ++reachable; continue; }
 
+                        if( strokeQ[j] )
+                        {
+                            const bool alongQ =
+                                horizQ[j] ? ((d == DirE) || (d == DirW))
+                                          : ((d == DirN) || (d == DirS));
+                            if( !alongQ ) { promo_dir[promo++] = d; }
+                        }
+                    }
+
+                    // Only when there is no other route to degree 2, and the
+                    // promotions needed are exactly the ones available.
+                    if( (deg + reachable) >= 2 ) { continue; }
+                    if( promo == 0 ) { continue; }
+                    if( deg + reachable + promo != 2 ) { continue; }
+
+                    for( int k = 0; k < promo; ++k )
+                    {
+                        const int  d  = promo_dir[k];
+                        const Int  nx = x + DirDX[d], ny = y + DirDY[d];
+                        const auto j  = idx(nx,ny);
                         crossQ[j] = char(1);
                         for( int e = 0; e < 4; ++e ) { setarm(j,e); }
                     }

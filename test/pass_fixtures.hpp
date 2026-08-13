@@ -94,3 +94,110 @@ inline const std::vector<std::int64_t> zf061098_underpass = {
       25,    1,   26,    0,    1,
 };
 
+//==============================================================================
+// LINK fixtures.
+//
+// Knots cannot exercise the case that matters most for a link-capable spec: a
+// corridor belonging to one component passing over or under a DIFFERENT
+// component. Every descriptor below does exactly that -- the strand's arcs and
+// the crossed arcs live on disjoint link components -- and each was found by
+// exhaustive search over all 1268 diagrams of `data/diagrams/linktable/`
+// (every strand of length 2..6, every arc-disjoint dual corridor, both tag
+// choices), then confirmed to route at four grid sizes and to survive
+// `AfterDiagram` + `CheckAll`.
+//
+// Two facts about that search are worth recording, because they explain why
+// the fixtures look the way they do:
+//
+//   * Every well-formed pass move in the whole table has k = L-1, i.e. it
+//     PRESERVES the crossing count. Not one crossing-reducing pass move exists
+//     anywhere in the table (0 well-formed at every k < L-1, out of >100k
+//     candidates). So none of these fixtures shrink a diagram.
+//   * k >= 2 occurs only on NON-alternating links. An alternating strand
+//     alternates over and under at its interior crossings, so it has no
+//     uniform role and check 5 refuses it. That is why the multi-crossing
+//     cases below are all `L*n*` and none are `L*a*`.
+//
+// The Hopf link admits nothing at all, and cannot: with 2 crossings every
+// 2-arc strand leaves and returns to the same crossing, which check 4's
+// distinct-anchors clause refuses. It stays in the plain round-trip coverage.
+//==============================================================================
+
+// L4a1_0 -- 4 crossings, 2 components.
+// strand=1,3 depart=0 cross=12:o land=2   (k=1; arcs 0,1 on cpt 0, arc 6 on cpt 1)
+inline const std::vector<std::int64_t> L4a1_0 = {
+       3,    6,    0,    7,   -1,
+       5,    0,    6,    1,   -1,
+       1,    4,    2,    5,   -1,
+       7,    2,    4,    3,   -1,
+};
+
+// L6a1_0 -- 6 crossings, 2 components.
+// strand=11,13 depart=10 cross=1:u land=12  (k=1, under-tagged; arcs 5,6 on
+// cpt 1, arc 0 on cpt 0)
+inline const std::vector<std::int64_t> L6a1_0 = {
+       3,    8,    0,    9,   -1,
+       5,    0,    6,    1,   -1,
+       1,    4,    2,    5,   -1,
+       9,    2,   10,    3,   -1,
+      11,    7,    4,    6,    1,
+       7,   11,    8,   10,    1,
+};
+
+// L6n1_0_0 -- 6 crossings, THREE components.
+// strand=1,3,5 depart=0 cross=12:o,17:o land=4
+// k=2, and the two crossed arcs sit on two DIFFERENT foreign components
+// (arc 6 on cpt 1, arc 8 on cpt 2, strand on cpt 0).
+inline const std::vector<std::int64_t> L6n1_0_0 = {
+       3,   11,    0,   10,    1,
+       5,    0,    6,    1,   -1,
+       8,    2,    9,    1,    1,
+       2,    7,    3,    4,   -1,
+       4,   10,    5,    9,    1,
+      11,    7,    8,    6,    1,
+};
+
+// L7n1_0 -- 7 crossings, 2 components.
+// strand=1,3,5 depart=0 cross=12:o,22:o land=4  (k=2)
+inline const std::vector<std::int64_t> L7n1_0 = {
+       3,   12,    0,   13,   -1,
+       5,    0,    6,    1,   -1,
+      10,    1,   11,    2,   -1,
+       2,    7,    3,    8,   -1,
+       8,   13,    9,    4,   -1,
+       4,    9,    5,   10,   -1,
+      11,    6,   12,    7,   -1,
+};
+
+// L10n104_0_0_0 -- 10 crossings, FOUR components. The richest case we have:
+// strand=15,17,19,9 depart=14 cross=33:o,0:o,22:o land=8
+// k=3, and the corridor crosses one arc of EACH of the other three components.
+inline const std::vector<std::int64_t> L10n104_0_0_0 = {
+       3,   16,    0,   17,   -1,
+       5,    0,    6,    1,   -1,
+      14,    1,   15,    2,   -1,
+       2,    7,    3,    8,   -1,
+      18,    4,   19,    9,    1,
+       4,   11,    5,   12,   -1,
+       6,   16,    7,   15,    1,
+      13,    8,   10,    9,   -1,
+      10,   17,   11,   18,   -1,
+      19,   12,   14,   13,   -1,
+};
+
+// L10n104_1_0_0 -- the under-tagged counterpart of the above, on a different
+// orientation variant of the same link.
+// strand=13,15,17,19 depart=12 cross=31:u,2:u,24:u land=18   (k=3)
+inline const std::vector<std::int64_t> L10n104_1_0_0 = {
+       3,   16,    0,   17,   -1,
+       7,    1,    8,    0,    1,
+      14,    1,   15,    2,   -1,
+       2,    6,    3,    5,    1,
+      18,    9,   19,    4,   -1,
+      13,    5,   10,    4,    1,
+       6,   15,    7,   16,   -1,
+       8,   12,    9,   11,    1,
+      10,   17,   11,   18,   -1,
+      19,   12,   14,   13,   -1,
+};
+

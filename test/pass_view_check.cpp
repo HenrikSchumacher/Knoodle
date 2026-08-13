@@ -354,6 +354,19 @@ int main()
         zf061098_underpass.data(),
         Int(zf061098_underpass.size() / 5), false, false );
 
+    auto link = []( const std::vector<Int> & code ) -> PD_T
+    {
+        return PD_T::FromSignedPDCode(
+            code.data(), Int(code.size() / 5), false, false );
+    };
+
+    PD_T l4a1  = link(L4a1_0);
+    PD_T l6a1  = link(L6a1_0);
+    PD_T l6n1  = link(L6n1_0_0);
+    PD_T l7n1  = link(L7n1_0);
+    PD_T l10a  = link(L10n104_0_0_0);
+    PD_T l10b  = link(L10n104_1_0_0);
+
     // ---- the parser's own round trip, before any move is involved --------
     std::printf("=== plain drawings read back ===\n");
     {
@@ -383,6 +396,17 @@ int main()
            11, 7, 4, 6,  1,
             7,11, 8,10,  1,
         };
+        // L6a4_0_0, the Borromean rings: THREE components, so the parser's
+        // per-component orientation propagation and colouring have to keep
+        // three independent cycles apart rather than two.
+        std::vector<Int> borromean = {
+            3,11, 0,10,  1,
+            5, 0, 6, 1, -1,
+            1, 8, 2, 9, -1,
+            7, 3, 4, 2,  1,
+            9, 4,10, 5, -1,
+           11, 7, 8, 6,  1,
+        };
 
         int done = 0;
         for( Int xg : {4, 6, 8, 20} )
@@ -394,7 +418,8 @@ int main()
                 RunPlainRoundTrip("figure-eight",    fig8,         4, xg, yg);
                 RunPlainRoundTrip("hopf link",       hopf,         2, xg, yg);
                 RunPlainRoundTrip("L6a1_0 link",     l6a1,         6, xg, yg);
-                done += 5;
+                RunPlainRoundTrip("borromean (3cpt)", borromean,   6, xg, yg);
+                done += 6;
             }
         }
         std::printf("  %d drawings read back and matched port-by-port\n", done);
@@ -409,6 +434,19 @@ int main()
         { "big k=3",       &big,     "strand=1,3,5,7 depart=0 cross=51:o,122:o,239:o land=6" },
         { "big k=8",       &big,     "strand=81,83,85,87,89,91,93,95,97 depart=80"
                                      " cross=7:u,42:u,8:u,230:u,131:u,281:u,260:u,290:u land=96" },
+
+        // LINKS. In every one of these the corridor belongs to one component
+        // and crosses arcs of ANOTHER -- the case no knot can exercise, and
+        // the reason the checking had to stop relying on a knot invariant.
+        { "L4a1 2cpt k=1",  &l4a1, "strand=1,3 depart=0 cross=12:o land=2" },
+        { "L6a1 2cpt k=1u", &l6a1, "strand=11,13 depart=10 cross=1:u land=12" },
+        { "L6n1 3cpt k=2",  &l6n1, "strand=1,3,5 depart=0 cross=12:o,17:o land=4" },
+        { "L7n1 2cpt k=2",  &l7n1, "strand=1,3,5 depart=0 cross=12:o,22:o land=4" },
+        // The corridor crosses one arc of each of the other THREE components.
+        { "L10n104 4cpt k=3",  &l10a,
+          "strand=15,17,19,9 depart=14 cross=33:o,0:o,22:o land=8" },
+        { "L10n104 4cpt k=3u", &l10b,
+          "strand=13,15,17,19 depart=12 cross=31:u,2:u,24:u land=18" },
     };
 
     for( const auto & kase : cases )
