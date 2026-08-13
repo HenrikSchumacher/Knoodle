@@ -34,7 +34,8 @@ proof. Companion to the OrthoDecorate work on branch `orthodecorate`.
 
 These are Knoodle's existing conventions; we cite them rather than invent:
 
-- **PD snapshot** = the 5-column signed PD code, one row per crossing:
+- **PD code** (the v0 snapshot carrier, and the v1 `#pd` annotation) = the
+  5-column signed PD code, one row per crossing:
   `a b c d s`, arc indices **0-based**, `s > 0` right-handed, `s <= 0`
   left-handed (`src/PlanarDiagram/PDCode.hpp`, `FromSignedPDCode` doc). The
   four slots of a row list the arc-ends in **counterclockwise cyclic order
@@ -76,12 +77,64 @@ A trace is a text stream extending the existing knoodle TSV streaming format
 
 ```
 #step n=<k> summand=<sid>
+#candidate                    (optional; evaluated but not applied)
+#comment <free text>          (optional, repeatable)
 #view exterior=<da>           (optional, recommended; see Layout transitions)
 #move <descriptor>            (absent on terminal records)
 #faces <annotation>           (optional)
-<5-column signed PD rows, one per line>
+#state lines=<N>              (v1; the snapshot)
+<N lines, verbatim PlanarDiagram::WriteToOutString output>
+#result lines=<M>             (v1, optional; see below)
+<M lines, an applier's result for this move>
+#pd rows=<R>                  (v1: optional redundant annotation)
+<R 5-column signed PD rows>
 <blank line>
 ```
+
+### v0 and v1: the snapshot carrier
+
+**v1 (specified here, reader not yet implemented — see status below)** carries
+the snapshot as `PlanarDiagram`'s internal-state serialization in a
+`#state lines=N` block, with the 5-column PD code demoted to an optional
+`#pd rows=R` annotation. **v0**, which is what the shipped `--trace` reader
+accepts today, carries the bare 5-column PD rows with no `#state` block.
+
+The carrier changed because PD codes come from `Traverse`, so every PD-code
+path renumbers crossings and arcs and drops inactive slots — measured on the
+73-crossing reproducer, writing and re-reading leaves *0 of 73 crossing rows
+at the same index*. That is fatal for the failure class this format exists to
+chase, which is a **label** bug: with a renumbering snapshot a verifier can
+only compare a label-free invariant, which catches "wrong knot" but never
+"right knot, wrong labels", and localizes nothing. Internal state makes the
+before/after correspondence the identity on survivors, so comparison becomes
+port-by-port and names the crossing that disagrees.
+
+`lines=N` rather than a self-delimiting block is deliberate: a reader slices
+N lines and hands them to `FromInString` without knowing the layout, so a
+field added upstream changes N and the reader still works, or fails loud.
+
+Three rules come with it, per principle 4:
+
+- the **internal-state block is the source of truth**;
+- the `#pd` annotation may ride along, and any consumer reading both **must**
+  recompute and abort on mismatch;
+- each stream declares the Knoodle version that wrote it
+  (`#knoodle version=<string>`, once at the top), and a reader that cannot
+  parse the state **fails loud** rather than falling back to the annotation.
+  The format is documented upstream as debugging-only with no cross-version
+  guarantee; this is for archive durability, since traces outlive the build
+  that wrote them.
+
+`#result lines=M` optionally carries what an *applier* produced for this
+record's move — the point of comparison for a verifier that wants to check an
+applier against `AfterDiagram` across a process boundary. Required on an
+applied move in a batch meant for checking, optional on a `#candidate`.
+
+**Status:** the grammar above is specified and was sent to middlestrands as
+`handoff/middlepass-descriptor-emission/ROUND-4.md`. The emitter side is
+theirs to build; our `--trace` reader still speaks v0 only, and gains `#state`
+when the first real v1 payload exists to test against. Until then a v1 stream
+is a specified format with no consumer, which is the honest state of it.
 
 - The **descriptor in a record applies to the PD snapshot in that same
   record** (the *before*-diagram). The resulting diagram is the snapshot of
@@ -93,7 +146,8 @@ A trace is a text stream extending the existing knoodle TSV streaming format
 - `summand=<sid>`: stable integer id per diagram within the trace. When a
   step splits a diagram (connect-sum separation, split links), child records
   use fresh ids and name their parent (see Open questions).
-- Streams should begin with `#trace v=0` so the format can evolve.
+- Streams begin with `#trace v=0` or `#trace v=1` (above), so the format can
+  evolve; v1 streams additionally carry `#knoodle version=<string>`.
 
 ## Move descriptor: `pass`
 
@@ -307,8 +361,7 @@ Two distinct predicates apply to a record, and tools split along them:
   witness its kind requires, and the witness checks out. Only verifiers
   (knoodleprove) demand this, and only for records that advance the
   diagram. For `redraw` the witness is the embedding+rotation (above); for
-  `middlepass` it is quotient-simplicity of the corridor plus the §G
-  feasibility witness (below).
+  `middlepass` the verifier tier is **empty** — see below.
 
 ## Step kind: `middlepass`
 
@@ -322,13 +375,25 @@ in the first shakedown), not an edge case.
 #move kind=middlepass strand=... depart=DA cross=DA:u|o,... land=DA
 ```
 
-Well-formedness = checks 1–4. Soundness additionally requires (verifier
-tier, not rendering):
+Well-formedness = checks 1–4 **and check 6**. Check 6 is *not* dropped: a
+middlepass has no more room in the data structure for extra crossings than a
+classical pass does, and only check 5's uniformity requirement goes away.
+(The handoff rounds say "checks 1–4" throughout because they predate check 6.)
 
-- **quotient-simplicity** of the corridor: deleting the strand merges the
-  two flank faces of each strand arc; the corridor must not revisit a
-  *class* of that quotient (union-find over flank-face pairs; middlestrands
-  will contribute the spec text and reference check);
+**The verifier tier for `middlepass` is EMPTY, deliberately.** An earlier
+revision of this document required *quotient-simplicity* of the corridor —
+deleting the strand merges the two flank faces of each strand arc, and the
+corridor was said not to be allowed to revisit a class of that quotient. That
+requirement is **withdrawn**, and it should never have been written down here:
+middlestrands retracted the mechanism behind it in
+`ROUND-2-RESPONSE.md` after their own poster fixture for it turned out to
+apply soundly while revisiting the quotient four times. Their guard stays on
+for conservatism, but "quotient-revisit ⟹ unrealizable" is an open question,
+not a soundness condition, and this spec canonized it by mistake. Nothing
+replaces it until their mechanism reattribution lands.
+
+The one witness still on the table (reserved, not normative):
+
 - the **§G feasibility witness**: header lines `#feas ...` / `#fvar ...`
   carrying the disk and the piece-class labelling, verified by the
   check-don't-solve contract V0–V5 proposed in
