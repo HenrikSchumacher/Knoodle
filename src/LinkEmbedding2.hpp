@@ -47,10 +47,10 @@ namespace Knoodle
         
         using Base_T          = Link<Int>;
         using LinkEmbedding_T = LinkEmbedding2;
-
+        
         using Tree2_T         = AABBTree<2,IReal,Int,IReal,false>;
         using Tree3_T         = AABBTree<3,IReal,Int,IReal,false>;
-
+        
         using Vector3_T       = Tiny::Vector<3,  Real ,Int>;
         using Matrix3x3_T     = Tiny::Matrix<3,3,Real ,Int>;
         using IRealVector3_T  = Tiny::Vector<3,  IReal,Int>;
@@ -58,7 +58,7 @@ namespace Knoodle
         using VContainer_T    = Tiny::VectorList_AoS<3,Real,Int>;
         using EContainer_T    = typename Tree3_T::EContainer_T;
         using BContainer_T    = typename Tree2_T::BContainer_T;
-         
+        
         using Prosector_T     = Prosector2<IReal,Int>;
         using Intersection_T  = Prosector_T::Intersection;
         using Time_T          = Prosector_T::IntersectionTime;
@@ -112,7 +112,7 @@ namespace Knoodle
         Tensor1<Int   ,Int> edge_intersections;
         Tensor1<Time_T,Int> edge_times;
         Tensor1<Int8  ,Int> edge_state;
-
+        
         // Other data.
         
         Prosector_T S;
@@ -161,8 +161,8 @@ namespace Knoodle
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         template<IntQ I_0, IntQ I_1>
         LinkEmbedding2(
-            cptr<I_0> edges_, cptr<I_0> edges_colors_, const I_1 edge_count_
-        )
+                       cptr<I_0> edges_, cptr<I_0> edges_colors_, const I_1 edge_count_
+                       )
         :   Base_T        { edges_, edges_colors_, int_cast<Int>(edge_count_) }
         ,   vertex_coords { edge_count                                        }
         {}
@@ -170,13 +170,20 @@ namespace Knoodle
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
         template<IntQ I_0, IntQ I_1>
         LinkEmbedding2(
-            cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, cptr<I_0> edges_colors_, const I_1 edge_count_
-        )
+                       cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, cptr<I_0> edges_colors_, const I_1 edge_count_
+                       )
         :   Base_T        { edge_tails_, edge_tips_, edges_colors_, edge_count_ }
         ,   vertex_coords { edge_count                                          }
         {}
         
-    public:
+        
+    private:
+        
+        bool EdgesNeedCheckQ( const Int k, const Int l )
+        {
+            // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
+            return (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) && !edge_degenerateQ[k] && !edge_degenerateQ[l];
+        }
 
 #include "LinkEmbedding2/Helpers.hpp"
 #include "LinkEmbedding2/ToFile.hpp"

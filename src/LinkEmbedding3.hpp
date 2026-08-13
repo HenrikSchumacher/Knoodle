@@ -176,7 +176,14 @@ namespace Knoodle
         ,   vertex_coords { edge_count                                          }
         {}
         
-    public:
+    private:
+        
+        // This deviates from LinkEmbedding2.
+        bool EdgesNeedCheckQ( const Int k, const Int l )
+        {
+            // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
+            return (l != k) && (l != NextEdge(k)) && (k != NextEdge(l));
+        }
 
 #include "LinkEmbedding2/Helpers.hpp"
 #include "LinkEmbedding2/ToFile.hpp"

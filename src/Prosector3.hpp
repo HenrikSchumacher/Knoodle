@@ -90,7 +90,7 @@ namespace Knoodle
         }
         
         
-#include "Prosector3/Polynomial3.hpp"
+#include "Prosector3/DepressedCubic.hpp"
 #include "Prosector3/IntersectionTime.hpp"
 #include "Prosector3/Intersection.hpp"
 
@@ -446,7 +446,7 @@ namespace Knoodle
                 wprint(MethodName("ComputeIntersection") + ": The line segments " + ToString(k_) + " and " + ToString(l_) + " are coplanar.");
             }
                         
-            Polynomial3 Q { uxv[2], uxv[0], uxv[1] };
+            DepressedCubic Q { uxv[2], uxv[0], uxv[1] };
             Sign_T sign_2 = Sign(Q);
             
             if( sign_2 == Sign_T(0) )
@@ -460,8 +460,8 @@ namespace Knoodle
             // Det_Perturbed(d,u) == Det_Perturbed(u - q,u) == Det_Perturbed(u,q)
 
             
-            Time_T t_0 { Polynomial3{ -vxp[2], -vxp[0], -vxp[1] }, Q };
-            Time_T t_1 { Polynomial3{  uxq[2],  uxq[0],  uxq[1] }, Q };
+            Time_T t_0 { DepressedCubic{ -vxp[2], -vxp[0], -vxp[1] }, Q };
+            Time_T t_1 { DepressedCubic{  uxq[2],  uxq[0],  uxq[1] }, Q };
             
             // First edge must go over.
             if( x_under_y_Q )

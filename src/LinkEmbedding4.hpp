@@ -45,6 +45,7 @@ namespace Knoodle
         using IReal = IReal_;
         
         static constexpr Int AmbDim = 3;
+        static constexpr Int InvalidColor = PlanarDiagram<Int>::InvalidColor;
         
         using Base_T          = Link<Int>;
         using LinkEmbedding_T = LinkEmbedding4;
@@ -176,128 +177,139 @@ namespace Knoodle
         ,   vertex_coords { edge_count                                          }
         {}
         
-    public:
+        
+    private:
+        
+        // This deviates from LinkEmbedding2.
+        bool EdgesNeedCheckQ( const Int k, const Int l )
+        {
+            // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
+            return (l != k) && (l != NextEdge(k)) && (k != NextEdge(l));
+        }
 
-#include "LinkEmbedding4/WriteToFile.hpp"
-#include "LinkEmbedding4/ReadFromFile.hpp"
-#include "LinkEmbedding4/VertexCoordinates.hpp"
+#include "LinkEmbedding2/Helpers.hpp"
+#include "LinkEmbedding2/ToFile.hpp"
+#include "LinkEmbedding2/FromFile.hpp"
+#include "LinkEmbedding2/VertexCoordinates.hpp"
 #include "LinkEmbedding4/EdgeCoordinates.hpp"
-#include "LinkEmbedding4/BoundingBoxes.hpp"
-#include "LinkEmbedding4/Intersections.hpp"
+#include "LinkEmbedding2/BoundingBoxes.hpp"
+#include "LinkEmbedding2/Intersections.hpp"
 
-    public:
-        
-        /*!@brief Return the ambient diemension (== 3).*/
-        static constexpr Int AmbientDimension()
-        {
-            return 3;
-        }
 
-        /*!@brief Return the number of crossings/interections in the x-y-Plane.*/
-        Int CrossingCount() const
-        {
-            return int_cast<Int>( intersections.size() );
-        }
-        
-        
-        /*!@brief Return the number of crossings/interections in the x-y-Plane.*/
-        Int IntersectionCount() const
-        {
-            return intersection_count;
-        }
-
-        cref<Tensor1<Int,Int>> EdgePointers() const
-        {
-            return edge_ptr;
-        }
-        
-        /*!@brief Return the number of intersections in the 3-plane.*/
-        Int IntersectionCount3D() const
-        {
-            return intersection_count_3D;
-        }
-        
-        cref<Tensor1<Time_T,Int>> EdgeIntersectionTimes() const
-        {
-            return edge_times;
-        }
-        
-        Tensor1<double,Int> EdgeIntersectionTimesAsDouble() const
-        {
-            Tensor1<double,Int> result ( edge_times.Size() );
-            
-            for( Int i = 0; i < edge_times.Size(); ++i )
-            {
-                result[i] = ToDouble(edge_times[i]);
-            }
-                
-            return result;
-        }
-
-        cref<Tensor1<Int,Int>> EdgeIntersections() const
-        {
-            return edge_intersections;
-        }
-
-        cref<Tensor1<Int8,Int>> EdgeStates() const
-        {
-            return edge_state;
-        }
-        
-        bool ValidQ() const
-        {
-            return (component_ptr.Size() >= Int(2));
-        }
-        
-        cref<Tree2_T> Tree() const
-        {
-            return T;
-        }
-
-        Real ScalingFactor() const
-        {
-            return scaling_factor;
-        }
-        
-        int ScalingExponent() const
-        {
-            return scaling_exponent;
-        }
-        
-        Real RoundingError() const
-        {
-            return rounding_error;
-        }
-        
-        void SetTransformationMatrix( cref<Matrix3x3_T> A )
-        {
-            R = A;
-        }
-        
-        void SetTransformationMatrix( Matrix3x3_T && A )
-        {
-            R = A;
-        }
-        
-        cref<Matrix3x3_T> TransformationMatrix() const
-        {
-            return R;
-        }
-        
-    public:
-
-        void DeleteTree()
-        {
-            T           = Tree2_T();
-            edge_coords = EContainer_T();
-            box_coords  = BContainer_T();
-            edge_coords_computedQ    = false;
-            bounding_boxes_computedQ = false;
-            
-            // Strictly speaking, this is not part of the tree, but it is not necessary anymore, once the intersections are computed (and sorted).
-            
-            edge_times = Tensor1<Time_T,Int>();
-        }
+//
+//    public:
+//        
+//        /*!@brief Return the ambient diemension (== 3).*/
+//        static constexpr Int AmbientDimension()
+//        {
+//            return 3;
+//        }
+//
+//        /*!@brief Return the number of crossings/interections in the x-y-Plane.*/
+//        Int CrossingCount() const
+//        {
+//            return int_cast<Int>( intersections.size() );
+//        }
+//        
+//        
+//        /*!@brief Return the number of crossings/interections in the x-y-Plane.*/
+//        Int IntersectionCount() const
+//        {
+//            return intersection_count;
+//        }
+//
+//        cref<Tensor1<Int,Int>> EdgePointers() const
+//        {
+//            return edge_ptr;
+//        }
+//        
+//        /*!@brief Return the number of intersections in the 3-plane.*/
+//        Int IntersectionCount3D() const
+//        {
+//            return intersection_count_3D;
+//        }
+//        
+//        cref<Tensor1<Time_T,Int>> EdgeIntersectionTimes() const
+//        {
+//            return edge_times;
+//        }
+//        
+//        Tensor1<double,Int> EdgeIntersectionTimesAsDouble() const
+//        {
+//            Tensor1<double,Int> result ( edge_times.Size() );
+//            
+//            for( Int i = 0; i < edge_times.Size(); ++i )
+//            {
+//                result[i] = ToDouble(edge_times[i]);
+//            }
+//                
+//            return result;
+//        }
+//
+//        cref<Tensor1<Int,Int>> EdgeIntersections() const
+//        {
+//            return edge_intersections;
+//        }
+//
+//        cref<Tensor1<Int8,Int>> EdgeStates() const
+//        {
+//            return edge_state;
+//        }
+//        
+//        bool ValidQ() const
+//        {
+//            return (component_ptr.Size() >= Int(2));
+//        }
+//        
+//        cref<Tree2_T> Tree() const
+//        {
+//            return T;
+//        }
+//
+//        Real ScalingFactor() const
+//        {
+//            return scaling_factor;
+//        }
+//        
+//        int ScalingExponent() const
+//        {
+//            return scaling_exponent;
+//        }
+//        
+//        Real RoundingError() const
+//        {
+//            return rounding_error;
+//        }
+//        
+//        void SetTransformationMatrix( cref<Matrix3x3_T> A )
+//        {
+//            R = A;
+//        }
+//        
+//        void SetTransformationMatrix( Matrix3x3_T && A )
+//        {
+//            R = A;
+//        }
+//        
+//        cref<Matrix3x3_T> TransformationMatrix() const
+//        {
+//            return R;
+//        }
+//        
+//    public:
+//
+//        void DeleteTree()
+//        {
+//            T           = Tree2_T();
+//            edge_coords = EContainer_T();
+//            box_coords  = BContainer_T();
+//            edge_coords_computedQ    = false;
+//            bounding_boxes_computedQ = false;
+//            
+//            // Strictly speaking, this is not part of the tree, but it is not necessary anymore, once the intersections are computed (and sorted).
+//            
+//            edge_times = Tensor1<Time_T,Int>();
+//        }
 
     public:
 

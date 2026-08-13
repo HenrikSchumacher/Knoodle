@@ -13,14 +13,14 @@ class IntersectionTime final
 {
 private:
     
-    Polynomial3 a;
-    Polynomial3 b;
+    DepressedCubic a;
+    DepressedCubic b;
     
 public:
     
     IntersectionTime() = default;
     
-    IntersectionTime( cref<Polynomial3> numerator, cref<Polynomial3> denominator )
+    IntersectionTime( cref<DepressedCubic> numerator, cref<DepressedCubic> denominator )
     {
         // Make sure at the time of initialization that the denominator is >= 0!
         // This is important for later < and > comparisons.
@@ -42,7 +42,7 @@ public:
 //            cref<ExtInt> a_0, cref<ExtInt> a_1, cref<ExtInt> a_2,
 //            cref<ExtInt> b_0, cref<ExtInt> b_1, cref<ExtInt> b_2
 //        )
-//        :   IntersectionTime{ Polynomial3{a_0,a_1,a_2}, Polynomial3{b_0,b_1,b_2} }
+//        :   IntersectionTime{ DepressedCubic{a_0,a_1,a_2}, DepressedCubic{b_0,b_1,b_2} }
 //        {}
     
 

@@ -369,12 +369,12 @@ void FindIntersectingEdges_DFS()
 
 void ComputeEdgeEdgeIntersection( const Int k, const Int l )
 {
-    // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
-    if( (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) && !edge_degenerateQ[k] && !edge_degenerateQ[l] )
+    if( EdgesNeedCheckQ(k,l) )
     {
         this->template ComputeEdgeEdgeIntersection_impl<false>(k,l);
     }
 }
+
 template<bool verboseQ>
 void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
 {
@@ -406,7 +406,6 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
         case Flag_T::Error:
         {
             eprint(tag() +": Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
-            
             // Prevent overflow by min - function.
             intersection_count_3D = std::min(
                  intersection_count_3D,

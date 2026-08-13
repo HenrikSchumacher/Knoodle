@@ -34,7 +34,6 @@ void ReadVertexCoordinates( cptr<Real> v )
     rounding_error           = 0;
     intersection_count       = 0;
     intersection_count_3D    = 0;
-    input_integralQ         = IntQ<Real>;
     
     global_lo.Fill( Scalar::Max<Real> );
     global_hi.Fill( Scalar::Min<Real> );
@@ -47,7 +46,9 @@ void ReadVertexCoordinates( cptr<Real> v )
     // vertex_data(e,k) = v[AmbDim * edges(e,0) + k]
     // edge_data(e,0,k) = round(vertex_data(e,k));
     
-    auto read = [v,&x,&y,this]( const Int e, const Int i )
+    bool int_checkQ = !IntQ<Real>;
+    
+    auto read = [v,&x,&y,&int_checkQ,this]( const Int e, const Int i )
     {
         if constexpr ( transformQ )
         {
@@ -62,6 +63,18 @@ void ReadVertexCoordinates( cptr<Real> v )
         
         global_lo.ElementwiseMin(y);
         global_hi.ElementwiseMax(y);
+        
+        if constexpr ( FloatQ<Real> )
+        {
+            if( int_checkQ )
+            {
+                // This may overwrite x, but that is fine for us.
+                // Beware: This does not detect -infinity or +infinity.
+                int_checkQ =    (std::modf(y[0], &x[0]) == 0.0)
+                             && (std::modf(y[1], &x[1]) == 0.0)
+                             && (std::modf(y[2], &x[2]) == 0.0);
+            }
+        }
         
         y.Write(vertex_coords.data(e));
     };
@@ -80,6 +93,8 @@ void ReadVertexCoordinates( cptr<Real> v )
             read(e,edges(e,0));
         }
     }
+    
+    input_integralQ = IntQ<Real> || int_checkQ;
     
     vertex_coords_loadedQ = true;
 }
