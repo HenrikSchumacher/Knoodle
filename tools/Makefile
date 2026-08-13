@@ -148,6 +148,16 @@ orthodecorate_check: ../test/orthodecorate_check.cpp ../Knoodle.hpp ../src/Ortho
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) ../test/orthodecorate_check.cpp $(LDFLAGS) -o ../test/orthodecorate_check
 	@echo "✓ orthodecorate_check compiled successfully"
 
+# The two-deletions contract (test/pass_view_check.cpp): render each deletion
+# view of a pass move, parse the DRAWING back into a diagram, and compare it
+# port-by-port to what that view is supposed to be. Exit 0 = pass.
+pass_view_check: ../test/pass_view_check.cpp ../Knoodle.hpp ../src/OrthoDecorate.hpp \
+                 pass_view.hpp ../test/drawing_extractor.hpp ../test/diagram_agreement.hpp
+	@echo "=== Building pass_view_check on $(UNAME_S) ==="
+	@echo "Compiling ../test/pass_view_check.cpp..."
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) ../test/pass_view_check.cpp $(LDFLAGS) -o ../test/pass_view_check
+	@echo "✓ pass_view_check compiled successfully"
+
 debug: CXXFLAGS = $(DEBUG_CXXFLAGS)
 debug: all
 
