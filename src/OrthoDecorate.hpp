@@ -1500,6 +1500,12 @@ namespace Knoodle
                     }
                     else
                     {
+                        // ONE colour per component, not per arc. The whole
+                        // orbit is one loop and shares a colour; pushing per
+                        // arc would make `freed.size()` an arc count wearing a
+                        // component count's clothes, and the three-argument
+                        // overload reports exactly that number to the caller.
+                        freed.push_back(AC[static_cast<std::size_t>(orbit.front())]);
                         for( Int o : orbit ) { freed_arcs.push_back(o); }
                     }
                 }
@@ -1566,12 +1572,10 @@ namespace Knoodle
             // unknots have to be reported rather than represented. This is the
             // same convention `PlanarDiagram::FromLinkEmbedding` uses, which
             // hands back the diagram and the unlinks' colours side by side.
+            // (The colours were recorded when the loops were identified --
+            // one per loop. Here the arcs simply leave the diagram.)
             for( Int a : freed_arcs )
             {
-                if( AS[static_cast<std::size_t>(a)] == ArcState_T::Active )
-                {
-                    freed.push_back(AC[static_cast<std::size_t>(a)]);
-                }
                 AS[static_cast<std::size_t>(a)] = ArcState_T::Inactive;
             }
             for( Int x : interior ) { CS[static_cast<std::size_t>(x)] = CrossingState_T::Inactive; }
