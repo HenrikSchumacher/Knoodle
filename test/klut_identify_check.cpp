@@ -101,12 +101,13 @@ int main(int argc, char** argv)
 
                 reapr.RandomEngine() = Knoodle::PRNG_T(mix(static_cast<std::uint64_t>(c * 1000 + k)));
                 auto emb = reapr.Embedding(m);
-                emb.Rotate(reapr.RandomRotation());
+                emb.Transform( reapr.RandomRotation() );
                 auto [P, unlinks] = PD_T::FromLinkEmbedding(emb);
                 if (!P.ValidQ() || unlinks.Size() > Int(0)
                     || P.LinkComponentCount() > Int(1) || P.DiagramComponentCount() > Int(1)) { continue; }
 
-                PDC_T pdc; pdc.Push(std::move(P));
+                PDC_T pdc { P }; // No need to use push (which is considered UNSAFE); just use constructor.
+//                pdc.Push(std::move(P));
                 auto r = ki::Identify(klut, std::move(pdc), reapr);
                 ++tested;
                 if (r.reapr_calls > 0) { ++escalated; total_reapr += static_cast<long>(r.reapr_calls); }
@@ -162,7 +163,8 @@ int main(int argc, char** argv)
 
     // ---- (3) the unknot --------------------------------------------------------
     {
-        PDC_T pdc; pdc.Push(PD_T::Unknot(Int(0)));
+        PDC_T pdc { PD_T::Unknot(Int(0)) };  // No need to use push (which is considered UNSAFE); just use constructor.
+//        PDC_T pdc; pdc.Push(PD_T::Unknot(Int(0)));
         auto r = ki::Identify(klut, std::move(pdc), reapr);
         const bool pass = (r.status == ki::IdentifyResult::Status::Knot && r.summands.empty());
         if (!pass) ++fails;
@@ -172,7 +174,12 @@ int main(int argc, char** argv)
     // ---- (4) multi-component link out of scope ---------------------------------
     {
         Key k3 = ReadKey(3, 0);
-        PDC_T pdc; pdc.Push(FromKey(k3, Int(0))); pdc.Push(FromKey(k3, Int(1)));  // 2 colors = link
+        PDC_T pdc;
+        {
+            ScopedUnlock(pdc); // Push is considered UNSAFE an now requires unlocking.
+            pdc.Push(FromKey(k3, Int(0)));
+            pdc.Push(FromKey(k3, Int(1)));  // 2 colors = link
+        }
         auto r = ki::Identify(klut, std::move(pdc), reapr);
         const bool pass = (r.status == ki::IdentifyResult::Status::LinkOutOfScope);
         if (!pass) ++fails;

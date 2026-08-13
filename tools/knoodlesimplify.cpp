@@ -639,6 +639,14 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T*
     // regardless of whether --format=pdc was also requested.
     PDC_T all_pdc;
 
+    // Push()/Clear() are lock-guarded: on a locked complex they do nothing and
+    // warn, because they cannot verify that the caller's arc colors stay
+    // consistent. Assembling diagrams we own and have already colored ourselves
+    // is the sanctioned use, so unlock for the duration. Without this every
+    // Push() below silently fails, all_pdc stays empty, and the tool reports
+    // every input -- trefoil included -- as a 0-crossing unknot.
+    all_pdc.Unlock();
+
     // Unknot summands that arrived as bare 's' lines pass through.
     for (Int color : input.unknot_colors)
     {
@@ -646,6 +654,31 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T*
     }
 
     const PDC_T::Simplify_Args_T args = BuildSimplifyArgs(config);
+
+    // 4- and 5-column PD codes carry no colors, so every arc arrives as
+    // PD_T::Uninitialized. Simplification then splits the diagram into summands,
+    // and the record of WHICH summands were once a single closed curve -- the
+    // thing that distinguishes a connected sum from a split link -- exists
+    // nowhere but the colors. Assign them up front, per link component, so that
+    // record survives the split and can be written out below. Colored input
+    // (6/7-column, PDC-native) and 3D input (colored by FromCoordinates) already
+    // carry meaningful colors and must keep them.
+    const bool assign_colors = (input.input_column_count == 4)
+                            || (input.input_column_count == 5);
+
+    auto colorize = [assign_colors](PD_T&& pd) -> PD_T
+    {
+        if (assign_colors)
+        {
+            // ComputeArcColors() is lock-guarded: it can change arc colors, which
+            // in general breaks the class's invariants. Here it only fills in
+            // colors that were never set, on a diagram we own outright.
+            pd.Unlock();
+            pd.ComputeArcColors();
+            pd.Lock();
+        }
+        return std::move(pd);
+    };
 
     {
         ScopedTimer timer(result.simplify_time);
@@ -655,12 +688,12 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T*
             if (config.simplify_level == 0)
             {
                 // No simplification - just copy the PD
-                all_pdc.Push(PD_T(pd_in));
+                all_pdc.Push(colorize(PD_T(pd_in)));
             }
             else
             {
                 // Use PlanarDiagramComplex for all simplification levels
-                PD_T pd_copy(pd_in);
+                PD_T pd_copy = colorize(PD_T(pd_in));
                 PDC_T pdc(std::move(pd_copy));
 
                 pdc.Simplify(args);
@@ -721,7 +754,9 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T*
     {
         PD_T pd(all_pdc.Diagram(i));
 
-        if (output_pdc) { output_pdc->Push(PD_T(pd)); }
+        // Same lock caveat as all_pdc above; the caller hands us a fresh
+        // (locked) complex, so unlock before the first Push into it.
+        if (output_pdc) { output_pdc->Unlock(); output_pdc->Push(PD_T(pd)); }
 
         if (pd.CrossingCount() == 0)
         {
@@ -1096,7 +1131,7 @@ bool ProcessXYZFile(const std::string& filepath,
 
     {
         ScopedTimer timer(input_time);
-        LinkEmb_T link = LinkEmb_T::ReadFromFile(std::filesystem::path(filepath));
+        LinkEmb_T link = LinkEmb_T::FromFile(std::filesystem::path(filepath));
 
         if (config.randomize_projection)
         {
@@ -1104,9 +1139,9 @@ bool ProcessXYZFile(const std::string& filepath,
             // independently, which would distort the link's actual geometric
             // arrangement) with a proper random rotation -- the same mechanism
             // already used elsewhere (PlanarDiagramComplex/Simplify.hpp:
-            // emb.Rotate(reapr.RandomRotation())).
+            // emb.Transform(reapr.RandomRotation())).
             Reapr_T reapr;
-            link.Rotate(reapr.RandomRotation());
+            link.Transform(reapr.RandomRotation());
         }
 
         // PDC constructor from LinkEmbedding calls FindIntersections internally
@@ -1156,14 +1191,30 @@ bool ProcessXYZFile(const std::string& filepath,
             std::filesystem::path input_path(filepath);
             std::filesystem::path output_path = GetSimplifiedFilename(input_path);
 
-            std::ofstream file(output_path);
-            if (!file)
+            // Staged: committed only if nothing went wrong producing this knot.
+            const long errors_before = ErrorTotal();
+
+            AtomicOutFile file(output_path);
+            if (!file.Good())
             {
                 LogError("Failed to open " + output_path.string() + " for writing");
                 return false;
             }
 
-            WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file, true, true);
+            WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file.Stream(), true, true);
+
+            if (ErrorTotal() != errors_before)
+            {
+                file.Abort();
+                *g_log_stream << "Refusing to write " << output_path.string()
+                              << ": the library reported an error while producing it.\n";
+                return false;
+            }
+            if (!file.Commit())
+            {
+                LogError("Failed to move output into place: " + output_path.string());
+                return false;
+            }
         }
     }
 
@@ -1245,8 +1296,19 @@ bool ProcessSource(std::istream& input,
         PDC_T output_pdc;
         SimplifiedKnot simplified = SimplifyKnot(*input_knot, config, config.pdc_format ? &output_pdc : nullptr);
 
-        // Determine output format based on input column count
-        bool colored_output = (input_knot->input_column_count >= 6);
+        // Determine output format based on input column count.
+        //
+        // Colors are also written whenever the result has more than one summand,
+        // even for uncolored input. Splitting a diagram is exactly when the color
+        // stops being redundant: it is the only thing recording that two summands
+        // were once one closed curve (a connected sum) rather than two (a split
+        // link), and a consumer such as `knoodledraw --embedding` cannot rebuild
+        // the correct link type without it. SimplifyKnot has already given
+        // uncolored input real per-link-component colors for this purpose.
+        const bool split_into_summands =
+            (simplified.summands.size() + static_cast<std::size_t>(simplified.unknot_count)) > 1;
+
+        bool colored_output = (input_knot->input_column_count >= 6) || split_into_summands;
 
         // Output phase
         Duration output_time{0};
@@ -1264,18 +1326,34 @@ bool ProcessSource(std::istream& input,
             }
             else if (!config.streaming_mode)
             {
-                // Per-file output
+                // Per-file output. Staged, and committed only if nothing went
+                // wrong while producing this knot (see AtomicOutFile).
                 std::filesystem::path input_path(source_name);
                 std::filesystem::path output_path = GetSimplifiedFilename(input_path);
 
-                std::ofstream file(output_path);
-                if (!file)
+                const long errors_before = ErrorTotal();
+
+                AtomicOutFile file(output_path);
+                if (!file.Good())
                 {
                     LogError("Failed to open " + output_path.string() + " for writing");
                     return false;
                 }
 
-                WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file, true, colored_output);
+                WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file.Stream(), true, colored_output);
+
+                if (ErrorTotal() != errors_before)
+                {
+                    file.Abort();
+                    *g_log_stream << "Refusing to write " << output_path.string()
+                                  << ": the library reported an error while producing it.\n";
+                    return false;
+                }
+                if (!file.Commit())
+                {
+                    LogError("Failed to move output into place: " + output_path.string());
+                    return false;
+                }
             }
         }
 
@@ -1316,6 +1394,13 @@ bool ProcessSource(std::istream& input,
 
 int main(int argc, char* argv[])
 {
+    // Watch std::cerr for the library's "ERROR: " lines for the whole run. Must
+    // outlive every write below, since the commit decision at the end depends on
+    // what it counted. See knoodle_io.hpp for why tapping the stream is the only
+    // handle we have on Tools' eprint.
+    CerrErrorTap cerr_tap;
+    g_cerr_tap = &cerr_tap;
+
     // Parse command line
     auto config_opt = ParseArguments(argc, argv);
     if (!config_opt)
@@ -1332,6 +1417,15 @@ int main(int argc, char* argv[])
     }
 
     // Initialize logging
+    // Decide where diagnostics go before anything else can write one: the log
+    // opens in InitLogging just below, and the library reads KNOODLE_DUMP_DIR at
+    // the moment Rattle's projection fails (its default is the user's home
+    // directory). Alongside the output file when we have one, else a per-process
+    // temp directory. Snapshot what is already there so we only report our own.
+    const std::filesystem::path diag_dir =
+        ChooseDiagnosticDir("knoodlesimplify", config.streaming_mode, config.output_file);
+    const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
+
     if (!InitLogging(config.streaming_mode, "knoodlesimplify.log"))
     {
         return EXIT_FAILURE;
@@ -1344,8 +1438,14 @@ int main(int argc, char* argv[])
     ProcessingStats stats;
     bool first_knot_in_output = true;
 
-    // Prepare output stream if single output file specified
-    std::ofstream output_file;
+    // Prepare output stream if single output file specified.
+    //
+    // The file is staged as "<name>.partial" and only renamed into place if the
+    // run finishes without the library or this tool reporting an error -- see
+    // AtomicOutFile and the commit decision at the end of main(). Results are
+    // written knot by knot, long before we know whether a later knot will fail,
+    // so staging is the only way to honour "no output on error".
+    std::optional<AtomicOutFile> output_file;
     std::ostream* output_stream = nullptr;
 
     if (config.streaming_mode)
@@ -1355,13 +1455,13 @@ int main(int argc, char* argv[])
     }
     else if (config.output_file)
     {
-        output_file.open(*config.output_file);
-        if (!output_file)
+        output_file.emplace(*config.output_file);
+        if (!output_file->Good())
         {
             LogError("Failed to open output file: " + *config.output_file);
             return EXIT_FAILURE;
         }
-        output_stream = &output_file;
+        output_stream = &output_file->Stream();
     }
 
     // Process inputs
@@ -1448,6 +1548,95 @@ int main(int argc, char* argv[])
     {
         WriteFinalReport(stats, config);
     }
+
+    // Fail loudly. The core library signals unrecoverable trouble by calling
+    // eprint and then handing back a diagram it has already disclaimed ("Returning
+    // an invalid diagram. Check your results carefully."), and the PDC writers skip
+    // invalid diagrams silently -- so without this the run would write a quietly
+    // truncated file and exit 0. Refuse the output instead, and say why.
+    if (ErrorsSeen())
+    {
+        std::string notice;
+        if (output_file)
+        {
+            output_file->Abort();
+            notice = "\nRefusing to write " + output_file->FinalPath().string()
+                   + ": " + ErrorSummary() + " during this run.\n"
+                     "The output would be unreliable (the library discards diagrams it"
+                     " has flagged as invalid), so no file was produced.\n";
+        }
+        else if (config.streaming_mode)
+        {
+            // Already-piped bytes cannot be recalled; the exit code is the contract.
+            notice = "\nknoodlesimplify: " + ErrorSummary()
+                   + " during this run -- output already written to stdout is"
+                     " UNRELIABLE and should be discarded.\n";
+        }
+        else
+        {
+            notice = "\nknoodlesimplify: " + ErrorSummary()
+                   + " during this run; per-file outputs were withheld.\n";
+        }
+
+        // Always reach the terminal. In streaming mode g_log_stream is the log
+        // FILE, which is precisely where someone piping output would never look.
+        std::cerr << notice;
+        if (g_log_stream != &std::cerr) { *g_log_stream << notice; }
+
+        // Drop everything needed to reproduce into one forwardable file. The
+        // Simplify args matter most: the failures we have chased so far only
+        // appear at high --max-reapr-attempts / --reapr-rotation-trials, and a
+        // pasted stderr tail never carries them.
+        std::string invocation;
+        for (int i = 0; i < argc; ++i)
+        {
+            invocation += (i ? " " : "");
+            invocation += argv[i];
+        }
+
+        std::string inputs;
+        if (config.streaming_mode)
+        {
+            inputs = "  (stdin, --streaming-mode)\n";
+        }
+        for (const auto& f : config.input_files)
+        {
+            std::error_code ec;
+            const auto size = std::filesystem::file_size(f, ec);
+            inputs += "  " + f + (ec ? "  (size unknown)"
+                                     : "  (" + std::to_string(size) + " bytes)") + "\n";
+        }
+
+        const auto report = WriteDiagnosticReport("knoodlesimplify", {
+            { "command line",     "  " + invocation + "\n" },
+            { "input files",      inputs },
+            { "simplify options", "  " + ToString(BuildSimplifyArgs(config)) + "\n" },
+            { "what to send",
+              "  This file, plus the input file(s) listed above.\n"
+              "  The failing intermediate diagram and its 3D embedding live inside\n"
+              "  the library and are not reachable from here; if a core-side dump is\n"
+              "  available in your version, its files will be named alongside this one.\n" },
+        });
+
+        if (!report.empty())
+        {
+            std::cerr << "Wrote a diagnostic report to " << report.string()
+                      << " -- please send it with any bug report.\n";
+        }
+
+        FinishDiagnostics(diag_dir, bundles_before, "knoodlesimplify", true);
+
+        return EXIT_FAILURE;
+    }
+
+    if (output_file && !output_file->Commit())
+    {
+        LogError("Failed to move output into place: " + output_file->FinalPath().string());
+        FinishDiagnostics(diag_dir, bundles_before, "knoodlesimplify", true);
+        return EXIT_FAILURE;
+    }
+
+    FinishDiagnostics(diag_dir, bundles_before, "knoodlesimplify", !success);
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }

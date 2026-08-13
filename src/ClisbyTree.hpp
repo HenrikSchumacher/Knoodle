@@ -493,14 +493,14 @@ namespace Knoodle
                 + "\t" + TOOLS_MEM_DUMP_STRING(Base_T::N_ranges.AllocatedByteCount());
         }
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
     
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("ClisbyTree")
+            return std::string("ClisbyTree")
                 + "<" + Tools::ToString(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>

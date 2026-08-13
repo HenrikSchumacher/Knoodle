@@ -1,8 +1,7 @@
 public:
 
-/*! @brief Cycle around `de_ptr`'s left region and evaluate `edge_fun` on each directed edge. If the template argument `ignore_virtual_edgesQ` is set to true, this will ignore virtual edges and traverse as if these were not existent.
+/*!@brief Cycle around `de_ptr`'s left region and evaluate `edge_fun` on each directed edge. If the template argument `ignore_virtual_edgesQ` is set to true, this will ignore virtual edges and traverse as if these were not existent.
  */
-
 template<
     bool debugQ = false,
     bool verboseQ = false,
@@ -112,9 +111,7 @@ TOOLS_FORCE_INLINE void TraverseRegion(
     }
 }
 
-/*! @brief Cycle around `de_ptr`'s and count the number of edges.
- */
-
+/*!@brief Cycle around `de_ptr`'s and count the number of edges.*/
 Int RegionEdgeCount(
     const Int de_ptr,
     bool ignore_virtual_edgesQ = false

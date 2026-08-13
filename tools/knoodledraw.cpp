@@ -2451,16 +2451,16 @@ bool ProcessStream(std::istream& input,
  */
 bool ProcessXYZFile(const std::string& filepath, const Config& config)
 {
-    LinkEmb_T link = LinkEmb_T::ReadFromFile(std::filesystem::path(filepath));
+    LinkEmb_T link = LinkEmb_T::FromFile(std::filesystem::path(filepath));
 
     if (config.randomize_projection)
     {
         // Rotate the whole embedding at once (not each component independently,
         // which would distort the link's actual geometric arrangement) with a
         // proper random rotation -- the same mechanism already used elsewhere
-        // (PlanarDiagramComplex/Simplify.hpp: emb.Rotate(reapr.RandomRotation())).
+        // (PlanarDiagramComplex/Simplify.hpp: emb.Transform(reapr.RandomRotation())).
         Reapr_T reapr;
-        link.Rotate(reapr.RandomRotation());
+        link.Transform(reapr.RandomRotation());
     }
 
     PDC_T pdc(std::move(link));
@@ -2505,6 +2505,13 @@ bool ProcessXYZFile(const std::string& filepath, const Config& config)
 
 int main(int argc, char* argv[])
 {
+    // Count the library's "ERROR: " lines for the whole run, so a diagram the
+    // core has disclaimed cannot be drawn and reported as a success. knoodledraw
+    // writes only to stdout, so unlike knoodlesimplify there is no file to
+    // withhold -- the nonzero exit and the notice below are the whole contract.
+    CerrErrorTap cerr_tap;
+    g_cerr_tap = &cerr_tap;
+
     // Parse command line
     auto config_opt = ParseArguments(argc, argv);
     if (!config_opt)
@@ -2519,6 +2526,18 @@ int main(int argc, char* argv[])
         PrintUsage();
         return EXIT_SUCCESS;
     }
+
+    // knoodledraw writes its drawing to stdout and never to a file, so rule 1
+    // (put diagnostics beside the output file) never applies -- it is rule 2
+    // every time: a per-process directory under the system temp dir.
+    //
+    // This tool never calls Simplify, so it cannot produce the library's Rattle
+    // bundles. It still needs the directory, because WriteDiagnosticReport reads
+    // g_diagnostic_dir and otherwise falls back to the working directory -- which
+    // for a Wolfram kernel is the user's notebook directory or home.
+    const std::filesystem::path diag_dir =
+        ChooseDiagnosticDir("knoodledraw", /*streaming_mode=*/true, std::nullopt);
+    const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
 
     // Initialize random number generator
     Knoodle::PRNG_T rng = Knoodle::InitializedRandomEngine<Knoodle::PRNG_T>();
@@ -2581,6 +2600,36 @@ int main(int argc, char* argv[])
             }
         }
     }
+
+    if (ErrorsSeen())
+    {
+        std::cerr << "\nknoodledraw: " << ErrorSummary()
+                  << " during this run -- the drawing above is UNRELIABLE"
+                     " (the library discards diagrams it has flagged as invalid).\n";
+
+        std::string invocation;
+        for (int i = 0; i < argc; ++i)
+        {
+            invocation += (i ? " " : "");
+            invocation += argv[i];
+        }
+
+        const auto report = WriteDiagnosticReport("knoodledraw", {
+            { "command line", "  " + invocation + "\n" },
+            { "what to send", "  This file, plus the input that produced it.\n" },
+        });
+
+        if (!report.empty())
+        {
+            std::cerr << "Wrote a diagnostic report to " << report.string()
+                      << " -- please send it with any bug report.\n";
+        }
+
+        FinishDiagnostics(diag_dir, bundles_before, "knoodledraw", true);
+        return EXIT_FAILURE;
+    }
+
+    FinishDiagnostics(diag_dir, bundles_before, "knoodledraw", !success);
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }

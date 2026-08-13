@@ -28,6 +28,10 @@ namespace Knoodle
     using namespace Tools;
     
     using Tools::ToString;
+    
+    // Forward declarions
+    template<IntQ> class PlanarDiagram;
+    template<IntQ> class PlanarDiagramComplex;
 }
 
 #include "src/Types.hpp"
@@ -43,6 +47,8 @@ namespace Knoodle
 #include "src/PlanarLineSegmentIntersector.hpp"
 #include "src/LinkEmbedding.hpp"
 #include "src/KnotEmbedding.hpp" // Like LinkEmbedding, only for knots. A bit more efficient this way.
+
+#include "src/LinkEmbedding2.hpp"
 
 #include "src/MultiGraphBase.hpp"
 #include "src/MultiGraph.hpp"

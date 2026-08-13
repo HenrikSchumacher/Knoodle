@@ -1,14 +1,14 @@
 public:
 
-
+/*!@brief A control `struct` for compile-time settings for functions that deal with planar diagram codes (pd codes).*/
 struct PDCode_TArgs_T
 {
-    bool signQ     = true;
-    bool colorQ    = true;
-    bool farfalleQ = false; // Whether to convert anelli to farfalle.
+    bool signQ     = true;  /**< Whether the pd code shall  be signed.*/
+    bool colorQ    = true;  /**< Whether the pd code shall contains arc colors.*/
+    bool farfalleQ = false; /**< Whether anelli shall be converted to farfalla.*/
 };
 
-friend constexpr std::string ToString( cref<PDCode_TArgs_T> args )
+friend std::string ToString( cref<PDCode_TArgs_T> args )
 {
     return std::string("{ ")
         + "signQ = " + ToString(args.signQ)
@@ -45,7 +45,7 @@ static constexpr Size_T PDCodeWidth( bool signQ, bool colorQ )
     return 4 + signQ + 2 * colorQ;
 }
 
-/*!@brief Returns the pd-codes of the crossings as Tensor2 object.
+/*!@brief Return the pd-codes of the crossings as Tensor2 object.
  *
  *  The information for crossing `c` is given by a row in the output matrix. There 4-7 numbers stored in such a row,.
  *  The first 4 entries `PDCode()(c,0), PDCode()(c,1), PDCode()(c,2), PDCode()(c,3)` represent the arcs attached to crossing c. `PDCode()(c,0)` is the incoming arc that goes under. It is followed by the other arcs in counter-clockwise orientation. This should be compatible with Dror Bar-Natan's _KnotTheory_ package.
@@ -61,8 +61,6 @@ static constexpr Size_T PDCodeWidth( bool signQ, bool colorQ )
  * - `targs.signQ` controlas whether the code is signed. If yes, then `PDCode()(c,4)` represents the handedness of crossing `c`; `PDCode()(c,4) > 0` means right-handed, `PDCode()(c,4) <= 9` means left-handed.
  *
  * - `colorQ` controls whether the arc colors ought to be stored. If yes, then the last two entries of PDCode()(c,..) will be the color of the incoming underarc and the incoming over-arc, respectively.
- *
-
  *
  *  - `targs.faralleQ` If set to `true`, then unknots are represented as "farfalle", i.e., diagrams with a single crossing. This is to make this compatible with Regina.
  */
@@ -105,7 +103,7 @@ Tensor2<T,Int> PDCode() const
     return pd_code;
 }
 
-/*!@brief Writes the pd code to the output raw buffer `pd_code`. Size and meaning of the results are determined by the template parameters. See the documentation of `PDCode` for details.
+/*!@brief Write the pd code to the output raw buffer `pd_code`. Size and meaning of the results are determined by the template parameters. See the documentation of `PDCode` for details.
  */
 
 template<IntQ T, PDCode_TArgs_T targs>
@@ -349,7 +347,7 @@ void WritePDCode( mptr<T> pd_code, T offset = 0 ) const
 
 public:
 
-/*! @brief Construction from PD codes and handedness of crossings.
+/*!@brief Construction from PD codes and handedness of crossings.
  *
  *  @param pd_code Integer array of length `5 * crossing_count_`.
  *  There is one 5-tuple for each crossing.
@@ -380,7 +378,7 @@ static PD_T FromSignedPDCode(
     );
 }
 
-/*! @brief Construction from PD codes of crossings.
+/*!@brief Construction from PD codes of crossings.
  *
  *  The handedness of the crossing will be inferred from the PD codes. This does not always define a uniquely: A simple counterexample for uniqueness are the Hopf-links.
  *
@@ -510,7 +508,7 @@ struct FromPDCode_TArgs_T
     bool checksQ   = true;
 };
 
-friend constexpr std::string ToString( cref<FromPDCode_TArgs_T> args )
+friend  std::string ToString( cref<FromPDCode_TArgs_T> args )
 {
     return std::string("{ ")
         + "signQ = " + ToString(args.signQ)
@@ -791,13 +789,13 @@ static PD_T FromPDCode(
     {
         // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
         // This also applies a coloring to the arcs of `colorQ == true`.
-        return pd.template CreateCompressed<!targs.colorQ>();
+        return pd.template CreateCompressed_Private<!targs.colorQ>();
     }
     else
     {
         if constexpr ( !targs.colorQ )
         {
-            pd.ComputeArcColors();
+            pd.ComputeArcColors_Private();
         }
         return pd;
     }
@@ -866,14 +864,9 @@ static PD_T FromPDCodeString(
         s.Take(x);
         pd_buffer.push_back(x);
         
-        if( s.CurrentChar() == '\n' )
-        {
-            break;
-        }
-        else
-        {
-            ++code_width;
-        }
+        if( s.NewlineQ() ) { break; }
+        
+        ++code_width;
     }
     
     ++crossing_counter;
@@ -893,7 +886,7 @@ static PD_T FromPDCodeString(
     
     while( !s.EmptyQ() && !s.FailedQ() )
     {
-        // We have to be careful here, because the last line may easily end with an '\n'.
+        // We have to be careful here, because the last line may easily end with a newline character sequence.
         for( Size_T i = 0; i < code_width; ++i )
         {
             s.SkipWhiteSpace();

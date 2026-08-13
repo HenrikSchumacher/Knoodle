@@ -3409,8 +3409,12 @@ int main()
     ki::Reapr_T reapr{};
 
     std::vector<Int> code(PD, PD + (sizeof(PD) / sizeof(PD[0])));
-    PD_T pd = PD_T::FromSignedPDCode(code.data(), n, false, true);
-    PDC_T pdc; pdc.Push(std::move(pd));
+    //    PD_T pd = PD_T::FromSignedPDCode(code.data(), n, false, true);
+    //    PDC_T pdc; pdc.Push(std::move(pd));
+    
+    // No need to use the UNSAFE `Push`. Simply use constructor.
+    PDC_T pdc { PD_T::FromSignedPDCode(code.data(), n, false, true) };
+    
     auto res = ki::Identify(klut, std::move(pdc), reapr);
 
     // Key by (crossing_count, id): FindID's id is an index WITHIN a crossing-number

@@ -421,9 +421,9 @@ namespace Knoodle
         
     public:
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("ClangQuaternionTransform")
+            return std::string("ClangQuaternionTransform")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + ">";

@@ -1,13 +1,21 @@
 private:
             
-/*!
- * @brief Attempts to reroute the strand. It is typically not save to call this function without the invariants guaranteed by `SimplifyStrands`. Some of the invariants are correct coloring of the arcs and crossings in the current strand and the absense of possible Reidemeister I and II moves along that strand.
- * This is why we make this function private.
+/*!@brief Attempts to reroute the strand. It is typically not save to call this function without the invariants guaranteed by `SimplifyStrands`. This is why we make this function private.
+ *
+ * Some of the invariants are:
+ *
+ * - the arcs and crossings in the current strand are correctly marked;
+ * - the absense of possible Reidemeister I and II moves along `pass`; and
+ * - `path` is a _shortest_ path between its end points.
+ *
+ * The latter condition is crucial because it allows us to walk along `pass` and `path` and repurpose crossings and arcs on `pass` for `path`. In a nutshell, `pass` cannot reach a `crossing` strictly before `path`. So the surgery for on the arcs that cross `pass` cannot interfere with the surgery at the tip of `path`. This allows us to do the rerouting with very little bookkeeping.
  *
  * @param pass On entry, pass to reroute. On return, the reouted pass.
+ *
+ * @param path The path of dual arcs to reroute to.
  */
 
-bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
+bool Reroute( mref<Pass_T> pass, cref<Path_T> path )
 {
     [[maybe_unused]] auto tag = [](){ return MethodName("Reroute"); };
     PD_TIMER(timer,tag());
@@ -111,8 +119,8 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
         }
 #endif // PD_DEBUG
         
-        //This can happen, but seldomly.
-        if( (b == a_0) || (b == a_1) ) [[unlikely]]
+        //This can happen indeed.
+        if( (b == a_0) || (b == a_1) )
         {
             // Go to next arc.
             a = a_2;
@@ -304,7 +312,7 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
     return true;
 }
 
-/*! @brief We move from one end `a` of a pass in direction `headtail` until path `p` starts to branch off from it.
+/*!@brief We move from one end `a` of a pass in direction `headtail` until path `p` starts to branch off from it.
  */
 
 template<bool headtail>

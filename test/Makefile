@@ -89,6 +89,43 @@ inflate_check: inflate_check.cpp $(LIBHOMFLY_OBJ) ../Knoodle.hpp
 	    inflate_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ inflate_check compiled successfully"
 
+# error_tap_check — regression test for the CLI tools' fail-loudly machinery
+# (cerr error tap + staged/atomic output). Light build, no UMFPACK.
+error_tap_check: error_tap_check.cpp ../tools/knoodle_io.hpp ../Knoodle.hpp
+	@echo "=== Building error_tap_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) error_tap_check.cpp -o $@
+	@echo "✓ error_tap_check compiled successfully"
+
+# embedding_inflation_check — pins that re-aiming a projection is a rigid motion:
+# it must not walk the embedding's coordinates away from the origin as the trial
+# counts grow. The src headers are explicit deps because the behaviour under test
+# lives entirely in src/; without them make would not rebuild for a src-only
+# change and the test would appear to pass against unfixed code.
+embedding_inflation_check: embedding_inflation_check.cpp ../Knoodle.hpp \
+                           ../src/PlanarDiagramComplex/Simplify.hpp \
+                           ../src/Reapr/Embedding.hpp \
+                           ../src/LinkEmbedding.hpp \
+                           ../src/LinkEmbedding/Helpers.hpp
+	@echo "=== Building embedding_inflation_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) embedding_inflation_check.cpp -o $@
+	@echo "✓ embedding_inflation_check compiled successfully"
+# intersection_flag_reset_check — pins that LinkEmbedding's intersection flag
+# counters describe one projection, not the embedding's lifetime. Needs the src
+# header as an explicit dep: this is a src-only change, and without it make would
+# not rebuild and the test would appear to pass against unfixed code.
+intersection_flag_reset_check: intersection_flag_reset_check.cpp ../Knoodle.hpp \
+                               ../src/LinkEmbedding/FindIntersections.hpp
+	@echo "=== Building intersection_flag_reset_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) intersection_flag_reset_check.cpp -o $@
+	@echo "✓ intersection_flag_reset_check compiled successfully"
+
+# reapr_corner_probe — reproduce/diagnose the FindIntersections CornerCorner
+# degeneracy that makes Rattle bail after 10 failed random rotations.
+reapr_corner_probe: reapr_corner_probe.cpp ../Knoodle.hpp
+	@echo "=== Building reapr_corner_probe on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) reapr_corner_probe.cpp -o $@
+	@echo "✓ reapr_corner_probe compiled successfully"
+
 # link_alex_probe — prototype: single-variable Alexander |det| fingerprint for
 # LINKS (no knots-only normalization). Same heavy config as inflate_check.
 link_alex_probe: link_alex_probe.cpp link_alexander.hpp ../Knoodle.hpp
@@ -159,6 +196,16 @@ canon_check: canon_check.cpp ../Knoodle.hpp
 	    canon_check.cpp $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ canon_check compiled successfully"
 
+# pd_internal_state_check — round trip for PlanarDiagram's internal-state
+# serialization (WriteToOutString / FromInString, and the file pair
+# WriteToFile / FromFile). Covers inactive slots and max_* vs active counts,
+# which PD codes cannot express, and that malformed input yields an invalid
+# diagram rather than a silently empty one. Light config.
+pd_internal_state_check: pd_internal_state_check.cpp ../Knoodle.hpp
+	@echo "=== Building pd_internal_state_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) pd_internal_state_check.cpp -o $@
+	@echo "✓ pd_internal_state_check compiled successfully"
+
 # component_check — regression guard for the CollapseArcRange unlink-loss bug
 # (Henrik's 5151f39). Embedded 8-crossing 2-component-unlink reproducer; default
 # Simplify must preserve the link-component count. Light config (no UMFPACK).
@@ -166,6 +213,15 @@ component_check: component_check.cpp ../Knoodle.hpp
 	@echo "=== Building component_check on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) component_check.cpp -o $@
 	@echo "✓ component_check compiled successfully"
+
+# link_color_roundtrip — regression guard for LinkEmbedding's colored .kndlxyz
+# round trip: WriteToFile(colorQ=true) emits "#color <int>" headers that
+# FromInString used to reject, so the writer produced files its own reader could
+# not read. Light config (no UMFPACK).
+link_color_roundtrip: link_color_roundtrip.cpp ../Knoodle.hpp
+	@echo "=== Building link_color_roundtrip on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) link_color_roundtrip.cpp -o $@
+	@echo "✓ link_color_roundtrip compiled successfully"
 
 # klut_identify_check — PR test for the Identify routine (test/klut_identify.hpp):
 # single knots (perturbed), connect sums (multi-diagram PDC + single spliced

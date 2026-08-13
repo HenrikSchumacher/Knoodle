@@ -239,7 +239,7 @@ namespace Knoodle
         template<bool fullQ = false>
         void WriteDenseMatrix( cref<PD_T> pd, const Scal t, mptr<Scal> A ) const
         {
-            // Writes the dense Alexander matrix to the provided buffer A.
+            // Write the dense Alexander matrix to the provided buffer A.
             // User is responsible for making sure that the buffer is large enough.
             TOOLS_PTIMER(timer,MethodName("WriteDenseMatrix")+"<" + (fullQ ? "Full" : "Truncated") + ">");
             
@@ -387,14 +387,14 @@ namespace Knoodle
         
     public:
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("AlexanderFaceMatrix")
+            return std::string("AlexanderFaceMatrix")
                 + "<" + TypeName<Scal>
                 + "," + TypeName<Int>
                 + "," + TypeName<LInt>

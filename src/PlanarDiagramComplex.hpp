@@ -2,10 +2,20 @@
 
 namespace Knoodle
 {
-    // TODO: ArcSimplifier: Improve performance of local simplification at opt level 4.
-    // TODO: ByteCount.
+    /*!@brief A class for storing and manipulating several planar diagrams. Its `Simplify` routine attempts to compute a prime link decomposition. Edge colors are used to track how the links have to be glued back to one connected link diagram.
+     *
+     * If no color information is submitted, the constructors will color the arcs automatically in a consistent way: each arc gets the color of its link component, and each link components in each diagram gets its own color that is different from all others'.
+     *
+     * Some public class methods are marked as **UNSAFE** because they may alter the topological class of the represented link. For users who want to modify a `PlanarDiagramComplex` nonetheless, for we provide a locking mechanism: Per default every new created diagram is _locked_. The state of the lock can be queried with `LockedQ()`. The user may use `Unlock()` to unlock and `Lock()` to lock again. Alternatively, a RAII-stylescoped lock can be obtain by initializing a `ScopedUnlock` object:
+     *
+     *     ScopedUnlock unlocker (pdc);
+     *
+     * The lock will remain active for the life time of `unlocker` (unless it is altered by `Lock`/`Unlock` or by another instance `ScopedLock`. When destructed, `unlocker` reset the lock state of `pdc` to the state it had when `unlocker` was created.
+     *
+     * @tparam Int_ Integral type used for all sorts of indices. Needs to be big enough to store the total number of arcs and then some. Best to give it 3-4 extra bits.
+     */
     
-    template<IntQ Int_>
+    template<IntQ Int_ = Int64>
     class PlanarDiagramComplex final : public CachedObject<1,0,0,0>
     {
 
@@ -13,28 +23,37 @@ namespace Knoodle
 
         static constexpr bool debugQ = false;
         
+        /*!@brief Type used for indices of crossings and arcs.*/
         using Int                   = Int_;
+        /*!@brief The unsigned type corresponding to `Int`.*/
         using UInt                  = ToUnsigned<Int>;
         
         using Base_T                = CachedObject<1,0,0,0>;
         using Class_T               = PlanarDiagramComplex<Int>;
+        /*!@brief Alias for `PlanarDiagram`.*/
         using PD_T                  = PlanarDiagram<Int>;
+        /*!@brief Alias for `PlanarDiagramComplex`.*/
         using PDC_T                 = PlanarDiagramComplex<Int>;
         using PD_List_T             = std::vector<PD_T>;
         
         using C_Arcs_T              = PD_T::C_Arcs_T;
         using A_Cross_T             = PD_T::A_Cross_T;
+        /*!@brief Alias for `PD_T::ArcContainer_T`.*/
         using ArcContainer_T        = PD_T::ArcContainer_T;
         using ColorCounts_T         = PD_T::ColorCounts_T;
         
         using PassSimplifier_T      = PassSimplifier<Int>;
         using Dijkstra_T            = PassSimplifier_T::Dijkstra_T;
+        
+        /*!@brief Alias for `OrthoDraw`.*/
         using OrthoDraw_T           = OrthoDraw<PD_T>;
         using OrthoDrawSettings_T   = OrthoDraw_T::Settings_T;
         using Compaction_T          = OrthoDraw_T::CompactionMethod_T;
+        /*!@brief Alias for `Reapr`.*/
         using Reapr_T               = Reapr<double,Int,float>;
         using Energy_T              = Reapr_T::Energy_T;
         using ReaprSettings_T       = Reapr_T::Settings_T;
+        /*!@brief Alias for `LinkEmbedding`.*/
         using LinkEmbedding_T       = Reapr_T::LinkEmbedding_T;
         
         
@@ -76,6 +95,8 @@ namespace Knoodle
 
         PD_T invalid_diagram { PD_T::InvalidDiagram() };
         
+        bool lockedQ = true;
+        
     public:
   
         // Default constructor
@@ -91,6 +112,7 @@ namespace Knoodle
         // Move assignment operator
         PlanarDiagramComplex & operator=( PlanarDiagramComplex && other ) = default;
  
+        /*!@brief Initialize from a `PlanarDiagram` and a list of unlink colors, taking ownership.*/
         PlanarDiagramComplex( PD_T && pd, Tensor1<Int,Int> && unlink_colors )
         {
             TOOLS_PTIMER(timer,ClassName()+"()");
@@ -112,32 +134,53 @@ namespace Knoodle
         }
         
     
-        
+        /*!@brief Initialize from a `PlanarDiagram` and a list of unlink colors, taking ownership.*/
         explicit PlanarDiagramComplex( std::pair<PD_T,Tensor1<Int,Int>> && pd_and_unlink_colors )
         :   PlanarDiagramComplex(
                 std::move(pd_and_unlink_colors.first), std::move(pd_and_unlink_colors.second)
             )
         {}
         
+        /*!@brief Initialize from a `PlanarDiagram`, taking ownership.*/
         explicit PlanarDiagramComplex( PD_T && pd )
         :   PlanarDiagramComplex( std::move(pd), Tensor1<Int,Int>() )
         {}
         
+        explicit PlanarDiagramComplex( const PD_T & pd )
+        :   PlanarDiagramComplex( pd, Tensor1<Int,Int>() )
+        {}
+        
+        /*!@brief Initialize from a `LinkEmbedding`, taking ownership.*/
         template<typename Real, typename BReal>
         explicit PlanarDiagramComplex( LinkEmbedding<Real,Int,BReal> && L )
         :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
         {}
         
+        /*!@brief Initialize from a `LinkEmbedding`.*/
         template<typename Real, typename BReal>
         explicit PlanarDiagramComplex( LinkEmbedding<Real,Int,BReal> & L )
         :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
         {}
         
+        /*!@brief Initialize from a `LinkEmbedding2`, taking ownership.*/
+        template<typename Real, typename IReal>
+        explicit PlanarDiagramComplex( LinkEmbedding2<Real,Int,IReal> && L )
+        :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
+        {}
+        
+        /*!@brief Initialize from a `LinkEmbedding2`.*/
+        template<typename Real, typename IReal>
+        explicit PlanarDiagramComplex( LinkEmbedding2<Real,Int,IReal> & L )
+        :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
+        {}
+        
+        /*!@brief Initialize from a `KnotEmbedding`, taking ownership.*/
         template<typename Real, typename BReal>
         explicit PlanarDiagramComplex( KnotEmbedding<Real,Int,BReal> && K  )
         :   PlanarDiagramComplex( PD_T::FromKnotEmbedding(K) )
         {}
         
+        /*!@brief Initialize from a `KnotEmbedding`.*/
         template<typename Real, typename BReal>
         explicit PlanarDiagramComplex( KnotEmbedding<Real,Int,BReal> & K )
         :   PlanarDiagramComplex( PD_T::FromKnotEmbedding(K) )
@@ -161,21 +204,23 @@ namespace Knoodle
 #include "PlanarDiagramComplex/Connect.hpp"
 #include "PlanarDiagramComplex/Subcomplex.hpp"
         
-#include "PlanarDiagramComplex/WriteToFile.hpp"
-#include "PlanarDiagramComplex/ReadFromFile.hpp"
+#include "PlanarDiagramComplex/ToFile.hpp"
+#include "PlanarDiagramComplex/FromFile.hpp"
 #include "PlanarDiagramComplex/PDCode.hpp"
 #include "PlanarDiagramComplex/JenkinsCode.hpp"
         
-#include "PlanarDiagramComplex/SearchTrefoils.hpp"
+#include "PlanarDiagramComplex/CountTrefoils.hpp"
         
         
     public:
         
+        /*!@brief Return the number of diagram in the internal list of `PlanarDiagram`s. Beware, this counts also invalid diagrams and unlinks.*/
         Int DiagramCount() const
         {
             return int_cast<Int>(pd_list.size());
         }
         
+        /*!@brief Expose the `i`-th diagram in the internal list of `PlanarDiagram`s. Read-only.*/
         cref<PD_T> Diagram( Int i ) const
         {
             if( i < Int(0) )
@@ -195,11 +240,13 @@ namespace Knoodle
             return pd_list[Size_T(i)];
         }
         
+        /*!@brief Expose the `i`-th diagram in the internal list of `PlanarDiagram`s. Read-only.*/
         cref<PD_T> operator[]( Int i ) const
         {
             return Diagram(i);
         }
         
+        /*!@brief Expose the last diagram in the list of `PlanarDiagram`s. Read-only.*/
         cref<PD_T> LastDiagram() const
         {
             if( !pd_list.empty() )
@@ -214,11 +261,13 @@ namespace Knoodle
             }
         }
         
+        /*!@brief Expose the internal list of `PlanarDiagram`s. Read-only.*/
         cref<PD_List_T> Diagrams() const
         {
             return pd_list;
         }
         
+        /*!@brief Return true if at least one diagram in the internal list of `PlanarDiagram`s is valid.*/
         bool ValidQ() const
         {
             bool contains_validQ = false;
@@ -232,19 +281,27 @@ namespace Knoodle
         }
         
         
+        /*!@brief Return true there are no valid diagrams in the internal list of  `PlanarDiagram`s.*/
         bool InvalidQ() const
         {
             return !ValidQ();
         }
         
+        /*!@brief Compress all diagrams in the internal list of `PlanarDiagram`s.*/
         void Compress()
         {
-            for( PD_T & pd : pd_list )
-            {
-                pd.Compress();
-            }
+            for( PD_T & pd : pd_list ) { pd.Compress(); }
         }
         
+        /*!@brief Compress all diagrams in the internal list of `PlanarDiagram`s.*/
+        void CompressDiagrams()
+        {
+            TOOLS_PTIMER(timer,MethodName("CompressDiagrams"));
+
+            Compress();
+        }
+        
+        /*!@brief Clear the caches of all diagrams in the internal list of  `PlanarDiagram`s.*/
         void ClearCaches()
         {
             for( PD_T & pd : pd_list )
@@ -254,7 +311,7 @@ namespace Knoodle
             this->ClearCache();
         }
         
-        /*!@brief Converts the complex to a single PlanarDiagram in which color information still persists, but is irrelevant for the topology. Also, anelli are transformed to farfalle in this process because a PlanarDiagram cannot represent diagrams that contain proper subdiagrams that are anelli. Use this to convert a PlanarDiagramComplex to a format that can be understood by other packages, e.g., Regina or SnapPea.
+        /*!@brief Convert the complex to a single PlanarDiagram in which color information still persists, but is irrelevant for the topology. Also, anelli are transformed to farfalle in this process because a PlanarDiagram cannot represent diagrams that contain proper subdiagrams that are anelli. Use this to convert a PlanarDiagramComplex to a format that can be understood by other packages, e.g., Regina or SnapPea.
          */
         
         PD_T ToSingleDiagram() const
@@ -276,8 +333,7 @@ namespace Knoodle
             return std::move(PDC.pd_list[0]);
         }
         
-        /*!@brief Computes the writhe = number of right-handed crossings - number of left-handed crossings.
-         */
+        /*!@brief Compute the writhe = number of right-handed crossings - number of left-handed crossings. */
 
         ToSigned<Int> Writhe() const
         {
@@ -311,7 +367,7 @@ namespace Knoodle
         
     public:
         
-        
+        /*!@brief Return the total number of crossings of all diagram in the internal list of `PlanarDiagrams`. */
         Int TotalCrossingCount() const
         {
             Int count = 0;
@@ -319,11 +375,13 @@ namespace Knoodle
             return count;
         }
         
+        /*!@brief Return the total number of crossings of all diagram in the internal list of `PlanarDiagrams`. */
         Int CrossingCount() const
         {
             return TotalCrossingCount();
         }
         
+        /*!@brief Return the highest number of crossings among all diagram in the internal list of `PlanarDiagrams`. */
         Int HighestCrossingCount() const
         {
             Int count = 0;
@@ -346,7 +404,7 @@ namespace Knoodle
         }
         
         
-        
+        /*!@brief Return the total number of arcs of all diagram in the internal list of `PlanarDiagrams`. */
         Int TotalArcCount() const
         {
             Int count = 0;
@@ -354,12 +412,13 @@ namespace Knoodle
             return count;
         }
         
+        /*!@brief Return the total number of arcs of all diagram in the internal list of `PlanarDiagrams`. */
         Int ArcCount() const
         {
             return TotalArcCount();
         }
 
-
+        /*!@brief Return the highest number of arcs among all diagram in the internal list of `PlanarDiagrams`. */
         Int HighestArcCount() const
         {
             Int count = 0;
@@ -455,6 +514,8 @@ namespace Knoodle
         
     private:
         
+        /*!@brief **UNSAFE.** Push a new diagram to the internal list.
+         */
         void PushDiagram( PD_T && pd )
         {
             if( pd.ValidQ() )
@@ -501,16 +562,6 @@ namespace Knoodle
         }
         
     public:
-        
-        void CompressDiagrams()
-        {
-            TOOLS_PTIMER(timer,MethodName("CompressDiagrams"));
-
-            for( PD_T & pd : pd_list )
-            {
-                pd.Compress();
-            }
-        }
 
         static Int ToDarc( const Int a, const bool d )
         {
@@ -673,20 +724,41 @@ namespace Knoodle
        
     public:
         
-    /*!@brief Returns a string that identifies a class method specified by `tag`. Mostly used for logging and in error messages.
-     */
+        /*!@brief Return whether this diagram is _locked_. Public UNSAFE operations cannot be called while this is being locked to prohibit unintended modifications that break topological invariance.*/
+        bool LockedQ() const
+        {
+            return lockedQ;
+        }
         
-        static std::string MethodName( const std::string & tag )
+        /*!@brief Unlock diagram complex to allow topological modifications.*/
+        void Unlock()
+        {
+            lockedQ = false;
+        }
+        
+        /*!@brief Lock diagram complex to prohibit topological modifications.*/
+        void Lock()
+        {
+            lockedQ = true;
+        }
+        
+        void LockMessage( const std::string & tag ) const
+        {
+            wprint(MethodName(tag) + ": This method is considered **UNSAFE**, and the diagram is currently locked to prevent break of topological invariance. If you want to perform this operation anyways, call `Unlock()` first. (Don't forget to `Lock()` it again.)");
+        }
+        
+    public:
+        
+        /*!@brief Return a string that identifies a class method specified by `tag`. Mostly used for logging and in error messages.*/
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-/*!@brief Returns a string that identifies this class with type information. Mostly used for logging and in error messages.
- */
-        
-        static std::string ClassName()
+        /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.*/
+        static constexpr std::string ClassName()
         {
-            return ct_string("PlanarDiagramComplex")
+            return std::string("PlanarDiagramComplex")
                 + "<" + TypeName<Int>
                 + ">";
         }

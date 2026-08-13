@@ -1,5 +1,6 @@
 public:
 
+/*!@brief Return Jenkins code.*/
 template<SignedIntQ T>
 Tensor1<T,Size_T> JenkinsCode() const
 {
@@ -10,17 +11,19 @@ Tensor1<T,Size_T> JenkinsCode() const
     return code;
 }
 
+/*!@brief The number of integers needed to store the Jenkins code of this diagram.*/
 Size_T JenkinsCodeSize() const
 {
     return Size_T(1) + ToSize_T(LinkComponentCount()) + Size_T(6) * ToSize_T(CrossingCount());
 }
 
+/*!@brief Write Jenkins code to buffer `jenkins_code`.*/
 template<SignedIntQ T>
-void WriteJenkinsCode( mptr<T> code ) const
+void WriteJenkinsCode( mptr<T> jenkins_code ) const
 {
     Int lc_count = LinkComponentCount();
     
-    code[0] = static_cast<T>(lc_count);
+    jenkins_code[0] = static_cast<T>(lc_count);
     
     Size_T idx = 1;
     Size_T comp_start = 1;
@@ -35,7 +38,7 @@ void WriteJenkinsCode( mptr<T> code ) const
             comp_start = idx;
             ++idx;
         },
-        [&idx,c_start,code,this](
+        [&idx,c_start,jenkins_code,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
             const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
@@ -49,36 +52,36 @@ void WriteJenkinsCode( mptr<T> code ) const
             (void)c_1_visitedQ;
             
             {
-                code[idx + Size_T(0)] = c_0_pos;
-                code[idx + Size_T(1)] = ArcOverQ(a,Tail) ? T(1) : T(-1);
+                jenkins_code[idx + Size_T(0)] = c_0_pos;
+                jenkins_code[idx + Size_T(1)] = ArcOverQ(a,Tail) ? T(1) : T(-1);
                 idx += Int(2);
             }
             
             if( !c_0_visitedQ )
             {
                 const Size_T pos  = c_start + Size_T(2) * static_cast<Size_T>(c_0_pos);
-                code[pos + Size_T(0)] = c_0_pos;
-                code[pos + Size_T(1)] = CrossingRightHandedQ(c_0) ? T(1) : T(-1);
+                jenkins_code[pos + Size_T(0)] = c_0_pos;
+                jenkins_code[pos + Size_T(1)] = CrossingRightHandedQ(c_0) ? T(1) : T(-1);
             }
         },
-        [&comp_start,code]( const Int lc, const Int lc_begin, const Int lc_end )
+        [&comp_start,jenkins_code]( const Int lc, const Int lc_begin, const Int lc_end )
         {
             (void)lc;
-            code[comp_start] = static_cast<T>(lc_end - lc_begin);
+            jenkins_code[comp_start] = static_cast<T>(lc_end - lc_begin);
         }
     );
 }
 
-
+/*!@brief Return Jenkins in an `OutString`, which can be converted to various string representations or streamed to `std::stringstream`.*/
 OutString ToJenkinsCodeString() const
 {
     using T = ToSigned<Int>;
     
-    auto jenkins_code = JenkinsCode<T>();
+    auto code = JenkinsCode<T>();
 
-    OutString s ( jenkins_code.Size() * (ToChars<T>::char_count + Size_T(1)) );
+    OutString s ( code.Size() * (ToChars<T>::char_count + Size_T(1)) );
     
-    T lc_count = jenkins_code[0];
+    T lc_count = code[0];
     
     s.Put(lc_count);
     s.PutChar('\n');
@@ -91,7 +94,7 @@ OutString ToJenkinsCodeString() const
     
     for( Int lc = 0; lc < lc_count; ++lc )
     {
-        T comp_size = jenkins_code[idx];
+        T comp_size = code[idx];
         a_count += comp_size;
         ++idx;
 
@@ -103,18 +106,19 @@ OutString ToJenkinsCodeString() const
         for( T a = a_begin; a < a_end; ++a )
         {
             s.PutChar(' ');
-            s.Put(jenkins_code[idx++]);
+            s.Put(code[idx++]);
             s.PutChar(' ');
-            s.Put(jenkins_code[idx++]);
+            s.Put(code[idx++]);
         }
         s.PutChar('\n');
     }
     
-    s.template PutVector<Format::Vector::Space>( &jenkins_code[idx], a_count );
+    s.template PutVector<Format::Vector::Space>( &code[idx], a_count );
     
     return s;
 }
 
+/*!@brief Write Jenkins code to file indicated by `file`.*/
 void ToJenkinsCodeFile( cref<std::filesystem::path> file ) const
 {
     std::ofstream stream ( file );
@@ -122,6 +126,7 @@ void ToJenkinsCodeFile( cref<std::filesystem::path> file ) const
     stream << ToJenkinsCodeString();
 }
 
+/*!@brief Create a new `PlanarDiagram` from Jenkins code in buffer `jenkins_code`.*/
 template<IntQ T>
 static std::pair<PD_T,Tensor1<Int,Int>> FromJenkinsCode( cptr<T> jenkins_code )
 {
@@ -230,6 +235,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromJenkinsCode( cptr<T> jenkins_code )
 }
 
 
+/*!@brief Initialize from Jenkins code in `InString` object `s`.*/
 static std::pair<PD_T,Tensor1<Int,Int>> FromJenkinsCodeString( mref<InString> s )
 {
     using T = ToSigned<Int>;
@@ -260,6 +266,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromJenkinsCodeString( mref<InString> s 
     return FromJenkinsCode( agg.data() );
 }
 
+/*!@brief Initialize from Jenkins code in file specified by `file`.*/
 static std::pair<PD_T,Tensor1<Int,Int>> FromJenkinsCodeFile( cref<std::filesystem::path> file )
 {
     InString s ( file );

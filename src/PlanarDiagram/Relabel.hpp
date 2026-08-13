@@ -113,7 +113,7 @@ PD_T CreateRelabeled(
     return pd;
 }
 
-/*!@briefSame as `CreateRelabeled`, but as in-place version. It effectively calls `CreateRelabeled`, so it is not really more efficient than that.
+/*!@brief Same as `CreateRelabeled`, but as in-place version. It effectively calls `CreateRelabeled`, so it is not really more efficient than that.
  */
 
 template<IntQ ExtInt>

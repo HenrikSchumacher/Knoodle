@@ -5,8 +5,7 @@ namespace Knoodle
     using namespace Tools;
     using namespace Tensors;
     
-    /*!
-     * @brief Implements the _(Progressive) Action-Angle Method_. The main routines are `CreateRandomClosedPolygon` and `CreateRandomClosedPolygons` to generate one or many closed polygons with unit edge lengths.
+    /*!@brief An implementation of the _(Progressive) Action-Angle Method_. The main routines are `CreateRandomClosedPolygon` and `CreateRandomClosedPolygons` to generate one or many closed polygons with unit edge lengths.
      *
      * The class's only purpose is to initial the random number generator and to keep it alive during calls to `CreateRandomClosedPolygon`.
      *
@@ -16,7 +15,7 @@ namespace Knoodle
      *
      * @tparam Prng_T_ A class of a pseudorandom number generator.
      *
-     *  @tparam progressiveQ_ If set to `false`, it uses the _Action-Angle Method_ by (Cantarella, Duplantier, Shonkwiler, and Uehara)[https://iopscience.iop.org/article/10.1088/1751-8113/49/27/275202]. Otherwise, it uses the the _Progressive Action-Angle Method_ sampler by Cantarella, Schumacher, and Shonkwiler.
+     * @tparam progressiveQ_ If set to `false`, it uses the _Action-Angle Method_ by (Cantarella, Duplantier, Shonkwiler, and Uehara)[https://iopscience.iop.org/article/10.1088/1751-8113/49/27/275202]. Otherwise, it uses the the _Progressive Action-Angle Method_ sampler by Cantarella, Schumacher, and Shonkwiler.
      */
     
     template<
@@ -328,7 +327,7 @@ namespace Knoodle
         
     public:
         
-        /*! @brief Generates `sample_count` closed, equilateral random polygons.
+        /*!@brief Generates `sample_count` closed, equilateral random polygons.
          *
          * This is a port of the routine `plc_random_equilateral_closed_polygon` from the C library [plCurve](https://jasoncantarella.com/wordpress/software/plcurve) by Ted Ashton, Jason Cantarella, Harrison Chapman, and Tom Eddy.
          *
@@ -340,7 +339,7 @@ namespace Knoodle
          *
          * @param m Number of samples to generate.
          *
-         * @param args Struct of further arguments: If `args.wrap_aroundQ` is set to `true`, then the first vertex is repeated at the end. If `args.rotate_randomQ` is set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}. If `args.centralizeQ` is set to true, then the random polygon is translated so that its center of mass lies at the origin.
+         * @param args Struct of further arguments: If `args.wrap_aroundQ` is set to `true`, then the first vertex is repeated at the end. If `args.rotate_randomQ` is set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}`. If `args.centralizeQ` is set to true, then the random polygon is translated so that its center of mass lies at the origin.
          *
          */
         
@@ -500,7 +499,7 @@ namespace Knoodle
         
     public:
         
-        /*! @brief Generates a single closed, equilateral random polygon.
+        /*!@brief Generates a single closed, equilateral random polygon.
          *
          *  This is a port of the routine `plc_random_equilateral_closed_polygon` from the C library [plCurve](https://jasoncantarella.com/wordpress/software/plcurve) by Ted Ashton, Jason Cantarella, Harrison Chapman, and Tom Eddy.
          *
@@ -508,7 +507,7 @@ namespace Knoodle
          *
          *  @param n Number of edges.
          *
-         * @param args Struct of further arguments: If `args.wrap_aroundQ` is set to `true`, then the first vertex is repeated at the end. If `args.rotate_randomQ` is set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}. If `args.centralizeQ` is set to true, then the random polygon is translated so that its center of mass lies at the origin.
+         * @param args Struct of further arguments: If `args.wrap_aroundQ` is set to `true`, then the first vertex is repeated at the end. If `args.rotate_randomQ` is set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}`. If `args.centralizeQ` is set to true, then the random polygon is translated so that its center of mass lies at the origin.
          */
         
         Size_T WriteRandomEquilateralPolygon( mptr<Real> p, const Int n, cref<Arg_T> args )
@@ -534,25 +533,25 @@ namespace Knoodle
         
     public:
         
-        /*! @brief Returns the dimension of the ambient space. */
+        /*!@brief Returns the dimension of the ambient space. */
         
         static constexpr Int AmbientDimension()
         {
             return AmbDim;
         }
         
-        /*! @brief Returns a string that identifies the class's method as specified by `tag`. */
+        /*!@brief Returns a string that identifies the class's method as specified by `tag`. */
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        /*! @brief Returns a string that identifies the class. Good for debugging and printing messages. */
+        /*!@brief Returns a string that identifies the class. Good for debugging and printing messages. */
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return std::string(progressiveQ ? "Progressive" : "") + "ActionAngleSampler<" + TypeName<Real> + "," + TypeName<Int>  +  ">";
+            return std::string(progressiveQ ? "Progressive" : "") + "ActionAngleSampler<" + TypeName<Real> + "," + TypeName<Int> + ">";
         }
         
     }; // ActionAngleSampler
