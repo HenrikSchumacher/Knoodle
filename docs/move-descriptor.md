@@ -1,6 +1,7 @@
 # Move descriptors and trace streams — design
 
-Status: draft convention (v0), 2026-08-10. Authoritative spec for the
+Status: draft convention (v0), 2026-08-10; two-deletions contract and the
+drawing-parse check added 2026-08-12. Authoritative spec for the
 combinatorial move-descriptor format shared by (a) the planned knoodledraw
 overlay/debug mode for visualizing pass-move feasibility, and (b) the
 longer-term "knoodleprove" pipeline, in which an instrumented Simplify /
@@ -233,6 +234,67 @@ of a right one, and it is rejected too.
 (This example was itself wrong in earlier revisions of this document, in
 exactly that way — which is the argument for the stronger check in miniature.)
 
+## The two deletions (what a pass-move picture claims)
+
+A drawn pass move is a superposition of two states, each one deletion away.
+This is the contract a renderer must satisfy, and it is checkable:
+
+- **Delete the corridor** (the `p`-arcs) and what remains is a valid embedding
+  of the diagram the descriptor was written against.
+- **Delete the strand `W`** (the `w`-arcs) and what remains is a valid
+  embedding of the diagram the move produces — which, when the corridor is a
+  shortest path, is the diagram `Reroute` returns.
+
+The two are joined at the **dots**. A corridor endpoint is not a free-floating
+point beside an anchor: it is a dot placed **at a portal point of the strand's
+own first (resp. last) arc** — the same designated crossing sites the corridor
+uses to cross any other arc. Check 4 is what makes this well posed: because
+`depart`/`land` must be darcs *of* the strand's end arcs, `Portal(depart)` and
+`Portal(land)` are exactly the candidate dot sites, and the corridor leaves the
+dot sideways into `L(depart)` (resp. arrives from `L(land)`).
+
+The piece of arc between an anchor and its dot is therefore **shared**: under
+the first deletion it is the start of `W`, under the second it is the start of
+the rerouted strand. That is precisely why the rerouted strand attaches to the
+anchor through the very port `W` vacated, which is the property check 4 exists
+to guarantee and the one a picture is meant to expose when it fails.
+
+Two consequences for renderers:
+
+- **The corridor must be simple.** Once a stroke is drawn it is really there,
+  so later legs of a corridor must route around earlier ones. A corridor that
+  crossed itself would make the second deletion a non-embedding.
+  `OrthoDecorate::RouteAcrossDarcs` enforces this by routing sequentially with
+  the already-drawn cells as walls, and failing loudly rather than overlapping.
+- **Deleting `W` means healing what it crossed.** At each of `W`'s interior
+  crossings the transversal was interrupted; with `W` gone the transversal must
+  be restored, or the drawing has a hole where a strand should run. In an
+  orthogonal layout the strand runs straight through a crossing, so the healed
+  stroke is simply the perpendicular one through that cell.
+
+### Checking it: parse the drawing back
+
+`test/pass_view_check.cpp` renders each deletion view and reads it back into a
+`PlanarDiagram` with `test/drawing_extractor.hpp`, then compares port-by-port.
+The extractor takes its structure from the characters alone and never consults
+the diagram under test — necessarily, since a corridor attached to the wrong
+port still draws a perfectly legal diagram of some knot.
+
+The correspondence handed to the comparison is **geometric**: each parsed
+crossing is matched to the crossing whose grid cell it was read from, and the
+corridor's new crossings by their order along the corridor (which is how
+`AfterDiagram` numbers them). This is deliberately stronger than testing for
+isomorphism — a drawing isomorphic to the right diagram by *some* map, but not
+by the map the geometry dictates, is a failure, not a pass.
+
+**This supersedes MacLeod comparison** for the second deletion. The MacLeod
+code is an invariant of the oriented diagram, so it answers "same knot?" and
+nothing finer: it cannot see a right knot drawn with wrong labels, it localizes
+no failure, and — being a knot invariant — it does not exist for links, which
+rules it out as the foundation for a spec that is link-capable throughout.
+`--trace --verify` still uses it pending the switch; new checking work should
+use the extractor.
+
 ## Conformance tiers: well-formed vs sound
 
 Two distinct predicates apply to a record, and tools split along them:
@@ -431,6 +493,9 @@ and any seeded choice an emitter makes must be recorded in the stream.
   depart, cross list, land) and resolves faces itself via `ArcFaces()` in
   O(1) per darc — it does **not** take a face-index path. The API surface is
   the descriptor.
+- The corridor's endpoints are dots at portal points of the strand's end arcs,
+  not quadrant cells beside the anchors; the arc between anchor and dot is
+  shared by the two deletion views. See "The two deletions" above.
 - Phase 4 renders the routed corridor; the ASCII overlay is one backend. The
   route stays a polyline in OrthoDraw grid coordinates (the same coordinate
   system as `ArcSplines()`/plotting), so graphics backends (SVG/TikZ/WL) are
@@ -445,8 +510,17 @@ and any seeded choice an emitter makes must be recorded in the stream.
   cross=...:u land=..."` accepts exactly the `pass` payload grammar (the
   `#move` and `kind=pass` tokens optional) and overlays the corridor on the
   drawing — heavy gold strokes, corridor visibly broken at under-crossings,
-  anchors emphasized in red. A rejected descriptor prints which spec check
+  anchors emphasized in red, and a dot at each end where the corridor branches
+  off the strand's own arc. A rejected descriptor prints which spec check
   failed and exits nonzero.
+- **Also implemented**: `--pass-view=both|before|after` selects which of the
+  two deletions to draw (see "The two deletions" above). `both` is the default
+  superposition; `before` deletes the corridor, leaving the input diagram with
+  its dots marked; `after` deletes `W`, healing the transversals it crossed, so
+  the drawing is the diagram the move produces laid out in the frozen
+  before-layout. The single-deletion views omit the `--mono` `w`/`p` marker
+  letters — with only one of the two present there is nothing to disambiguate,
+  and the letters would only corrupt the strokes for a reader.
 - **Also implemented**: `knoodledraw --trace --verify` checks the second of
   the two deletions. A record's pass move claims that deleting the strand from
   the picture leaves the *next* record's snapshot, so with one record of
@@ -456,7 +530,9 @@ and any seeded choice an emitter makes must be recorded in the stream.
   of the oriented diagram and so ignores relabelling. Each move reports
   `#verify step <n>: VERIFIED | MISMATCH`, and a mismatch exits nonzero. This
   is the check that would have caught the arc-label aliasing of PR #30 without
-  anyone noticing a corridor attached oddly.
+  anyone noticing a corridor attached oddly. (The MacLeod comparison here is
+  now the weakest form of this check; see "Checking it: parse the drawing back"
+  above for the one that replaces it.)
 - **Also implemented**: `knoodledraw --trace` reads a trace stream of this
   spec's records and renders each snapshot under its echoed headers:
   `#move kind=pass` becomes the corridor overlay on that record's diagram,
