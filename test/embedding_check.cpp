@@ -52,6 +52,7 @@
 #include "link_alexander.hpp"
 
 #include <chrono>
+#include <limits>
 #include <sys/wait.h>
 #include <cstdio>
 #include <cstring>
@@ -493,6 +494,13 @@ static bool CollectFixtures( const std::string & dir, const std::string & only,
     }
     std::sort(paths.begin(),paths.end());
 
+    // Markers that apply to every fixture (class-level defects) live here.
+    kt::Expectations defaults;
+    if( !kt::LoadExpectations((fs::path(dir)/"DEFAULT.expect").string(),defaults,error) )
+    {
+        return false;
+    }
+
     // Prefer an exact stem match when one exists: --only is substring matching
     // for interactive convenience, but the isolated runner addresses a single
     // fixture by name and must not pick up a second one that contains it.
@@ -519,6 +527,7 @@ static bool CollectFixtures( const std::string & dir, const std::string & only,
 
         const std::string xp = fs::path(p).replace_extension(".expect").string();
         if( !kt::LoadExpectations(xp,f.expect,error) ) { return false; }
+        kt::InheritDefaults(f.expect,defaults);
 
         out.push_back(std::move(f));
     }
@@ -725,6 +734,288 @@ static void ExactCheckOne( const Fixture & f, const std::string & label, int cls
         ++t.passed;
     }
     else { t.Pass(what,false); }
+}
+
+// --- rotation ---------------------------------------------------------------
+
+/// Repeatedly re-aiming the projection must not make the knot grow.
+///
+/// Rotating a *fixed* curve changes which projection you look at, so the crossing
+/// count legitimately varies from one rotation to the next. What must not happen
+/// is a *trend*: rotations are drawn uniformly from SO(3), so the projections are
+/// exchangeable and the crossing count has no reason to drift in either
+/// direction. If it climbs, the embedding is degrading rather than being re-aimed.
+///
+/// Two paths are run, and the difference between them is the whole point:
+///
+///   fresh      each step rotates the *original* coordinates by an independent
+///              random matrix. Nothing accumulates, so this is the control: it
+///              measures the honest spread of crossing counts over projections.
+///
+///   composed   one embedding object is held and `Transform()` is called on it
+///              repeatedly, each rotation landing on the output of the last.
+///              This is where error, and any translation folded into something
+///              advertised as a rotation, accumulates. It is the path Rattle used
+///              to take, and the one 00a8407 had to route around for
+///              `LinkEmbedding` -- see test/embedding_inflation_check.cpp, which
+///              pins the geometry for that class. Here it is checked through the
+///              generic harness, so LinkEmbedding2/3/4 are covered too, and the
+///              *diagram* is checked rather than only the coordinates.
+///
+/// Three assertions per path: the knot type never changes; the radius of gyration
+/// is conserved (exactly invariant under any rigid motion, and translation-
+/// invariant so the internal Sterbenz shift does not register as motion); and the
+/// crossing count does not trend upward from the first quarter to the last.
+template<class LE_T>
+static void RotationCheckOne( const Fixture & f, const std::string & label, int cls,
+                              std::int64_t steps, std::int64_t homfly_cap,
+                              Tally & t, bool verbose )
+{
+    using Real_T = typename LE_T::Real;
+
+    // Anchor on a generic rotation: a class without symbolic perturbation cannot
+    // start from the degenerate projection, and the question here is about
+    // re-aiming, not about degeneracy.
+    const kt::Curve start = kt::Rotate(f.curve, 0x0A7A7EULL);
+
+    // ---- reference verdict -------------------------------------------------
+    LinkClass reference;
+    {
+        auto r = kt::RunEmbedding<LE_T>(start,/*want_pd=*/true);
+        if( !r.ok )
+        {
+            t.Verdict("rotation " + f.name + " " + label, false,
+                      "the anchoring projection failed -- " + r.message,
+                      XFailFor(f,"rotation",cls), verbose);
+            return;
+        }
+        reference = Classify(r.pd, r.unlink_count, start.ComponentCount(), homfly_cap);
+    }
+
+    // ---- the two paths -----------------------------------------------------
+    struct Track
+    {
+        std::vector<std::int64_t> crossings;
+        std::vector<double>       gyration;
+        std::vector<kt::Fingerprint> prints;
+        std::string               failure;
+        LinkClass                 last;
+    };
+
+    auto run_fresh = [&]() -> Track
+    {
+        Track tr;
+        for( std::int64_t k = 0; k < steps; ++k )
+        {
+            const kt::Curve c = kt::Rotate(f.curve, 0x5EED5EEDULL + std::uint64_t(k));
+            auto r = kt::RunEmbedding<LE_T>(c, /*want_pd=*/(k+1 == steps));
+            if( !r.ok ) { tr.failure = "step " + std::to_string(k) + ": " + r.message; return tr; }
+
+            tr.crossings.push_back(r.crossing_count);
+            tr.gyration.push_back(kt::RadiusOfGyration(c.v));
+            tr.prints.push_back(r.fp);
+            if( r.pd_built )
+            {
+                tr.last = Classify(r.pd, r.unlink_count, c.ComponentCount(), homfly_cap);
+            }
+        }
+        return tr;
+    };
+
+    auto run_composed = [&]() -> Track
+    {
+        Track tr;
+
+        Knoodle::Tensor1<Int,Int> cp ( start.comp_ptr.data(), Int(start.comp_ptr.size()) );
+        Knoodle::Tensor1<Int,Int> col =
+            Knoodle::iota<Int,Int>( start.comp_ptr.size() - std::size_t(1) );
+
+        LE_T L ( std::move(cp), std::move(col) );
+
+        std::vector<Real_T> coords ( start.v.size() );
+        for( std::size_t i = 0; i < start.v.size(); ++i )
+        {
+            coords[i] = static_cast<Real_T>(start.v[i]);
+        }
+        L.template ReadVertexCoordinates<false>( coords.data() );
+
+        std::vector<Real_T> out ( start.v.size() );
+
+        for( std::int64_t k = 0; k < steps; ++k )
+        {
+            if( k > 0 )
+            {
+                // Compose the next rotation onto the coordinates already in place.
+                const auto R = kt::RandomRotationMatrix( 0xC0FFEEULL + std::uint64_t(k) );
+
+                Real_T flat[9];
+                for( int i = 0; i < 9; ++i ) { flat[i] = static_cast<Real_T>(R[std::size_t(i)]); }
+
+                typename LE_T::Matrix3x3_T A;
+                A.Read(flat);
+
+                try { L.Transform(A); }
+                catch( const std::exception & e )
+                {
+                    tr.failure = "step " + std::to_string(k) + ": Transform threw: " + e.what();
+                    return tr;
+                }
+            }
+
+            std::string msg;
+            int err = 0;
+            if( !kt::RequireIntersectionsOK(L,msg,err) )
+            {
+                tr.failure = "step " + std::to_string(k) + ": " + msg;
+                return tr;
+            }
+
+            tr.crossings.push_back( std::int64_t(L.IntersectionCount()) );
+            tr.prints.push_back( kt::TakeFingerprint(L) );
+
+            L.WriteVertexCoordinates( out.data() );
+            tr.gyration.push_back( kt::RadiusOfGyration(out) );
+
+            if( k+1 == steps )
+            {
+                auto [pd,unlinks] = kt::PDFromEmbedding(L);
+                tr.last = Classify(pd, Int(unlinks.Size()), start.ComponentCount(), homfly_cap);
+            }
+        }
+        return tr;
+    };
+
+    // ---- score -------------------------------------------------------------
+    auto score = [&]( const char * path_name, const Track & tr )
+    {
+        const std::string what = "rotation " + f.name + " " + label + " " + path_name;
+
+        // Markers on this tier describe `Transform`, which only the composed path
+        // exercises. Holding the fresh path to them too would make every marker
+        // XPASS against a path it was never about.
+        const std::string xfail = (std::strcmp(path_name,"composed") == 0)
+                                ? XFailFor(f,"rotation",cls) : std::string();
+
+        if( !tr.failure.empty() )
+        {
+            t.Verdict(what,false,tr.failure,xfail,verbose);
+            return;
+        }
+        if( tr.crossings.empty() )
+        {
+            t.Skip(what,"no steps ran",verbose);
+            return;
+        }
+
+        // (a) re-aiming must actually re-aim.
+        //
+        // Twenty-odd uniformly random rotations of a curve cannot all produce
+        // the identical crossing set; if they do, the rotation is not reaching
+        // the computation. That is exactly what a stale cache looks like from
+        // outside, and it is the failure mode this catch was added for --
+        // `LinkEmbedding::Transform` resets neither `intersections_computedQ`
+        // nor `bounding_boxes_computedQ`, so every projection after the first
+        // returns the first one's answer.
+        if( tr.prints.size() >= 4 )
+        {
+            bool all_same = true;
+            for( std::size_t i = 1; i < tr.prints.size(); ++i )
+            {
+                if( tr.prints[i] != tr.prints[0] ) { all_same = false; break; }
+            }
+            if( all_same )
+            {
+                t.Verdict(what,false,
+                          "the projection never changed over " + std::to_string(steps)
+                          + " random rotations -- the crossing set is bit-identical every"
+                          " time, so the rotation is not reaching the intersection"
+                          " computation (stale cache)", xfail, verbose);
+                return;
+            }
+        }
+
+        // (b) the knot must be the same one throughout
+        std::string why;
+        if( !SameLink(reference,tr.last,why) )
+        {
+            if( why.rfind("not comparable",0) == 0 || why.rfind("different oracles",0) == 0 )
+            {
+                t.Skip(what,why,verbose);
+            }
+            else
+            {
+                t.Verdict(what,false,"the knot changed over " + std::to_string(steps)
+                          + " rotations: " + why, xfail, verbose);
+            }
+            return;
+        }
+
+        // (c) the shape must not inflate or collapse
+        const double g0  = tr.gyration.front();
+        double g_lo = g0, g_hi = g0;
+        for( double g : tr.gyration ) { g_lo = std::min(g_lo,g); g_hi = std::max(g_hi,g); }
+
+        // The tolerance has to scale with the working precision: composing k
+        // rotations accumulates roundoff like sqrt(k)*eps, which is ~1e-15 for
+        // double but ~6e-7 for float, so a single fixed threshold would either
+        // be blind at f64 or cry wolf at f32. 256*sqrt(k)*eps leaves a wide
+        // margin over that random walk and still sits orders of magnitude below
+        // any real drift -- the inflation embedding_inflation_check documents
+        // moves the coordinates by a factor of ~4000.
+        const double eps = double(std::numeric_limits<Real_T>::epsilon());
+        const double tol = std::max( 1.0e-12,
+                                     256.0 * std::sqrt(double(steps)) * eps );
+
+        if( g0 > 0.0 && (g_hi - g_lo) / g0 > tol )
+        {
+            char buf[256];
+            std::snprintf(buf,sizeof(buf),
+                          "radius of gyration is not conserved over %lld rotations: "
+                          "%.17g .. %.17g (relative spread %.3e, tolerance %.3e)",
+                          (long long)steps, g_lo, g_hi, (g_hi-g_lo)/g0, tol);
+            t.Verdict(what,false,buf,xfail,verbose);
+            return;
+        }
+
+        // (d) the crossing count must not trend upward
+        const std::size_t n = tr.crossings.size();
+        const std::size_t q = std::max<std::size_t>(1, n/4);
+
+        auto mean = [&](std::size_t b, std::size_t e)
+        {
+            double s = 0.0;
+            for( std::size_t i = b; i < e; ++i ) { s += double(tr.crossings[i]); }
+            return s / double(e-b);
+        };
+
+        const double first_q = mean(0,q);
+        const double last_q  = mean(n-q,n);
+
+        // Generous on purpose: this is looking for a trend, not policing the
+        // honest sampling spread of projections of one curve. A 25% climb in the
+        // mean over dozens of uniform rotations is not sampling noise.
+        if( n >= 8 && last_q > 1.25*first_q + 2.0 )
+        {
+            t.Verdict(what,false,
+                      "crossing count trends upward over " + std::to_string(steps)
+                      + " rotations: first quarter mean " + std::to_string(first_q)
+                      + ", last quarter mean " + std::to_string(last_q), xfail, verbose);
+            return;
+        }
+
+        if( verbose )
+        {
+            const auto [lo,hi] = std::minmax_element(tr.crossings.begin(),tr.crossings.end());
+            std::printf("    PASS  %s  (crossings %lld..%lld, first/last quarter mean "
+                        "%.1f/%.1f; R_g %.6g stable)\n",
+                        what.c_str(), (long long)*lo, (long long)*hi, first_q, last_q, g0);
+            ++t.passed;
+        }
+        else { t.Verdict(what,true,"",xfail,verbose); }
+    };
+
+    score("fresh",    run_fresh());
+    score("composed", run_composed());
 }
 
 // --- cross-class ------------------------------------------------------------
@@ -1099,10 +1390,11 @@ static void Usage()
         "\n"
         "  --class=LIST       classes to test, e.g. 1,2,3,4        (default 1,2,3,4)\n"
         "  --coords=LIST      coordinate types: f64,f32,i32,i64    (default f64,f32)\n"
-        "  --tier=LIST        census,reader,exact,cross,invariant  (default all)\n"
+        "  --tier=LIST        census,reader,exact,cross,invariant,rotation (default all)\n"
         "  --fixtures=DIR     fixture directory                    (default ./embeddings)\n"
         "  --only=SUBSTR      only fixtures whose name contains SUBSTR\n"
         "  --rotations=N      random generic projections per fixture (default 3)\n"
+        "  --rotation-steps=N successive re-aimings in the rotation tier (default 24)\n"
         "  --homfly-cap=N     max crossings for the HOMFLY oracle  (default 40)\n"
         "  --isolate          run each (tier,fixture,class,coords) in a child process,\n"
         "                     so a crash in the library is reported instead of fatal\n"
@@ -1140,13 +1432,14 @@ int main( int argc, char ** argv )
 
     std::vector<int>    classes { 1,2,3,4 };
     std::vector<Coords> coords  { Coords::f64, Coords::f32 };
-    std::vector<std::string> tiers { "census","reader","exact","cross","invariant" };
+    std::vector<std::string> tiers { "census","reader","exact","cross","invariant","rotation" };
 
     std::string fixtures_dir = "embeddings";
     std::string only;
     Int  rotations  = 3;
     Int  homfly_cap = 40;
     Int  reps       = 3;
+    Int  rot_steps  = 24;
     bool bench      = false;
     bool verbose    = false;
     bool list_only  = false;
@@ -1193,6 +1486,7 @@ int main( int argc, char ** argv )
         else if( Arg(argv[i],"--rotations=",v) )  { rotations = std::stoll(v); }
         else if( Arg(argv[i],"--homfly-cap=",v) ) { homfly_cap = std::stoll(v); }
         else if( Arg(argv[i],"--reps=",v) )       { reps = std::stoll(v); }
+        else if( Arg(argv[i],"--rotation-steps=",v) ) { rot_steps = std::stoll(v); }
         else
         {
             std::fprintf(stderr,"unknown option '%s'\n\n",argv[i]);
@@ -1428,6 +1722,25 @@ int main( int argc, char ** argv )
                     const bool capable = ResolvesDegeneraciesQ(cls);
                     WithClass(cls,c,[&]<class LE>(){
                         InvariantCheckOne<LE>(f,label,cls,capable,rotations,homfly_cap,t,verbose);
+                    });
+                }
+            }
+        }
+    }
+
+    if( WantTier("rotation") )
+    {
+        std::printf("\n=== rotation: repeated re-aiming does not make the knot grow ===\n");
+        for( const auto & f : fx )
+        {
+            for( Coords c : coords )
+            {
+                for( int cls : classes )
+                {
+                    const std::string label = ClassName(cls,c);
+                    if( SkipKnownCrash(f,"rotation",cls,label,in_child,t,verbose) ) { continue; }
+                    WithClass(cls,c,[&]<class LE>(){
+                        RotationCheckOne<LE>(f,label,cls,rot_steps,homfly_cap,t,verbose);
                     });
                 }
             }

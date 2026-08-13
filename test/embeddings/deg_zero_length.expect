@@ -23,3 +23,4 @@ spatial              == 0
 xfail_exact     = 2,3,4 | zero-length edge rejected as a 3D intersection
 xfail_cross     = 2,3,4 | zero-length edge rejected as a 3D intersection
 xfail_invariant = 2,3,4 | zero-length edge rejected as a 3D intersection
+xfail_rotation  = 2,3,4 | zero-length edge rejected as a 3D intersection

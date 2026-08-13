@@ -1,0 +1,26 @@
+# Markers that apply to every fixture, for defects that belong to a class rather
+# than to any particular curve. A per-fixture .expect wins over these for the
+# same tier.
+
+# KNOWN FAILURE (2026-08-13), LinkEmbedding only.
+#
+# LinkEmbedding::Transform (src/LinkEmbedding/VertexCoordinates.hpp:174) rotates
+# edge_coords but resets neither `intersections_computedQ` nor
+# `bounding_boxes_computedQ`. LinkEmbedding2::Transform resets all three
+# explicitly (src/LinkEmbedding2/VertexCoordinates.hpp:117-119).
+#
+# So after a Transform:
+#   RequireIntersections()                    -> the stale pre-rotation answer
+#   FindIntersections()                       -> 0, the AABB boxes are stale too
+#   ComputeBoundingBoxes(); FindIntersections() -> correct
+#
+# Measured on a 40-gon rotated 90 degrees about x: 3 crossings before, 3 after
+# Transform+RequireIntersections, 0 after FindIntersections, 10 once the boxes
+# are refreshed. LinkEmbedding2 goes 3 -> 10 with no help.
+#
+# This is silent: you get a diagram, it is just the previous one. Nothing in the
+# library hits it today because 00a8407 routed Rattle around Transform, but the
+# method is public and documented as re-aiming the projection.
+#
+# Fix: mirror LinkEmbedding2 -- clear both flags in Transform.
+xfail_rotation = 1 | LinkEmbedding::Transform does not invalidate the intersection or bounding-box caches

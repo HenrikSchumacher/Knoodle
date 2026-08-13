@@ -3,6 +3,24 @@
 Bugs we've found reading/using the core library. Each needs a minimal repro
 before filing. Status: `found` → `confirmed` → `filed` → `fixed upstream`.
 
+## 9. `LinkEmbedding::Transform` does not invalidate its caches
+
+**Status:** confirmed 2026-08-13, branch `dev_prosector` @ `0a821267`.
+**Severity:** high — silent wrong answers. `LinkEmbedding2/3/4` are correct.
+
+`src/LinkEmbedding/VertexCoordinates.hpp:174` rotates `edge_coords` but resets
+neither `intersections_computedQ` nor `bounding_boxes_computedQ`, where
+`LinkEmbedding2::Transform` resets all three
+(`src/LinkEmbedding2/VertexCoordinates.hpp:117-119`). After a `Transform`,
+`RequireIntersections()` hands back the stale pre-rotation diagram and
+`FindIntersections()` returns 0 because the AABB boxes are stale too; only
+`ComputeBoundingBoxes()` first gives the right answer. Measured on a 40-gon
+rotated 90° about x: 3 / 3 / 0 / 10 against `LinkEmbedding2`'s 3 → 10.
+
+Nothing in the library hits it since `00a8407` routed Rattle around `Transform`,
+but the method is public. Fix = mirror `LinkEmbedding2`. Detail:
+[embedding-check.md §5G](embedding-check.md#g-linkembeddingtransform-does-not-invalidate-its-caches).
+
 ## 8. `FromInString` aborts on every input (two inverted assertions)
 
 **Status:** confirmed 2026-08-13, branch `dev_prosector` @ `0a821267`.

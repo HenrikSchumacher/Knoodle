@@ -220,10 +220,10 @@ inline double ShearMagnitude( const Curve & c, double N )
     return (N*N*N + N*N) * c.MaxAbsCoordinate();
 }
 
-/// A uniformly random rotation (Shoemake's quaternion method), applied to the
-/// whole curve. Used for the knot-type tier: a random rotation is degeneracy-free
-/// with probability 1, so it is an independent generic projection of the same link.
-inline Curve Rotate( const Curve & c, std::uint64_t seed )
+/// A uniformly random rotation matrix (Shoemake's quaternion method), row-major.
+/// Uniform over SO(3), so successive draws sample projection directions evenly
+/// rather than clustering.
+inline std::array<double,9> RandomRotationMatrix( std::uint64_t seed )
 {
     std::mt19937_64 rng (seed);
     std::uniform_real_distribution<double> U (0.0,1.0);
@@ -235,11 +235,19 @@ inline Curve Rotate( const Curve & c, std::uint64_t seed )
     const double qx = s1*std::sin(t1), qy = s1*std::cos(t1);
     const double qz = s2*std::sin(t2), qw = s2*std::cos(t2);
 
-    const double R[3][3] = {
-        { 1-2*(qy*qy+qz*qz),   2*(qx*qy-qz*qw),   2*(qx*qz+qy*qw) },
-        {   2*(qx*qy+qz*qw), 1-2*(qx*qx+qz*qz),   2*(qy*qz-qx*qw) },
-        {   2*(qx*qz-qy*qw),   2*(qy*qz+qx*qw), 1-2*(qx*qx+qy*qy) }
+    return {
+        1-2*(qy*qy+qz*qz),   2*(qx*qy-qz*qw),   2*(qx*qz+qy*qw),
+          2*(qx*qy+qz*qw), 1-2*(qx*qx+qz*qz),   2*(qy*qz-qx*qw),
+          2*(qx*qz-qy*qw),   2*(qy*qz+qx*qw), 1-2*(qx*qx+qy*qy)
     };
+}
+
+/// A uniformly random rotation applied to the whole curve. Used for the knot-type
+/// tier: a random rotation is degeneracy-free with probability 1, so it is an
+/// independent generic projection of the same link.
+inline Curve Rotate( const Curve & c, std::uint64_t seed )
+{
+    const auto R = RandomRotationMatrix(seed);
 
     Curve out = c;
     out.name = c.name + "[rot " + std::to_string(seed) + "]";
@@ -247,11 +255,43 @@ inline Curve Rotate( const Curve & c, std::uint64_t seed )
     for( std::size_t i = 0; i < c.v.size(); i += 3 )
     {
         const double x = c.v[i], y = c.v[i+1], z = c.v[i+2];
-        out.v[i  ] = R[0][0]*x + R[0][1]*y + R[0][2]*z;
-        out.v[i+1] = R[1][0]*x + R[1][1]*y + R[1][2]*z;
-        out.v[i+2] = R[2][0]*x + R[2][1]*y + R[2][2]*z;
+        out.v[i  ] = R[0]*x + R[1]*y + R[2]*z;
+        out.v[i+1] = R[3]*x + R[4]*y + R[5]*z;
+        out.v[i+2] = R[6]*x + R[7]*y + R[8]*z;
     }
     return out;
+}
+
+/// Radius of gyration: the RMS distance of the vertices from their centroid.
+///
+/// This is the honest measure of "did the knot grow". It is exactly invariant
+/// under any rigid motion -- rotation *and* translation -- so it is unaffected by
+/// the internal Sterbenz shift, which a bounding box or a centroid norm would
+/// pick up as spurious motion. Repeated re-aiming must leave it alone; if it
+/// drifts, the shape itself is inflating or collapsing and precision is being
+/// spent on nothing.
+template<class Real_T>
+double RadiusOfGyration( const std::vector<Real_T> & v )
+{
+    const std::size_t n = v.size() / 3;
+    if( n == 0 ) { return 0.0; }
+
+    double cx = 0.0, cy = 0.0, cz = 0.0;
+    for( std::size_t i = 0; i < n; ++i )
+    {
+        cx += double(v[3*i]); cy += double(v[3*i+1]); cz += double(v[3*i+2]);
+    }
+    cx /= double(n); cy /= double(n); cz /= double(n);
+
+    double s = 0.0;
+    for( std::size_t i = 0; i < n; ++i )
+    {
+        const double dx = double(v[3*i  ]) - cx;
+        const double dy = double(v[3*i+1]) - cy;
+        const double dz = double(v[3*i+2]) - cz;
+        s += dx*dx + dy*dy + dz*dz;
+    }
+    return std::sqrt( s / double(n) );
 }
 
 // ===========================================================================
@@ -398,6 +438,51 @@ LE_T LoadWithLibraryReader( const std::filesystem::path & file )
     }
 }
 
+/// Compute the intersections and say plainly whether it worked.
+///
+/// `RequireIntersections` does not report success the same way across the
+/// family: `LinkEmbedding` returns an `int` error code where 0 means success,
+/// while `LinkEmbedding2/3/4` return a `bool` where `true` means success. The two
+/// conventions disagree about the meaning of 1, so the return type has to be
+/// inspected rather than assumed. (Worth knowing generally:
+/// `PD_T::FromLinkEmbedding(LinkEmbedding2&)` currently assumes the int
+/// convention and so treats every successful projection as "error code 1".)
+template<class LE_T>
+bool RequireIntersectionsOK( LE_T & L, std::string & message, int & err )
+{
+    const auto raw_status = L.template RequireIntersections<false>();
+
+    using Status_T = std::remove_cvref_t<decltype(raw_status)>;
+
+    if constexpr ( std::is_same_v<Status_T,bool> )
+    {
+        if( raw_status ) { return true; }
+
+        err     = -1;
+        message = "RequireIntersections returned false";
+
+        if constexpr ( requires { L.IntersectionCount3D(); } )
+        {
+            const auto n3d = L.IntersectionCount3D();
+            if( n3d > 0 )
+            {
+                message += " (" + std::to_string(Int(n3d))
+                         + " line segment pair(s) intersect in 3D)";
+            }
+        }
+        return false;
+    }
+    else
+    {
+        err = int(raw_status);
+        if( err == 0 ) { return true; }
+
+        message = "RequireIntersections returned error code " + std::to_string(err)
+                + (err == 6 ? " (line segments intersect in 3D)" : "");
+        return false;
+    }
+}
+
 /// Everything one projection produced, including the ways it can fail.
 struct RunResult
 {
@@ -471,48 +556,7 @@ RunResult RunEmbedding( const Curve & c, bool want_pd = false )
         // Coordinates are handed over already transformed; no in-class transform.
         L.template ReadVertexCoordinates<false>( coords.data() );
 
-        // `RequireIntersections` does not report success the same way across the
-        // family: `LinkEmbedding` returns an `int` error code where 0 means
-        // success, while `LinkEmbedding2/3/4` return a `bool` where `true` means
-        // success. The two conventions disagree about the meaning of 1, so the
-        // return type has to be inspected rather than assumed. (This is worth
-        // knowing about generally: `PD_T::FromLinkEmbedding(LinkEmbedding2&)`
-        // currently assumes the int convention and so treats every successful
-        // projection as "error code 1".)
-        const auto raw_status = L.template RequireIntersections<false>();
-
-        using Status_T = std::remove_cvref_t<decltype(raw_status)>;
-
-        if constexpr ( std::is_same_v<Status_T,bool> )
-        {
-            if( !raw_status )
-            {
-                r.err     = -1;
-                r.message = "RequireIntersections returned false";
-
-                if constexpr ( requires { L.IntersectionCount3D(); } )
-                {
-                    const auto n3d = L.IntersectionCount3D();
-                    if( n3d > 0 )
-                    {
-                        r.message += " (" + std::to_string(Int(n3d))
-                                   + " line segment pair(s) intersect in 3D)";
-                    }
-                }
-                return r;
-            }
-        }
-        else
-        {
-            const int err = int(raw_status);
-            if( err != 0 )
-            {
-                r.err     = err;
-                r.message = "RequireIntersections returned error code " + std::to_string(err)
-                          + (err == 6 ? " (line segments intersect in 3D)" : "");
-                return r;
-            }
-        }
+        if( !RequireIntersectionsOK(L,r.message,r.err) ) { return r; }
 
         r.fp              = TakeFingerprint(L);
         r.crossing_count  = Int(L.IntersectionCount());
@@ -978,23 +1022,38 @@ struct Expectations
     std::vector<Expectation> census;
     std::string              knot;      ///< documentation only
     std::string              note;
-    std::map<std::string,Marker> xfail;    ///< tier -> marker
-    std::map<std::string,Marker> xcrash;   ///< tier -> marker
+    // A tier may carry several markers with disjoint class lists -- one defect
+    // in LinkEmbedding and a different one in LinkEmbedding2/3/4 are separate
+    // facts about separate code and each deserves its own reason. They are held
+    // in declaration order and the first one that applies to the class wins,
+    // with a fixture's own markers ahead of any inherited default.
+    std::map<std::string,std::vector<Marker>> xfail;    ///< tier -> markers
+    std::map<std::string,std::vector<Marker>> xcrash;   ///< tier -> markers
+
+    static std::string FirstApplicable(
+        const std::map<std::string,std::vector<Marker>> & m,
+        const std::string & tier, int cls )
+    {
+        auto it = m.find(tier);
+        if( it == m.end() ) { return {}; }
+
+        for( const auto & marker : it->second )
+        {
+            if( marker.AppliesTo(cls) ) { return marker.reason; }
+        }
+        return {};
+    }
 
     /// The reason this tier is expected to fail for this class, or "".
     std::string XFail( const std::string & tier, int cls ) const
     {
-        auto it = xfail.find(tier);
-        if( it == xfail.end() || !it->second.AppliesTo(cls) ) { return {}; }
-        return it->second.reason;
+        return FirstApplicable(xfail,tier,cls);
     }
 
     /// The reason this tier is expected to crash for this class, or "".
     std::string XCrash( const std::string & tier, int cls ) const
     {
-        auto it = xcrash.find(tier);
-        if( it == xcrash.end() || !it->second.AppliesTo(cls) ) { return {}; }
-        return it->second.reason;
+        return FirstApplicable(xcrash,tier,cls);
     }
 };
 
@@ -1056,11 +1115,11 @@ inline bool LoadExpectations( const std::string & path, Expectations & x, std::s
             else if( key == "note" ) { x.note = val; }
             else if( key.rfind("xfail_",0) == 0 )
             {
-                x.xfail[key.substr(6)] = ParseMarker(val);
+                x.xfail[key.substr(6)].push_back(ParseMarker(val));
             }
             else
             {
-                x.xcrash[key.substr(7)] = ParseMarker(val);
+                x.xcrash[key.substr(7)].push_back(ParseMarker(val));
             }
             continue;
         }
@@ -1075,6 +1134,29 @@ inline bool LoadExpectations( const std::string & path, Expectations & x, std::s
         x.census.push_back( Expectation{ key, op, value } );
     }
     return true;
+}
+
+/// Merge `base` into `x` for any tier `x` does not already speak about.
+///
+/// Used for a `DEFAULT.expect` alongside the fixtures: some defects belong to a
+/// *class*, not to any one curve -- a stale cache makes every fixture behave the
+/// same way -- and copying the same marker into fourteen sidecars would be noise
+/// that nobody would remember to delete together. A per-fixture marker always
+/// wins over the default for the same tier.
+inline void InheritDefaults( Expectations & x, const Expectations & base )
+{
+    // Appended, not substituted: a fixture that speaks about classes 2,3,4 must
+    // not silently drop an inherited marker about class 1.
+    for( const auto & [tier,markers] : base.xfail )
+    {
+        auto & dst = x.xfail[tier];
+        dst.insert(dst.end(),markers.begin(),markers.end());
+    }
+    for( const auto & [tier,markers] : base.xcrash )
+    {
+        auto & dst = x.xcrash[tier];
+        dst.insert(dst.end(),markers.begin(),markers.end());
+    }
 }
 
 /// Check a census against its declared expectations; returns the failures.

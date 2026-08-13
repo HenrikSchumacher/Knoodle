@@ -36,10 +36,11 @@ run — see [§4](#4-known-defect-markers).
 ```
 --class=LIST       1,2,3,4                                (default all)
 --coords=LIST      f64,f32,i32,i64                        (default f64,f32)
---tier=LIST        census,reader,exact,cross,invariant    (default all)
+--tier=LIST        census,reader,exact,cross,invariant,rotation (default all)
 --fixtures=DIR     fixture directory                      (default ./embeddings)
 --only=SUBSTR      only fixtures whose name contains SUBSTR (exact match wins)
 --rotations=N      random generic projections per fixture (default 3)
+--rotation-steps=N successive re-aimings in the rotation tier (default 24)
 --homfly-cap=N     max crossings for the HOMFLY oracle    (default 40)
 --isolate          run each unit in a child process, so a crash is *scored*
                    instead of ending the run
@@ -56,6 +57,7 @@ run — see [§4](#4-known-defect-markers).
 ./embedding_check --only=lattice --verbose            # the space-filling cases
 ./embedding_check --isolate                           # scores crashes instead of dying
 ./embedding_check --bench --reps=7 --only=lattice     # the timing table
+./embedding_check --tier=rotation --verbose           # re-aiming doesn't inflate
 ./embedding_check --list                              # what each fixture contains
 ```
 
@@ -82,7 +84,7 @@ rotated ones is integral, and the benchmark confirms `rounding_err = 0` througho
 
 ## 2. What it checks
 
-Five tiers, increasing in strength.
+Six tiers, increasing in strength.
 
 ### `census` — the fixtures really are degenerate
 
@@ -149,6 +151,46 @@ mismatch localizes to the intersection computation rather than to PD assembly.
 lattice knot with 6736 crossings.** That is a strong statement about the perturbation
 machinery and it is worth keeping true.
 
+### `rotation` — repeated re-aiming does not make the knot grow
+
+Rotating a *fixed* curve changes which projection you look at, so the crossing count
+legitimately varies between rotations. What must not happen is a **trend**: rotations are
+drawn uniformly from SO(3), so the projections are exchangeable and the count has no
+reason to drift. If it climbs, the embedding is degrading rather than being re-aimed.
+
+Two paths run per fixture and class, and the difference between them is the point:
+
+- **fresh** — each step rotates the *original* coordinates by an independent random
+  matrix. Nothing accumulates; this is the control, measuring the honest spread of
+  crossing counts over projections.
+- **composed** — one embedding object is held and `Transform()` is called on it
+  repeatedly, each rotation landing on the output of the last. This is where error, and
+  any translation folded into something advertised as a rotation, accumulates. It is the
+  path Rattle used to take and that `00a8407` had to route around.
+
+Four assertions per path:
+
+1. **Re-aiming actually re-aims.** Two dozen uniformly random rotations cannot all yield
+   a bit-identical crossing set. If they do, the rotation is not reaching the
+   computation — which is exactly what finding [G](#g-linkembeddingtransform-does-not-invalidate-its-caches) looks like from outside.
+2. **The knot type never changes**, by the same oracles the `invariant` tier uses.
+3. **The radius of gyration is conserved.** `R_g` is exactly invariant under any rigid
+   motion, *including translation*, so the internal Sterbenz shift does not register as
+   spurious motion the way a bounding box or a centroid norm would. The tolerance scales
+   with the working precision (`256·√k·ε`), because composing `k` rotations random-walks
+   roundoff at `√k·ε` — ~1e-15 at `f64` but ~6e-7 at `f32`, so one fixed threshold would
+   be either blind or noisy. It still sits orders of magnitude below real drift: the
+   inflation `embedding_inflation_check` documents moves coordinates by a factor of ~4000.
+4. **The crossing count does not trend upward**, comparing the first quarter's mean
+   against the last quarter's.
+
+This complements `test/embedding_inflation_check.cpp` rather than duplicating it. That
+test pins the *geometry* of re-aiming — that `‖c‖` and the extent are conserved — for
+`LinkEmbedding` via Reapr. This tier pins the *diagram*, and does it for all four classes.
+
+Measured on `lattice_08`, 24 composed re-aimings of `LinkEmbedding4`: crossings range
+402–535, quarter means 474 → 496, `R_g` constant. No trend, which is the claim.
+
 ### `cross` — the three backends agree with each other
 
 Sharing one perturbation contract, `LinkEmbedding2/3/4` must produce *identical*
@@ -210,7 +252,10 @@ bipartite with unequal colour classes when `k³` is odd, so no Hamiltonian cycle
 ## 4. Known-defect markers
 
 `.expect` files carry `xfail_<tier>` (known wrong answer) and `xcrash_<tier>` (known
-crash), each optionally scoped to a class list:
+crash), each optionally scoped to a class list. A `DEFAULT.expect` beside the fixtures
+carries markers that apply to *every* fixture, for defects that belong to a class rather
+than to a curve; a tier may hold several markers with disjoint class lists, and the first
+one matching the class under test wins, fixture markers ahead of inherited ones.
 
 ```
 xfail_exact = 2,3,4 | zero-length edge rejected as a 3D intersection
@@ -358,6 +403,36 @@ matching the explicit shear.
 
 Markers: `xcrash_invariant` scoped to class 1. Run with `--isolate` to see it scored.
 
+### G. `LinkEmbedding::Transform` does not invalidate its caches
+
+**Severity: high — silent wrong answers. Found by the `rotation` tier.**
+
+`src/LinkEmbedding/VertexCoordinates.hpp:174` rotates `edge_coords` but resets neither
+`intersections_computedQ` nor `bounding_boxes_computedQ`.
+`LinkEmbedding2::Transform` resets all three explicitly
+(`src/LinkEmbedding2/VertexCoordinates.hpp:117-119`).
+
+So after a `Transform`:
+
+| call | result |
+| --- | --- |
+| `RequireIntersections()` | the **stale pre-rotation** answer |
+| `FindIntersections()` | **0** — the AABB boxes are stale too, so the tree finds no candidate pairs |
+| `ComputeBoundingBoxes(); FindIntersections()` | correct |
+
+Measured on a 40-gon rotated 90° about the x-axis: 3 crossings before, 3 after
+`Transform` + `RequireIntersections`, 0 after `FindIntersections`, and 10 once the boxes
+are refreshed. `LinkEmbedding2` goes 3 → 10 unaided.
+
+This is silent — you get a diagram back, it is just the previous one. Nothing in the
+library hits it today because `00a8407` routed Rattle around `Transform`, but the method
+is public and documented as re-aiming the projection.
+
+Fix: mirror `LinkEmbedding2` and clear both flags.
+
+Marker: `xfail_rotation` scoped to class 1, in `test/embeddings/DEFAULT.expect` — the
+defect belongs to the class, not to any one curve.
+
 ### F. `FromInString` has two inverted assertions
 
 **Severity: high in any build without `-DNDEBUG` — it aborts on every input.**
@@ -421,10 +496,12 @@ monotone at every size, with the largest jump between 2 and 3.
 ## 7. Current status
 
 ```
-./embedding_check              480 passed, 0 failed, 20 skipped, 19 known-failing
-./embedding_check --isolate   1436 passed, 0 failed, 64 skipped, 152 known-failing
+./embedding_check              650 passed, 0 failed, 34 skipped, 53 known-failing
+./embedding_check --isolate   1606 passed, 0 failed, 78 skipped, 186 known-failing
 ```
 
-The skips are the zero-length fixture (finding B makes both backends fail identically,
-so there is nothing to compare) and the known crashes (finding E). The known-failures are
-findings B, E and F.
+Whole run: about 2.2 s.
+
+The skips are the zero-length fixture (finding B makes the backends fail identically, so
+there is nothing to compare) and the known crashes (finding E). The known-failures are
+findings B, E, F and G.
