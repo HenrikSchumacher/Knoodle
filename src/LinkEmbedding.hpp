@@ -102,7 +102,7 @@ namespace Knoodle
         IntersectionFlagCounts_T intersection_flag_counts = {};
 
         Int intersection_count    = 0;
-        Int intersection_count_3D = 0;
+        Size_T intersection_count_3D = 0;
         
         bool intersections_computedQ  = false;
         bool bounding_boxes_computedQ = false;
@@ -196,6 +196,16 @@ namespace Knoodle
         {
             return Vector3_T( edge_coords.data(e,k) );
         }
+        
+        // This function must be here because KnotEmbedding needs another definition.
+        void ComputeBoundingBoxes()
+        {
+        //    TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
+            
+            T.template ComputeBoundingBoxes<2,3>( edge_coords.data(), box_coords.data() );
+            bounding_boxes_computedQ = true;
+        }
+
         
     public:
 

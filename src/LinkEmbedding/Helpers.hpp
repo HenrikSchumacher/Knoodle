@@ -80,6 +80,12 @@ cref<Matrix3x3_T> TransformationMatrix() const
     return R;
 }
 
+Matrix3x3_T InverseTransformationMatrix() const
+{
+    return Inverse_Kahan(R);
+}
+
+
 private:
 
 Int DegenerateEdgeCount() const

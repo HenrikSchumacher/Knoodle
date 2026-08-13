@@ -19,15 +19,6 @@ void RequireBoundingBoxes()
     
     ComputeBoundingBoxes();
 }
-
-void ComputeBoundingBoxes()
-{
-//    TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
-    
-    T.template ComputeBoundingBoxes<2,3>( edge_coords.data(), box_coords.data() );
-    bounding_boxes_computedQ = true;
-}
-
 private:
 
 

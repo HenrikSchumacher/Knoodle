@@ -119,11 +119,6 @@ bool WriteToOutString_impl( mref<Tools::OutString> s ) const
         
     constexpr bool check_sizeQ = !preallocateQ;
     
-    
-//    // DEBUGGING
-//    valprint("s.Capacity() before write", s.Capacity());
-//    valprint("s.Size()     before write", s.Size());
-    
     // We put `ClassName()` on top of the string as it contains the integer type to use for indices.
     // It depends on this integer type what `PD_T::Uninitialized` is: for signed integers, we have `PD_T::Uninitialized == -1`; but for unsigned integer types `PD_T::Uninitialized` is the largest possible value. So knowing the integer type is crucial for reconstructing a diagram that contain inactive crossings or inactive vertices.
     // This also means that signed types will typically lead to smaller files.
@@ -163,10 +158,6 @@ bool WriteToOutString_impl( mref<Tools::OutString> s ) const
     s.template PutChars<check_sizeQ>("\nproven_minimalQ = ");
     s.Put(proven_minimalQ);
     s.template PutChar<check_sizeQ>('\n');
-    
-//    // DEBUGGING
-//    valprint("s.Capacity() after write", s.Capacity());
-//    valprint("s.Size()     after write", s.Size());
     
     return true;
 }

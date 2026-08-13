@@ -40,9 +40,6 @@ void LoadPlantriPDCodes(
             return;
         }
         
-//        // DEBUGGING
-//        TOOLS_DUMP(s.LineCount());
-        
         // s.LineCount() upper bound on (number of inputs) * crossing_count;
         input = Tensor3<Int,Int>( s.LineCount() / crossing_count, crossing_count, Int(4) );
 
@@ -66,10 +63,6 @@ void LoadPlantriPDCodes(
         }
 //        toc("Reading inputs");
     }
-    
-//    // DEBUGGING
-//    TOOLS_DUMP(input_count);
-//    TOOLS_DUMP(input.Dimension(0));
     
     std::vector<KeySet_T> thread_survivors (thread_count);
     

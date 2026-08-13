@@ -1,11 +1,9 @@
 public:
 
-static LinkEmbedding_T FromFile(
-    cref<std::filesystem::path> file, bool Sterbenz_shiftQ = true
-)
+static LinkEmbedding_T FromFile( cref<std::filesystem::path> file )
 {
     Tools::InString s (file);
-    return FromInString(s, Sterbenz_shiftQ);
+    return FromInString(s);
 }
 
 /*!@brief Read an embedding from `InString` `s`: one `x y z` line per vertex, components
@@ -21,7 +19,7 @@ static LinkEmbedding_T FromFile(
  * With no `#color` line anywhere, each component takes its own index as color.
  
  */
-static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shiftQ = true )
+static LinkEmbedding_T FromInString( mref<Tools::InString> s )
 {
     std::vector<std::array<Real,3>> v_coords;
     std::vector<Size_T> component_ptr_agg;
@@ -194,8 +192,8 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
     }
     
     LinkEmbedding_T link (
-        Tensor1<Int,Int>( &component_ptr_agg[0], int_cast<Int>(component_ptr_agg.size())),
-        Tensor1<Int,Int>( &color_agg[0]  , int_cast<Int>(color_agg.size()))
+        Tensor1<Int,Int>( &component_ptr_agg[0], int_cast<Int>(component_ptr_agg.size()) ),
+        Tensor1<Int,Int>( &color_agg[0]        , int_cast<Int>(color_agg.size())         )
     );
     
     link.ReadVertexCoordinates(&v_coords[0][0]);

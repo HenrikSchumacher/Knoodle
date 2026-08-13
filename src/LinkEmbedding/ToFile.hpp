@@ -25,8 +25,8 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) c
         return false;
     };
 
-    OutString s = ToOutString(colorQ);
-    
+    OutString s;
+    WriteToOutString(s,colorQ);
     stream << s;
     
     if( !stream )
@@ -39,16 +39,16 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) c
 }
 
 
-/*!@brief Create an `OutString` object and write the vertex coordinates of the link to it. The vertex coordinates of each link component are written in `x y z` lines in the order they appear in the link component. Link components are separated by blank lines.
+/*!@brief Write the vertex coordinates of the link to `OutString` `s`. The vertex coordinates of each link component are written in `x y z` lines in the order they appear in the link component. Link components are separated by blank lines.
  *
+ * @param s Output stream.
+ * 
  * @param colorQ Whether the colors of the link components shall be exported in the format `#color <int>` at the start of each component. In any case, the output should be compatible with KnotPlot. CAUTION: If this is a multiple-component link and if several components have the same color, then not writing the colors leads to a loss/change of some important topological information. We provide this option only to allow export for downstream application that cannot handle the `#color` statement and that do not treat it as comment.
  *
  */
 
-OutString ToOutString( const bool colorQ = true ) const
+bool WriteToOutString( mref<OutString> s, const bool colorQ = true ) const
 {
-    OutString s;
-
     for( Int lc = 0; lc < component_count; ++lc )
     {
         const Int i_begin = component_ptr[lc    ];
@@ -80,5 +80,5 @@ OutString ToOutString( const bool colorQ = true ) const
         }
     }
     
-    return s;
+    return true;
 }

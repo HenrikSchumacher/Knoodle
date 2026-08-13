@@ -132,21 +132,49 @@ void Transform( cref<Matrix3x3_T> A )
 
 /*!@brief Write vertex coordinates to external buffer `v` in external ordering defined by `Edges()`. More precisely, we have `VertexCoordinates()(i,j)` is written to `v[3 * Edges()(i,0) + j`.
  *
- * @param v Outout buffer. It is assumed to have size `EdgeCount() * 3`..
+ * @param v Output buffer. It is assumed to have size `EdgeCount() * 3`.
  */
+template<bool undo_transformQ = false>
 void WriteVertexCoordinates( mptr<Real> v ) const
 {
     TOOLS_PTIMER(timer,MethodName("WriteVertexCoordinates"));
     
+    Matrix3x3_T R_inv;
+    
+    if constexpr ( undo_transformQ )
+    {
+        R_inv = InverseTransformationMatrix();
+    }
+    
+    auto write = [&R_inv]( cptr<Real> source, mptr<Real> target )
+    {
+        Vector3_T x;
+        x.Read(source);
+
+        if constexpr ( undo_transformQ )
+        {
+            Vector3_T y = Dot(R_inv,x);
+            y.Write(target);
+        }
+        else
+        {
+            (void)R_inv;
+            x.Write(target);
+        }
+    };
+    
     if( preorderedQ )
     {
-        vertex_coords.Write(v);
+        for( Int e = 0; e < edge_count; ++e )
+        {
+            write( vertex_coords.data(e), &v[AmbDim * e] );
+        }
     }
     else
     {
         for( Int e = 0; e < edge_count; ++e )
         {
-            copy_buffer<AmbDim>( vertex_coords.data(e), &v[AmbDim * edges(e,0)] );
+            write( vertex_coords.data(e), &v[AmbDim * edges(e,0)] );
         }
     }
 }

@@ -117,7 +117,7 @@ public:
             eprint(MethodName("FindIntersections")+": More intersections found than can be handled by integer type " + TypeName<Int> + "." );
         }
         
-        intersection_count = static_cast<Int>(intersections.size());
+        intersection_count = int_cast<Int>(intersections.size());
 
         // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
         edge_ctr.template RequireSize<false>( edge_ptr.Size() );

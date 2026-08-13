@@ -1,6 +1,5 @@
 #pragma  once
 
-//#include "Prosector2.hpp"
 #include "Prosector3.hpp"
 
 namespace Knoodle
@@ -11,7 +10,7 @@ namespace Knoodle
      *
      *  There are really only two cases in which this can go wrong:
      *
-     *  -# If floating-point inputs are used, then the initial rounding (see `ComputeEdgeCoordinates`) to an integer grid can induce a bit of rounding error. Caution is used, though to mediate this: we try to use a relatively big scaling factor and we scale only by powers of 2 (which does not lead to rouding errors on its own, unless some inputs are really tiny or really so that we have overflow in the exponent). We intentionally do not translate the inputs to avoid catastrophic cancellation. Note that this means that the range of the employed integer type may be used in an optimal way. It is in the user's discretion to apply appropriate measures to "center" the inputs around 0. If `Real_ = double` and `IReal_ = int64_t`, then often the rounding error is 0. You can check with `RoundingError()` after the computations have finished.
+     *  -# If floating-point inputs are used, then the initial rounding (see `ComputeEdgeCoordinates`) to an integer grid can induce a bit of rounding error. Caution is used to mediate this, though: we try to use a relatively big scaling factor and we scale only by powers of 2 (which does not lead to rouding errors on its own, unless some inputs are really tiny or really so that we have overflow in the exponent). We intentionally do not translate the inputs to avoid catastrophic cancellation. Note that this means that the range of the employed integer type may be used in an optimal way. It is in the user's discretion to apply appropriate measures to "center" the inputs around 0. If `Real_ = double` and `IReal_ = int64_t`, then often the rounding error is 0. You can check with `RoundingError()` after the computations have finished.
      *
      *  -# If after, the rounding procedire, two non-neigboring line segments intersect nontrivially in 3-space, there is no way to perturb it in a topologically meaningful way. Then `RequireIntersections` aborts and returns a nonzero error flag.
      *
@@ -23,7 +22,7 @@ namespace Knoodle
      *
      * @tparam Int_ Integral type used for indices. Unsigned integers should work, too, but we give no guarantees. CAUTION: It must be big enough to hold the number of crossings that emerge after projecting the link to the x-y-plane. So `Int64` is probably the safest bet.
      *
-     * @tparam IReal_ Internal scalar type used for computation geometry routines. Must be an signed integral type. If `Real_` is a floating-point type, the coordinates will be scaled appropriately and then rounded to the integer grid. If `Real_` is `double`, then `IReal_ = int64_t` can often do the job without any rounding. Should be the same for `Real_ = float` and `IReal_ = int32_t`. If `Real_` is a integral type, then `IReal_` must be identical to `Real_`.
+     * @tparam IReal_ Internal scalar type used for computational geometry routines. Must be an signed integral type. If `Real_` is a floating-point type, the coordinates will be scaled appropriately and then rounded to the integer grid. If `Real_` is `double`, then `IReal_ = int64_t` can often do the job without any rounding. Should be the same for `Real_ = float` and `IReal_ = int32_t`. If `Real_` is an integral type, then `IReal_` must be identical to `Real_`.
      */
     
     template<
@@ -179,127 +178,14 @@ namespace Knoodle
         
     public:
 
+#include "LinkEmbedding2/Helpers.hpp"
 #include "LinkEmbedding2/ToFile.hpp"
 #include "LinkEmbedding2/FromFile.hpp"
 #include "LinkEmbedding2/VertexCoordinates.hpp"
 #include "LinkEmbedding2/EdgeCoordinates.hpp"
 #include "LinkEmbedding2/BoundingBoxes.hpp"
 #include "LinkEmbedding2/Intersections.hpp"
-
-    public:
         
-        /*!@brief Return the ambient diemension (== 3).*/
-        static constexpr Int AmbientDimension()
-        {
-            return 3;
-        }
-
-        /*!@brief Return the number of crossings/interections in the x-y-Plane.*/
-        Int CrossingCount() const
-        {
-            return int_cast<Int>( intersections.size() );
-        }
-        
-        
-        /*!@brief Return the number of crossings/interections in the x-y-Plane.*/
-        Int IntersectionCount() const
-        {
-            return intersection_count;
-        }
-
-        cref<Tensor1<Int,Int>> EdgePointers() const
-        {
-            return edge_ptr;
-        }
-        
-        /*!@brief Return the number of intersections in the 3-plane.*/
-        Int IntersectionCount3D() const
-        {
-            return intersection_count_3D;
-        }
-        
-        cref<Tensor1<Time_T,Int>> EdgeIntersectionTimes() const
-        {
-            return edge_times;
-        }
-        
-        Tensor1<double,Int> EdgeIntersectionTimesAsDouble() const
-        {
-            Tensor1<double,Int> result ( edge_times.Size() );
-            
-            for( Int i = 0; i < edge_times.Size(); ++i )
-            {
-                result[i] = ToDouble(edge_times[i]);
-            }
-                
-            return result;
-        }
-
-        cref<Tensor1<Int,Int>> EdgeIntersections() const
-        {
-            return edge_intersections;
-        }
-
-        cref<Tensor1<Int8,Int>> EdgeStates() const
-        {
-            return edge_state;
-        }
-        
-        bool ValidQ() const
-        {
-            return (component_ptr.Size() >= Int(2));
-        }
-        
-        cref<Tree2_T> Tree() const
-        {
-            return T;
-        }
-
-        Real ScalingFactor() const
-        {
-            return scaling_factor;
-        }
-        
-        int ScalingExponent() const
-        {
-            return scaling_exponent;
-        }
-        
-        Real RoundingError() const
-        {
-            return rounding_error;
-        }
-        
-        void SetTransformationMatrix( cref<Matrix3x3_T> A )
-        {
-            R = A;
-        }
-        
-        void SetTransformationMatrix( Matrix3x3_T && A )
-        {
-            R = A;
-        }
-        
-        cref<Matrix3x3_T> TransformationMatrix() const
-        {
-            return R;
-        }
-        
-    public:
-
-        void DeleteTree()
-        {
-            T           = Tree2_T();
-            edge_coords = EContainer_T();
-            box_coords  = BContainer_T();
-            edge_coords_computedQ    = false;
-            bounding_boxes_computedQ = false;
-            
-            // Strictly speaking, this is not part of the tree, but it is not necessary anymore, once the intersections are computed (and sorted).
-            
-            edge_times = Tensor1<Time_T,Int>();
-        }
-
     public:
 
         Size_T AllocatedByteCount() const
