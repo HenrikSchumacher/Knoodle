@@ -26,7 +26,7 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) c
     };
 
     OutString s;
-    WriteToFile(s, colorQ);
+    WriteToOutString(s, colorQ);
     stream << s;
     
     if( !stream )
