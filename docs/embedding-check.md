@@ -427,16 +427,18 @@ is silently well-formed. And `embedding_check` could not have caught either one:
 routes around `FromLinkEmbedding` entirely, which is why this finding needed a
 standalone reproducer to confirm and would not have announced its own fix.
 
-**`LinkEmbedding3`/`LinkEmbedding4` were never affected — because they are unreachable.**
-There is no `FromLinkEmbedding` overload taking them; `PD_T::FromLinkEmbedding(le3)`
-fails to compile with *no matching function*. They share the convention (all three
-include the same `src/LinkEmbedding_Int/`), they simply have no public path into
-`PlanarDiagram` at all, despite their class docs opening with "then it can be handed
-over to class `PlanarDiagram` or `PlanarDiagramComplex`". The only route is
-`FromLinkEmbedding_Raw`, whose own comment says *"For internal use only. Users should
-not call this. Testing makes it necessary to make this public."* — which is exactly what
-this test calls, and exactly why it noticed neither problem. Filed separately as
-upstream issue 10.
+**`LinkEmbedding3`/`LinkEmbedding4` were never affected — because they are not wired up
+yet.** There is no `FromLinkEmbedding` overload taking them;
+`PD_T::FromLinkEmbedding(le3)` fails to compile with *no matching function*. They share
+the convention (all three include the same `src/LinkEmbedding_Int/`); they simply have no
+public path into `PlanarDiagram` yet. That is **expected** — both classes are still
+EXPERIMENTAL and the overloads are planned once they are fully tested, so
+`FromLinkEmbedding_Raw` is the intended route meanwhile. It is why this test calls
+`_Raw`, and why it could notice neither this nor finding A.
+
+The only thing wrong there is that the class docs are ahead of the code: they open with
+"then it can be handed over to class `PlanarDiagram` or `PlanarDiagramComplex`", which is
+not true yet. Recorded as upstream issue 10, as a TODO rather than a defect.
 
 ### B. Zero-length edges are rejected as 3D intersections
 

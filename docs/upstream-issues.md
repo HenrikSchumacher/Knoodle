@@ -11,7 +11,7 @@ standalone reproducers, not through a test harness:
 
 | # | issue | status |
 | --- | --- | --- |
-| 10 | `LinkEmbedding3/4` have no public path into `PlanarDiagram` | **open** |
+| 10 | `LinkEmbedding3/4` class docs promise a path into `PlanarDiagram` that is not built yet | **docs ahead of code**, not a defect |
 | 9 | `Transform` does not invalidate its caches | fixed — `8db4cdc4` |
 | 8 | `FromInString` aborts on every input | fixed — `8db4cdc4` |
 | 7 | `FromLinkEmbedding(LinkEmbedding2&)` treats success as error | fixed — `1d8761c7` + `34cd0fc3` |
@@ -22,11 +22,22 @@ standalone reproducers, not through a test harness:
 | 2 | `Alexander` single-value overload takes outputs by value | fixed upstream |
 | 1 | `FromUnsignedPDCode` not migrated to `FromPDCode<targs>` | fixed upstream |
 
-## 10. `LinkEmbedding3` and `LinkEmbedding4` have no public path into `PlanarDiagram`
+## 10. `LinkEmbedding3`/`LinkEmbedding4` docs promise a `PlanarDiagram` path that is not built yet
 
-**Status:** confirmed 2026-08-14, `dev_prosector` @ `fb4c8f0e`.
-**Severity:** medium — the documented purpose of both classes is unreachable
-through the public API.
+**Status:** NOT A BUG — planned functionality that is not built yet. Confirmed
+with Henrik 2026-08-14: both classes are still marked EXPERIMENTAL, he intends
+to add the `FromLinkEmbedding` overloads once they are fully tested, and
+`FromLinkEmbedding_Raw` is the intended route until then.
+
+So this is a **TODO rather than a defect**: it does not sit on the
+`found -> confirmed -> filed -> fixed upstream` ladder and should not be filed
+anywhere. What is left of it is narrow and familiar — **the documentation is
+ahead of the code**, which is exactly the shape issue 3 had ("integral `Real_`
+is documented but unimplemented"). Either the overloads land, or the class
+docs gain a "not yet" until they do; the code is doing nothing wrong.
+
+Recorded only because the question falls out of issue 7 naturally and deserves
+answering once rather than each time.
 
 Their class docs open with: *"…computing the crossings. Then it can be handed
 over to class `PlanarDiagram` or `PlanarDiagramComplex`."* There is no
@@ -45,13 +56,15 @@ only. Users should not call this. Testing makes it necessary to make this
 public."* — and which is precisely what `embedding_check` calls, which is why
 neither this nor issue 7 was noticed by the test suite.
 
-Since `4d2d0624` all three share one `src/LinkEmbedding_Int/` implementation,
-so the natural fix is a single overload templated over that family rather than
-two more copies — and copies would be the risky version, since issue 7 was
-exactly a per-overload convention mistake.
+**Worth passing on when the overloads do land:** since `4d2d0624` all three
+share one `src/LinkEmbedding_Int/` implementation, so one overload templated
+over that family beats two more copies — copies are how issue 7 happened, a
+per-overload convention mistake in exactly this spot.
 
 **How we hit it:** asking why issue 7 did not affect 3 and 4. The answer was
-not "they are safe" but "they are unreachable".
+not "they are safe" but "they are not wired up yet" — which also explains why
+`embedding_check` calls `FromLinkEmbedding_Raw`: at the time it was written,
+that was the only thing to call.
 
 ## 9. `LinkEmbedding::Transform` does not invalidate its caches
 
