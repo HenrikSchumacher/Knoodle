@@ -79,6 +79,7 @@ Split and stacked fixtures
 --------------------------
 
   split_lattice           two disjoint lattice knots; a split diagram
+  stacked_lattice         two identical lattice knots superimposed in projection
   deg_stacked_points      two distinct zero-length edges sharing a projected point
 
 `split_lattice` is two copies of lattice_04 with the second translated by
@@ -89,6 +90,17 @@ leaked a crossing between two components, or lost one, would break it while
 still producing a perfectly legal diagram. It also drives the split-link paths
 no other lattice fixture reaches (HOMFLY through union-find decomposition and
 the delta rule; the Alexander |det| correctly declining a split diagram).
+
+`stacked_lattice` is the same two knots translated only in z, so the two
+projections are IDENTICAL vertex for vertex. Where split_lattice asks that
+nothing leak between two separated copies, this asks that everything be pulled
+apart when they are superimposed: max_point_multiplicity 16 against 8,
+collinear_overlap 202 against 78. Simulation of simplicity handles it at 88
+crossings = 19 + 19 + 50, and the stability ladder shows the cost -- N = 64
+where lattice_04 alone needs N = 8. The link type is checkable rather than
+asserted: the copies occupy z in [1,4] and [11,14], so a plane separates them
+and they cannot be linked; the computed diagram agrees, with all 50
+inter-component crossings summing to linking number 0.
 
 `deg_stacked_points` is eight vertices that ABORT LinkEmbedding2/3/4 --
 upstream issue 11, marked xcrash so the suite tracks it. Two zero-length edges

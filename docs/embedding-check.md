@@ -333,6 +333,7 @@ Eight hand-built curves, one degeneracy each, small enough to read:
 | `deg_hopf_flat` | 2-component link; one component projects to a segment |
 | `arc_trefoil` | the trefoil in **arc presentation**: every crossing on the binding axis |
 | `split_lattice` | two disjoint lattice knots — a split diagram, 19 + 19 crossings |
+| `stacked_lattice` | two identical lattice knots **superimposed in projection**, 88 crossings |
 | `deg_stacked_points` | two distinct zero-length edges sharing a projected point (aborts) |
 
 `deg_hopf_flat` is the one whose type is fixed by construction rather than by

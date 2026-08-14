@@ -1,0 +1,43 @@
+# TWO COPIES OF THE SAME LATTICE KNOT, PROJECTING EXACTLY ONTO EACH OTHER.
+# lattice_04 and a copy translated by (0,0,10) -- only in z, so the two
+# projections are IDENTICAL, vertex for vertex and edge for edge.
+#
+# Where split_lattice puts two lattice knots side by side and asks that nothing
+# leak between them, this one superimposes them and asks that everything be
+# separated. Every degeneracy of a lattice projection is now doubled on top of
+# itself: max_point_multiplicity goes from 8 to 16, collinear_overlap from 78 to
+# 202, coincident_vertices from 192 to 448. Every edge of one copy projects onto
+# exactly the corresponding edge of the other.
+#
+# Simulation of simplicity handles it, and the stability ladder is the
+# interesting part: lattice_04 alone stabilises at N = 8, this needs N = 64 --
+# a finer perturbation, because there is far more coincident structure to pull
+# apart. 88 crossings, and all three classes agree at all three coordinate
+# types.
+#
+# 88 = 19 + 19 + 50: each copy's own crossings, plus 50 between the copies.
+#
+# THE LINK TYPE IS THE SPLIT UNION, and that is checkable rather than asserted:
+# the copies occupy z in [1,4] and [11,14], so the plane z = 7.5 separates them
+# and they cannot be linked. The computed diagram agrees -- all 50
+# inter-component crossings sum to linking number 0. Note that this is the same
+# link as split_lattice (which reduces to two trefoils, so lattice_04's knot is
+# a trefoil), reached through a 88-crossing diagram instead of a 38-crossing
+# one.
+#
+# Regenerate:
+#   python3 - <<'EOF'
+#   rows=[l.split() for l in open('lattice_04.crd') if l.strip()]
+#   DZ=10
+#   out=[" ".join(r) for r in rows] + [""] + [f"{r[0]} {r[1]} {int(r[2])+DZ}" for r in rows]
+#   open('stacked_lattice.crd','w').write("\n".join(out)+"\n")
+#   EOF
+note = two identical lattice knots superimposed in projection; 88 crossings, linking number 0
+knot = split union of two copies of the lattice_04 knot (a trefoil)
+
+vertical_edges         == 36
+collinear_overlap      == 202
+coincident_vertices    == 448
+multiple_points        == 16
+max_point_multiplicity == 16
+spatial                == 0
