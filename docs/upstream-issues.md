@@ -3,9 +3,61 @@
 Bugs we've found reading/using the core library. Each needs a minimal repro
 before filing. Status: `found` → `confirmed` → `filed` → `fixed upstream`.
 
+**Numbers are permanent ids: never reuse one, even after the issue closes.**
+(They were reused once already — see the note at the bottom.)
+
+**Scoreboard, re-verified 2026-08-14 against `dev_prosector` `fb4c8f0e`** with
+standalone reproducers, not through a test harness:
+
+| # | issue | status |
+| --- | --- | --- |
+| 10 | `LinkEmbedding3/4` have no public path into `PlanarDiagram` | **open** |
+| 9 | `Transform` does not invalidate its caches | fixed — `8db4cdc4` |
+| 8 | `FromInString` aborts on every input | fixed — `8db4cdc4` |
+| 7 | `FromLinkEmbedding(LinkEmbedding2&)` treats success as error | fixed — `1d8761c7` + `34cd0fc3` |
+| 6 | `RequireIntersections` segfaults on a triple point | fixed — `d26c301f` |
+| 5 | zero-length edges rejected as 3D intersections | **open** |
+| 4 | `LinkEmbedding2/3/4` do not compile with the 32-bit backend | **half fixed** |
+| 3 | integral `Real_` documented but unimplemented | fixed — `4d2d0624` |
+| 2 | `Alexander` single-value overload takes outputs by value | fixed upstream |
+| 1 | `FromUnsignedPDCode` not migrated to `FromPDCode<targs>` | fixed upstream |
+
+## 10. `LinkEmbedding3` and `LinkEmbedding4` have no public path into `PlanarDiagram`
+
+**Status:** confirmed 2026-08-14, `dev_prosector` @ `fb4c8f0e`.
+**Severity:** medium — the documented purpose of both classes is unreachable
+through the public API.
+
+Their class docs open with: *"…computing the crossings. Then it can be handed
+over to class `PlanarDiagram` or `PlanarDiagramComplex`."* There is no
+`FromLinkEmbedding` overload taking either one:
+
+```
+PD_T::FromLinkEmbedding(le2)  -> compiles
+PD_T::FromLinkEmbedding(le3)  -> error: no matching function for call to 'FromLinkEmbedding'
+PD_T::FromLinkEmbedding(le4)  -> error: no matching function for call to 'FromLinkEmbedding'
+```
+
+`src/PlanarDiagram/FromEmbeddings.hpp` has exactly two overloads taking an
+embedding object — `LinkEmbedding` and `LinkEmbedding2`. The only route for
+3 and 4 is `FromLinkEmbedding_Raw`, whose own comment reads *"For internal use
+only. Users should not call this. Testing makes it necessary to make this
+public."* — and which is precisely what `embedding_check` calls, which is why
+neither this nor issue 7 was noticed by the test suite.
+
+Since `4d2d0624` all three share one `src/LinkEmbedding_Int/` implementation,
+so the natural fix is a single overload templated over that family rather than
+two more copies — and copies would be the risky version, since issue 7 was
+exactly a per-overload convention mistake.
+
+**How we hit it:** asking why issue 7 did not affect 3 and 4. The answer was
+not "they are safe" but "they are unreachable".
+
 ## 9. `LinkEmbedding::Transform` does not invalidate its caches
 
-**Status:** confirmed 2026-08-13, branch `dev_prosector` @ `0a821267`.
+**Status:** FIXED UPSTREAM in `8db4cdc4` (2026-08-14). Verified: the 40-gon
+measurement below now reads 3 -> 7, 7, 7 where it read 3 / 3 / 0 / 10.
+Confirmed 2026-08-13, branch `dev_prosector` @ `0a821267`.
 **Severity:** high — silent wrong answers. `LinkEmbedding2/3/4` are correct.
 
 `src/LinkEmbedding/VertexCoordinates.hpp:174` rotates `edge_coords` but resets
@@ -23,7 +75,15 @@ but the method is public. Fix = mirror `LinkEmbedding2`. Detail:
 
 ## 8. `FromInString` aborts on every input (two inverted assertions)
 
-**Status:** confirmed 2026-08-13, branch `dev_prosector` @ `0a821267`.
+**Status:** FIXED UPSTREAM in `8db4cdc4` (2026-08-14). Verified: both readers
+parse with assertions enabled.
+Confirmed 2026-08-13, branch `dev_prosector` @ `0a821267`.
+
+**Correction to this entry as originally written:** the assertions were
+duplicated in TWO readers, and the one that actually aborted was
+`src/LinkEmbedding/FromFile.hpp:141`, not the `LinkEmbedding2` copy cited
+below. A patch against only the cited file would have left the other
+aborting. Grep for duplicates before filing a location.
 **Severity:** any build without `-DNDEBUG` cannot read an embedding file at all.
 
 `src/LinkEmbedding2/FromFile.hpp:139` asserts
@@ -35,7 +95,15 @@ confirm-the-second-one experiment: [embedding-check.md §5F](embedding-check.md#
 
 ## 7. `FromLinkEmbedding(LinkEmbedding2&)` treats every success as an error
 
-**Status:** confirmed 2026-08-13, branch `dev_prosector` @ `0a821267`.
+**Status:** FIXED, in two steps. `1d8761c7` unified the conventions on `int`
+(the better fix: it removes the split rather than patching one caller), and
+`34cd0fc3` finished the conversion — `LinkEmbedding_Int::RequireIntersections`
+still ended in `return true`, which in an `int` function is 1, so success kept
+reporting an error; and `FromKnotEmbedding`'s `eprint` still named a deleted
+`err`, a non-dependent name that stopped every translation unit including
+`Knoodle.hpp` from compiling. See also issue 10: 3 and 4 were never affected
+only because they are unreachable.
+Confirmed 2026-08-13, branch `dev_prosector` @ `0a821267`.
 **Severity:** high — the main construction path returns `InvalidDiagram()` for
 every successful projection.
 
@@ -50,7 +118,10 @@ Worth fixing the convention split, not just the caller.
 
 ## 6. `LinkEmbedding::RequireIntersections` segfaults on a triple point
 
-**Status:** confirmed 2026-08-13. Possibly the crash noted in `6c63b82a`.
+**Status:** FIXED UPSTREAM in `d26c301f` (2026-08-14). It no longer crashes; it
+returns error code 8, having detected two intersection times too close to order,
+and declines — correct behaviour for a float class on a degenerate projection.
+Confirmed 2026-08-13. Possibly the crash noted in `6c63b82a`.
 **Severity:** hard crash, no graceful error. `LinkEmbedding2/3/4` are fine.
 
 Three segments projecting through one common point crash the intersection
@@ -61,7 +132,11 @@ Detail: [embedding-check.md §5E](embedding-check.md#e-linkembeddingrequireinter
 
 ## 5. Zero-length edges rejected as 3D intersections by `LinkEmbedding2/3/4`
 
-**Status:** confirmed 2026-08-13.
+**Status:** OPEN, re-verified 2026-08-14 at `fb4c8f0e` — still reproduces on all
+three classes at both coordinate types. Acknowledged upstream in `4d2d0624`:
+*"ProsectorX does handle degenerate edges well, but not their neighbors. Will
+have to work on this."*
+Confirmed 2026-08-13.
 **Severity:** medium — contradicts the class docs, and regresses vs `LinkEmbedding`.
 
 The class documentation lists "line segments that have length 0" as handled;
@@ -73,7 +148,12 @@ Detail: [embedding-check.md §5B](embedding-check.md#b-zero-length-edges-are-rej
 
 ## 4. `LinkEmbedding2/3/4` do not compile with the 32-bit backend
 
-**Status:** confirmed 2026-08-13. **Severity:** low, but the class docs
+**Status:** HALF FIXED at `fb4c8f0e`. The `Prosector2` `Sign` ambiguity is gone;
+`src/WideInt.hpp:114` "excess elements in array initializer" remains, and the
+`__int128` work of 2026-08-14 ends in a `Rollback`. May close by narrowing the
+docs instead: `4d2d0624` notes `int32_t` as `IReal` is problematic anyway, and
+"we want Int64 here anyways for performance reasons".
+Confirmed 2026-08-13. **Severity:** low, but the class docs
 recommend the `Real_ = float`, `IReal_ = int32_t` pairing.
 
 `Prosector2` — `call to 'Sign' is ambiguous`, `src/Prosector2/Helpers.hpp:16`
@@ -82,7 +162,10 @@ initializer`, `src/WideInt.hpp:112`.
 
 ## 3. Integral `Real_` is documented but unimplemented
 
-**Status:** confirmed 2026-08-13. **Severity:** low.
+**Status:** FIXED UPSTREAM in `4d2d0624` (2026-08-14). Verified: the i64
+instantiation compiles. Leaves a small job — `-DKNOODLE_TEST_INTEGER_COORDS`
+could now be on by default in `embedding_check`.
+Confirmed 2026-08-13. **Severity:** low.
 
 `src/LinkEmbedding2/EdgeCoordinates.hpp:71`: *"Let's handle only case 1.2.a) for
 now"*, followed by `static_assert(FloatQ<Real>)`. The class docs say `Real_` may
@@ -92,7 +175,12 @@ mismatch rather than a functional gap.
 
 ## 2. `Alexander_UMFPACK::Alexander` (single-value overload) takes outputs by value
 
-**Status:** found 2026-06-13 (writing `test/inflate_check.cpp`).
+**Status:** FIXED UPSTREAM. Verified 2026-08-14 at `fb4c8f0e`: the signature is
+now `int Alexander(cref<PD_T>, ExtScal, mref<ExtScal>, mref<ExtInt>, bool)` and
+it returns the right number — a trefoil at t = e^(i*pi/4) gives 0.414214, i.e.
+sqrt(2) - 1, which is Delta(t) = t - 1 + 1/t there. **The workaround below can
+be retired**: `test/inflate_check.cpp` no longer needs the batch overload.
+Found 2026-06-13 (writing `test/inflate_check.cpp`).
 **Severity:** the single-value overload silently can't return its result;
 callers get uninitialized `mantissa`/`exponent`. The batch overload is fine.
 
@@ -123,7 +211,12 @@ returns correctly.
 
 ## 1. `FromUnsignedPDCode` not migrated to the new `FromPDCode<targs>` API
 
-**Status:** found 2026-06-12 (during origin/main merge). **Severity:** any
+**Status:** FIXED UPSTREAM. Verified 2026-08-14 at `fb4c8f0e`: it forwards
+`FromPDCode<{.signQ = false, .colorQ = false, .checksQ = checksQ}>`, compiles,
+and builds a valid trefoil. **The workaround below can be retired**:
+`tools/knoodle_io.hpp:1109` still carries a comment calling this an upstream
+bug, next to a hand-rolled `FromPDCode` call for 4-column input.
+Found 2026-06-12 (during origin/main merge). **Severity:** any
 caller fails to compile; latent because nothing in-tree instantiates it.
 
 `src/PlanarDiagram/PDCode.hpp:408`:
@@ -164,3 +257,26 @@ territory by calling `FromPDCode<{.signQ=false,.colorQ=false}>` directly
 **Repro for the PR:** one-line TU:
 `auto pd = Knoodle::PlanarDiagram<int64_t>::FromUnsignedPDCode(ptr, n);`
 fails to compile before the fix, compiles after.
+
+---
+
+## Note: the numbering was reused once
+
+Issue **3** names two different things depending on which branch you read.
+`orthodecorate` has "`ArcFaces()` doc comment states the opposite of the
+implemented convention" (filed as PR #29, merged 2026-08-10, and correct on
+main since); `dev_prosector` has "integral `Real_` is documented but
+unimplemented". The two entries were written on branches that could not see
+each other, and both took the next free number.
+
+Nothing is lost — the ArcFaces entry is resolved and lives on `orthodecorate`
+— but a merge of the two branches will produce two `## 3.` headings, and any
+reference to "upstream issue 3" is ambiguous. When those branches meet,
+renumber the ArcFaces entry to **11** rather than reusing 3.
+
+The general fix, if this file keeps growing: file real GitHub issues and let
+the tracker own the numbering, keeping this file as an index of what was filed.
+GitHub numbers are repo-unique and permanent, and cannot diverge per branch.
+Cite code with commit-SHA permalinks rather than branch-name URLs, which rot —
+several line numbers in this file had already drifted by the time the fixes
+landed.

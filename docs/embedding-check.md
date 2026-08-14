@@ -1,8 +1,14 @@
 # `embedding_check` — degeneracy and performance test for the LinkEmbedding family
 
-Status: written 2026-08-13 against `dev_prosector` at `0a821267` ("Documentation.").
-Everything below was **verified by running it**, not inferred; each finding names a
-minimal reproducer that is committed alongside.
+Status: written 2026-08-13 against `dev_prosector` at `0a821267`; **re-verified
+2026-08-14 against `fb4c8f0e`**, after Henrik fixed most of what it found. Everything
+below was **verified by running it**, not inferred; each finding names a minimal
+reproducer that is committed alongside, and each now carries its outcome.
+
+**Five of the seven findings are fixed** (A, C, E, F, G). One is half fixed (D) and one
+is open (B). The scoreboard is [§5](#5-findings); the one-line version is that the test
+did its job — every fix announced itself, either as an XPASS on a stale marker or as a
+tier that started running.
 
 `LinkEmbedding2/3/4` exist to survive projections `LinkEmbedding` cannot: vertices
 projecting onto vertices, a vertex projecting into a segment, a segment projecting to a
@@ -68,12 +74,16 @@ reported result rather than the end of the run.
 ### Coordinate types
 
 `f64` and `f32` are `double` and `float` coordinates, both against the 64-bit integer
-backend. `i32` (the 32-bit backend) and `i64` (integral `Real_`) do not compile today —
-see findings [C](#c-integral-real_-does-not-compile) and
-[D](#d-the-32-bit-backend-does-not-compile) — and are behind
-`-DKNOODLE_TEST_INTEGER_COORDS` / `-DKNOODLE_TEST_INT32_BACKEND` so the test picks them
-up the moment they land. The binary prints which combinations it could not build; it
-does not skip them silently.
+backend.
+
+`i64` (integral `Real_`) **now compiles** — finding [C](#c-integral-real_-does-not-compile)
+was fixed in `4d2d0624`. It is still behind `-DKNOODLE_TEST_INTEGER_COORDS`, and turning
+that on by default is a small outstanding job rather than a blocked one.
+
+`i32` (the 32-bit backend) still does not build — finding
+[D](#d-the-32-bit-backend-does-not-compile) is half fixed — and stays behind
+`-DKNOODLE_TEST_INT32_BACKEND`. The binary prints which combinations it could not build;
+it does not skip them silently.
 
 The integral-coordinate *path* is exercised regardless: `ReadVertexCoordinates` detects
 all-integral input and sets `scaling_exponent = 0`, so integer-valued doubles take the
@@ -105,9 +115,11 @@ produces finding [B](#b-zero-length-edges-are-rejected-as-3d-intersections).
 
 ### `reader` — the library's own reader agrees with an independent parse
 
-Cheap, and it pins the file format the rest of the fixtures rely on. Currently disabled
-by finding [F](#f-frominstring-has-two-inverted-assertions); it re-enables itself
-automatically once that is fixed.
+Cheap, and it pins the file format the rest of the fixtures rely on. It was disabled by
+finding [F](#f-frominstring-has-two-inverted-assertions), and it **re-enabled itself**
+when `8db4cdc4` fixed the assertions — the probe runs the reader in a child process
+rather than declaring a marker, so there was nothing to remember to remove. Worth
+copying the next time a whole tier is blocked on someone else's bug.
 
 ### `exact` — the sharp one
 
@@ -172,7 +184,7 @@ Four assertions per path:
 
 1. **Re-aiming actually re-aims.** Two dozen uniformly random rotations cannot all yield
    a bit-identical crossing set. If they do, the rotation is not reaching the
-   computation — which is exactly what finding [G](#g-linkembeddingtransform-does-not-invalidate-its-caches) looks like from outside.
+   computation — which is exactly what finding [G](#g-linkembeddingtransform-does-not-invalidate-its-caches) looked like from outside, and how this tier caught it.
 2. **The knot type never changes**, by the same oracles the `invariant` tier uses.
 3. **The radius of gyration is conserved.** `R_g` is exactly invariant under any rigid
    motion, *including translation*, so the internal Sterbenz shift does not register as
@@ -191,6 +203,40 @@ test pins the *geometry* of re-aiming — that `‖c‖` and the extent are cons
 Measured on `lattice_08`, 24 composed re-aimings of `LinkEmbedding4`: crossings range
 402–535, quarter means 474 → 496, `R_g` constant. No trend, which is the claim.
 
+#### A refusal is not a wrong answer
+
+`LinkEmbedding` returns **error code 8** when two intersection times along an edge fall
+within `intersection_time_tolerance` of each other: it cannot order them, so it declines
+instead of guessing. For some rotations at some precisions that ordering genuinely is
+not well defined — on `f32`, `lattice_10` and `lattice_16` both hit it at step 12 of the
+composed sequence — and refusing is correct behaviour, not a defect. (Confirmed with
+Henrik, 2026-08-14.)
+
+So a decline is accepted: the sequence stops there, the steps already collected are
+still checked for growth, and a `NOTE` line reports it. A decline is not a failure, but
+one that starts happening at step 3 instead of step 12 is something a human should see.
+
+The knot-type comparison (assertion 2) is **skipped** on a shortened run. The PD is
+built only on the last step, so a declined sequence has no final classification;
+comparing against a default-constructed one reports `link component count 1 vs 0`, which
+is pure artefact and reads exactly like a real regression.
+
+Both fixtures fail at *step 12 precisely*, and that is the tell that this is a
+degenerate rotation rather than accumulated drift: the sequence is seeded
+deterministically, so every run composes the same rotations, and drift would give out at
+different steps for different curves. Rotation #12 simply lands these highly symmetric
+axis-aligned curves in a near-degenerate projection that `f32` cannot resolve and `f64`
+can.
+
+The check keys on the code alone and needs no class test: 8 belongs to the
+floating-point path, and the `LinkEmbedding_Int` family (2/3/4) returns 0 on success or
+1/2/3 for "no coordinates", "unknown", "self-intersects in 3-space". A refusal from
+those therefore stays a failure, which is right — they claim to resolve degeneracies.
+
+None of this was reachable until 2026-08-14: `xfail_rotation = 1` masked the whole class
+while finding G's stale caches made every rotation return the same answer. Removing that
+marker is what exposed it.
+
 ### `cross` — the three backends agree with each other
 
 Sharing one perturbation contract, `LinkEmbedding2/3/4` must produce *identical*
@@ -207,9 +253,16 @@ under `--homfly-cap`, the single-variable Alexander `|det|` fingerprint on the u
 circle above it, and the link-component count always.
 
 `LinkEmbedding` is deliberately *not* held to the degenerate half of this. It computes
-in floating point with no symbolic perturbation, so refusing a degenerate projection
-(error code 5, 9) is correct behaviour, not a defect — it is the reason `2/3/4` exist.
-It is anchored on a generic rotation instead and still gets a real invariance test.
+in floating point with no symbolic perturbation, so refusing a degenerate projection is
+correct behaviour, not a defect — it is the reason `2/3/4` exist. It is anchored on a
+generic rotation instead and still gets a real invariance test.
+
+The excusal is **wholesale**, via `ResolvesDegeneraciesQ( cls ) { return cls != 1; }`,
+and not an allow-list of codes: no comparison against a specific error value exists
+anywhere in the harness except `err == 0` (success) and an `err == 6` message
+decoration. Worth stating because the codes move — the lattices refuse with **9**
+("degenerate edges"), `deg_triple_point` now refuses with **8** where it used to
+segfault, and any new code is accepted automatically.
 
 ---
 
@@ -268,14 +321,50 @@ and scored properly under `--isolate`.
 
 When you fix one of the findings below, the corresponding marker will announce itself.
 
+**It worked.** On 2026-08-14 the `Transform` fix produced 24 XPASS from the single
+`xfail_rotation = 1` line in `DEFAULT.expect`, and the triple-point fix produced 4 more
+from the two `xcrash_invariant` markers. Henrik removed all three in `b2a799a2`. There
+is one caution the episode is worth remembering for: **a marker can hide more than one
+thing.** That one rotation marker was also masking the legitimate code-8 declines
+described in [§2](#a-refusal-is-not-a-wrong-answer), which only surfaced once it came
+out — so budget for a second look after removing a broad marker, not just a green run.
+
+**Markers live in the fixture data, not in the code** (`test/embeddings/*.expect` and
+`DEFAULT.expect`), they are read at runtime, and there is no `xpass` marker to change
+them to: you delete the line.
+
+As of `fb4c8f0e` the only markers left are the four zero-length ones in
+`deg_zero_length.expect`; `DEFAULT.expect` carries none.
+
+Markers scope by **class list only** — there is no coordinate-type dimension — so a
+defect that affects `f32` but not `f64` cannot be expressed as one without also masking
+the working case. That is why the code-8 declines are handled in the tier rather than
+marked.
+
 ---
 
 ## 5. Findings
 
-All reproduced on `dev_prosector` at `0a821267`. Severity is my read; the evidence is
-the part that matters.
+All reproduced on `dev_prosector` at `0a821267`, and all **re-verified against
+`fb4c8f0e`** on 2026-08-14 with the standalone reproducers rather than through the
+harness. Severity is my read; the evidence is the part that matters.
+
+| | finding | status at `fb4c8f0e` |
+| --- | --- | --- |
+| A | `FromLinkEmbedding(LinkEmbedding2&)` treats success as error | **fixed** — `1d8761c7` + `34cd0fc3` |
+| B | zero-length edges rejected as 3D intersections | **open** |
+| C | integral `Real_` does not compile | **fixed** — `4d2d0624` |
+| D | the 32-bit backend does not compile | **half** — `Sign` resolved, `WideInt` remains |
+| E | `RequireIntersections` segfaults on a triple point | **fixed** — `d26c301f` |
+| F | `FromInString` has two inverted assertions | **fixed** — `8db4cdc4` |
+| G | `Transform` does not invalidate its caches | **fixed** — `8db4cdc4` |
 
 ### A. `PlanarDiagram::FromLinkEmbedding(LinkEmbedding2&)` returns an invalid diagram for every successful projection
+
+**FIXED** — `1d8761c7` unified the conventions on `int`, which closes this at the root
+rather than at the caller; `34cd0fc3` finished the conversion (see the tail of this
+entry). Verified: `FromLinkEmbedding` now returns a valid 7-crossing diagram on the
+reproducer below.
 
 **Severity: high — this is the main construction path.**
 
@@ -318,7 +407,46 @@ failures, all "error code 1", because I had assumed the `int` convention.
 `embedding_check` now inspects the return *type* rather than assuming, and reaches
 `FromLinkEmbedding_Raw` directly, so it is unaffected.
 
+**How it was actually fixed, and the tail that came with it.** `1d8761c7` changed
+`LinkEmbedding_Int::RequireIntersections` from `bool` to `int` (0 = success), which is
+the better fix — it removes the split instead of patching one caller. Two things did not
+make it across, and `34cd0fc3` finished them:
+
+- the function still ended in `return true`, which in an `int` function is `1` — so
+  every *successful* projection still reported an error, the identical symptom relocated
+  from the caller into the callee. Isolated by flipping that one line on an otherwise
+  identical build.
+- `FromKnotEmbedding` was rewritten to test the call directly but its `eprint` still
+  named `err`. That is a non-dependent name, so it failed at template *definition* time
+  and **every translation unit including `Knoodle.hpp` stopped compiling** — a bare
+  `#include` reproduced it.
+
+Two lessons worth keeping. A convention change is a whole-family edit, and the compiler
+only catches the half of it that is type-checked — `return true` from an `int` function
+is silently well-formed. And `embedding_check` could not have caught either one: it
+routes around `FromLinkEmbedding` entirely, which is why this finding needed a
+standalone reproducer to confirm and would not have announced its own fix.
+
+**`LinkEmbedding3`/`LinkEmbedding4` were never affected — because they are unreachable.**
+There is no `FromLinkEmbedding` overload taking them; `PD_T::FromLinkEmbedding(le3)`
+fails to compile with *no matching function*. They share the convention (all three
+include the same `src/LinkEmbedding_Int/`), they simply have no public path into
+`PlanarDiagram` at all, despite their class docs opening with "then it can be handed
+over to class `PlanarDiagram` or `PlanarDiagramComplex`". The only route is
+`FromLinkEmbedding_Raw`, whose own comment says *"For internal use only. Users should
+not call this. Testing makes it necessary to make this public."* — which is exactly what
+this test calls, and exactly why it noticed neither problem. Filed separately as
+upstream issue 10.
+
 ### B. Zero-length edges are rejected as 3D intersections
+
+**OPEN at `fb4c8f0e`** — still reproduces on all three of `LinkEmbedding2/3/4`, both
+coordinate types: the square below gives *"Edges 0 and 2 intersect in 3D"* and
+`RequireIntersections` fails, while `LinkEmbedding` accepts it. Acknowledged upstream in
+`4d2d0624`: *"Jason's tests revealed that ProsectorX does handle degenerate edges well,
+**but not their neighbors**. Will have to work on this."* — which is the same diagnosis
+as the paragraph below, reached independently. The four `deg_zero_length` markers are
+the only ones left in the tree.
 
 **Severity: medium — contradicts the class documentation, and is a regression relative
 to `LinkEmbedding`.**
@@ -347,6 +475,15 @@ scoped to classes 2,3,4.
 
 ### C. Integral `Real_` does not compile
 
+**FIXED** — `4d2d0624`. `LinkEmbedding2/3/4<int64_t,int64_t,int64_t>` now instantiates;
+the reproducer compiles clean. `-DKNOODLE_TEST_INTEGER_COORDS` could be turned on by
+default now, which is the small job this leaves behind.
+
+Note when reproducing anything in this class: the offending members are instantiated
+only when *used*, so declaring the type is not enough — the reproducer has to reach
+`RequireIntersections()`. A bare declaration compiled happily and made this look fixed
+before it was.
+
 **Severity: low — documented but unimplemented.**
 
 The class documentation says `Real_` may be a signed integral type, and that
@@ -367,6 +504,15 @@ currently promise something that does not build. Behind `-DKNOODLE_TEST_INTEGER_
 
 ### D. The 32-bit backend does not compile
 
+**HALF FIXED at `fb4c8f0e`.** The `Prosector2` ambiguity is gone; what remains is
+`src/WideInt.hpp:114`, *"excess elements in array initializer"*. Henrik is mid-flight
+here — the `__int128` commits of 2026-08-14 end in a `Rollback` — and notes in
+`4d2d0624` that `int32_t` as `IReal` is problematic anyway because two `WInt32` do not
+`long_mul` into a `WInt64`, *"and we want Int64 here anyways for performance reasons"*.
+So this may well close by narrowing the documentation rather than by making the pairing
+work, which would be a fine outcome; the defect is that the docs promise something that
+does not build.
+
 **Severity: low, but the docs recommend this pairing.**
 
 The docs suggest `Real_ = float` with `IReal_ = int32_t`. Neither works:
@@ -377,6 +523,13 @@ The docs suggest `Real_ = float` with `IReal_ = int32_t`. Neither works:
 Behind `-DKNOODLE_TEST_INT32_BACKEND`.
 
 ### E. `LinkEmbedding::RequireIntersections` segfaults on a triple point
+
+**FIXED** — `d26c301f`, "Fixed segfault in LinkEmbedding::FindIntersections in case of
+close encounter." The reproducer now exits 0. It does not *succeed*: it returns error
+code 8, having detected that two intersection times are too close to order, and declines
+— which is the correct outcome for a float class on a degenerate projection. That new
+code is what the rotation tier had to learn to accept; see
+[§2](#a-refusal-is-not-a-wrong-answer).
 
 **Severity: high for `LinkEmbedding`, though `2/3/4` supersede it. Possibly the segfault
 noted in `6c63b82a`.**
@@ -404,6 +557,10 @@ matching the explicit shear.
 Markers: `xcrash_invariant` scoped to class 1. Run with `--isolate` to see it scored.
 
 ### G. `LinkEmbedding::Transform` does not invalidate its caches
+
+**FIXED** — in `8db4cdc4`. The measurement below now reads `3 -> 7, 7, 7` where it read
+`3 / 3 / 0 / 10`: `RequireIntersections`, `FindIntersections`, and the refreshed pair
+all agree. This is the one that produced 24 XPASS from a single marker line.
 
 **Severity: high — silent wrong answers. Found by the `rotation` tier.**
 
@@ -434,6 +591,15 @@ Marker: `xfail_rotation` scoped to class 1, in `test/embeddings/DEFAULT.expect` 
 defect belongs to the class, not to any one curve.
 
 ### F. `FromInString` has two inverted assertions
+
+**FIXED** — `8db4cdc4`. Both readers parse again with assertions enabled.
+
+**Correction to the original report, found while re-verifying:** the defect was
+duplicated in **two** files, not one. This entry named
+`src/LinkEmbedding2/FromFile.hpp:139`, but the abort actually observed came from
+`src/LinkEmbedding/FromFile.hpp:141` — the same pair of assertions, copied. A patch
+against only the cited file would have left the reader still aborting. Worth a habit:
+when a defect is in duplicated code, grep for the duplicate before filing the location.
 
 **Severity: high in any build without `-DNDEBUG` — it aborts on every input.**
 
@@ -472,21 +638,30 @@ is fixed — there is no marker to remember to remove.
 covering read → intersect → build PD. `degen` is the raw lattice projection, `generic` a
 random rotation of the same curve — the only comparison `LinkEmbedding` can join.
 
+Re-measured at `fb4c8f0e`, 2026-08-14.
+
 | fixture | projection | LE1 | LE2 | LE3 | LE4 |
 | --- | --- | ---: | ---: | ---: | ---: |
-| `lattice_04` (64 edges) | degen | *refuses* | 0.017 | 0.010 | 0.009 |
-| | generic | 0.006 | 0.011 | 0.007 | 0.006 |
-| `lattice_08` (512) | degen | *refuses* | 0.347 | 0.187 | 0.142 |
-| | generic | 0.092 | 0.185 | 0.091 | 0.081 |
-| `lattice_12` (1728) | degen | *refuses* | 1.842 | 1.100 | 1.024 |
-| | generic | 0.474 | 0.884 | 0.676 | 0.566 |
-| `lattice_16` (4096) | degen | *refuses* | 6.349 | 3.654 | 3.589 |
-| | generic | 1.699 | 3.386 | 2.252 | 1.898 |
+| `lattice_04` (64 edges) | degen | *refuses* | 0.025 | 0.014 | 0.014 |
+| | generic | 0.010 | 0.016 | 0.009 | 0.009 |
+| `lattice_08` (512) | degen | *refuses* | 0.389 | 0.182 | 0.200 |
+| | generic | 0.111 | 0.238 | 0.094 | 0.096 |
+| `lattice_12` (1728) | degen | *refuses* | 1.728 | 1.047 | 1.068 |
+| | generic | 0.473 | 0.888 | 0.589 | 0.575 |
+| `lattice_16` (4096) | degen | *refuses* | 5.853 | 3.514 | 3.568 |
+| | generic | 1.700 | 3.516 | 1.950 | 1.909 |
 
-Two things stand out. `LinkEmbedding4` has essentially caught up with the floating-point
-class on generic input (1.90 ms vs 1.70 ms at 16³) while also handling the degenerate
-projection that `LinkEmbedding` cannot run at all. And the progression 2 → 3 → 4 is
-monotone at every size, with the largest jump between 2 and 3.
+`LinkEmbedding4` still matches the floating-point class on generic input (1.91 ms vs
+1.70 ms at 16³) while also handling the degenerate projection `LinkEmbedding` cannot run
+at all — that is the headline and it is unchanged.
+
+**What did change: 3 and 4 are now indistinguishable.** The earlier table showed a
+monotone 2 → 3 → 4, and it no longer holds — at every size the two are within noise of
+each other, and at `lattice_08` and `lattice_16` degen, LE3 is nominally the faster.
+That is the expected consequence of `4d2d0624` merging the three classes onto one shared
+`src/LinkEmbedding_Int/` implementation: the differences that made 4 faster were the
+duplicated code that got collapsed. If a future Prosector is meant to beat 3, this table
+is the baseline it has to beat.
 
 `rounding_err = 0` everywhere, as expected for integral input on the
 `scaling_exponent = 0` path.
@@ -495,13 +670,27 @@ monotone at every size, with the largest jump between 2 and 3.
 
 ## 7. Current status
 
+At `fb4c8f0e`, 2026-08-14:
+
+```
+./embedding_check              792 passed, 0 failed, 32 skipped, 24 known-failing
+./embedding_check --isolate   1748 passed, 0 failed, 80 skipped, 42 known-failing
+```
+
+Exit 0 in both modes, and **no XPASS** — every marker still in the tree describes a
+defect that is still real.
+
+The 53 known-failures of 2026-08-13 are down to 24, and all 24 are finding B: the
+`deg_zero_length` fixture across `exact`, `cross`, `invariant` and `rotation`, for
+classes 2/3/4 at both coordinate types. The skips are that same fixture where the
+backends fail identically and there is nothing left to compare.
+
+For comparison, the 2026-08-13 baseline was:
+
 ```
 ./embedding_check              650 passed, 0 failed, 34 skipped, 53 known-failing
 ./embedding_check --isolate   1606 passed, 0 failed, 78 skipped, 186 known-failing
 ```
 
-Whole run: about 2.2 s.
-
-The skips are the zero-length fixture (finding B makes the backends fail identically, so
-there is nothing to compare) and the known crashes (finding E). The known-failures are
-findings B, E, F and G.
+The pass count went **up** as well as the known-failure count going down, because fixing
+findings E and F let whole units run that previously crashed or were skipped.
