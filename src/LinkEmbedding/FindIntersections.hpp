@@ -120,6 +120,7 @@ public:
         }
         
         intersection_count = int_cast<Int>(intersections.size());
+        
         {
             TOOLS_PTIMER(sort_timer, tag() + ": coarse sorting.");
             
@@ -156,16 +157,13 @@ public:
                 edge_times        [pos_1] = inter.times[1];
                 edge_state        [pos_1] = static_cast<Int8>(inter.handedness << 1) | 0;
             }
-            
-            // We don't need this anymore.
-            intersections = std::vector<Intersection_T>();
         }
         
         Size_T close_counter = 0;
         
         {
             TOOLS_PTIMER(sort_timer, tag() + ": fine sorting.");
-
+            
             // Sort intersections edgewise w.r.t. edge_times.
             ThreeArraySort<Real,Int,Int8,Int> sort ( intersection_count );
             
@@ -184,13 +182,13 @@ public:
                         &edge_state[k_begin],
                         k_end - k_begin
                     );
-                    
+
                     constexpr Real intersection_time_tolerance = 0.000000000001;
                     
                     for( Int l = k_begin + Int(1); l < k_end; ++l )
                     {
-                        const Real delta = edge_times[l] - edge_times[l-1];
-                        
+                        const Real delta = Abs(edge_times[l] - edge_times[l-1]);
+
                         if( delta < intersection_time_tolerance )
                         {
                             ++close_counter;
@@ -218,6 +216,9 @@ public:
                 }
             }
         }
+        
+        // We don't need this anymore.
+        intersections = std::vector<Intersection_T>();
         
         intersection_flag_counts[8] = close_counter;
         
