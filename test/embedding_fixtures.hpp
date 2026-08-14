@@ -557,13 +557,19 @@ LE_T LoadWithLibraryReader( const std::filesystem::path & file )
 
 /// Compute the intersections and say plainly whether it worked.
 ///
-/// `RequireIntersections` does not report success the same way across the
-/// family: `LinkEmbedding` returns an `int` error code where 0 means success,
-/// while `LinkEmbedding2/3/4` return a `bool` where `true` means success. The two
-/// conventions disagree about the meaning of 1, so the return type has to be
-/// inspected rather than assumed. (Worth knowing generally:
-/// `PD_T::FromLinkEmbedding(LinkEmbedding2&)` currently assumes the int
-/// convention and so treats every successful projection as "error code 1".)
+/// Compute the intersections and say plainly whether it worked.
+///
+/// Both families return an `int` error code with 0 = success as of `1d8761c7`,
+/// which unified a convention split that had `LinkEmbedding2/3/4` returning
+/// `bool`. The `bool` branch below is kept because the return type is inspected
+/// rather than assumed, which is what made this function survive that change
+/// without edits.
+///
+/// It also enforces the INTROSPECTION CONTRACT on the way through: a class that
+/// reports success must report zero 3-space intersections. Those two statements
+/// are the same statement, and a build where they disagree is broken in a way
+/// no tier would otherwise notice -- every tier asks "did it work", none asks
+/// "and does the object agree that it worked".
 template<class LE_T>
 bool RequireIntersectionsOK( LE_T & L, std::string & message, int & err )
 {
@@ -571,9 +577,29 @@ bool RequireIntersectionsOK( LE_T & L, std::string & message, int & err )
 
     using Status_T = std::remove_cvref_t<decltype(raw_status)>;
 
+    /// Success must mean IntersectionCount3D() == 0. Returns false and fills
+    /// `message` if the object contradicts its own success return.
+    auto agrees_with_itselfQ = [&L,&message,&err]() -> bool
+    {
+        if constexpr ( requires { L.IntersectionCount3D(); } )
+        {
+            const auto n3d = L.IntersectionCount3D();
+            if( n3d > 0 )
+            {
+                err     = -2;
+                message = "RequireIntersections reported SUCCESS but "
+                          "IntersectionCount3D() is " + std::to_string(Int(n3d))
+                        + "; a projection cannot both succeed and contain "
+                          "3-space intersections";
+                return false;
+            }
+        }
+        return true;
+    };
+
     if constexpr ( std::is_same_v<Status_T,bool> )
     {
-        if( raw_status ) { return true; }
+        if( raw_status ) { return agrees_with_itselfQ(); }
 
         err     = -1;
         message = "RequireIntersections returned false";
@@ -592,7 +618,7 @@ bool RequireIntersectionsOK( LE_T & L, std::string & message, int & err )
     else
     {
         err = int(raw_status);
-        if( err == 0 ) { return true; }
+        if( err == 0 ) { return agrees_with_itselfQ(); }
 
         message = "RequireIntersections returned error code " + std::to_string(err)
                 + (err == 6 ? " (line segments intersect in 3D)" : "");

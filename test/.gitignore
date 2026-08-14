@@ -37,3 +37,4 @@ knoodlesimplify.log
 cluster/cluster.conf
 cluster/*.local
 local_moves_check
+intersection3d_check
