@@ -165,8 +165,10 @@ link_split_check: link_split_check.cpp link_alexander.hpp homfly_invariance.hpp 
 # catch src-only changes, and without them a `make` after editing a Prosector
 # would not rebuild -- the test would "pass" against the binary it built before
 # the change. Same trap intersection_flag_reset_check documents below.
-EMBEDDING_SRC_DEPS = ../src/LinkEmbedding.hpp  ../src/LinkEmbedding2.hpp \
+EMBEDDING_SRC_DEPS = ../src/LinkEmbedding/     ../src/LinkEmbedding_Int/ \
+					 ../src/LinkEmbedding.hpp  ../src/LinkEmbedding2.hpp \
                      ../src/LinkEmbedding3.hpp ../src/LinkEmbedding4.hpp \
+					 ../src/Prosector/ \
                      ../src/Prosector2.hpp ../src/Prosector3.hpp \
                      ../src/Prosector4.hpp  ../src/Prosector4a.hpp \
                      ../src/PlanarDiagram/FromEmbeddings.hpp

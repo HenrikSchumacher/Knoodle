@@ -175,6 +175,10 @@ void Transform( cref<Matrix3x3_T> A )
 {
     TOOLS_PTIMER(timer,MethodName("Transform"));
 
+    intersections_computedQ  = false;
+    bounding_boxes_computedQ = false;
+    intersections.clear();
+    
     // Store new transformation matrix.
     SetTransformationMatrix(Dot(A,R));
     

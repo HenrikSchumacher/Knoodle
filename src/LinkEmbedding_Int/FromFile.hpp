@@ -136,8 +136,6 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s )
             comp_needs_colorQ = false;
         }
         
-        assert( component_ptr_agg.size() != color_agg.size() );
-        
         std::array<Real,3> x = {};
         s.Take(x[0]);
         s.SkipWhiteSpace(); // We are quite forgiving here.
@@ -154,7 +152,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s )
         color_may_followQ  = false;
         
         assert(!comp_needs_colorQ);
-        assert(!coords_may_followQ);
+        assert(coords_may_followQ);
     }
 
     if( s.FailedQ() )
