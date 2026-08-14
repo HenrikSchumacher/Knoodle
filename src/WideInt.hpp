@@ -1,6 +1,6 @@
 #pragma once
 
-<bitset>
+#include <bitset>
 
 namespace Knoodle
 {
