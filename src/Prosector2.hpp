@@ -21,9 +21,13 @@ namespace Knoodle
      *
      * The usage of the class is as follows: First one loads two line segments by calling `LoadLineSements`. Then one class `IntersectionType` to probe whether an intersection exists or whether something went wrong (see `Flag_T`). If the return value is `Flag_T::Intersection`, then one can call `ComputeIntersection` to get an instance of `struct` `Intersection` that contains the relevant information.
      *
+     * This class uses `boost::multiprecision` as backend for wide integers.
+     *
      * @tparam Int_ Signed integral type used for coordinates of points.
      *
      * @tparam Idx_ Integral type used for indices.
+     *
+     * @tparam verboseQ Where to log events more granulary. Only meant for debugging.
      */
     template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false>
     class Prosector2 final
@@ -31,30 +35,13 @@ namespace Knoodle
     public:
         
         static_assert(SameQ<Int_,Int32> || SameQ<Int_,Int64>,"");
-        
-//        static constexpr Size_T bitlength = bitlength_;
-//        static_assert(bitlength <= Size_T(64),"");
-//        
-        
-//        using Int    = std::conditional< bitlength <= Size_T(32), Int32, Int64>;
-//        using LInt   = std::conditional< bitlength <= Size_T(16), Int32,
-//                           std::conditional<bitlength <= Size_T(32), Int64, Int128 >
-//                       >;
-//        using LLInt  = std::conditional< bitlength <= Size_T(16), Int64,
-//                           std::conditional<bitlength <= Size_T(32), Int128, Int256>
-//                       >;
-        
+
         /*!@brief Integral type used for coordinates.*/
         using Int    = Int_;
         /*!@brief Longer integral type used for internal computations.*/
         using LInt   = std::conditional_t<SameQ< Int,Int32>,Int64 ,boost::multiprecision::int128_t>;
         /*!@brief Even longer integral type used for internal computations.*/
         using LLInt  = std::conditional_t<SameQ<LInt,Int64>,boost::multiprecision::int128_t,boost::multiprecision::int256_t>;
-        
-//        /*!@brief Longer integral type used for internal computations.*/
-//        using LInt   = std::conditional_t<SameQ< Int,Int32>,Int128,Int128>;
-//        /*!@brief Even longer integral type used for internal computations.*/
-//        using LLInt  = std::conditional_t<SameQ<LInt,Int64>,Int256,Int256>;
         
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
@@ -84,11 +71,16 @@ namespace Knoodle
             }
         }
         
+#include "Prosector/DepressedCubic.hpp"
+#include "Prosector/Helpers.hpp"
+#include "Prosector/DegeneracyChecks.hpp"
         
-#include "Prosector2/Polynomial3.hpp"
-#include "Prosector2/IntersectionTime.hpp"
-#include "Prosector2/Intersection.hpp"
+#include "Prosector/IntersectionTime_cpp_int.hpp"
+        using Time_T = IntersectionTime;
+        
+#include "Prosector/Intersection.hpp"
 
+    public:
         
         // Default constructor
         Prosector2() = default;
@@ -177,10 +169,10 @@ namespace Knoodle
             //      X------>X
             //  x_0     d     y_0
 //            
-            LVector3_T u { LInt{x_1[0]-x_0[0]}, LInt{x_1[1]-x_0[1]}, LInt{x_1[2]-x_0[2]} };
-            LVector3_T v { LInt{y_1[0]-y_0[0]}, LInt{y_1[1]-y_0[1]}, LInt{y_1[2]-y_0[2]} };
-            LVector3_T p { LInt{y_1[0]-x_0[0]}, LInt{y_1[1]-x_0[1]}, LInt{y_1[2]-x_0[2]} };
-            LVector3_T q { LInt{x_1[0]-y_0[0]}, LInt{x_1[1]-y_0[1]}, LInt{x_1[2]-y_0[2]} };
+            LVector3_T u { x_1[0] - x_0[0], x_1[1] - x_0[1], x_1[2] - x_0[2] };
+            LVector3_T v { y_1[0] - y_0[0], y_1[1] - y_0[1], y_1[2] - y_0[2] };
+            LVector3_T p { y_1[0] - x_0[0], y_1[1] - x_0[1], y_1[2] - x_0[2] };
+            LVector3_T q { x_1[0] - y_0[0], x_1[1] - y_0[1], x_1[2] - y_0[2] };
             
             // TODO: It should be possible to compute this with only 3 cross products.
             uxv = Cross(u,v);   // Does not overflow.
@@ -196,43 +188,6 @@ namespace Knoodle
             //   q ==   v -   p +   u
             // vxq == vxv - vxp + vxu
             vxq = -vxp - uxv;
-
-            
-            if constexpr ( verboseQ )
-            {
-                TOOLS_LOGDUMP(k_);
-                TOOLS_LOGDUMP(l_);
-                
-                TOOLS_LOGDUMP(x_0);
-                TOOLS_LOGDUMP(x_1);
-                TOOLS_LOGDUMP(y_0);
-                TOOLS_LOGDUMP(y_1);
-                
-                TOOLS_LOGDUMP(u);
-                TOOLS_LOGDUMP(v);
-                TOOLS_LOGDUMP(p);
-//                TOOLS_LOGDUMP(q);
-                
-                logvalprint("uxv[0]",ToDouble(uxv[0]));
-                logvalprint("uxv[1]",ToDouble(uxv[1]));
-                logvalprint("uxv[2]",ToDouble(uxv[2]));
-                
-                logvalprint("uxp[0]",ToDouble(uxp[0]));
-                logvalprint("uxp[1]",ToDouble(uxp[1]));
-                logvalprint("uxp[2]",ToDouble(uxp[2]));
-                
-                logvalprint("uxq[0]",ToDouble(uxq[0]));
-                logvalprint("uxq[1]",ToDouble(uxq[1]));
-                logvalprint("uxq[2]",ToDouble(uxq[2]));
-                
-                logvalprint("vxp[0]",ToDouble(vxp[0]));
-                logvalprint("vxp[1]",ToDouble(vxp[1]));
-                logvalprint("vxp[2]",ToDouble(vxp[2]));
-                
-                logvalprint("vxq[0]",ToDouble(vxq[0]));
-                logvalprint("vxq[1]",ToDouble(vxq[1]));
-                logvalprint("vxq[2]",ToDouble(vxq[2]));
-            }
         }
         
         // Somewhat pointless.
@@ -318,6 +273,12 @@ namespace Knoodle
             }
             
             // Now we have sign_uxp != 0 and sign_uxq != 0.
+            if( sign_uxp != sign_uxq )
+            {
+                // The points {y_0[0],y_0[1]} and {y_1[0],y_1[1]} lie on the same side of the line through {x_0[0],x_0[1]} and {x_1[0],x_1[1]} (after perturbation).
+                flag = Flag_T::Empty;
+                return flag;
+            }
             
             sign_vxp = Sign_Perturbed(vxp);
             sign_vxq = Sign_Perturbed(vxq);
@@ -368,14 +329,6 @@ namespace Knoodle
             }
             
             // Now we have sign_uxp != 0, sign_uxq != 0, sign_vxp != 0, and sign_vxq != 0.
-            
-            if( sign_uxp != sign_uxq )
-            {
-                // The points {y_0[0],y_0[1]} and {y_1[0],y_1[1]} lie on the same side of the line through {x_0[0],x_0[1]} and {x_1[0],x_1[1]} (after perturbation).
-                flag = Flag_T::Empty;
-                return flag;
-            }
-            
             if( sign_vxp != sign_vxq )
             {
                 // The points {x_0[0],x_0[1]} and {x_1[0],x_1[1]} lie on the same side of the line through {y_0[0],y_0[1]} and {y_1[0],y_1[1]} (after perturbation).
@@ -406,23 +359,11 @@ namespace Knoodle
             
             if constexpr ( verboseQ ) { TOOLS_LOGDUMP(uxv); }
             
-//            LLInt det_3   = LLInt{y_1[0]-x_0[0]} * uxv[0]
-//                          + LLInt{y_1[1]-x_0[1]} * uxv[1]
-//                          + LLInt{y_1[2]-x_0[2]} * uxv[2];
-            
             LLInt det_3   = LLInt{y_1[0]-x_0[0]} * LLInt{uxv[0]}
                           + LLInt{y_1[1]-x_0[1]} * LLInt{uxv[1]}
                           + LLInt{y_1[2]-x_0[2]} * LLInt{uxv[2]};
             
-//            Vector3_T d = p - v; // == u - q
-//            LLInt det_3_d = LLInt{d[0]} * LLInt{uxv[0]}
-//                          + LLInt{d[1]} * LLInt{uxv[1]}
-//                          + LLInt{d[2]} * LLInt{uxv[2]};
-//
-//            std::cout << "det_3 = " << det_3 << "\n";
-//            std::cout << "det_3_d = " << det_3_d << std::endl;
-            
-            Sign_T sign_3 = Sign(det_3);
+            Sign_T sign_3 = Sign<Sign_T>(det_3);
              
             if( sign_3 == Sign_T(0) )
             {
@@ -430,8 +371,8 @@ namespace Knoodle
                 wprint(MethodName("ComputeIntersection") + ": The line segments " + ToString(k_) + " and " + ToString(l_) + " are coplanar.");
             }
                         
-            Polynomial3 Q { uxv[2], uxv[0], uxv[1] };
-            Sign_T sign_2 = Q.Sign();
+            DepressedCubic Q { uxv[2], uxv[0], uxv[1] };
+            Sign_T sign_2 = Sign<Sign_T>(Q);
             
             if( sign_2 == Sign_T(0) )
             {
@@ -443,9 +384,8 @@ namespace Knoodle
             // Det_Perturbed(d,v) == Det_Perturbed(p - v,v) == Det_Perturbed(p,v)
             // Det_Perturbed(d,u) == Det_Perturbed(u - q,u) == Det_Perturbed(u,q)
 
-            
-            IntersectionTime t_0 { Polynomial3{ -vxp[2], -vxp[0], -vxp[1] }, Q };
-            IntersectionTime t_1 { Polynomial3{  uxq[2],  uxq[0],  uxq[1] }, Q };
+            Time_T t_0 { DepressedCubic{ -vxp[2], -vxp[0], -vxp[1] }, Q };
+            Time_T t_1 { DepressedCubic{  uxq[2],  uxq[0],  uxq[1] }, Q };
             
             // First edge must go over.
             if( x_under_y_Q )
@@ -458,8 +398,6 @@ namespace Knoodle
                 
             }
         }
-        
-#include "Prosector2/Helpers.hpp"
         
     public:
         

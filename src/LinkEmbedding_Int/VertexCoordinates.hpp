@@ -94,6 +94,7 @@ void ReadVertexCoordinates( cptr<Real> v )
         }
     }
     
+    max_modulus = Max( Abs(global_lo.Max()), Abs(global_hi.Max()) );
     input_integralQ = IntQ<Real> || int_checkQ;
     
     vertex_coords_loadedQ = true;
@@ -123,7 +124,7 @@ void Transform( cref<Matrix3x3_T> A )
     rounding_error           = 0;
     intersection_count       = 0;
     intersection_count_3D    = 0;
-    input_integralQ         = IntQ<Real>;
+    input_integralQ          = IntQ<Real>;
     
     global_lo.Fill( Scalar::Max<Real> );
     global_hi.Fill( Scalar::Min<Real> );
@@ -140,8 +141,9 @@ void Transform( cref<Matrix3x3_T> A )
         y.Write( vertex_coords.data(i) );
     }
     
-    // We make it so that we can restore the original coordinates from R (up to rounding errors).
-    // That is: we rotate both the coordinates and R by A; then we set R to the rotated matrix.
+    max_modulus = Max( Abs(global_lo.Max()), Abs(global_hi.Max()) );
+    
+    // Transform also the transformation matrix so that we can reconstruct the original state (up to rounding errors).
     SetTransformationMatrix(Dot(A,R));
 }
 

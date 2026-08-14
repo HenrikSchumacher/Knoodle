@@ -176,7 +176,7 @@ void ComputeIntersections()
 //    Int64 sort_intersection_count = 0;
 //    Int64 not_sort_intersection_count = 0;
     {
-        TOOLS_PTIMER(sort_timer,MethodName("ComputeIntersections") + ": coarse sorting.");
+        TOOLS_PTIMER(sort_timer, tag() + ": coarse sorting.");
         
         // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
         edge_ctr.template RequireSize<false>( edge_ptr.Size() );
@@ -206,9 +206,13 @@ void ComputeIntersections()
             edge_times        [pos_1] = inter.times[1];
             edge_state        [pos_1] = static_cast<Int8>(inter.handedness << 1) | 0;
         }
+        
+        // We don't need this anymore.
+        intersections = std::vector<Intersection_T>();
     }
+    
     {
-        TOOLS_PTIMER(sort_timer,MethodName("ComputeIntersections") + ": fine sorting.");
+        TOOLS_PTIMER(sort_timer, tag() + ": fine sorting.");
 
         // Sort intersections edgewise w.r.t. edge_times.
         ThreeArraySort<Time_T,Int,Int8,Int> sort ( intersection_count );
@@ -368,8 +372,10 @@ void FindIntersectingEdges_DFS()
 
 void ComputeEdgeEdgeIntersection( const Int k, const Int l )
 {
-    if( EdgesNeedCheckQ(k,l) )
+    if( (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) )
     {
+        // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
+        // Degenerate edges will be handled correctly by the `Prosector` class.
         this->template ComputeEdgeEdgeIntersection_impl<false>(k,l);
     }
 }

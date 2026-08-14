@@ -287,17 +287,17 @@ namespace Knoodle
         }
         
         /*!@brief Return the sign of  */
-        template<SignedIntQ Sign_T = Int8>
-        TOOLS_FORCE_INLINE constexpr friend Sign_T Sign( cref<This_T> a )
+        template<SignedIntQ R = FastInt8>
+        TOOLS_FORCE_INLINE constexpr friend R Sign( cref<This_T> a )
         {
             if constexpr ( signQ )
             {
-                if( a.NegativeQ() ) return Sign_T(-1);
+                if( a.NegativeQ() ) return R(-1);
             }
             
-            if( a.ZeroQ() ) return Sign_T(0);
+            if( a.ZeroQ() ) return R(0);
             
-            return Sign_T(1);
+            return R(1);
         }
         
         /*!@brief Comparison operator.*/
@@ -440,6 +440,7 @@ namespace Knoodle
             return x;
         }
         
+        /*!@brief Conversion to `double`.*/
         friend double ToDouble( cref<WideInt> a )
         {
             WideInt b = a;
@@ -454,12 +455,18 @@ namespace Knoodle
             for( Idx i = 0; i < limb_count; ++i )
             {
                 x += static_cast<double>(b[i]) * std::pow(double(2),s);
-                s += Idx(8) * sizeof(Limb_T);
+                s += Idx(CHAR_BIT) * sizeof(Limb_T);
             }
             
             if( negativeQ ) { x = -x; }
             
             return x;
+        }
+        
+        /*!@brief Explicit cast operator to `double`.*/
+        explicit operator double() const
+        {
+            return ToDouble(*this);
         }
         
         /*!@ Fill the limb buffer with (pseudo)random numbers. With every call the function `fun` is required to generate number that is convertible to `Limb_T`*/
@@ -476,14 +483,14 @@ namespace Knoodle
         
         friend std::string ToString( cref<This_T> c )
         {
-            return
-            ClassName() + std::string(OutString::FromVector(&c.limbs[0],limb_count));
+            return ClassName() + std::string(OutString::FromVector(&c.limbs[0],limb_count));
         }
         
-//        friend std::string ToString( cref<This_T> c )
-//        {
-//            return ToString(ToDouble(c));
-//        }
+        friend std::ostream & operator << (std::ostream &s, const This_T & c )
+        {
+            s << ClassName() << OutString::FromVector(&c.limbs[0],limb_count);
+            return s;
+        }
         
         template<typename CharT,typename Traits>
         std::stringstream & operator<<( mref<std::basic_ostream<CharT,Traits>&> s ) const
@@ -512,16 +519,22 @@ namespace Knoodle
     // Some convenience type cast.
 
 
-    using WInt8     = WideInt<1,UInt8,UInt16,true>;
+    using WInt8     = WideInt<1,UInt8,UInt16,true>;    // Just make it Int8?
     using WUInt8    = WideInt<1,UInt8,UInt16,false>;
     
+    // TODO: Problem: long_mul on two WInt8s does not return a WInt16 = WideInt<1,UInt16,UInt32,true>, but a WideInt<2,UInt8,UInt16,true>.
+    
     using WInt16    = WideInt<1,UInt16,UInt32,true>;
-    using WUInt16   = WideInt<1,UInt16,UInt32,false>;
+    using WUInt16   = WideInt<1,UInt16,UInt32,false>;  // Just make it Int16?
     
-    using WInt32    = WideInt<1,UInt32,UInt64,true>;
+    // TODO: Problem: long_mul on two WInt16s does not return a WInt32 = WideInt<1,UInt32,UInt64,true>, but a WideInt<2,UInt16,UInt32,true>.
+    
+    using WInt32    = WideInt<1,UInt32,UInt64,true>;   // Just make it Int32?
     using WUInt32   = WideInt<1,UInt32,UInt64,false>;
-    
+
 #ifdef TOOLS_INT128_AVAILABLE
+    
+    // TODO: Problem: long_mul on two WInt32s does not return a WInt64 = WideInt< 1,UInt64,UInt128,true>, but a WideInt<2,UInt32,UInt64,true>.
 
     using WInt64    = WideInt< 1,UInt64,UInt128,true>;
     using WInt128   = WideInt< 2,UInt64,UInt128,true>;
@@ -555,7 +568,7 @@ namespace Knoodle
 
 namespace Tools
 {
-    template<> constexpr const char * TypeName<Knoodle::WInt8>    = "WInt8";
+    template<> constexpr const char * TypeName<Knoodle::WInt8>     = "WInt8";
     template<> constexpr const char * TypeName<Knoodle::WInt16>    = "WInt16";
     template<> constexpr const char * TypeName<Knoodle::WInt32>    = "WInt32";
     template<> constexpr const char * TypeName<Knoodle::WInt64>    = "WInt64";
@@ -617,6 +630,7 @@ namespace Tools
         constexpr bool ComplexQ<Knoodle::WideInt<limb_count,Limb_T,Comp_T,signQ>> = false;
     }
     
+    // TODO: We need to make this work also for general WideInts.
     // String generator to make it work with OutString.
     template<> struct ToChars<Knoodle::WInt128>
     {
@@ -642,6 +656,7 @@ namespace Tools
         }
     };
     
+    // TODO: We need to make this work also for general WideInts.
     // String generator to make it work with OutString.
     template<> struct ToChars<Knoodle::WInt256>
     {
@@ -673,7 +688,10 @@ namespace Tools
 namespace Knoodle
 {
     // If `Int128` is available, we can circumvent a lot of sign tiddling by using it directly for `long_fma`, `long_mul`, and `long_det` instread of casting to `WInt64`.
+
+    // TODO: If Int128 is available, then better use Int128 as output type. This should make sure that always the fastest path is chosen because WInt128 is basically and Int128 but with a lot of unnecessary sign twiddling.
     
+    // TODO: Should return Int128.
     TOOLS_FORCE_INLINE constexpr
     WInt128 long_fma( cref<Int64> a, cref<Int64> b, cref<Int64> c )
     {
@@ -687,6 +705,7 @@ namespace Knoodle
         }
     }
     
+    // TODO: Should return Int128.
     TOOLS_FORCE_INLINE constexpr
     WInt128 long_mul( cref<Int64> a, cref<Int64> b )
     {
@@ -700,6 +719,7 @@ namespace Knoodle
         }
     }
     
+    // TODO: Should return Int128.
     TOOLS_FORCE_INLINE constexpr
     WInt128 long_det( cref<Int64> a, cref<Int64> b, cref<Int64> c, cref<Int64> d )
     {
@@ -714,24 +734,52 @@ namespace Knoodle
     }
 
     
-    // Since `Int64` is available on modern system, we can circumvent a lot of sign tiddling by using it directly for `long_fma`, `long_mul`, and `long_det` instread of casting to `WInt32`.
-
+    // Since `Int64` is available on modern system, we can circumvent a lot of sign twiddling by using it directly for `long_fma`, `long_mul`, and `long_det` instread of casting to `WInt32`.
+    
+    // TODO: Should return Int64.
     TOOLS_FORCE_INLINE constexpr
     WInt64 long_fma( cref<Int32> a, cref<Int32> b, cref<Int32> c )
     {
         return WInt64{ Int64{a} * Int64{b} + Int64{c} };
     }
     
+    // TODO: Should return Int64.
     TOOLS_FORCE_INLINE constexpr
     WInt64 long_mul( cref<Int32> a, cref<Int32> b )
     {
         return WInt64{ Int64{a} * Int64{b} };
     }
     
+    // TODO: Should return Int64.
     TOOLS_FORCE_INLINE constexpr
     WInt64 long_det( cref<Int32> a, cref<Int32> b, cref<Int32> c, cref<Int32> d )
     {
         return WInt64{ Int64{a} * Int64{d} - Int64{b} * Int64{c} };
     }
+    
+
+    // TODO: We also need mixed overloads Int64/Int128.
+    
+#ifdef TOOLS_INT128_AVAILABLE
+    
+    TOOLS_FORCE_INLINE constexpr
+    WInt256 long_fma( cref<Int128> a, cref<Int128> b, cref<Int128> c )
+    {
+        return long_fma( WInt128{a}, WInt128{b}, WInt128{c} );
+    }
+    
+    TOOLS_FORCE_INLINE constexpr
+    WInt256 long_mul( cref<Int128> a, cref<Int128> b )
+    {
+        return long_mul( WInt128{a}, WInt128{b} );
+    }
+    
+    TOOLS_FORCE_INLINE constexpr
+    WInt256 long_det( cref<Int128> a, cref<Int128> b, cref<Int128> c, cref<Int128> d )
+    {
+        return long_det( WInt128{a}, WInt128{b}, WInt128{c}, WInt128{d} );
+    }
+    
+#endif // TOOLS_INT128_AVAILABLE
     
 } // namespace Knoodle

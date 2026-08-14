@@ -2,7 +2,7 @@
 
 namespace Knoodle
 {
-    /*!@brief This data type is mostly intended for reading in 3D vertex coordinates of a _link_, applying a planar projection, and computing the crossings. Then it can be handed over to class `PlanarDiagram` or `PlanarDiagramComplex`.
+    /*!@brief  **INEXACT.** This data type is mostly intended for reading in 3D vertex coordinates of a _link_, applying a planar projection, and computing the crossings. Then it can be handed over to class `PlanarDiagram` or `PlanarDiagramComplex`.
      *
      *  This class's main routine is `RequireIntersections`. It uses a static binary tree, high precision floating-point computations to compute the resulting planar diagram as exactly as possible.
      *

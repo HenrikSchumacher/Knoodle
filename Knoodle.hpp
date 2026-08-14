@@ -48,7 +48,9 @@ namespace Knoodle
 #include "src/LinkEmbedding.hpp"
 #include "src/KnotEmbedding.hpp" // Like LinkEmbedding, only for knots. A bit more efficient this way.
 
-#include "src/LinkEmbedding2.hpp"
+#include "src/LinkEmbedding2.hpp" // Using boost::multiprecision.
+
+#include "src/WideInt.hpp"   // Used in Prosector classes.
 
 #include "src/MultiGraphBase.hpp"
 #include "src/MultiGraph.hpp"
@@ -58,6 +60,8 @@ namespace Knoodle
 
 namespace Knoodle
 {
+    // Forward declarations. Best to keep this list as short as possible.
+    
     template<IntQ Int> class PlanarDiagram;
     template<IntQ Int> class PlanarDiagramComplex;
     template<FloatQ Real, IntQ Int, FloatQ BReal> class Reapr;
@@ -75,9 +79,6 @@ namespace Knoodle
 
 #include "src/KnotInvariants/AlexanderStrandMatrix.hpp"
 #include "src/KnotInvariants/AlexanderFaceMatrix.hpp"
-
-//#include "src/Alexander.hpp"  // Uses my own Cholesky factorization.
-                                // Not favorable compared to Alexander_UMFPACK.hpp
 
 #ifdef KNOODLE_USE_UMFPACK
 #include "src/KnotInvariants/Alexander_UMFPACK.hpp" // Improved version of the former.

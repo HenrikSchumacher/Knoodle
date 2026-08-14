@@ -2,6 +2,7 @@
 
 // Boost: Rather slow, but maybe I missed something.
 #include <boost/multiprecision/cpp_int.hpp>
+
 namespace Tools
 {
     template<> constexpr const char * TypeName<boost::multiprecision::int128_t>  = "Boost_I128";
@@ -13,9 +14,9 @@ namespace Tools
         template<> constexpr bool ComplexQ<boost::multiprecision::int128_t> = false;
     }
     
-    double ToDouble( cref<boost::multiprecision::int128_t> a )
+    double ToDouble( cref<boost::multiprecision::int128_t> number )
     {
-        return static_cast<double>(a);
+        return static_cast<double>(number);
     }
     
     // String generator.
@@ -24,6 +25,14 @@ namespace Tools
         std::stringstream s;
         s << number;
         return s.str();
+    }
+    
+    template<SignedIntQ R = FastInt8>
+    R Sign( cref<boost::multiprecision::int128_t> number )
+    {
+        if( number < 0 ) { return R(-1); }
+        if( number > 0 ) { return R( 1); }
+        return R(0);
     }
 
     // String generator to make it work with OutString.
@@ -61,9 +70,9 @@ namespace Tools
         template<> constexpr bool ComplexQ<boost::multiprecision::int256_t> = false;
     }
     
-    double ToDouble( cref<boost::multiprecision::int256_t> a )
+    double ToDouble( cref<boost::multiprecision::int256_t> number )
     {
-        return static_cast<double>(a);
+        return static_cast<double>(number);
     }
     
     // String generator.
@@ -72,6 +81,14 @@ namespace Tools
         std::stringstream s;
         s << number;
         return s.str();
+    }
+    
+    template<SignedIntQ R = FastInt8>
+    R Sign( cref<boost::multiprecision::int256_t> number )
+    {
+        if( number < 0 ) { return R(-1); }
+        if( number > 0 ) { return R( 1); }
+        return R(0);
     }
     
     // String generator to make it work with OutString.
@@ -100,10 +117,3 @@ namespace Tools
     };
     
 } // namespace Tools
-
-namespace Knoodle
-{
-    
-
-    
-} // namespace Knoodle

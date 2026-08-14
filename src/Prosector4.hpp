@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Prosector4/Types.hpp"
-
 namespace Knoodle
 {
     // https://math.stackexchange.com/a/4498570/447001
@@ -31,6 +29,8 @@ namespace Knoodle
      * @tparam Int_ Signed integral type used for coordinates of points.
      *
      * @tparam Idx_ Integral type used for indices.
+     *
+     * @tparam verboseQ Where to log events more granulary. Only meant for debugging.
      */
     template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false>
     class Prosector4 final
@@ -38,18 +38,6 @@ namespace Knoodle
     public:
         
         static_assert(SameQ<Int_,Int32> || SameQ<Int_,Int64>,"");
-        
-//        static constexpr Size_T bitlength = bitlength_;
-//        static_assert(bitlength <= Size_T(64),"");
-//        
-        
-//        using Int    = std::conditional< bitlength <= Size_T(32), Int32, Int64>;
-//        using LInt   = std::conditional< bitlength <= Size_T(16), Int32,
-//                           std::conditional<bitlength <= Size_T(32), Int64, Int128 >
-//                       >;
-//        using LLInt  = std::conditional< bitlength <= Size_T(16), Int64,
-//                           std::conditional<bitlength <= Size_T(32), Int128, Int256>
-//                       >;
         
         /*!@brief Integral type used for coordinates.*/
         using Int    = Int_;
@@ -62,9 +50,6 @@ namespace Knoodle
         using Sign_T = FastInt8; // Solely for signs.
         
         using Prosector_T = Prosector4<Int,Idx,verboseQ>;
-//        using Vector3_T   = Tiny::Vector<3,Int ,Idx>;
-//        using LVector3_T  = Tiny::Vector<3,LInt,Idx>;
-        
         using Vector3_T   = std::array<Int,3>;
         using LVector3_T  = std::array<LInt,3>;
         
@@ -89,19 +74,22 @@ namespace Knoodle
             }
         }
         
+#include "Prosector/DepressedCubic.hpp"
+#include "Prosector/Helpers.hpp"
+#include "Prosector/DegeneracyChecks.hpp"
         
-#include "Prosector4/DepressedCubic.hpp"
-#include "Prosector4/IntersectionTime.hpp"
-#include "Prosector4/IntersectionTime_Double.hpp"
-#include "Prosector4/IntersectionTime_Hybrid.hpp"
+//#include "Prosector/IntersectionTime.hpp"
+//        using Time_T = IntersectionTime;
         
-        using Time_T = IntersectionTime;
+//#include "Prosector/IntersectionTime_Double.hpp"
 //        using Time_T = IntersectionTime_Double;
-//        using Time_T = IntersectionTime_Hybrid;
         
-//        using Time_T = double;
+#include "Prosector/IntersectionTime_Hybrid.hpp"
+        using Time_T = IntersectionTime_Hybrid;
 
-#include "Prosector4/Intersection.hpp"
+#include "Prosector/Intersection.hpp"
+        
+    public:
         
         // Default constructor
         Prosector4() = default;
@@ -119,9 +107,6 @@ namespace Knoodle
         
     protected:
 
-        Idx k_;
-        Idx l_;
-        
         Vector3_T x_0;
         Vector3_T x_1;
         Vector3_T y_0;
@@ -132,23 +117,11 @@ namespace Knoodle
         Vector3_T p;
         Vector3_T q;
         
-//        LInt uxp_2;
-//        LInt vxq_2;
-        
         DepressedCubic P_0;
         DepressedCubic P_1;
         
-//        LVector3_T pxq;
-//        LVector3_T uxp;
-//        LVector3_T uxq;
-//        LVector3_T vxp;
-//        LVector3_T vxq;
-//        LVector3_T uxv;
-        
-//        Sign_T sign_uxp;
-//        Sign_T sign_uxq;
-//        Sign_T sign_vxp;
-//        Sign_T sign_vxq;
+        Idx k_;
+        Idx l_;
         
         Flag_T flag { Flag_T::Uninitialized };
 
@@ -200,6 +173,16 @@ namespace Knoodle
             //      |/     \|
             //      X------>X
             //  x_0     d     y_0
+            
+            if constexpr ( verboseQ )
+            {
+                logvalprint("first edge",k_);
+                logvalprint("second edge",l_);
+                TOOLS_LOGDUMP(x_0);
+                TOOLS_LOGDUMP(x_1);
+                TOOLS_LOGDUMP(y_0);
+                TOOLS_LOGDUMP(y_1);
+            }
         }
         
         // Somewhat pointless.
@@ -404,14 +387,14 @@ namespace Knoodle
                              + long_mul( p[1], Q.c_3 )
                              + long_mul( p[2], Q.c_0 );
             
-            const Sign_T sign_3 = Sign(det_3);
+            const Sign_T sign_3 = Sign<Sign_T>(det_3);
              
             if( sign_3 == Sign_T(0) )
             {
                 error( MethodName("ComputeIntersection") + ": The line segments " + ToString(k_) + " and " + ToString(l_) + " are coplanar. Moreover, if we arrive here, then `IntersectionType()` has returned `Flag_T::Intersection`. Hence, we have an intersection also in 3D. But `IntersectionType()` should have detected this already and should have returned `Flag_T::Error`. So we should not have come here." );
             }
             
-            const Sign_T sign_2 = Sign(Q);
+            const Sign_T sign_2 = Sign<Sign_T>(Q);
             // sign_2 != Sign_T(0), otherwise sign_3 would be equal to 0, too.
             
             // Det_Perturbed(d,v) == Det_Perturbed(p - v,v) == Det_Perturbed(p,v)
@@ -440,8 +423,6 @@ namespace Knoodle
                 return Intersection{ k_, l_, Time_T{ P_0, Q }, Time_T{ P_1, Q },  sign_2, flag };
             }
         }
-        
-#include "Prosector4/Helpers.hpp"
         
     public:
         

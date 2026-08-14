@@ -2,7 +2,7 @@ public:
 
 /*!@brief This type is used to represent polynomials of the form  `c_0 + c_1 * eps + c_3 * eps * eps * eps`. These appear as numerators and denominators of intersection times with the perturbation technique.
  */
-struct DepressedCubic final
+class DepressedCubic final
 {
 public:
     
@@ -20,16 +20,17 @@ public:
     ,   c_3 { c_3_ }
     {}
     
-    friend Sign_T Sign( cref<DepressedCubic> P)
+    template<typename R = Sign_T>
+    friend R Sign( cref<DepressedCubic> P )
     {
-        Sign_T s;
-        s = Sign(P.c_0);
-        if( s != Sign_T(0) ) { return s; }
-        s = Sign(P.c_1);
-        if( s != Sign_T(0) ) { return s; }
-        s = Sign(P.c_3);
-        if( s != Sign_T(0) ) { return s; }
-        return Sign_T(0);
+        R s;
+        s = Sign<R>(P.c_0);
+        if( s != R(0) ) { return s; }
+        s = Sign<R>(P.c_1);
+        if( s != R(0) ) { return s; }
+        s = Sign<R>(P.c_3);
+        if( s != R(0) ) { return s; }
+        return R(0);
     }
     
     friend DepressedCubic operator+( cref<DepressedCubic> P, cref<DepressedCubic> Q )
@@ -47,24 +48,25 @@ public:
         return DepressedCubic{ -P.c_0, -P.c_1, -P.c_3 };
     }
     
-    
     friend double ToDouble( cref<DepressedCubic> P )
     {
-        return ToDouble(P.c_0);
+        
+        if constexpr ( std::is_convertible<LInt,double>::value )
+        {
+            return static_cast<double>(P.c_0);
+        }
+        else
+        {
+            using Tools::ToDouble;
+            return ToDouble(P.c_0);
+        }
     }
     
     friend std::string ToString( cref<DepressedCubic> P )
     {
-        std::string s ("DepressedCubic{ ");
-        
-        s+= ToString(P.c_0);
-        s+= ", ";
-        s+= ToString(P.c_1);
-        s+= ", ";
-        s+= ToString(P.c_3);
-        s+= " }";
-
-        return s;
+        std::stringstream s;
+        s << "DepressedCubic{ " << P.c_0 << ", " << P.c_1 << ", " << P.c_3 << " }";
+        return s.str();
     }
     
 }; // class DepressedCubic

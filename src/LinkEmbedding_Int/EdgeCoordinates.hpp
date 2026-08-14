@@ -53,22 +53,6 @@ private:
             edge_coords = EContainer_T(edge_count);
         }
         
-        // TODO: Eventually, we need several versions:
-        
-        // IReal is always an integral type.
-        
-        // Case 1. `Real` is a floating-point type
-        //   Case 1 a) use scaling + rounding
-        //   Case 1 b) just round (but do this only if all inputs are integers.
-        // Case 2. `Real` is am integral type
-        //   Then we can simply copy.
-        
-        // Let's handle only case 1.2.a) for now.
-        static_assert( FloatQ<Real>, "" );
-        static_assert( SignedIntQ<IReal>, "" );
-        
-        const Real length = Max( Abs(global_lo.Max()), Abs(global_hi.Max()) );
-        
         constexpr int n = sizeof(IReal) * CHAR_BIT;
         constexpr int k = 4;
         constexpr int m = n - k;
@@ -95,7 +79,7 @@ private:
          *  So `k >= 1` should be sufficient for this and for any bit count `n`.
          */
         
-        scaling_exponent = m - static_cast<int>(std::ceil(std::log2(length)));
+        scaling_exponent = m - static_cast<int>(std::ceil(std::log2(MaxModulus())));
         
         // Scaling by a power of 2 does not incur any rounding, execept we have excessively small numbers here.
         scaling_factor = std::pow(Real(2),scaling_exponent);
@@ -110,6 +94,8 @@ private:
         
         // We may omit scaling in the floating-point case only if the inputs are integer values and not too big.
         bool scaleQ = !(input_integralQ && (scaling_exponent >= 0));
+        
+        // This should work also if `Real` is an integral type.
         
         auto read = [&x,&y,&z,&err,scaleQ,this](
             const Int j, mptr<IReal> target_i, mptr<IReal> target_j

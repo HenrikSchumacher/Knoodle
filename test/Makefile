@@ -168,7 +168,7 @@ link_split_check: link_split_check.cpp link_alexander.hpp homfly_invariance.hpp 
 EMBEDDING_SRC_DEPS = ../src/LinkEmbedding.hpp  ../src/LinkEmbedding2.hpp \
                      ../src/LinkEmbedding3.hpp ../src/LinkEmbedding4.hpp \
                      ../src/Prosector2.hpp ../src/Prosector3.hpp \
-                     ../src/Prosector4.hpp  ../src/Prosector4_a.hpp \
+                     ../src/Prosector4.hpp  ../src/Prosector4a.hpp \
                      ../src/PlanarDiagram/FromEmbeddings.hpp
 
 embedding_check: embedding_check.cpp embedding_fixtures.hpp link_alexander.hpp \

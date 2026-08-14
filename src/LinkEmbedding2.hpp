@@ -103,7 +103,6 @@ namespace Knoodle
         
         VContainer_T vertex_coords;
         EContainer_T edge_coords;
-        Tensor1<bool,Int> edge_degenerateQ;
         BContainer_T box_coords;
         
         // Containers that might have to be reallocated after calls to ReadVertexCoordinates.
@@ -119,6 +118,7 @@ namespace Knoodle
         
         Real scaling_factor           = 1;
         Real rounding_error           = 0;
+        Real max_modulus              = 0;
         Int  intersection_count       = 0;
         Int  intersection_count_3D    = 0;
         
@@ -161,8 +161,8 @@ namespace Knoodle
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         template<IntQ I_0, IntQ I_1>
         LinkEmbedding2(
-                       cptr<I_0> edges_, cptr<I_0> edges_colors_, const I_1 edge_count_
-                       )
+           cptr<I_0> edges_, cptr<I_0> edges_colors_, const I_1 edge_count_
+        )
         :   Base_T        { edges_, edges_colors_, int_cast<Int>(edge_count_) }
         ,   vertex_coords { edge_count                                        }
         {}
@@ -170,28 +170,19 @@ namespace Knoodle
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
         template<IntQ I_0, IntQ I_1>
         LinkEmbedding2(
-                       cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, cptr<I_0> edges_colors_, const I_1 edge_count_
-                       )
+            cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, cptr<I_0> edges_colors_, const I_1 edge_count_
+        )
         :   Base_T        { edge_tails_, edge_tips_, edges_colors_, edge_count_ }
         ,   vertex_coords { edge_count                                          }
         {}
-        
-        
-    private:
-        
-        bool EdgesNeedCheckQ( const Int k, const Int l )
-        {
-            // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
-            return (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) && !edge_degenerateQ[k] && !edge_degenerateQ[l];
-        }
 
-#include "LinkEmbedding2/Helpers.hpp"
-#include "LinkEmbedding2/ToFile.hpp"
-#include "LinkEmbedding2/FromFile.hpp"
-#include "LinkEmbedding2/VertexCoordinates.hpp"
-#include "LinkEmbedding2/EdgeCoordinates.hpp"
-#include "LinkEmbedding2/BoundingBoxes.hpp"
-#include "LinkEmbedding2/Intersections.hpp"
+#include "LinkEmbedding_Int/Helpers.hpp"
+#include "LinkEmbedding_Int/ToFile.hpp"
+#include "LinkEmbedding_Int/FromFile.hpp"
+#include "LinkEmbedding_Int/VertexCoordinates.hpp"
+#include "LinkEmbedding_Int/EdgeCoordinates.hpp"
+#include "LinkEmbedding_Int/BoundingBoxes.hpp"
+#include "LinkEmbedding_Int/Intersections.hpp"
 
     public:
 

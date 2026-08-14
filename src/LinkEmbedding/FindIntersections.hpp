@@ -120,93 +120,100 @@ public:
         }
         
         intersection_count = int_cast<Int>(intersections.size());
-
-        // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
-        edge_ctr.template RequireSize<false>( edge_ptr.Size() );
-        edge_ctr.Read( edge_ptr.data() );
-        
-        if( edge_intersections.Size() != edge_ptr.Last() )
         {
-            edge_intersections = Tensor1<Int, Size_T>( edge_ptr.Last() );
-            edge_times         = Tensor1<Real,Size_T>( edge_ptr.Last() );
-            edge_state         = Tensor1<Int8,Size_T>( edge_ptr.Last() );
-        }
-
-        // We are going to fill edge_intersections so that data of the i-th edge lies in edge_intersections[edge_ptr[i]],..,edge_intersections[edge_ptr[i+1]].
-        // To this end, we use (and modify!) edge_ctr so that edge_ctr[i] points AFTER the position to insert.
-        
-        if( intersection_count <= Int(0) ) { return 0; }
-        
-        for( Int k = intersection_count; k --> Int(0);  )
-        {
-            Intersection_T & inter = intersections[static_cast<Size_T>(k)];
+            TOOLS_PTIMER(sort_timer, tag() + ": coarse sorting.");
             
-            // We have to write BEFORE the positions specified by edge_ctr (and decrease it for the next write;
-
-            const Int pos_0 = --edge_ctr[inter.edges[0]+1];
-            const Int pos_1 = --edge_ctr[inter.edges[1]+1];
-
-            edge_intersections[pos_0] = k;
-            edge_times        [pos_0] = inter.times[0];
-            edge_state        [pos_0] = static_cast<Int8>(inter.handedness << 1) | 1;
-
-            edge_intersections[pos_1] = k;
-            edge_times        [pos_1] = inter.times[1];
-            edge_state        [pos_1] = static_cast<Int8>(inter.handedness << 1) | 0;
+            // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
+            edge_ctr.template RequireSize<false>( edge_ptr.Size() );
+            edge_ctr.Read( edge_ptr.data() );
+            
+            if( edge_intersections.Size() != edge_ptr.Last() )
+            {
+                edge_intersections = Tensor1<Int, Size_T>( edge_ptr.Last() );
+                edge_times         = Tensor1<Real,Size_T>( edge_ptr.Last() );
+                edge_state         = Tensor1<Int8,Size_T>( edge_ptr.Last() );
+            }
+            
+            // We are going to fill edge_intersections so that data of the i-th edge lies in edge_intersections[edge_ptr[i]],..,edge_intersections[edge_ptr[i+1]].
+            // To this end, we use (and modify!) edge_ctr so that edge_ctr[i] points AFTER the position to insert.
+            
+            if( intersection_count <= Int(0) ) { return 0; }
+            
+            for( Int k = intersection_count; k --> Int(0);  )
+            {
+                Intersection_T & inter = intersections[static_cast<Size_T>(k)];
+                
+                // We have to write BEFORE the positions specified by edge_ctr (and decrease it for the next write;
+                
+                const Int pos_0 = --edge_ctr[inter.edges[0]+1];
+                const Int pos_1 = --edge_ctr[inter.edges[1]+1];
+                
+                edge_intersections[pos_0] = k;
+                edge_times        [pos_0] = inter.times[0];
+                edge_state        [pos_0] = static_cast<Int8>(inter.handedness << 1) | 1;
+                
+                edge_intersections[pos_1] = k;
+                edge_times        [pos_1] = inter.times[1];
+                edge_state        [pos_1] = static_cast<Int8>(inter.handedness << 1) | 0;
+            }
+            
+            // We don't need this anymore.
+            intersections = std::vector<Intersection_T>();
         }
-        
-        // We don't need this anymore.
-        intersections = std::vector<Intersection_T>();
-
-        // Sort intersections edgewise w.r.t. edge_times.
-        ThreeArraySort<Real,Int,Int8,Int> sort ( intersection_count );
         
         Size_T close_counter = 0;
         
-        for( Int i = 0; i < edge_count; ++i )
         {
-            // This is the range of data in edge_intersections/edge_times that belongs to edge i.
-            const Int k_begin = edge_ptr[i  ];
-            const Int k_end   = edge_ptr[i+1];
-                 
-            // We need to sort only if there are at least two intersections on that edge.
-            if( k_begin + Int(1) < k_end )
+            TOOLS_PTIMER(sort_timer, tag() + ": fine sorting.");
+
+            // Sort intersections edgewise w.r.t. edge_times.
+            ThreeArraySort<Real,Int,Int8,Int> sort ( intersection_count );
+            
+            for( Int i = 0; i < edge_count; ++i )
             {
-                sort(
-                    &edge_times[k_begin],
-                    &edge_intersections[k_begin],
-                    &edge_state[k_begin],
-                    k_end - k_begin
-                );
-                
-                constexpr Real intersection_time_tolerance = 0.000000000001;
-                
-                for( Int l = k_begin + Int(1); l < k_end; ++l )
+                // This is the range of data in edge_intersections/edge_times that belongs to edge i.
+                const Int k_begin = edge_ptr[i  ];
+                const Int k_end   = edge_ptr[i+1];
+                     
+                // We need to sort only if there are at least two intersections on that edge.
+                if( k_begin + Int(1) < k_end )
                 {
-                    const Real delta = edge_times[l] - edge_times[l-1];
+                    sort(
+                        &edge_times[k_begin],
+                        &edge_intersections[k_begin],
+                        &edge_state[k_begin],
+                        k_end - k_begin
+                    );
                     
-                    if( delta < intersection_time_tolerance )
+                    constexpr Real intersection_time_tolerance = 0.000000000001;
+                    
+                    for( Int l = k_begin + Int(1); l < k_end; ++l )
                     {
-                        ++close_counter;
+                        const Real delta = edge_times[l] - edge_times[l-1];
                         
-                        // TODO: For the moment we _want_ to see this warning.
-                        // TODO: On the long run we need a more precise detector for the ordering of the intersection times.
-                        
-//                        if constexpr ( verboseQ )
-//                        {
-                            auto inter_0 = intersections[
-                                static_cast<Size_T>(edge_intersections[l-1])
-                            ];
-                            auto inter_1 = intersections[
-                                static_cast<Size_T>(edge_intersections[l  ])
-                            ];
+                        if( delta < intersection_time_tolerance )
+                        {
+                            ++close_counter;
                             
-                            const Int j_0 = (inter_0.edges[0] == i) ? inter_0.edges[1] : inter_0.edges[0];
+                            // TODO: For the moment we _want_ to see this warning.
+                            // TODO: On the long run we need a more precise detector for the ordering of the intersection times.
                             
-                            const Int j_1 = (inter_1.edges[0] == i) ? inter_1.edges[1] : inter_1.edges[0];
-                            
-                            wprint(tag() + ": Detected tiny difference of intersection times = " + ToString(delta) + " < " + ToString(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + ((edge_state[l-1] & 1) ? "over" : "under") + ") and " + ToString(j_1) + " (" + ((edge_state[l] & 1) ? "over" : "under") + ")." );
-//                        }
+    //                        if constexpr ( verboseQ )
+    //                        {
+                                auto inter_0 = intersections[
+                                    static_cast<Size_T>(edge_intersections[l-1])
+                                ];
+                                auto inter_1 = intersections[
+                                    static_cast<Size_T>(edge_intersections[l  ])
+                                ];
+                                
+                                const Int j_0 = (inter_0.edges[0] == i) ? inter_0.edges[1] : inter_0.edges[0];
+                                
+                                const Int j_1 = (inter_1.edges[0] == i) ? inter_1.edges[1] : inter_1.edges[0];
+                                
+                                wprint(tag() + ": Detected tiny difference of intersection times = " + ToString(delta) + " < " + ToString(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + ((edge_state[l-1] & 1) ? "over" : "under") + ") and " + ToString(j_1) + " (" + ((edge_state[l] & 1) ? "over" : "under") + ")." );
+    //                        }
+                        }
                     }
                 }
             }

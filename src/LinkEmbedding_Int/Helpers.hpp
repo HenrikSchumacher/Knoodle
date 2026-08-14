@@ -18,22 +18,41 @@ bool ValidQ() const
     return (component_ptr.Size() >= Int(2));
 }
 
-/*!@brief Return the scaling factor that was used the last time we computed the integer edge coordinates. Defaults to `1`.*/
+/*!@brief The maximum modulus of all vertex coordinates. Used for computing `RelativeRoundingError.`*/
+Real MaxModulus() const
+{
+    return max_modulus;
+}
+
+/*!@brief Return the scaling factor that was used the last time integer edge coordinates were computed. Defaults to `1`.*/
 Real ScalingFactor() const
 {
     return scaling_factor;
 }
 
-/*!@brief Return the scaling exponent that was used the last time we computed the integer edge coordinates. Defaults to `0`.*/
+/*!@brief Return the scaling exponent that was used the last time integer edge coordinates were computed. Defaults to `0`.*/
 int ScalingExponent() const
 {
     return scaling_exponent;
 }
 
-/*!@brief Return the maximum absolute roundin that occurred the last time we computed the integer edge coordinates. Defaults to `0`.*/
+/*!@brief Return the maximum absolute rounding that occurred the last time integer edge coordinates were computed. Defaults to `0`.*/
 Real RoundingError() const
 {
     return rounding_error;
+}
+
+/*!@brief Return the maximum relative rounding that occurred the last time integer edge coordinates were computed. Defaults to `0`.*/
+Real RelativeRoundingError() const
+{
+    if constexpr ( FloatQ<Real> )
+    {
+        return (rounding_error * scaling_factor) / max_modulus;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 /*!@brief Set the transformation matrix currently used by `ReadVertexCoordinates` and `WriteVertexCoordinates`.*/

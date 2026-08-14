@@ -24,6 +24,7 @@ namespace Knoodle
         return ToUnderlying(f) >= Underlying_T<LineSegmentsIntersectionFlag>(2);
     }
     
+    /*!@brief **INEXACT.** */
     template<FloatQ Real_,IntQ Int_>
     class PlanarLineSegmentIntersector final
     {
