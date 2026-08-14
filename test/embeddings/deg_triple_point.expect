@@ -7,12 +7,3 @@ multiple_points      == 1
 max_point_multiplicity == 3
 transversal          >= 3
 spatial              == 0
-
-# KNOWN CRASH (2026-08-13), LinkEmbedding only. RequireIntersections segfaults
-# when three segments project through one common point. Bisected on this
-# fixture: moving any one of the three concurrent edges off the origin makes it
-# complete normally, and widening the z-separation does not help, so the trigger
-# is the concurrency itself and not a near-tie in depth. LinkEmbedding2/3/4
-# resolve it correctly (6 crossings, matching the explicit shear). Under
-# --isolate this is scored; otherwise it is skipped to keep the run alive.
-xcrash_invariant = 1 | segfault in LinkEmbedding::RequireIntersections on a triple point
