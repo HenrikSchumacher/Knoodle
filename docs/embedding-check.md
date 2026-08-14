@@ -331,12 +331,28 @@ Eight hand-built curves, one degeneracy each, small enough to read:
 | `deg_zero_length` | a zero-length edge, on top of a corner-corner |
 | `deg_triple_point` | three non-adjacent segments concurrent at one point |
 | `deg_hopf_flat` | 2-component link; one component projects to a segment |
+| `arc_trefoil` | the trefoil in **arc presentation**: every crossing on the binding axis |
 
 `deg_hopf_flat` is the one whose type is fixed by construction rather than by
 computation: component 1's vertical edge at (2,2) pierces the disk bounded by the square
 component 0 exactly once, so it is a Hopf link. The others' types are established by the
 test's own generic-projection comparison, which is self-validating and does not need
 them known in advance.
+
+`arc_trefoil` is the one worth singling out, because it is not hand-crafted spite —
+it is the shape of the **petaluma random-knot model**, so it is what a generator in the
+wild hands to Knoodle. The z-axis is the binding and every arc lies in one half-plane
+through it, so *all* the binding points project to the origin, every vertical segment
+projects to a point, and each arc's outbound and return segments project onto exactly
+the same segment. The naive projection has **no transversal crossings at all** — it is
+five doubled rays through one point, and every crossing in the answer is manufactured by
+the symbolic perturbation.
+
+It works, and that is the demo: `LinkEmbedding2/3/4` recover 8 crossings, agree
+crossing-for-crossing, and the exact-shear oracle confirms them independently (stable at
+`N = 8`, every class, every coordinate type). They simplify to the left-handed trefoil.
+`LinkEmbedding` refuses with error code 9, which is correct and needs no marker.
+`make_arc_presentation.py` emits more from any grid diagram.
 
 Plus six closed Hamiltonian cycles on the `k³` cubic lattice, `k = 4 … 16`, from
 `ndmansfield -record-loops` (provenance and exact seeds in `test/embeddings/README`).

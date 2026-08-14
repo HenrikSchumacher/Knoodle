@@ -64,6 +64,41 @@ spelled out in the `.expect` file:
 computation: component 1's vertical edge at (2,2) pierces the disk bounded by
 the square component 0 exactly once, so it is a Hopf link.
 
+Arc-presentation fixtures (`arc_*`)
+-----------------------------------
+
+  arc_trefoil             the trefoil in open-book form, arc index 5
+
+The z-axis is the binding and every arc lies in one half-plane through it,
+running (0,0,z) -> (a,b,z) -> (a,b,z1) -> (0,0,z1). Projected down z that is
+about as bad as a projection gets:
+
+  * all n binding points land on the origin, so 2n radial segments corner there
+    (max_point_multiplicity = 10 for arc_trefoil, against 6 for the worst
+    hand-built fixture);
+  * every vertical segment projects to a point;
+  * each arc's outbound and return segments project onto EXACTLY the same
+    segment -- a complete collinear overlap of two non-adjacent edges, where
+    deg_collinear_overlap only manages a partial one.
+
+There are no transversal crossings at all in the naive projection: it is n
+doubled rays through one point. Every crossing in the answer is manufactured by
+the symbolic perturbation, and the exact-shear tier then confirms it
+independently -- 8 crossings, stable at N = 8, for all three classes and all
+three coordinate types, simplifying to the left-handed trefoil.
+
+This is not a contrived shape: it is the form of the petaluma random-knot
+model, so a generator in the wild will hand exactly this to Knoodle.
+
+`make_arc_presentation.py` emits them from a grid diagram (an arc presentation
+and a grid diagram are the same object). arc_trefoil is
+
+    ./make_arc_presentation.py --name arc_trefoil \
+        --xs 0,1,2,3,4 --os 2,3,4,0,1 > arc_trefoil.crd
+
+which reproduces the committed file byte for byte. Give it any X/O permutation
+pair to add more; it refuses grids whose arcs do not close into one component.
+
 Lattice fixtures (`lattice_NN`)
 -------------------------------
 
