@@ -13,7 +13,9 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( mref<KnotEmbedding<Re
 
     Tensor1<Int,Int> comp_color(Int(1),Int(0));
     
-    if( K.RequireIntersections() )
+    const int err = K.RequireIntersections();
+
+    if( err != 0 )
     {
         eprint(MethodName("FromKnotEmbedding") + "("+Knot_T::ClassName()+"): RequireIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
