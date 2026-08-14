@@ -23,8 +23,8 @@ reader does not accept them.
     <census-key> >=  n        lower bound required
     knot   = ...              documentation only
     note   = ...              documentation only
-    xfail_<tier>  = [classes |] reason
-    xcrash_<tier> = [classes |] reason
+    xfail_<tier>  = [classes] [@coords] [|] reason
+    xcrash_<tier> = [classes] [@coords] [|] reason
 
 Census keys are the fields of `Census` in ../embedding_fixtures.hpp:
 `zero_length_edges`, `vertical_edges`, `coincident_vertices`, `vertex_on_edge`,
@@ -41,7 +41,18 @@ fixture containing one would make a correct error return look like a failure.
 
 `xfail_<tier>` marks a known wrong answer, `xcrash_<tier>` a known crash. Both
 take an optional comma-separated class list before a `|`, so a defect can be
-scoped to the classes that actually have it. Both are checked in both
+scoped to the classes that actually have it, and an optional `@` list of
+coordinate tags (`f64`, `f32`, `i64`, `i32`) so it can be scoped to the
+coordinate types that have it. The two are independent, and a tier may carry
+several markers whose scopes are disjoint:
+
+    xcrash_rotation = 2,3,4 @i64     | ...aborts here...
+    xfail_rotation  = 2,3,4 @f64,f32 | ...merely wrong here...
+
+deg_stacked_points is why: one root cause crashes under integral coordinates,
+where the generic image is a unimodular integer matrix that preserves the
+degenerate configuration, and merely fails under floating point, where a random
+rotation separates the two points before the library ever pairs them. Both are checked in both
 directions: if a marked check starts passing, that is reported as an XPASS
 failure so the stale marker gets removed rather than masking a later regression.
 
@@ -63,6 +74,30 @@ spelled out in the `.expect` file:
 `deg_hopf_flat` is the one whose type is fixed by construction rather than by
 computation: component 1's vertical edge at (2,2) pierces the disk bounded by
 the square component 0 exactly once, so it is a Hopf link.
+
+Split and stacked fixtures
+--------------------------
+
+  split_lattice           two disjoint lattice knots; a split diagram
+  deg_stacked_points      two distinct zero-length edges sharing a projected point
+
+`split_lattice` is two copies of lattice_04 with the second translated by
+(20,0,0), far enough that the projections do not meet. LinkEmbedding2/3/4
+recover 38 crossings, which is 19 + 19 exactly -- the per-component counts with
+nothing between them. That equality is the check worth having: a backend that
+leaked a crossing between two components, or lost one, would break it while
+still producing a perfectly legal diagram. It also drives the split-link paths
+no other lattice fixture reaches (HOMFLY through union-find decomposition and
+the delta rule; the Alexander |det| correctly declining a split diagram).
+
+`deg_stacked_points` is eight vertices that ABORT LinkEmbedding2/3/4 --
+upstream issue 11, marked xcrash so the suite tracks it. Two zero-length edges
+at the same projected point and different heights are two distinct points of
+3-space; they do not intersect, but any two points are collinear, so
+`Prosector::LinesColinearTest` is reached with both segments degenerate and its
+closing assertions demand that they coincide. It was found on two lattice knots
+1e16 apart, where f64 rounding manufactures exactly this, and reduced to eight
+vertices of small integers.
 
 Arc-presentation fixtures (`arc_*`)
 -----------------------------------

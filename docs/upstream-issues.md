@@ -11,6 +11,7 @@ standalone reproducers, not through a test harness:
 
 | # | issue | status |
 | --- | --- | --- |
+| 11 | `LinesColinearTest` asserts that two distinct degenerate segments coincide | **open — aborts** |
 | 10 | `LinkEmbedding3/4` class docs promise a path into `PlanarDiagram` that is not built yet | **docs ahead of code**, not a defect |
 | 9 | `Transform` does not invalidate its caches | fixed — `8db4cdc4` |
 | 8 | `FromInString` aborts on every input | fixed — `8db4cdc4` |
@@ -21,6 +22,75 @@ standalone reproducers, not through a test harness:
 | 3 | integral `Real_` documented but unimplemented | fixed — `4d2d0624` |
 | 2 | `Alexander` single-value overload takes outputs by value | fixed upstream |
 | 1 | `FromUnsignedPDCode` not migrated to `FromPDCode<targs>` | fixed upstream |
+
+## 11. `Prosector::LinesColinearTest` aborts on two distinct degenerate segments
+
+**Status:** confirmed 2026-08-14, `dev_prosector` @ `56807ba3`.
+**Severity:** high — an `assert` takes the process down on legal `double`
+input, where the documented contract is to return an error code.
+
+`src/Prosector/DegeneracyChecks.hpp:97`. The function's stated precondition is
+only *"the two lines are colinear"*. Its loop `continue`s when both segments
+are degenerate in coordinate `k`, so if both are degenerate in all three it
+falls through to:
+
+```cpp
+assert(x_0[0] == y_0[0]);
+assert(x_0[1] == y_0[1]);
+assert(x_0[2] == y_0[2]);      // <-- fires
+...
+// If we arrive here, then both intervals are degenerate and colinear. So their
+// intersection is one point, namely `x_0 == x_1 == y_0 == y_1`.
+return true;
+```
+
+Two *distinct* points are trivially collinear, so the precondition permits them
+and the conclusion does not follow. Both the assertion and the `return true`
+below it are wrong: two distinct points do not intersect, so the answer is
+`false`.
+
+The pair reaches the test whenever the two degenerate segments share a
+**projected** point and differ in height — the broad phase keeps them, and then
+all three coordinates compare equal-within-each-segment.
+
+### Repro
+
+Eight vertices, plain `double`, all small integers:
+
+```
+0 0 0   4 0 0   4 0 0   4 4 0   4 4 5   4 0 5   4 0 5   0 0 5
+        ^^^^^^^^^^^^^                   ^^^^^^^^^^^^^
+        zero-length at (4,0,0)          zero-length at (4,0,5)
+```
+
+Feed that to `LinkEmbedding2<double,int64_t,int64_t>::RequireIntersections`:
+
+```
+Assertion failed: (x_0[2] == y_0[2]), function LinesColinearTest,
+file DegeneracyChecks.hpp, line 97.
+```
+
+Committed as `test/embeddings/deg_stacked_points.crd`, with `xcrash` markers so
+the suite tracks it and announces its own fix.
+
+### Why it matters more than it looks
+
+**One root cause behind three symptoms.** It is also what aborts (a) two lattice
+knots separated by 1e16, where `f64` rounding (ULP = 2 at that scale) collapses
+vertices into zero-length edges, and (b) integral coordinates transformed by a
+truncated rotation matrix. Neither looked like the same bug.
+
+**Not reachable from the CLI today**, because `tools/knoodle_io.hpp:58` still
+binds `LinkEmb_T = LinkEmbedding<Real,Int,float>` — the float class, which
+handles this gracefully (the tools report library errors and exit 1, as
+designed). It is reachable now by any direct user of `LinkEmbedding2/3/4`,
+which their class docs invite, and it **blocks the switchover** those classes
+are headed for: the day that binding changes, this becomes a user-facing abort
+on legal `double` input.
+
+**Suggested fix:** return `false` instead of asserting. Two degenerate segments
+intersect iff they are the same point, which the existing code can test
+directly.
 
 ## 10. `LinkEmbedding3`/`LinkEmbedding4` docs promise a `PlanarDiagram` path that is not built yet
 

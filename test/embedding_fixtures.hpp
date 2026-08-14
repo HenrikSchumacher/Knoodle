@@ -1112,12 +1112,22 @@ struct Expectation
 ///     xfail_exact = 2,3,4 | reason         (only LinkEmbedding2/3/4)
 struct Marker
 {
-    std::set<int> classes;    ///< empty = applies to every class
-    std::string   reason;
+    std::set<int>         classes;  ///< empty = applies to every class
+    std::set<std::string> coords;   ///< empty = applies to every coordinate type
+    std::string           reason;
 
-    bool AppliesTo( int cls ) const
+    /// A defect can be specific to a coordinate type as well as to a class, and
+    /// the two are independent. deg_stacked_points is the case that forced this:
+    /// the same root cause (upstream issue 11) CRASHES the rotation tier under
+    /// i64, where the generic image is a unimodular integer matrix that
+    /// preserves the degenerate configuration, but merely FAILS under f64,
+    /// where a random rotation separates the two points before the library ever
+    /// pairs them. One class list cannot say both.
+    bool AppliesTo( int cls, const std::string & coord_tag ) const
     {
-        return classes.empty() || classes.count(cls) > 0;
+        if( !classes.empty() && classes.count(cls) == 0 )      { return false; }
+        if( !coords.empty()  && coords.count(coord_tag) == 0 ) { return false; }
+        return true;
     }
 };
 
@@ -1149,32 +1159,36 @@ struct Expectations
 
     static std::string FirstApplicable(
         const std::map<std::string,std::vector<Marker>> & m,
-        const std::string & tier, int cls )
+        const std::string & tier, int cls, const std::string & coord_tag )
     {
         auto it = m.find(tier);
         if( it == m.end() ) { return {}; }
 
         for( const auto & marker : it->second )
         {
-            if( marker.AppliesTo(cls) ) { return marker.reason; }
+            if( marker.AppliesTo(cls,coord_tag) ) { return marker.reason; }
         }
         return {};
     }
 
-    /// The reason this tier is expected to fail for this class, or "".
-    std::string XFail( const std::string & tier, int cls ) const
+    /// The reason this tier is expected to fail here, or "".
+    std::string XFail( const std::string & tier, int cls,
+                       const std::string & coord_tag ) const
     {
-        return FirstApplicable(xfail,tier,cls);
+        return FirstApplicable(xfail,tier,cls,coord_tag);
     }
 
-    /// The reason this tier is expected to crash for this class, or "".
-    std::string XCrash( const std::string & tier, int cls ) const
+    /// The reason this tier is expected to crash here, or "".
+    std::string XCrash( const std::string & tier, int cls,
+                        const std::string & coord_tag ) const
     {
-        return FirstApplicable(xcrash,tier,cls);
+        return FirstApplicable(xcrash,tier,cls,coord_tag);
     }
 };
 
-/// Parse `"2,3,4 | reason"` or plain `"reason"`.
+/// Parse `"2,3,4 | reason"`, `"2,3,4 @i64 | reason"`, `"@f32,f64 | reason"`,
+/// or plain `"reason"`. The class list and the `@` coordinate list are both
+/// optional and both mean "every one of them" when absent.
 inline Marker ParseMarker( const std::string & value )
 {
     Marker m;
@@ -1183,6 +1197,25 @@ inline Marker ParseMarker( const std::string & value )
     if( bar == std::string::npos ) { m.reason = value; return m; }
 
     std::string list = value.substr(0,bar);
+
+    if( const std::size_t at = list.find('@'); at != std::string::npos )
+    {
+        std::string tags = list.substr(at+1);
+        list = list.substr(0,at);
+
+        std::string tag;
+        for( char ch : tags + "," )
+        {
+            if( ch == ',' )
+            {
+                const std::size_t b = tag.find_first_not_of(" \t");
+                const std::size_t e = tag.find_last_not_of(" \t");
+                if( b != std::string::npos ) { m.coords.insert(tag.substr(b,e-b+1)); }
+                tag.clear();
+            }
+            else { tag += ch; }
+        }
+    }
     m.reason = value.substr(bar+1);
 
     const std::size_t b = m.reason.find_first_not_of(" \t");

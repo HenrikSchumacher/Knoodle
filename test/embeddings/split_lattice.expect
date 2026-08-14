@@ -1,0 +1,34 @@
+# TWO LATTICE KNOTS, COMPLETELY DISJOINT. Two copies of lattice_04, the second
+# translated by (20,0,0) -- far enough that the projections do not meet, so this
+# is a genuinely SPLIT diagram, not merely a two-component one.
+#
+# The point is that every degeneracy of a lattice projection is present twice
+# over, in two components that share no crossing. LinkEmbedding2/3/4 recover
+# 38 crossings, which is 19 + 19 exactly: the per-component counts, with nothing
+# between them. That equality is the check worth having -- a backend that let a
+# spurious crossing leak between two components, or that lost one, would break
+# it while still producing a perfectly legal diagram.
+#
+# It also drives the split-link paths that no other lattice fixture reaches:
+# HOMFLY has to go through the union-find decomposition and delta-rule
+# recombination (raw libhomfly segfaults on split input), and the single-variable
+# Alexander |det| fingerprint correctly declines a split diagram rather than
+# returning the ~1e-16 garbage a naive determinant gives.
+#
+# LinkEmbedding refuses it (error code 5, interval degeneracy) exactly as it
+# refuses a single lattice knot. Correct, and needing no marker.
+#
+# Regenerate:
+#   python3 - <<'EOF'
+#   rows=[l.split() for l in open('lattice_04.crd') if l.strip()]
+#   D=20
+#   out=[" ".join(r) for r in rows] + [""] + [f"{int(r[0])+D} {r[1]} {r[2]}" for r in rows]
+#   open('split_lattice.crd','w').write("\n".join(out)+"\n")
+#   EOF
+note = two disjoint lattice knots; a split diagram, 19 + 19 crossings
+knot = split union of two copies of the lattice_04 knot
+
+vertical_edges         == 36
+multiple_points        == 32
+max_point_multiplicity == 8
+spatial                == 0

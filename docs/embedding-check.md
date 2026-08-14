@@ -332,6 +332,8 @@ Eight hand-built curves, one degeneracy each, small enough to read:
 | `deg_triple_point` | three non-adjacent segments concurrent at one point |
 | `deg_hopf_flat` | 2-component link; one component projects to a segment |
 | `arc_trefoil` | the trefoil in **arc presentation**: every crossing on the binding axis |
+| `split_lattice` | two disjoint lattice knots — a split diagram, 19 + 19 crossings |
+| `deg_stacked_points` | two distinct zero-length edges sharing a projected point (aborts) |
 
 `deg_hopf_flat` is the one whose type is fixed by construction rather than by
 computation: component 1's vertical edge at (2,2) pierces the disk bounded by the square
@@ -399,10 +401,13 @@ them to: you delete the line.
 As of `fb4c8f0e` the only markers left are the four zero-length ones in
 `deg_zero_length.expect`; `DEFAULT.expect` carries none.
 
-Markers scope by **class list only** — there is no coordinate-type dimension — so a
-defect that affects `f32` but not `f64` cannot be expressed as one without also masking
-the working case. That is why the code-8 declines are handled in the tier rather than
-marked.
+Markers scope by class list **and**, since 2026-08-14, by coordinate type: an optional
+`@f64,f32` or `@i64` after the class list. A tier may carry several markers with disjoint
+scopes. `deg_stacked_points` forced this — one root cause aborts under `i64`, where the
+generic image is a unimodular integer matrix that preserves the degenerate configuration,
+and merely fails under `f64`, where a random rotation separates the two points first.
+(The code-8 declines are still handled in the tier rather than by a marker, because they
+are correct behaviour rather than a defect.)
 
 ---
 
@@ -738,8 +743,8 @@ is the baseline it has to beat.
 At `fb4c8f0e` plus the i64 switch-on, 2026-08-14:
 
 ```
-./embedding_check             1106 passed, 0 failed, 89 skipped, 42 known-failing
-./embedding_check --isolate   2156 passed, 0 failed, 141 skipped, 60 known-failing
+./embedding_check             1294 passed, 0 failed, 132 skipped, 48 known-failing
+./embedding_check --isolate   2514 passed, 0 failed, 151 skipped, 107 known-failing
 ```
 
 Before integral coordinates and the `symmetry` tier were added, the same tree gave
