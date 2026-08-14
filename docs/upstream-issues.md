@@ -11,6 +11,7 @@ standalone reproducers, not through a test harness:
 
 | # | issue | status |
 | --- | --- | --- |
+| 13 | `IntersectionType()` misses a transversal 3-space intersection; LE2 succeeds silently, LE3/4 throw from an accessor | **FILED — [GH #34](https://github.com/HenrikSchumacher/Knoodle/issues/34)** |
 | 12 | `ArcSimplifier`'s R_IIa is not atomic: on a locked diagram it half-applies and CHANGES THE KNOT | **FILED — [GH #33](https://github.com/HenrikSchumacher/Knoodle/issues/33)** |
 | 11 | `LinesColinearTest` asserts that two distinct degenerate segments coincide | **open — aborts** |
 | 10 | `LinkEmbedding3/4` class docs promise a path into `PlanarDiagram` that is not built yet | **docs ahead of code**, not a defect |
@@ -23,6 +24,39 @@ standalone reproducers, not through a test harness:
 | 3 | integral `Real_` documented but unimplemented | fixed — `4d2d0624` |
 | 2 | `Alexander` single-value overload takes outputs by value | fixed upstream |
 | 1 | `FromUnsignedPDCode` not migrated to `FromPDCode<targs>` | fixed upstream |
+
+## 13. A transversal 3-space intersection is not detected by `IntersectionType()`
+
+**Status:** FILED as [GitHub issue #34](https://github.com/HenrikSchumacher/Knoodle/issues/34)
+on 2026-08-14. No patch proposed; where the check belongs is Henrik's call.
+These are the experimental classes and this is what debugging them looks like,
+so it is recorded rather than escalated.
+
+Four vertices reach it — a quadrilateral whose two non-adjacent edges cross at
+(2,2,0):
+
+```
+0 0 0 / 4 4 0 / 4 0 0 / 0 4 0
+```
+
+`LinkEmbedding2` reports success with `IntersectionCount3D() = 0`, on both
+`main` and `dev_prosector` (the return conventions differ, the answer does not).
+`LinkEmbedding3/4` on `dev_prosector` notice and throw a `std::runtime_error`
+out of `IntersectionCount3D()`, from an internal check that says
+`IntersectionType()` should have returned `Flag_T::Error` and did not.
+
+Detection works for the shared-endpoint shape (`deg_zero_length` is correctly
+reported, code 3); what is missed is a transversal crossing at interior points.
+Not a planarity artifact — a non-flat curve with the same single crossing
+behaves the same.
+
+**The operational point (JHC):** random knot generation will eventually produce
+a curve that genuinely self-intersects, or is numerically indistinguishable from
+one. That path should end in a declined diagram, not an exception out of an
+accessor. `LinkEmbedding2`'s silent success is the other side of it.
+
+Covered by `test/intersection3d_check`, all XFAIL behind one flag so it reports
+XPASS when this changes. `embedding_check` asserts the converse everywhere.
 
 ## 12. `ArcSimplifier` R_IIa half-applies on a locked diagram and changes the knot type
 
