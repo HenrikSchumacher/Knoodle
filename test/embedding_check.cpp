@@ -1197,15 +1197,29 @@ static void TierCross( const std::vector<Fixture> & fx, Coords coords,
 
             if( !built ) { return; }
 
-            // The cross-class tier compares backends pairwise, so a marker on
-            // any participating class applies.
-            std::string xfail = XFailFor(f,"cross",2,ClassName(2,coords));
-            if( xfail.empty() ) { xfail = XFailFor(f,"cross",3,ClassName(3,coords)); }
-            if( xfail.empty() ) { xfail = XFailFor(f,"cross",4,ClassName(4,coords)); }
+            // This tier compares backends PAIRWISE, so a marker has to be
+            // resolved per pair, not once for the whole unit. A defect in one
+            // class must not make the comparisons that exclude it expect
+            // failure -- marking `xfail_cross = 1` once for the unit made
+            // LE2-vs-LE3 and LE3-vs-LE4 XPASS, which is how this was found
+            // (nearmiss_sphere, where only LinkEmbedding fails).
+            auto class_of = []( const char * n ) -> int
+            {
+                // names are "LE1".."LE4"
+                return (n[2] >= '1' && n[2] <= '4') ? (n[2] - '0') : 0;
+            };
 
             auto one = [&]( const char * an, const kt::RunResult & a,
                             const char * bn, const kt::RunResult & b )
             {
+                std::string xfail;
+                for( int cls : { class_of(an), class_of(bn) } )
+                {
+                    if( cls == 0 ) { continue; }
+                    if( xfail.empty() )
+                    { xfail = XFailFor(f,"cross",cls,ClassName(cls,coords)); }
+                }
+
                 const std::string what = "cross " + f.name + tag + " " + an + " vs " + bn;
 
                 if( !a.ok || !b.ok )
