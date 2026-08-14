@@ -22,7 +22,7 @@ void DeactivateCrossing( const Int c_ )
 
 void SwitchCrossing( const Int c_ )
 {
-    (void) pd.SwitchCrossing_Private(c_);
+    (void) pd.template SwitchCrossing_Private<true>(c_);
 }
 
 
