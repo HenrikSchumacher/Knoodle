@@ -73,13 +73,6 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinates( cptr<Real> x, const Ext
     );
 }
 
-template<FloatQ Real, IntQ ExtInt, FloatQ BReal = float>
-[[deprecated("This is somewhat a misnomer. Changed the name to `FromCoordinates`.")]]
-static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( cptr<Real> x, const ExtInt n )
-{
-    return FromCoordinates(x,n);
-}
-
 /*!@brief Construction from `FromLinkEmbedding` object. Returns a planar diagram and the number of unlinks found in the input.
  */
 

@@ -125,8 +125,8 @@ int main()
 //    S.WriteRandomClosedPolygon(
 //        vertex_coordinates.data(), K, true /* = with wrap-around*/
 //    );
-//    // FromKnotEmbedding reads only fromt he first n coordinates. We could also have assembled vertex_coordinates as a n x 3 array and havve called S.WriteRandomClosedPolygon(vertex_coordinates.data(), K, false /* = no wrap-around*/ ).
-//    PDC_T pdc = PDC_T::FromKnotEmbedding ( vertex_coordinates.data(), n );
+//    // FromCoordinates reads only fromt he first n coordinates. We could also have assembled vertex_coordinates as a n x 3 array and havve called S.WriteRandomClosedPolygon(vertex_coordinates.data(), K, false /* = no wrap-around*/ ).
+//    PDC_T pdc = PDC_T::FromCoordinates ( vertex_coordinates.data(), n );
     
     
     const Int component_count = 8;
