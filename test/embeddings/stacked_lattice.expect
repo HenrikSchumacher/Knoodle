@@ -20,10 +20,17 @@
 # THE LINK TYPE IS THE SPLIT UNION, and that is checkable rather than asserted:
 # the copies occupy z in [1,4] and [11,14], so the plane z = 7.5 separates them
 # and they cannot be linked. The computed diagram agrees -- all 50
-# inter-component crossings sum to linking number 0. Note that this is the same
-# link as split_lattice (which reduces to two trefoils, so lattice_04's knot is
-# a trefoil), reached through a 88-crossing diagram instead of a 38-crossing
+# inter-component crossings sum to linking number 0. It is the same link as
+# split_lattice, reached through an 88-crossing diagram instead of a 38-crossing
 # one.
+#
+# lattice_04 is the UNKNOT: HOMFLY = 1, measured on its own 19-crossing diagram
+# with the vendored oracle. So both fixtures are the 2-component unlink, and
+# PlanarDiagramComplex::Simplify takes both to two 0-crossing components with
+# HOMFLY preserved -- verified by calling Simplify directly rather than through
+# the CLI. Getting 88 crossings down to 0 while keeping the components apart is
+# the real work here, and it is worth knowing that the whole 88 is manufactured
+# by the projection rather than by the topology.
 #
 # Regenerate:
 #   python3 - <<'EOF'
@@ -33,7 +40,7 @@
 #   open('stacked_lattice.crd','w').write("\n".join(out)+"\n")
 #   EOF
 note = two identical lattice knots superimposed in projection; 88 crossings, linking number 0
-knot = split union of two copies of the lattice_04 knot (a trefoil)
+knot = 2-component unlink (lattice_04 is unknotted; HOMFLY = 1)
 
 vertical_edges         == 36
 collinear_overlap      == 202
