@@ -140,6 +140,16 @@ klut_e2e: ../test/klut_e2e.cpp ../Knoodle.hpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) ../test/klut_e2e.cpp $(LDFLAGS) -o ../test/klut_e2e
 	@echo "✓ klut_e2e compiled successfully"
 
+# The move-trace record carrier (test/move_trace_check.cpp): both snapshot
+# carriers, the record's parts, and the ways a malformed stream must fail
+# rather than fall back. Self-contained; exit 0 = pass.
+move_trace_check: ../test/move_trace_check.cpp ../Knoodle.hpp ../src/MoveTrace.hpp \
+                  diagram_agreement.hpp
+	@echo "=== Building move_trace_check on $(UNAME_S) ==="
+	@echo "Compiling ../test/move_trace_check.cpp..."
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) ../test/move_trace_check.cpp $(LDFLAGS) -o ../test/move_trace_check
+	@echo "✓ move_trace_check compiled successfully"
+
 # OrthoDecorate regression test (test/orthodecorate_check.cpp): face map,
 # distance transform, portals, multi-face routing. Self-contained; exit 0 = pass.
 orthodecorate_check: ../test/orthodecorate_check.cpp ../Knoodle.hpp ../src/OrthoDecorate.hpp
