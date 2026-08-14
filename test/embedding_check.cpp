@@ -799,8 +799,35 @@ static void RotationCheckOne( const Fixture & f, const std::string & label, int 
         std::vector<double>       gyration;
         std::vector<kt::Fingerprint> prints;
         std::string               failure;
+        std::string               declined;  ///< a legitimate mid-sequence refusal
         LinkClass                 last;
     };
+
+    /// Did the class DECLINE to answer, rather than answer wrongly?
+    ///
+    /// `LinkEmbedding` returns error code 8 when two intersection times along an
+    /// edge come within `intersection_time_tolerance` of each other
+    /// (`src/LinkEmbedding/FindIntersections.hpp`): it cannot order them, so it
+    /// refuses instead of guessing. For some rotations at some precisions that
+    /// ordering is genuinely not well defined -- f32 on the larger lattices hits
+    /// it -- and refusing is the correct behaviour, not a defect. This tier asks
+    /// whether re-aiming makes the knot GROW, and a class that declines to
+    /// answer has not grown anything, so the sequence stops there and the steps
+    /// already collected are still checked.
+    ///
+    /// Only `LinkEmbedding` can produce it. Code 8 belongs to the floating-point
+    /// path, which is the only one that has to order intersection times it
+    /// cannot separate; the `LinkEmbedding_Int` family (2/3/4) computes exactly
+    /// and returns 0 on success or 1/2/3 for "no coordinates", "unknown", and
+    /// "self-intersects in 3-space" (`src/LinkEmbedding_Int/Intersections.hpp`).
+    /// So a refusal from 2/3/4 never looks like a decline here and stays a
+    /// failure -- which is right, since they claim to resolve degeneracies.
+    /// That is why this keys on the code alone and needs no class test.
+    ///
+    /// (Both families return `int` as of `1d8761c7`, which unified a convention
+    /// split that used to have 2/3/4 returning `bool`. If the `_Int` codes ever
+    /// grow an 8, this needs a class test.)
+    auto declined_orderingQ = []( int err ) { return err == 8; };
 
     auto run_fresh = [&]() -> Track
     {
@@ -809,7 +836,16 @@ static void RotationCheckOne( const Fixture & f, const std::string & label, int 
         {
             const kt::Curve c = kt::Rotate(f.curve, 0x5EED5EEDULL + std::uint64_t(k));
             auto r = kt::RunEmbedding<LE_T>(c, /*want_pd=*/(k+1 == steps));
-            if( !r.ok ) { tr.failure = "step " + std::to_string(k) + ": " + r.message; return tr; }
+            if( !r.ok )
+            {
+                if( declined_orderingQ(r.err) )
+                {
+                    tr.declined = "step " + std::to_string(k) + ": " + r.message;
+                    break;
+                }
+                tr.failure = "step " + std::to_string(k) + ": " + r.message;
+                return tr;
+            }
 
             tr.crossings.push_back(r.crossing_count);
             tr.gyration.push_back(kt::RadiusOfGyration(c.v));
@@ -866,6 +902,11 @@ static void RotationCheckOne( const Fixture & f, const std::string & label, int 
             int err = 0;
             if( !kt::RequireIntersectionsOK(L,msg,err) )
             {
+                if( declined_orderingQ(err) )
+                {
+                    tr.declined = "step " + std::to_string(k) + ": " + msg;
+                    break;
+                }
                 tr.failure = "step " + std::to_string(k) + ": " + msg;
                 return tr;
             }
@@ -903,8 +944,26 @@ static void RotationCheckOne( const Fixture & f, const std::string & label, int 
         }
         if( tr.crossings.empty() )
         {
-            t.Skip(what,"no steps ran",verbose);
+            t.Skip(what,
+                   tr.declined.empty()
+                       ? std::string("no steps ran")
+                       : "declined at the first step (" + tr.declined + ")",
+                   verbose);
             return;
+        }
+
+        // Accepted, but say so: a shortened sequence is weaker evidence than a
+        // full one, and a decline that starts happening earlier and earlier is
+        // worth a human noticing even though it is not a failure.
+        if( !tr.declined.empty() )
+        {
+            std::printf("    NOTE  %s\n"
+                        "          declined and was accepted: %s\n"
+                        "          (%lld of %lld steps still checked for growth;"
+                        " knot type not compared)\n",
+                        what.c_str(), tr.declined.c_str(),
+                        static_cast<long long>(tr.crossings.size()),
+                        static_cast<long long>(steps));
         }
 
         // (a) re-aiming must actually re-aim.
@@ -934,8 +993,19 @@ static void RotationCheckOne( const Fixture & f, const std::string & label, int 
             }
         }
 
-        // (b) the knot must be the same one throughout
+        // (b) the knot must be the same one throughout.
+        //
+        // Only a sequence that ran to the end has a final classification: the PD
+        // is built on the last step, so a run that declined earlier (above) has
+        // no `tr.last` to compare and must not be scored on a default-constructed
+        // one -- that reads as "component count 1 vs 0" and is pure artefact.
+        // The growth checks above are the tier's actual claim and still applied.
         std::string why;
+        if( !tr.declined.empty() )
+        {
+            t.Pass(what,verbose);
+            return;
+        }
         if( !SameLink(reference,tr.last,why) )
         {
             if( why.rfind("not comparable",0) == 0 || why.rfind("different oracles",0) == 0 )
