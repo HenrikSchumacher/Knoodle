@@ -24,17 +24,21 @@
 # split_lattice, reached through an 88-crossing diagram instead of a 38-crossing
 # one.
 #
-# lattice_04 is the UNKNOT: HOMFLY = 1 on its own 19-crossing diagram, against
-# the trefoil's -L^-4 - 2L^-2 + L^-2 M^2, measured side by side with the
-# vendored oracle. So both fixtures are the 2-component unlink, and
-# PlanarDiagramComplex::Simplify takes both all the way down: TWO PRIME
-# SUMMANDS, EACH ONE CIRCLE WITH NO CROSSINGS AT ALL -- not two 3-crossing
-# pieces, and not merely two pieces that fail to cross each other. Each
-# component is individually crossingless. HOMFLY is preserved, as it must be.
-# Verified by calling Simplify on the object rather than reading the CLI's
-# text output. Getting 88 crossings down to 0 while keeping the components apart is
-# the real work here, and it is worth knowing that the whole 88 is manufactured
-# by the projection rather than by the topology.
+# lattice_04 IS A TREFOIL. Measured the reliable way: simplify to a 3-crossing
+# diagram and take HOMFLY there, where libhomfly is unimpeachable --
+#     -1 L^-4 + -2 L^-2 + 1 L^-2 M^2
+# which is the trefoil, by two independent routes (lattice_04 alone, and each
+# summand of split_lattice). So both fixtures are the SPLIT UNION OF TWO
+# TREFOILS, not the unlink.
+#
+# CAUTION, PAID FOR TWICE. Calling HomflyOfPossiblySplit on the raw 19-crossing
+# diagram straight out of FromLinkEmbedding returns 1 L^0 M^0 -- the unknot --
+# with ok=1, and SimplifyAndMeasure on the same object reports summands of zero
+# crossings. Both are wrong, both silently. Whether that is the object's state
+# (FromLinkEmbedding output is uncompressed and PDCode's traversal view differs
+# from reading C_arcs directly) or the probe, it is NOT settled, so do not take
+# a knot type off a large diagram straight from FromLinkEmbedding. Simplify
+# first and measure the small diagram.
 #
 # Regenerate:
 #   python3 - <<'EOF'
@@ -44,7 +48,7 @@
 #   open('stacked_lattice.crd','w').write("\n".join(out)+"\n")
 #   EOF
 note = two identical lattice knots superimposed in projection; 88 crossings, linking number 0
-knot = 2-component unlink (lattice_04 is unknotted; HOMFLY = 1)
+knot = split union of two trefoils (lattice_04 is a trefoil)
 
 vertical_edges         == 36
 collinear_overlap      == 202

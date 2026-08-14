@@ -25,9 +25,23 @@
 #   out=[" ".join(r) for r in rows] + [""] + [f"{int(r[0])+D} {r[1]} {r[2]}" for r in rows]
 #   open('split_lattice.crd','w').write("\n".join(out)+"\n")
 #   EOF
+# lattice_04 IS A TREFOIL. Measured the reliable way: simplify to a 3-crossing
+# diagram and take HOMFLY there, where libhomfly is unimpeachable --
+#     -1 L^-4 + -2 L^-2 + 1 L^-2 M^2
+# which is the trefoil, by two independent routes (lattice_04 alone, and each
+# summand of split_lattice). So both fixtures are the SPLIT UNION OF TWO
+# TREFOILS, not the unlink.
+#
+# CAUTION, PAID FOR TWICE. Calling HomflyOfPossiblySplit on the raw 19-crossing
+# diagram straight out of FromLinkEmbedding returns 1 L^0 M^0 -- the unknot --
+# with ok=1, and SimplifyAndMeasure on the same object reports summands of zero
+# crossings. Both are wrong, both silently. Whether that is the object's state
+# (FromLinkEmbedding output is uncompressed and PDCode's traversal view differs
+# from reading C_arcs directly) or the probe, it is NOT settled, so do not take
+# a knot type off a large diagram straight from FromLinkEmbedding. Simplify
+# first and measure the small diagram.
 note = two disjoint lattice knots; a split diagram, 19 + 19 crossings
-knot = 2-component unlink (lattice_04 is unknotted; HOMFLY = 1). Simplify
-#        takes the 38 crossings to two summands of ZERO crossings each.
+knot = split union of two trefoils (lattice_04 is a trefoil)
 
 vertical_edges         == 36
 multiple_points        == 32
