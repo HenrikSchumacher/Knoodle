@@ -25,23 +25,26 @@
 #   out=[" ".join(r) for r in rows] + [""] + [f"{int(r[0])+D} {r[1]} {r[2]}" for r in rows]
 #   open('split_lattice.crd','w').write("\n".join(out)+"\n")
 #   EOF
-# lattice_04 IS A TREFOIL. Measured the reliable way: simplify to a 3-crossing
-# diagram and take HOMFLY there, where libhomfly is unimpeachable --
-#     -1 L^-4 + -2 L^-2 + 1 L^-2 M^2
-# which is the trefoil, by two independent routes (lattice_04 alone, and each
-# summand of split_lattice). So both fixtures are the SPLIT UNION OF TWO
-# TREFOILS, not the unlink.
+# lattice_04 IS THE UNKNOT, so both fixtures are the 2-COMPONENT UNLINK.
 #
-# CAUTION, PAID FOR TWICE. Calling HomflyOfPossiblySplit on the raw 19-crossing
-# diagram straight out of FromLinkEmbedding returns 1 L^0 M^0 -- the unknot --
-# with ok=1, and SimplifyAndMeasure on the same object reports summands of zero
-# crossings. Both are wrong, both silently. Whether that is the object's state
-# (FromLinkEmbedding output is uncompressed and PDCode's traversal view differs
-# from reading C_arcs directly) or the probe, it is NOT settled, so do not take
-# a knot type off a large diagram straight from FromLinkEmbedding. Simplify
-# first and measure the small diagram.
+# This flipped twice before it settled, so here is the evidence and the reason
+# the other answer looked right. Four independent in-process routes agree:
+#   HOMFLY of the raw 19-crossing diagram from FromLinkEmbedding   = 1
+#   HOMFLY after a round trip through its own PD code              = 1
+#   HOMFLY reading the emitted 5-column file back                  = 1
+#   PlanarDiagramComplex::Simplify                                 -> 0 crossings
+# and split_lattice's HOMFLY is -L^-1 M^-1 - L^1 M^-1, which is the delta of the
+# 2-component unlink. knoodlesimplify -s=0, -s=1 and -s=2 all agree (-s=2 finds
+# the unknot at 0 crossings).
+#
+# The dissenting voice was knoodlesimplify -s=3, which reports a TREFOIL. That
+# is upstream issue 12: at -s=3 the ArcSimplifier's R_IIa move calls
+# SwitchCrossing, which a locked diagram refuses, and the wrapper discards the
+# failure -- so the move half-applies and the output really is a different knot.
+# It exits 0. DO NOT take a knot type from -s=3 until that is fixed.
+
 note = two disjoint lattice knots; a split diagram, 19 + 19 crossings
-knot = split union of two trefoils (lattice_04 is a trefoil)
+knot = 2-component unlink (lattice_04 is the unknot; see above)
 
 vertical_edges         == 36
 multiple_points        == 32

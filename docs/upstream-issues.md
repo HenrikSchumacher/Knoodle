@@ -11,6 +11,7 @@ standalone reproducers, not through a test harness:
 
 | # | issue | status |
 | --- | --- | --- |
+| 12 | `ArcSimplifier`'s R_IIa is not atomic: on a locked diagram it half-applies and CHANGES THE KNOT | **open — silent wrong answer** |
 | 11 | `LinesColinearTest` asserts that two distinct degenerate segments coincide | **open — aborts** |
 | 10 | `LinkEmbedding3/4` class docs promise a path into `PlanarDiagram` that is not built yet | **docs ahead of code**, not a defect |
 | 9 | `Transform` does not invalidate its caches | fixed — `8db4cdc4` |
@@ -22,6 +23,99 @@ standalone reproducers, not through a test harness:
 | 3 | integral `Real_` documented but unimplemented | fixed — `4d2d0624` |
 | 2 | `Alexander` single-value overload takes outputs by value | fixed upstream |
 | 1 | `FromUnsignedPDCode` not migrated to `FromPDCode<targs>` | fixed upstream |
+
+## 12. `ArcSimplifier` R_IIa half-applies on a locked diagram and changes the knot type
+
+**Status:** confirmed 2026-08-14, `dev_prosector` @ `c149cd68`.
+**Severity:** high — a shipped tool silently returns a different knot and
+exits 0.
+
+`knoodlesimplify -s=3` turns a 19-crossing diagram of the UNKNOT into a
+3-crossing diagram of the TREFOIL.
+
+```
+$ knoodlesimplify --streaming-mode -s=3 < lattice_04.pd
+WARNING: PlanarDiagram<I64>::SwitchCrossing: This method is considered **UNSAFE**,
+and the diagram is currently locked ...
+s
+2  0  3  5  1
+0  4  1  3  1
+4  2  5  1  1        <- the trefoil
+$ echo $?
+0
+```
+
+Level sweep on the same input (HOMFLY of each output, measured on the output
+diagram):
+
+| level | crossings out | `SwitchCrossing` warnings | HOMFLY |
+| --- | --- | --- | --- |
+| `-s=0` | 19 | 0 | `1` (unknot) |
+| `-s=1` | 16 | 0 | `1` (unknot) |
+| `-s=2` | 0 | 0 | unknot |
+| `-s=3` | 3 | **2** | **trefoil** |
+
+`-s=2` already finds the unknot correctly. `-s=3`, nominally *more*
+simplification, returns a different knot.
+
+### Mechanism
+
+`src/PlanarDiagramComplex/ArcSimplifier/R_IIa_diff_o_same_u.hpp:58-67` applies a
+composite move:
+
+```cpp
+Reconnect<true,true,false>(w_3,!u_0,n_0);
+Reconnect<true,true,false>(w_2, u_0,s_0);
+Reconnect<true,true,false>(n_3,!u_1,n_1);
+Reconnect<true,true,false>(s_2, u_1,s_1);
+
+SwitchCrossing(c_0);
+SwitchCrossing(c_1);
+DeactivateCrossing(c_2);
+DeactivateCrossing(c_3);
+```
+
+`SwitchCrossing` on a locked complex refuses and returns `false`
+(`ModifyDiagram.hpp:7`), and the ArcSimplifier wrapper **discards that**:
+
+```cpp
+// ArcSimplifier/Helpers.hpp:23
+void SwitchCrossing( const Int c_ ) { (void) pd.SwitchCrossing(c_); }
+```
+
+So the four reconnections and the two deactivations apply while the two
+crossing changes do not. **The move is half-applied**, and the half that ran is
+the half that rewires the diagram. R_IIa is only knot-preserving as a whole; a
+partial application is a crossing change.
+
+This is the non-atomic-composite-mutation shape: several steps, any of which can
+individually fail, with the failure dropped on the floor.
+
+### Fix
+
+Two independent ones, and the first is the important one:
+
+1. **The library must not half-apply.** `ArcSimplifier::SwitchCrossing` must not
+   discard the result; R_IIa must refuse or roll back if a switch cannot be
+   performed. A locked diagram should yield *no change*, never a wrong one.
+2. **The caller should unlock what it owns.** This is the same family as the
+   PDC locking regression already noted in our tree — a lock guard turning
+   mutations into silent no-ops.
+
+### Repro fixtures
+
+`test/embeddings/lattice_04.crd` reaches it (2 warnings at `-s=3`);
+`lattice_06` gives 6 and `lattice_08` 14. A bare trefoil does NOT trigger it at
+any level, so it needs a diagram where R_IIa actually fires.
+
+### How it was found, and what it cost
+
+It is the cause of a chain of contradictions in one session: the CLI reported
+`lattice_04` as a trefoil while every in-process route (HOMFLY on the raw
+object, on a round-trip through its own PD code, and on the file; plus
+`PDC::Simplify`) reported the unknot. I corrected the fixture docs the wrong way
+twice before finding the warning on stderr that explains it. **A silent
+half-applied mutation costs more than a crash.**
 
 ## 11. `Prosector::LinesColinearTest` aborts on two distinct degenerate segments
 
