@@ -41,7 +41,7 @@ long_fma(
     }
 }
 
-/*!@brief Long fused multiply-add routine that computes `r = a * b + c` and returns `r` in a `WideInt` of appropriate size so that no overflow occurs. CAUTION: The result will be only correct if operands `a` and `b` a _nonnegative_.*/
+/*!@brief Long fused multiply-add routine that computes `r = a * b + c` and returns `r` in a `WideInt` of appropriate size so that no overflow occurs. CAUTION: The result will be only correct if operands `a` and `b` are _nonnegative_.*/
 template<bool checkedQ = true, int other_limb_count>
 TOOLS_FORCE_INLINE constexpr friend
 WideInt<limb_count+other_limb_count,Limb_T,Comp_T,signQ>

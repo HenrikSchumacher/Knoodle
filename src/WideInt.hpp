@@ -1,5 +1,7 @@
 #pragma once
 
+<bitset>
+
 namespace Knoodle
 {
     /*!@brief A class for wide integers.
