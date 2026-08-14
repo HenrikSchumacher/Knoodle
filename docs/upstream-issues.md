@@ -11,7 +11,7 @@ standalone reproducers, not through a test harness:
 
 | # | issue | status |
 | --- | --- | --- |
-| 12 | `ArcSimplifier`'s R_IIa is not atomic: on a locked diagram it half-applies and CHANGES THE KNOT | **open — silent wrong answer** |
+| 12 | `ArcSimplifier`'s R_IIa is not atomic: on a locked diagram it half-applies and CHANGES THE KNOT | **FILED — [GH #33](https://github.com/HenrikSchumacher/Knoodle/issues/33)** |
 | 11 | `LinesColinearTest` asserts that two distinct degenerate segments coincide | **open — aborts** |
 | 10 | `LinkEmbedding3/4` class docs promise a path into `PlanarDiagram` that is not built yet | **docs ahead of code**, not a defect |
 | 9 | `Transform` does not invalidate its caches | fixed — `8db4cdc4` |
@@ -26,7 +26,12 @@ standalone reproducers, not through a test harness:
 
 ## 12. `ArcSimplifier` R_IIa half-applies on a locked diagram and changes the knot type
 
-**Status:** confirmed 2026-08-14, `dev_prosector` @ `c149cd68`.
+**Status:** FILED as [GitHub issue #33](https://github.com/HenrikSchumacher/Knoodle/issues/33)
+on 2026-08-14. Deliberately no PR: the fix turns on which operations the
+locking feature was meant to guard, and that is Henrik's design call, not ours.
+Regression test `test/local_moves_check` is on **both** `main` (`5c7d64a4`) and
+`dev_prosector`, recording Monster@level-4 as a known failure so it reports
+XPASS the moment this is fixed.
 **Severity:** high — a shipped tool silently returns a different knot and
 exits 0.
 
