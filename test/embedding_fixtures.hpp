@@ -242,6 +242,111 @@ inline std::array<double,9> RandomRotationMatrix( std::uint64_t seed )
     };
 }
 
+/// A random integer matrix of determinant +1.
+///
+/// The integer counterpart of `RandomRotationMatrix`, and the reason it exists:
+/// a rotation of a lattice point is not a lattice point, so a curve whose
+/// `Real_` is integral cannot be randomly rotated -- casting back to the grid
+/// gives a different, badly degenerate curve (and the rotation matrix itself
+/// truncates to something singular). A matrix with INTEGER entries and
+/// POSITIVE determinant has neither problem: it maps integer coordinates to
+/// integer coordinates exactly, and because `GL+(3,R)` is connected it is
+/// isotopic to the identity, so the image is the same knot type. It is simply
+/// no longer a *lattice* configuration -- the edges stop being unit vectors --
+/// which is exactly what makes the projection generic.
+///
+/// Built as a product of elementary integer shears, each of determinant 1, so
+/// the product is unimodular by construction rather than by hoping. Entries
+/// stay small: on the fixtures here the coordinates grow from 4 to about 36,
+/// against a budget of `m = 60` bits (see `LinkEmbedding_Int/EdgeCoordinates.hpp`),
+/// so exactness is never at risk for a single application.
+///
+/// CAUTION: do NOT compose these. Coordinates grow geometrically under
+/// repeated application, and the exact path holds only while
+/// `scaling_exponent >= 0`. Apply each transform to the ORIGINAL curve.
+inline std::array<double,9> UnimodularIntegerMatrix( std::uint64_t seed )
+{
+    std::mt19937_64 rng (seed);
+    std::uniform_int_distribution<int>  off (1,3);
+    std::uniform_int_distribution<int>  dir (0,1);
+
+    std::array<double,9> M { 1,0,0, 0,1,0, 0,0,1 };
+
+    auto compose = [&M]( const std::array<double,9> & A )
+    {
+        std::array<double,9> P {};
+        for( int r = 0; r < 3; ++r )
+        for( int c = 0; c < 3; ++c )
+        {
+            double acc = 0;
+            for( int k = 0; k < 3; ++k ) { acc += A[3*r+k] * M[3*k+c]; }
+            P[3*r+c] = acc;
+        }
+        M = P;
+    };
+
+    constexpr int planes[3][2] = { {0,1}, {1,2}, {0,2} };
+
+    for( int t = 0; t < 3; ++t )
+    {
+        std::array<double,9> S { 1,0,0, 0,1,0, 0,0,1 };
+        const int i = planes[t][0], j = planes[t][1];
+        // Either an upper or a lower shear in this plane; both have det 1, and
+        // mixing them keeps the result from being triangular.
+        if( dir(rng) ) { S[3*i+j] = off(rng); } else { S[3*j+i] = off(rng); }
+        compose(S);
+    }
+    return M;
+}
+
+/// The 24 rotations of the cube: signed permutation matrices of determinant +1.
+///
+/// These map the cubic lattice onto itself, so a lattice configuration stays a
+/// lattice configuration -- and its projection stays *maximally degenerate*.
+/// That is the point. They are not a source of generic projections (measured:
+/// the shared-column count of `lattice_04` is 96 before and after), they are 24
+/// independent hard cases per fixture, every one of which must give the same
+/// knot.
+inline const std::vector<std::array<double,9>> & OctahedralRotations()
+{
+    static const std::vector<std::array<double,9>> table = []{
+        std::vector<std::array<double,9>> out;
+        constexpr int perms[6][3] = {
+            {0,1,2},{0,2,1},{1,0,2},{1,2,0},{2,0,1},{2,1,0}
+        };
+        for( const auto & p : perms )
+        for( int signs = 0; signs < 8; ++signs )
+        {
+            std::array<double,9> M {};
+            const int sg[3] = { (signs&1)?-1:1, (signs&2)?-1:1, (signs&4)?-1:1 };
+            for( int r = 0; r < 3; ++r ) { M[3*r + p[r]] = sg[r]; }
+
+            // det of a signed permutation = sign(perm) * product(signs).
+            const int parity = ((p[0]>p[1]) + (p[0]>p[2]) + (p[1]>p[2])) % 2;
+            const int det = (parity ? -1 : 1) * sg[0] * sg[1] * sg[2];
+            if( det > 0 ) { out.push_back(M); }
+        }
+        return out;
+    }();
+    return table;
+}
+
+/// Apply a matrix to a curve, keeping the entries exact.
+inline Curve ApplyMatrix( const Curve & c, const std::array<double,9> & M,
+                          const std::string & tag )
+{
+    Curve out = c;
+    out.name = c.name + "[" + tag + "]";
+    for( std::size_t i = 0; i < c.v.size(); i += 3 )
+    {
+        const double x = c.v[i], y = c.v[i+1], z = c.v[i+2];
+        out.v[i  ] = M[0]*x + M[1]*y + M[2]*z;
+        out.v[i+1] = M[3]*x + M[4]*y + M[5]*z;
+        out.v[i+2] = M[6]*x + M[7]*y + M[8]*z;
+    }
+    return out;
+}
+
 /// A uniformly random rotation applied to the whole curve. Used for the knot-type
 /// tier: a random rotation is degeneracy-free with probability 1, so it is an
 /// independent generic projection of the same link.
@@ -261,6 +366,18 @@ inline Curve Rotate( const Curve & c, std::uint64_t seed )
     }
     return out;
 }
+
+/// An independent generic projection of the same link, whatever the coordinate
+/// type. Floating point gets a random rotation; integral coordinates get a
+/// random unimodular integer matrix, for the reasons above.
+inline Curve GenericImage( const Curve & c, std::uint64_t seed, bool integralQ )
+{
+    if( !integralQ ) { return Rotate(c,seed); }
+
+    return ApplyMatrix( c, UnimodularIntegerMatrix(seed),
+                        "int " + std::to_string(seed) );
+}
+
 
 /// Radius of gyration: the RMS distance of the vertices from their centroid.
 ///

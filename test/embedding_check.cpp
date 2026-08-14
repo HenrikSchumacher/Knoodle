@@ -302,30 +302,37 @@ struct Tally
 /// contract: on random rotations it must agree with everyone else.
 static bool ResolvesDegeneraciesQ( int cls ) { return cls != 1; }
 
-/// Can this coordinate type be randomly rotated at all?
+/// Is this coordinate type integral?
+static bool IntegralCoordsValueQ( Coords c ) { return c == Coords::i64; }
+
+/// Can transforms of this coordinate type be COMPOSED -- applied repeatedly to
+/// the running coordinates rather than to the original each time?
 ///
-/// No, if it is integral. A rotation of a lattice point is not a lattice point,
-/// so `static_cast<Real_T>` truncates every coordinate back onto the grid and
-/// hands the library a different, badly degenerate curve. Worse, the rotation
-/// MATRIX is converted the same way, and its entries live in [-1,1] -- so for
-/// `Real_ = int64_t` it truncates to 0 and +/-1 and `Transform` is handed a
-/// singular matrix. The result is dozens of spurious "edges intersect in 3D"
-/// and, on the fixtures here, an assertion failure inside `LinesColinearTest`.
+/// Not for integral coordinates. A random *rotation* is unusable there to begin
+/// with (a rotation of a lattice point is not a lattice point, and the rotation
+/// matrix itself truncates to something singular), which is why integral types
+/// get a unimodular integer matrix from `kt::GenericImage` instead. Those are
+/// exact and knot-type-preserving -- determinant > 0, so the map is isotopic to
+/// the identity -- but coordinates grow geometrically under composition, and the
+/// exact path holds only while `scaling_exponent >= 0`. So each integer image
+/// must be taken from the ORIGINAL curve.
 ///
-/// That is a property of the question, not a defect: "rotate this curve
-/// generically" has no answer in integral coordinates. The tiers that rely on a
-/// generic rotation therefore skip integral types rather than measure noise.
-/// The tiers that do not -- `census`, `reader`, and crucially the exact-shear
-/// tier, whose shear IS exactly representable in integers -- run normally, and
-/// `exact` is the sharpest oracle in the file.
-static bool GenericallyRotatableQ( Coords c ) { return c != Coords::i64; }
+/// That rules out exactly one thing: the rotation tier's `composed` path, whose
+/// entire purpose is to accumulate. Everything else re-derives from the original
+/// and runs normally.
+static bool ComposableTransformsQ( Coords c ) { return !IntegralCoordsValueQ(c); }
+
+/// Is this class's coordinate type integral? Derived from the class rather than
+/// threaded through, so a new integral instantiation cannot forget to say so.
+template<class LE_T>
+inline constexpr bool IntegralCoordsQ = std::is_integral_v<typename LE_T::Real>;
 
 /// The reason, for the skip message.
-static const char * NotRotatableWhy()
+static const char * NotComposableWhy()
 {
-    return "integral coordinates cannot be randomly rotated: the rotated points "
-           "and the rotation matrix itself both truncate back to the grid, so the "
-           "curve the library sees is not a rotation of the input";
+    return "integral coordinates cannot be transformed repeatedly: each image "
+           "must come from the original curve, or the coordinates grow "
+           "geometrically and leave the exact range";
 }
 
 /// The reason `tier` is expected to fail for this class, or "" if it should pass.
@@ -794,7 +801,8 @@ static void RotationCheckOne( const Fixture & f, const std::string & label, int 
     // Anchor on a generic rotation: a class without symbolic perturbation cannot
     // start from the degenerate projection, and the question here is about
     // re-aiming, not about degeneracy.
-    const kt::Curve start = kt::Rotate(f.curve, 0x0A7A7EULL);
+    const kt::Curve start = kt::GenericImage(f.curve, 0x0A7A7EULL,
+                                             IntegralCoordsQ<LE_T>);
 
     // ---- reference verdict -------------------------------------------------
     LinkClass reference;
@@ -852,7 +860,8 @@ static void RotationCheckOne( const Fixture & f, const std::string & label, int 
         Track tr;
         for( std::int64_t k = 0; k < steps; ++k )
         {
-            const kt::Curve c = kt::Rotate(f.curve, 0x5EED5EEDULL + std::uint64_t(k));
+            const kt::Curve c = kt::GenericImage(f.curve, 0x5EED5EEDULL + std::uint64_t(k),
+                                                IntegralCoordsQ<LE_T>);
             auto r = kt::RunEmbedding<LE_T>(c, /*want_pd=*/(k+1 == steps));
             if( !r.ok )
             {
@@ -1054,7 +1063,16 @@ static void RotationCheckOne( const Fixture & f, const std::string & label, int 
         const double tol = std::max( 1.0e-12,
                                      256.0 * std::sqrt(double(steps)) * eps );
 
-        if( g0 > 0.0 && (g_hi - g_lo) / g0 > tol )
+        // R_g measures a RIGID motion. Integral coordinates are re-aimed by a
+        // unimodular integer matrix instead, which preserves orientation and
+        // therefore knot type -- determinant +1, hence isotopic to the identity
+        // -- but is not an isometry and moves distances freely. So this
+        // assertion is about rotations specifically, and does not apply there.
+        // The other three (re-aiming re-aims, knot type is constant, no upward
+        // trend) all still do, and they are the ones that matter.
+        const bool rigidQ = !IntegralCoordsQ<LE_T>;
+
+        if( rigidQ && g0 > 0.0 && (g_hi - g_lo) / g0 > tol )
         {
             char buf[256];
             std::snprintf(buf,sizeof(buf),
@@ -1103,7 +1121,18 @@ static void RotationCheckOne( const Fixture & f, const std::string & label, int 
     };
 
     score("fresh",    run_fresh());
-    score("composed", run_composed());
+
+    // `composed` is the one path that accumulates, so it is the one path
+    // integral coordinates cannot take. See ComposableTransformsQ.
+    if constexpr ( IntegralCoordsQ<LE_T> )
+    {
+        t.Skip("rotation " + f.name + " " + label + " composed",
+               NotComposableWhy(), verbose);
+    }
+    else
+    {
+        score("composed", run_composed());
+    }
 }
 
 // --- cross-class ------------------------------------------------------------
@@ -1180,13 +1209,117 @@ static void TierCross( const std::vector<Fixture> & fx, Coords coords,
 
         for( std::int64_t k = 0; k < rotations; ++k )
         {
-            compare( kt::Rotate(f.curve, std::uint64_t(0x5eed'0000 + k)),
+            compare( kt::GenericImage(f.curve, std::uint64_t(0x5eed'0000 + k),
+                                      IntegralCoordsValueQ(coords)),
                      "[rot" + std::to_string(k) + "]", /*generic=*/true );
         }
     }
 }
 
 // --- invariant --------------------------------------------------------------
+
+/// `symmetry` -- the 24 rotations of the cube must all give the same knot.
+///
+/// Signed permutation matrices of determinant +1 map the cubic lattice onto
+/// itself, so a lattice configuration stays a lattice configuration and its
+/// projection stays MAXIMALLY DEGENERATE. Measured on `lattice_04`: 96 pairs of
+/// vertices share a projected column before the transform and 96 after. That is
+/// what makes this worth doing -- it is 24 independent hard cases per fixture
+/// rather than one, where a random rotation gives an easy case every time.
+///
+/// Determinant +1 means orientation-preserving, so every image is the same knot
+/// (`GL+(3,R)` is connected, hence the map is isotopic to the identity). The
+/// crossing COUNT legitimately differs between images -- they are different
+/// projections -- so only the link type is compared.
+///
+/// Exact for integral coordinates, and exact for the integer-valued floating
+/// point ones too, since the entries are 0 and +/-1.
+template<class LE_T>
+static void SymmetryCheckOne( const Fixture & f, const std::string & label,
+                              int cls, bool degeneracy_capable,
+                              std::int64_t homfly_cap, Tally & t, bool verbose )
+{
+    const std::string what  = "symmetry " + f.name + " " + label;
+    const std::string xfail = XFailFor(f,"symmetry",cls);
+
+    auto classify = [&]( const kt::Curve & c, LinkClass & lc, std::string & err ) -> bool
+    {
+        auto r = kt::RunEmbedding<LE_T>(c,/*want_pd=*/true);
+        if( !r.ok ) { err = r.message; return false; }
+        lc = Classify(r.pd, r.unlink_count, c.ComponentCount(), homfly_cap);
+        return true;
+    };
+
+    const auto & rots = kt::OctahedralRotations();
+
+    LinkClass base;
+    std::string err;
+    std::size_t first = 0;
+
+    // Anchor on the first image that this class can actually compute. For a
+    // class with no symbolic perturbation every lattice image is degenerate and
+    // may legitimately be refused; refusing all 24 is not a failure, it is the
+    // documented limitation, so the check reports it and stops.
+    for( ; first < rots.size(); ++first )
+    {
+        const kt::Curve c = kt::ApplyMatrix(f.curve,rots[first],
+                                            "oct" + std::to_string(first));
+        if( classify(c,base,err) ) { break; }
+        if( degeneracy_capable )
+        {
+            t.Verdict(what,false,"image " + std::to_string(first)
+                      + " failed -- " + err, xfail, verbose);
+            return;
+        }
+    }
+
+    if( first >= rots.size() )
+    {
+        t.Skip(what,"this class refused all 24 lattice-symmetric projections, "
+                    "which is expected without symbolic perturbation",verbose);
+        return;
+    }
+
+    std::size_t compared = 0;
+
+    for( std::size_t i = first+1; i < rots.size(); ++i )
+    {
+        const kt::Curve c = kt::ApplyMatrix(f.curve,rots[i],"oct" + std::to_string(i));
+
+        LinkClass lc;
+        if( !classify(c,lc,err) )
+        {
+            if( degeneracy_capable )
+            {
+                t.Verdict(what,false,"image " + std::to_string(i) + " failed -- " + err,
+                          xfail,verbose);
+                return;
+            }
+            continue;   // a float class may decline a degenerate image
+        }
+
+        std::string why;
+        if( !SameLink(base,lc,why) )
+        {
+            if( why.rfind("not comparable",0) == 0
+             || why.rfind("different oracles",0) == 0 )
+            {
+                continue;
+            }
+            t.Verdict(what,false,"image " + std::to_string(i)
+                      + " is a different link: " + why, xfail, verbose);
+            return;
+        }
+        ++compared;
+    }
+
+    if( compared == 0 )
+    {
+        t.Skip(what,"no two images were comparable",verbose);
+        return;
+    }
+    t.Verdict(what,true,"",xfail,verbose);
+}
 
 template<class LE_T>
 static void InvariantCheckOne( const Fixture & f, const std::string & label,
@@ -1236,7 +1369,8 @@ static void InvariantCheckOne( const Fixture & f, const std::string & label,
                         survived ? "unexpectedly succeeded" : ("failed -- " + ignored).c_str());
         }
 
-        if( !classify(kt::Rotate(f.curve,std::uint64_t(0xA11CE)),base,err) )
+        if( !classify(kt::GenericImage(f.curve,std::uint64_t(0xA11CE),
+                                       IntegralCoordsQ<LE_T>),base,err) )
         {
             t.Verdict(what,false,"even a generic rotation failed -- " + err,xfail,verbose);
             return;
@@ -1248,7 +1382,8 @@ static void InvariantCheckOne( const Fixture & f, const std::string & label,
 
     for( std::int64_t k = first_rotation; k < rotations; ++k )
     {
-        const kt::Curve rot = kt::Rotate(f.curve, std::uint64_t(0xA11CE + k));
+        const kt::Curve rot = kt::GenericImage(f.curve, std::uint64_t(0xA11CE + k),
+                                               IntegralCoordsQ<LE_T>);
 
         LinkClass other;
         if( !classify(rot,other,err) )
@@ -1344,7 +1479,8 @@ template<class LE_T>
 static void BenchOne( const Fixture & f, const std::string & label, std::int64_t reps )
 {
     BenchCurve<LE_T>(f.curve, f.name, "degen", label, reps);
-    BenchCurve<LE_T>(kt::Rotate(f.curve,0xB0FFU), f.name, "generic", label, reps);
+    BenchCurve<LE_T>(kt::GenericImage(f.curve,0xB0FFU,IntegralCoordsQ<LE_T>),
+                     f.name, "generic", label, reps);
 }
 
 // ===========================================================================
@@ -1478,7 +1614,7 @@ static void Usage()
         "\n"
         "  --class=LIST       classes to test, e.g. 1,2,3,4        (default 1,2,3,4)\n"
         "  --coords=LIST      coordinate types: f64,f32,i32,i64    (default f64,f32)\n"
-        "  --tier=LIST        census,reader,exact,cross,invariant,rotation (default all)\n"
+        "  --tier=LIST        census,reader,exact,cross,invariant,symmetry,rotation\n                     (default all)\n"
         "  --fixtures=DIR     fixture directory                    (default ./embeddings)\n"
         "  --only=SUBSTR      only fixtures whose name contains SUBSTR\n"
         "  --rotations=N      random generic projections per fixture (default 3)\n"
@@ -1520,7 +1656,8 @@ int main( int argc, char ** argv )
 
     std::vector<int>    classes { 1,2,3,4 };
     std::vector<Coords> coords  { Coords::f64, Coords::f32, Coords::i64 };
-    std::vector<std::string> tiers { "census","reader","exact","cross","invariant","rotation" };
+    std::vector<std::string> tiers { "census","reader","exact","cross","invariant",
+                                     "symmetry","rotation" };
 
     std::string fixtures_dir = "embeddings";
     std::string only;
@@ -1792,15 +1929,7 @@ int main( int argc, char ** argv )
 
     if( WantTier("cross") )
     {
-        for( Coords c : coords )
-        {
-            if( !GenericallyRotatableQ(c) )
-            {
-                t.Skip(std::string("cross ") + CoordsName(c), NotRotatableWhy(), verbose);
-                continue;
-            }
-            TierCross(fx,c,rotations,t,verbose);
-        }
+        for( Coords c : coords ) { TierCross(fx,c,rotations,t,verbose); }
     }
 
     if( WantTier("invariant") )
@@ -1814,16 +1943,30 @@ int main( int argc, char ** argv )
                 for( int cls : classes )
                 {
                     const std::string label = ClassName(cls,c);
-                    if( !GenericallyRotatableQ(c) )
-                    {
-                        t.Skip("invariant " + f.name + " " + label,
-                               NotRotatableWhy(), verbose);
-                        continue;
-                    }
                     if( SkipKnownCrash(f,"invariant",cls,label,in_child,t,verbose) ) { continue; }
                     const bool capable = ResolvesDegeneraciesQ(cls);
                     WithClass(cls,c,[&]<class LE>(){
                         InvariantCheckOne<LE>(f,label,cls,capable,rotations,homfly_cap,t,verbose);
+                    });
+                }
+            }
+        }
+    }
+
+    if( WantTier("symmetry") )
+    {
+        std::printf("\n=== symmetry: the 24 rotations of the cube give the same knot ===\n");
+        for( const auto & f : fx )
+        {
+            for( Coords c : coords )
+            {
+                for( int cls : classes )
+                {
+                    const std::string label = ClassName(cls,c);
+                    if( SkipKnownCrash(f,"symmetry",cls,label,in_child,t,verbose) ) { continue; }
+                    const bool capable = ResolvesDegeneraciesQ(cls);
+                    WithClass(cls,c,[&]<class LE>(){
+                        SymmetryCheckOne<LE>(f,label,cls,capable,homfly_cap,t,verbose);
                     });
                 }
             }
@@ -1840,12 +1983,6 @@ int main( int argc, char ** argv )
                 for( int cls : classes )
                 {
                     const std::string label = ClassName(cls,c);
-                    if( !GenericallyRotatableQ(c) )
-                    {
-                        t.Skip("rotation " + f.name + " " + label,
-                               NotRotatableWhy(), verbose);
-                        continue;
-                    }
                     if( SkipKnownCrash(f,"rotation",cls,label,in_child,t,verbose) ) { continue; }
                     WithClass(cls,c,[&]<class LE>(){
                         RotationCheckOne<LE>(f,label,cls,rot_steps,homfly_cap,t,verbose);

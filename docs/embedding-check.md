@@ -81,16 +81,34 @@ backend.
 It adds 81 passing checks, including the whole of the `exact` tier, which is the
 sharpest oracle here.
 
-**It runs in `census`, `reader` and `exact` only.** The three tiers that rely on a
-generic random rotation — `cross`, `invariant`, `rotation` — skip integral coordinates
-with a reason. That is a property of the question rather than a defect: a rotation of a
-lattice point is not a lattice point, so `static_cast<Real_T>` truncates every
-coordinate back onto the grid, and the *rotation matrix* truncates the same way — its
-entries live in [-1,1], so at `int64_t` it collapses to 0 and ±1 and `Transform` is
-handed a singular matrix. Enabling i64 across all six tiers produces dozens of spurious
-"edges intersect in 3D" and then an assertion failure inside `LinesColinearTest`. The
-exact-shear tier is unaffected because its shear *is* exactly representable in integers,
-which is the whole point of it.
+**It cannot be randomly rotated, and does not need to be.** A rotation of a lattice
+point is not a lattice point, so `static_cast<Real_T>` truncates every coordinate back
+onto the grid — and the *rotation matrix* truncates the same way, its entries living in
+[-1,1], so at `int64_t` it collapses to 0 and ±1 and `Transform` receives a singular
+matrix. Naively rotating integral coordinates produces dozens of spurious "edges
+intersect in 3D" and then an assertion failure inside `LinesColinearTest`.
+
+The replacement is exact: **an integer matrix of positive determinant**
+(`kt::UnimodularIntegerMatrix`, a product of elementary integer shears). It maps integer
+coordinates to integer coordinates with no rounding at all, and because `GL+(3,ℝ)` is
+connected it is isotopic to the identity, so the image is the same knot. What it is not
+is a *lattice* configuration — the edges stop being unit vectors — and that is exactly
+what makes the projection generic. Measured on `lattice_04`: 96 pairs of vertices share
+a projected column before, 0 after, with `max|coord|` growing only from 4 to 36 against a
+60-bit budget.
+
+Two consequences, both in the code:
+
+- **Do not compose them.** Coordinates grow geometrically under repeated application and
+  the exact path holds only while `scaling_exponent >= 0`, so every image is taken from
+  the *original* curve. That rules out exactly one thing — the rotation tier's `composed`
+  path, whose whole purpose is to accumulate — and it is skipped for integral coordinates
+  with that reason. `fresh` runs normally.
+- **The radius-of-gyration assertion does not apply.** `R_g` is conserved by *rigid*
+  motions; a unimodular integer matrix has determinant 1 without being an isometry, so it
+  moves distances freely. That assertion is guarded to rotations. The other three —
+  re-aiming re-aims, knot type is constant, no upward trend — all still hold, and they
+  are the ones that carry the claim.
 
 `i32` (the 32-bit backend) still does not build — finding
 [D](#d-the-32-bit-backend-does-not-compile) is half fixed — and stays behind
@@ -106,7 +124,7 @@ rotated ones is integral, and the benchmark confirms `rounding_err = 0` througho
 
 ## 2. What it checks
 
-Six tiers, increasing in strength.
+Seven tiers, increasing in strength.
 
 ### `census` — the fixtures really are degenerate
 
@@ -248,6 +266,23 @@ those therefore stays a failure, which is right — they claim to resolve degene
 None of this was reachable until 2026-08-14: `xfail_rotation = 1` masked the whole class
 while finding G's stale caches made every rotation return the same answer. Removing that
 marker is what exposed it.
+
+### `symmetry` — the 24 rotations of the cube give the same knot
+
+Signed permutation matrices of determinant +1 map the cubic lattice onto itself, so a
+lattice configuration stays one **and its projection stays maximally degenerate** — 96
+shared projected columns on `lattice_04` before and after. That is the point: where a
+random rotation hands the degenerate machinery an easy case every time, this hands it 24
+independent hard cases per fixture, all of which must agree on the link type. The
+crossing *count* legitimately differs between images, since they are different
+projections, so only the type is compared.
+
+Determinant +1 is what makes the claim true — orientation-preserving, hence isotopic to
+the identity, hence the same knot. The entries are 0 and ±1, so it is exact for every
+coordinate type, integral and floating point alike.
+
+A class with no symbolic perturbation may legitimately refuse a degenerate image; those
+are skipped rather than scored, and a class that refuses all 24 is reported as skipped.
 
 ### `cross` — the three backends agree with each other
 
@@ -687,13 +722,15 @@ is the baseline it has to beat.
 At `fb4c8f0e` plus the i64 switch-on, 2026-08-14:
 
 ```
-./embedding_check              873 passed, 0 failed, 145 skipped, 27 known-failing
-./embedding_check --isolate   1871 passed, 0 failed, 206 skipped, 45 known-failing
+./embedding_check             1106 passed, 0 failed, 89 skipped, 42 known-failing
+./embedding_check --isolate   2156 passed, 0 failed, 141 skipped, 60 known-failing
 ```
 
-The jump in skips is i64 declining the three rotating tiers, as described in
-[§1](#coordinate-types); the jump in passes is the coverage it adds elsewhere. Before
-i64 was enabled the same tree gave 792/0/32/24 and 1748/0/80/42.
+Before integral coordinates and the `symmetry` tier were added, the same tree gave
+792/0/32/24 and 1748/0/80/42 — so the two together are worth about 40% more checks. All
+42 known-failures are still finding B: `deg_zero_length` now across five tiers rather
+than four, since an axis permutation of a zero-length edge still has a zero-length
+edge.
 
 Exit 0 in both modes, and **no XPASS** — every marker still in the tree describes a
 defect that is still real.
