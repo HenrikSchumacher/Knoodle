@@ -191,8 +191,14 @@ mismatch rather than a functional gap.
 **Status:** FIXED UPSTREAM. Verified 2026-08-14 at `fb4c8f0e`: the signature is
 now `int Alexander(cref<PD_T>, ExtScal, mref<ExtScal>, mref<ExtInt>, bool)` and
 it returns the right number — a trefoil at t = e^(i*pi/4) gives 0.414214, i.e.
-sqrt(2) - 1, which is Delta(t) = t - 1 + 1/t there. **The workaround below can
-be retired**: `test/inflate_check.cpp` no longer needs the batch overload.
+sqrt(2) - 1, which is Delta(t) = t - 1 + 1/t there.
+
+**Correction to the workaround note below: there was never a workaround to
+retire.** Both of our call sites -- `test/inflate_check.cpp` and
+`test/klut_check.cpp` -- evaluate the polynomial at FIVE arguments in one call,
+so the batch overload is simply the right one and would stay the right one
+even if the single-value overload had always worked. What was stale was this
+file's description of that call as a workaround, not the call.
 Found 2026-06-13 (writing `test/inflate_check.cpp`).
 **Severity:** the single-value overload silently can't return its result;
 callers get uninitialized `mantissa`/`exponent`. The batch overload is fine.
@@ -226,9 +232,10 @@ returns correctly.
 
 **Status:** FIXED UPSTREAM. Verified 2026-08-14 at `fb4c8f0e`: it forwards
 `FromPDCode<{.signQ = false, .colorQ = false, .checksQ = checksQ}>`, compiles,
-and builds a valid trefoil. **The workaround below can be retired**:
-`tools/knoodle_io.hpp:1109` still carries a comment calling this an upstream
-bug, next to a hand-rolled `FromPDCode` call for 4-column input.
+and builds a valid trefoil. **Workaround retired 2026-08-14**: `tools/knoodle_io.hpp`'s `case 4` calls
+`FromUnsignedPDCode` again, alongside `FromSignedPDCode` in `case 5` as it was
+always meant to. Verified: 4-column input draws identically to the 5-column
+form.
 Found 2026-06-12 (during origin/main merge). **Severity:** any
 caller fails to compile; latent because nothing in-tree instantiates it.
 

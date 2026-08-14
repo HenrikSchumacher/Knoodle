@@ -76,9 +76,21 @@ reported result rather than the end of the run.
 `f64` and `f32` are `double` and `float` coordinates, both against the 64-bit integer
 backend.
 
-`i64` (integral `Real_`) **now compiles** — finding [C](#c-integral-real_-does-not-compile)
-was fixed in `4d2d0624`. It is still behind `-DKNOODLE_TEST_INTEGER_COORDS`, and turning
-that on by default is a small outstanding job rather than a blocked one.
+`i64` (integral `Real_`) **is in the default set** as of 2026-08-14: finding
+[C](#c-integral-real_-does-not-compile) was fixed in `4d2d0624`, so the gate came off.
+It adds 81 passing checks, including the whole of the `exact` tier, which is the
+sharpest oracle here.
+
+**It runs in `census`, `reader` and `exact` only.** The three tiers that rely on a
+generic random rotation — `cross`, `invariant`, `rotation` — skip integral coordinates
+with a reason. That is a property of the question rather than a defect: a rotation of a
+lattice point is not a lattice point, so `static_cast<Real_T>` truncates every
+coordinate back onto the grid, and the *rotation matrix* truncates the same way — its
+entries live in [-1,1], so at `int64_t` it collapses to 0 and ±1 and `Transform` is
+handed a singular matrix. Enabling i64 across all six tiers produces dozens of spurious
+"edges intersect in 3D" and then an assertion failure inside `LinesColinearTest`. The
+exact-shear tier is unaffected because its shear *is* exactly representable in integers,
+which is the whole point of it.
 
 `i32` (the 32-bit backend) still does not build — finding
 [D](#d-the-32-bit-backend-does-not-compile) is half fixed — and stays behind
@@ -672,12 +684,16 @@ is the baseline it has to beat.
 
 ## 7. Current status
 
-At `fb4c8f0e`, 2026-08-14:
+At `fb4c8f0e` plus the i64 switch-on, 2026-08-14:
 
 ```
-./embedding_check              792 passed, 0 failed, 32 skipped, 24 known-failing
-./embedding_check --isolate   1748 passed, 0 failed, 80 skipped, 42 known-failing
+./embedding_check              873 passed, 0 failed, 145 skipped, 27 known-failing
+./embedding_check --isolate   1871 passed, 0 failed, 206 skipped, 45 known-failing
 ```
+
+The jump in skips is i64 declining the three rotating tiers, as described in
+[§1](#coordinate-types); the jump in passes is the coverage it adds elsewhere. Before
+i64 was enabled the same tree gave 792/0/32/24 and 1748/0/80/42.
 
 Exit 0 in both modes, and **no XPASS** — every marker still in the tree describes a
 defect that is still real.

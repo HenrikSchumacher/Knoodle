@@ -1106,9 +1106,7 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
     switch (format)
     {
         case 4:
-            // Not PD_T::FromUnsignedPDCode: that wrapper does not compile
-            // against the new FromPDCode<targs> signature (upstream bug).
-            return PD_T::template FromPDCode<{.signQ = false, .colorQ = false}>(
+            return PD_T::FromUnsignedPDCode(
                 crossings.data(), crossing_count, false, true
             );
         case 5:

@@ -86,7 +86,7 @@ using Alexander_T = kt::LinkAlexander<std::complex<double>,std::int64_t>;
 //        "Let's handle only case 1.2.a) for now" and then
 //        `static_assert(FloatQ<Real>)`, so the "Case 2. `Real` is an integral
 //        type / then we can simply copy" branch is unwritten.
-//        Enable with -DKNOODLE_TEST_INTEGER_COORDS.
+//        Buildable since 4d2d0624; in the default set as of 2026-08-14.
 //
 //   i32  The 32-bit backend (`IReal_ = Int32`), which the class docs recommend
 //        pairing with `Real_ = float`. Prosector2 hits an ambiguous `Sign` call
@@ -119,11 +119,11 @@ using LE3_i32 = Knoodle::LinkEmbedding3<float,std::int64_t,std::int32_t>;
 using LE4_i32 = Knoodle::LinkEmbedding4<float,std::int64_t,std::int32_t>;
 #endif
 
-#ifdef KNOODLE_TEST_INTEGER_COORDS
+// Integral `Real_`. Unbuildable until 4d2d0624 implemented it (finding C of
+// docs/embedding-check.md); no longer gated.
 using LE2_i64 = Knoodle::LinkEmbedding2<std::int64_t,std::int64_t,std::int64_t>;
 using LE3_i64 = Knoodle::LinkEmbedding3<std::int64_t,std::int64_t,std::int64_t>;
 using LE4_i64 = Knoodle::LinkEmbedding4<std::int64_t,std::int64_t,std::int64_t>;
-#endif
 
 enum class Coords { f64, f32, i32, i64 };
 
@@ -155,12 +155,6 @@ static bool SupportedQ( int cls, Coords c, std::string & why )
             why = "LinkEmbedding is float-only (its Real_ is constrained by FloatQ)";
             return false;
         }
-#ifndef KNOODLE_TEST_INTEGER_COORDS
-        why = "integral Real_ is unimplemented in ComputeEdgeCoordinates "
-              "(static_assert(FloatQ<Real>) in src/LinkEmbedding2/EdgeCoordinates.hpp); "
-              "rebuild with -DKNOODLE_TEST_INTEGER_COORDS once the integral branch lands";
-        return false;
-#endif
     }
     if( c == Coords::i32 )
     {
@@ -222,7 +216,6 @@ static bool WithClass( int cls, Coords c, Fn && fn )
         }
     }
 #endif
-#ifdef KNOODLE_TEST_INTEGER_COORDS
     if( c == Coords::i64 )
     {
         switch( cls )
@@ -233,7 +226,6 @@ static bool WithClass( int cls, Coords c, Fn && fn )
             default: return false;
         }
     }
-#endif
     return false;
 }
 
@@ -309,6 +301,32 @@ struct Tally
 /// as one. LinkEmbedding is therefore held only to the generic-projection
 /// contract: on random rotations it must agree with everyone else.
 static bool ResolvesDegeneraciesQ( int cls ) { return cls != 1; }
+
+/// Can this coordinate type be randomly rotated at all?
+///
+/// No, if it is integral. A rotation of a lattice point is not a lattice point,
+/// so `static_cast<Real_T>` truncates every coordinate back onto the grid and
+/// hands the library a different, badly degenerate curve. Worse, the rotation
+/// MATRIX is converted the same way, and its entries live in [-1,1] -- so for
+/// `Real_ = int64_t` it truncates to 0 and +/-1 and `Transform` is handed a
+/// singular matrix. The result is dozens of spurious "edges intersect in 3D"
+/// and, on the fixtures here, an assertion failure inside `LinesColinearTest`.
+///
+/// That is a property of the question, not a defect: "rotate this curve
+/// generically" has no answer in integral coordinates. The tiers that rely on a
+/// generic rotation therefore skip integral types rather than measure noise.
+/// The tiers that do not -- `census`, `reader`, and crucially the exact-shear
+/// tier, whose shear IS exactly representable in integers -- run normally, and
+/// `exact` is the sharpest oracle in the file.
+static bool GenericallyRotatableQ( Coords c ) { return c != Coords::i64; }
+
+/// The reason, for the skip message.
+static const char * NotRotatableWhy()
+{
+    return "integral coordinates cannot be randomly rotated: the rotated points "
+           "and the rotation matrix itself both truncate back to the grid, so the "
+           "curve the library sees is not a rotation of the input";
+}
 
 /// The reason `tier` is expected to fail for this class, or "" if it should pass.
 template<class FixtureT>
@@ -1501,7 +1519,7 @@ int main( int argc, char ** argv )
     std::setvbuf(stdout,nullptr,_IONBF,0);   // unbuffered: keep output aligned with crashes
 
     std::vector<int>    classes { 1,2,3,4 };
-    std::vector<Coords> coords  { Coords::f64, Coords::f32 };
+    std::vector<Coords> coords  { Coords::f64, Coords::f32, Coords::i64 };
     std::vector<std::string> tiers { "census","reader","exact","cross","invariant","rotation" };
 
     std::string fixtures_dir = "embeddings";
@@ -1774,7 +1792,15 @@ int main( int argc, char ** argv )
 
     if( WantTier("cross") )
     {
-        for( Coords c : coords ) { TierCross(fx,c,rotations,t,verbose); }
+        for( Coords c : coords )
+        {
+            if( !GenericallyRotatableQ(c) )
+            {
+                t.Skip(std::string("cross ") + CoordsName(c), NotRotatableWhy(), verbose);
+                continue;
+            }
+            TierCross(fx,c,rotations,t,verbose);
+        }
     }
 
     if( WantTier("invariant") )
@@ -1788,6 +1814,12 @@ int main( int argc, char ** argv )
                 for( int cls : classes )
                 {
                     const std::string label = ClassName(cls,c);
+                    if( !GenericallyRotatableQ(c) )
+                    {
+                        t.Skip("invariant " + f.name + " " + label,
+                               NotRotatableWhy(), verbose);
+                        continue;
+                    }
                     if( SkipKnownCrash(f,"invariant",cls,label,in_child,t,verbose) ) { continue; }
                     const bool capable = ResolvesDegeneraciesQ(cls);
                     WithClass(cls,c,[&]<class LE>(){
@@ -1808,6 +1840,12 @@ int main( int argc, char ** argv )
                 for( int cls : classes )
                 {
                     const std::string label = ClassName(cls,c);
+                    if( !GenericallyRotatableQ(c) )
+                    {
+                        t.Skip("rotation " + f.name + " " + label,
+                               NotRotatableWhy(), verbose);
+                        continue;
+                    }
                     if( SkipKnownCrash(f,"rotation",cls,label,in_child,t,verbose) ) { continue; }
                     WithClass(cls,c,[&]<class LE>(){
                         RotationCheckOne<LE>(f,label,cls,rot_steps,homfly_cap,t,verbose);
