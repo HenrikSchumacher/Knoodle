@@ -28,7 +28,10 @@ proof. Companion to the OrthoDecorate work on branch `orthodecorate`.
 4. **Annotations are redundant and fail-loud.** Human-readable extras (e.g.
    a face table) may be embedded, but they are never the source of truth: any
    consumer that reads one must recompute it and abort on mismatch (same
-   philosophy as the CLI fail-loud contract).
+   philosophy as the CLI fail-loud contract). "Recompute" means *recompute the
+   thing the annotation claims*, which for a relabelling annotation is a claim
+   up to relabelling — see the `#pd` rule below, where getting this wrong made
+   this document's own worked example abort.
 
 ## Inherited conventions (normative)
 
@@ -93,11 +96,10 @@ A trace is a text stream extending the existing knoodle TSV streaming format
 
 ### v0 and v1: the snapshot carrier
 
-**v1 (specified here, reader not yet implemented — see status below)** carries
-the snapshot as `PlanarDiagram`'s internal-state serialization in a
-`#state lines=N` block, with the 5-column PD code demoted to an optional
-`#pd rows=R` annotation. **v0**, which is what the shipped `--trace` reader
-accepts today, carries the bare 5-column PD rows with no `#state` block.
+**v1** carries the snapshot as `PlanarDiagram`'s internal-state serialization
+in a `#state lines=N` block, with the 5-column PD code demoted to an optional
+`#pd rows=R` annotation. **v0** carries the bare 5-column PD rows with no
+`#state` block. The shipped `--trace` reader accepts both.
 
 The carrier changed because PD codes come from `Traverse`, so every PD-code
 path renumbers crossings and arcs and drops inactive slots — measured on the
@@ -117,7 +119,13 @@ Three rules come with it, per principle 4:
 
 - the **internal-state block is the source of truth**;
 - the `#pd` annotation may ride along, and any consumer reading both **must**
-  recompute and abort on mismatch;
+  check that the two describe the same diagram **up to relabelling**, and abort
+  if they do not. It **must not** compare them literally. `PDCode()` renumbers
+  on the way out, so the annotation's bytes need not be `PDCode()` of the state
+  even when both are right — the worked example below is exactly that case, and
+  a literal recompute-and-abort aborts on it. Identifying the diagram up to
+  relabelling is all this annotation is for, and it is enough to catch two
+  carriers describing different diagrams;
 - each stream declares the Knoodle version that wrote it
   (`#knoodle version=<string>`, once at the top), and a reader that cannot
   parse the state **fails loud** rather than falling back to the annotation.
@@ -130,11 +138,17 @@ record's move — the point of comparison for a verifier that wants to check an
 applier against `AfterDiagram` across a process boundary. Required on an
 applied move in a batch meant for checking, optional on a `#candidate`.
 
-**Status:** the grammar above is specified and was sent to middlestrands as
-`handoff/middlepass-descriptor-emission/ROUND-4.md`. The emitter side is
-theirs to build; our `--trace` reader still speaks v0 only, and gains `#state`
-when the first real v1 payload exists to test against. Until then a v1 stream
-is a specified format with no consumer, which is the honest state of it.
+**Status (2026-08-13):** v1 is implemented on both sides and exercised.
+`src/MoveTrace.hpp` is the reference reader (and the `WriteStateBlock` writer
+half); `knoodledraw --trace` consumes it, and `--verify` uses `#result` for the
+port-by-port comparison described under "the verification contract". The first
+real emitted stream — 41 records off a plateau walk on a 73-crossing diagram —
+reads with 0 mismatches: 41/41 drawings verified, 29/29 applied moves agreeing
+with `AfterDiagram` port-by-port.
+
+The grammar lives in `src/`, not in a tool, on purpose: it is a contract
+between two programs, and the bug class it exists to rule out is two
+implementations of one grammar disagreeing.
 
 - The **descriptor in a record applies to the PD snapshot in that same
   record** (the *before*-diagram). The resulting diagram is the snapshot of
