@@ -24,11 +24,15 @@
 # split_lattice, reached through an 88-crossing diagram instead of a 38-crossing
 # one.
 #
-# lattice_04 is the UNKNOT: HOMFLY = 1, measured on its own 19-crossing diagram
-# with the vendored oracle. So both fixtures are the 2-component unlink, and
-# PlanarDiagramComplex::Simplify takes both to two 0-crossing components with
-# HOMFLY preserved -- verified by calling Simplify directly rather than through
-# the CLI. Getting 88 crossings down to 0 while keeping the components apart is
+# lattice_04 is the UNKNOT: HOMFLY = 1 on its own 19-crossing diagram, against
+# the trefoil's -L^-4 - 2L^-2 + L^-2 M^2, measured side by side with the
+# vendored oracle. So both fixtures are the 2-component unlink, and
+# PlanarDiagramComplex::Simplify takes both all the way down: TWO PRIME
+# SUMMANDS, EACH ONE CIRCLE WITH NO CROSSINGS AT ALL -- not two 3-crossing
+# pieces, and not merely two pieces that fail to cross each other. Each
+# component is individually crossingless. HOMFLY is preserved, as it must be.
+# Verified by calling Simplify on the object rather than reading the CLI's
+# text output. Getting 88 crossings down to 0 while keeping the components apart is
 # the real work here, and it is worth knowing that the whole 88 is manufactured
 # by the projection rather than by the topology.
 #

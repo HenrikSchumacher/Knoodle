@@ -26,7 +26,8 @@
 #   open('split_lattice.crd','w').write("\n".join(out)+"\n")
 #   EOF
 note = two disjoint lattice knots; a split diagram, 19 + 19 crossings
-knot = 2-component unlink (lattice_04 is unknotted; HOMFLY = 1)
+knot = 2-component unlink (lattice_04 is unknotted; HOMFLY = 1). Simplify
+#        takes the 38 crossings to two summands of ZERO crossings each.
 
 vertical_edges         == 36
 multiple_points        == 32
