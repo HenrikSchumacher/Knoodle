@@ -102,11 +102,67 @@ Two independent ones, and the first is the important one:
    PDC locking regression already noted in our tree — a lock guard turning
    mutations into silent no-ops.
 
+### Scope: which moves, which levels, since when
+
+**Only two of twenty move files are affected.** `SwitchCrossing` is called from
+`R_IIa_diff_o_same_u.hpp` and `R_IIa_same_o_diff_u.hpp` only. The other
+eighteen use `Reconnect` and `DeactivateCrossing`, and **those are not
+lock-guarded** — which is precisely the asymmetry that makes R_IIa half-apply
+instead of failing cleanly. Guarded in `PlanarDiagram/Modify.hpp`:
+`SwitchCrossing`, `CreateCrossing`, `Connect`, `ReverseColoredArcs`, plus
+`ComputeArcColors` and `ResolveCrossing`. Not guarded: `Reconnect`,
+`DeactivateCrossing`.
+
+**It is the default state.** `PlanarDiagram.hpp:22`: *"Per default every new
+created diagram is locked."* So a caller reaches the broken path without doing
+anything unusual.
+
+**Only at `local_opt_level = 4`.** The assisted R_Ia/R_IIa patterns are gated
+behind that tier, so `local_opt_level` 1 (R_I) and 2 (R_I+R_II) are unaffected.
+In `knoodlesimplify` that is exactly `-s=3`.
+
+**Broken since 2026-07-25.** R_IIa has called `SwitchCrossing` since
+`44377849` (2026-03-15); the locking mechanism landed in `7d83c7b2`
+(2026-07-25), whose own message reads *"Maybe this temporarily breaks some
+features."* It did — this one, for three weeks.
+
+**Why nobody noticed.** The production default is `-s=6`, and levels 4-6
+deliberately set `local_opt_level = 0` — a comment in
+`tools/knoodlesimplify.cpp` records that Henrik's performance testing found the
+local pass does not help once rerouting is engaged. So the only configuration
+that reaches the bug is a diagnostic tier nothing routinely runs.
+
+### How often it fires
+
+Rarely, but when it fires it is always wrong. Over the 21 known unknots in
+`data/diagrams/hardunknots/` at `-s=3`:
+
+| | |
+| --- | --- |
+| emitted `SwitchCrossing` warnings | 1 |
+| outputs small enough to verify by HOMFLY (<= 40 crossings) | 13 |
+| verified **not** the unknot | 1 — the same one |
+
+A one-for-one correlation: no warnings, no corruption; warnings, corruption.
+So R_IIa does not fire on most diagrams, and "locked diagrams silently fail"
+overstates it — but the move is unsound whenever it does fire.
+
 ### Repro fixtures
 
-`test/embeddings/lattice_04.crd` reaches it (2 warnings at `-s=3`);
-`lattice_06` gives 6 and `lattice_08` 14. A bare trefoil does NOT trigger it at
-any level, so it needs a diagram where R_IIa actually fires.
+**Best repro — `data/diagrams/hardunknots/Monster.tsv`**, which already ships
+in the repo. Ten crossings, a known unknot, 5-column PD code:
+
+```
+$ knoodlesimplify --streaming-mode -s=3 < data/diagrams/hardunknots/Monster.tsv
+```
+
+gives two `SwitchCrossing` warnings and a **6-crossing** output whose HOMFLY is
+`2 - M^2 + 2L^2 - 3L^2 M^2 + L^2 M^4 + L^4 - L^4 M^2` — emphatically not the
+unknot. `-s=2` on the same input returns 10 crossings and stays unknotted.
+
+Also reaches it: `test/embeddings/lattice_04.crd` (2 warnings; a 19-crossing
+unknot becomes a trefoil), `lattice_06` (6), `lattice_08` (14). A bare trefoil
+does not trigger it at any level — R_IIa has to actually fire.
 
 ### How it was found, and what it cost
 
