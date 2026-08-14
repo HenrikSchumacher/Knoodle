@@ -4,13 +4,18 @@ public:
  *
  * @param force_recomputeQ If set to `true`, a recomputation of the intersections is enforced, even if the intersections are already computed. (Probably only useful for benchmarking and debugging.)
  *
- * @return A boolean. If `true` is returned, the intersections have been computed successfully. If `false` is returned, then either no vertex coordinates are loaded (check `VertexCoordinatesLoadedQ()`) or some self-intersection of the link in 3-space have been detected (check `IntersectionCount3D()`.)
+ * @return `0` if the intersections have been computed successfully. Anything nonzero if either no vertex coordinates are loaded (check `VertexCoordinatesLoadedQ()`), if some self-intersection of the link in 3-space have been detected (check `IntersectionCount3D()`)), or if some other issue arose. Caution: The precise error flags might be subject to change.
  */
 template<bool verboseQ = true> // whether to print errors and warnings
-[[nodiscard]] bool RequireIntersections( bool force_recomputeQ = false )
+[[nodiscard]] int RequireIntersections( bool force_recomputeQ = false )
 {
    [[maybe_unused]] auto tag = [](){ return MethodName("RequireIntersections"); };
        
+    if( !vertex_coords_loadedQ )
+    {
+        wprint(tag() + ": Failed to compute intersections because no vertex coordinates have been loaded, yet." );
+        return 1;
+    }
     
     if( force_recomputeQ || !intersections_computedQ )
     {
@@ -19,21 +24,14 @@ template<bool verboseQ = true> // whether to print errors and warnings
     
     if( !intersections_computedQ )
     {
-        if( !vertex_coords_loadedQ )
-        {
-            wprint(tag() + ": Failed to compute intersections because not vertex coordinates have been loaded, yet." );
-        }
-        else
-        {
-            wprint(tag() + ": Failed to compute intersections for an unknown reason." );
-        }
-        return false;
+        wprint(tag() + ": Failed to compute intersections for an unknown reason." );
+        return 2;
     }
     
     if( intersection_count_3D > Int(0) )
     {
         wprint(tag() + ": Detected at least "  + ToString(intersection_count_3D)+ " self-intersections in 3-space after perturbation. Link is not an embedding." );
-        return false;
+        return 3;
     }
     
     return true;
