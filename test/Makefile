@@ -146,6 +146,17 @@ link_inflate_check: link_inflate_check.cpp link_alexander.hpp homfly_invariance.
 
 # link_split_check — direct split-link corner-case test (oracle correctness vs
 # delta rule, Simplify preservation incl. free loops, |det| graceful degradation).
+# local_moves_check -- the ArcSimplifier's local patterns must preserve the
+# knot. Runs data/diagrams/hardunknots (21 diagrams that are all the UNKNOT)
+# through local_opt_level 0, 2 and 4 and requires every recognizable output to
+# still be unknotted. Pins upstream issue 12. Exit 0 = pass.
+local_moves_check: local_moves_check.cpp homfly_invariance.hpp \
+                   $(LIBHOMFLY_OBJ) ../Knoodle.hpp
+	@echo "=== Building local_moves_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
+	    local_moves_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
+	@echo "✓ local_moves_check compiled successfully"
+
 link_split_check: link_split_check.cpp link_alexander.hpp homfly_invariance.hpp \
                   $(LIBHOMFLY_OBJ) ../Knoodle.hpp
 	@echo "=== Building link_split_check on $(UNAME_S) ==="
