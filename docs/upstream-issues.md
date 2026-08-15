@@ -30,8 +30,15 @@ standalone reproducers, not through a test harness:
 
 ## 13. A transversal 3-space intersection is not detected by `IntersectionType()`
 
-**Status:** FILED as [GitHub issue #34](https://github.com/HenrikSchumacher/Knoodle/issues/34)
-on 2026-08-14. No patch proposed; where the check belongs is Henrik's call.
+**Status:** FIXED by Henrik in `b53a9ecb` ("Fixed a bug in Prosector classes
+that allowed 3D intersections to go unnoticed"), 2026-08-15.
+[GitHub issue #34](https://github.com/HenrikSchumacher/Knoodle/issues/34) closed
+the same day. Both halves went: LinkEmbedding2 no longer succeeds silently, and
+LinkEmbedding3/4 no longer throw out of the accessor -- all four refuse and
+report the count. `test/intersection3d_check` announced it as 24 XPASS and its
+`kDetection3DIsBroken` flag is now `false`.
+
+Filed 2026-08-14. No patch was proposed; where the check belonged was Henrik's call.
 These are the experimental classes and this is what debugging them looks like,
 so it is recorded rather than escalated.
 
@@ -63,9 +70,18 @@ XPASS when this changes. `embedding_check` asserts the converse everywhere.
 
 ## 12. `ArcSimplifier` R_IIa half-applies on a locked diagram and changes the knot type
 
-**Status:** FILED as [GitHub issue #33](https://github.com/HenrikSchumacher/Knoodle/issues/33)
-on 2026-08-14. Deliberately no PR: the fix turns on which operations the
-locking feature was meant to guard, and that is Henrik's design call, not ours.
+**Status:** FIXED by Henrik in `e4ebccc3`, 2026-08-15 -- ArcSimplifier's
+SwitchCrossing redirected to `PlanarDiagram::SwitchCrossing_Private`, which is
+not lock-guarded, so R_IIa no longer half-applies.
+[GitHub issue #33](https://github.com/HenrikSchumacher/Knoodle/issues/33) closed
+the same day. `test/local_moves_check` reported Monster@level-4 as XPASS and its
+known-failure list is now empty.
+
+Filed 2026-08-14, deliberately with no PR: the fix turned on which operations the
+locking feature was meant to guard, which was Henrik's design call, not ours.
+The analysis below is kept because the mechanism is worth remembering -- it is
+the non-atomic-composite-mutation shape, and the corpus gap that let it survive
+is why `test/polygon_levels_check` exists.
 Regression test `test/local_moves_check` is on **both** `main` (`5c7d64a4`) and
 `dev_prosector`, recording Monster@level-4 as a known failure so it reports
 XPASS the moment this is fixed.
