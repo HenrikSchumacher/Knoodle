@@ -1,6 +1,7 @@
 # Test architecture: careful make + manifest
 
-Status: PLAN, 2026-08-15. Nothing here is built yet.
+Status: BUILT, 2026-08-15. All eleven steps of §10 are done; this now
+describes the suite as it is, not as it was planned. Measurements are real.
 
 ## Why
 
@@ -339,12 +340,24 @@ scan that is a failure at the first run, not a discovery weeks later.
 
 ## 7. The no-op guard
 
-Reduced arguments can silently turn a test into a test of nothing, and an exit-0
-that checked nothing is worse than a red one. Every test should print a work
-statistic — the coverage counter added to `local_moves_check`
-("local tiers changed the answer on N of M diagrams") is the pattern — and the
-light tier should assert it is nonzero. Without this the light tier quietly
-becomes theatre.
+**BUILT 2026-08-15.** The manifest has a seventh column, `work`: a regex that the
+run's stdout must match, in both tiers. `run_tier.py` reports a test that exits 0
+without matching it as **"did no work"** and fails the run.
+
+This is not hypothetical. `klut_check --up-to-crossing=2` — one notch below the
+c=3 floor of the table — examines **zero keys**, prints `PASS: KLUT is
+consistent`, and **exits 0**. Under the guard it is caught:
+
+    0 passed, 0 failed, 1 did no work, 0 not built
+      - klut_check: stdout never matched /klut_check: [1-9][0-9]* keys/
+
+**The pattern must match a count of work actually done** — `tested=51416`,
+`314 keys`, `1/1 trials passed`, `sampled 3 of 34 keys`. A "0 failures" line is
+exactly the wrong thing to match: it is most true when nothing ran.
+
+The lint enforces the pairing: a `kind=test` row with reduced arguments and no
+`work` pattern fails, since that is the combination that can hollow out
+unnoticed. It caught `klut_e2e` the moment it was switched on.
 
 ## 8. Push policy and hooks
 
@@ -513,7 +526,7 @@ tier, and the first two must be resolved before a hook can gate on the suite.
 10. ~~Release gate on `v*` tags.~~ **DONE 2026-08-15**, as part of step 9: a
     `v*` tag push is refused unless `test/.stamps/heavy-<sha>` exists for that
     exact commit.
-11. Work guards in the reduced-argument tests.
+11. ~~Work guards in the reduced-argument tests.~~ **DONE 2026-08-15** — see §7.
 
 Steps 1 and 2 are worth doing on their own merits regardless of whether the rest
 lands.

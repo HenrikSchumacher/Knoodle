@@ -16,6 +16,7 @@ do anything and a bench measures rather than asserts -- but they ARE built by
 """
 
 import argparse
+import re
 import concurrent.futures
 import os
 import subprocess
@@ -34,7 +35,7 @@ def read_manifest():
         for line in f:
             if line.startswith("#") or not line.strip():
                 continue
-            target, kind, needs, source, light, heavy = line.rstrip("\n").split("\t")
+            target, kind, needs, source, light, heavy, work = line.rstrip("\n").split("\t")
             rows.append({
                 "target": target,
                 "kind": kind,
@@ -42,6 +43,7 @@ def read_manifest():
                 "source": source if source != "-" else target + ".cpp",
                 "light": [] if light == "-" else light.split(),
                 "heavy": [] if heavy == "-" else heavy.split(),
+                "work": None if work == "-" else work,
             })
     return rows
 
@@ -172,7 +174,7 @@ def main():
     wall = time.monotonic() - t0
 
     # Report in manifest order, so the output is stable regardless of --jobs.
-    failed, missing, cpu = [], [], 0.0
+    failed, missing, no_work, cpu = [], [], [], 0.0
     for r in rows:
         res = results[r["target"]]
         cpu += res["secs"]
@@ -181,15 +183,21 @@ def main():
             missing.append(r["target"])
             continue
         ok = res["rc"] == 0
-        if not ok:
+        # THE NO-OP GUARD. Exiting 0 is not enough: a test whose arguments were
+        # reduced too far still exits 0 having examined nothing, and that reads
+        # as coverage. The pattern must match a count of work actually done.
+        if ok and r["work"] and not re.search(r["work"], res["out"]):
+            ok = False
+            no_work.append(r["target"])
+        if not ok and r["target"] not in no_work:
             failed.append(r["target"])
         argv = " ".join(r[args.tier])
         print(f"  {'ok' if ok else 'FAIL':<8} {r['target']:<30} {res['secs']:7.2f}s"
               + (f"  {argv}" if argv else ""))
 
     print("\n" + "-" * 70)
-    print(f"{len(rows) - len(failed) - len(missing)} passed, {len(failed)} failed, "
-          f"{len(missing)} not built"
+    print(f"{len(rows) - len(failed) - len(missing) - len(no_work)} passed, "
+          f"{len(failed)} failed, {len(no_work)} did no work, {len(missing)} not built"
           + (f", {len(skipped)} skipped" if skipped else ""))
     if skipped:
         print("\nSKIPPED on this platform (this run covered less than a full tier):")
@@ -214,7 +222,15 @@ def main():
     if missing:
         print("\nnot built: " + ", ".join(missing))
 
-    ok = not (failed or missing)
+    if no_work:
+        print("\nEXITED 0 BUT DID NO WORK -- arguments reduced too far, or the\n"
+              "work counter changed shape. A test that examines nothing is worse\n"
+              "than one that fails, because it reads as coverage:")
+        for name in no_work:
+            row = next(r for r in rows if r["target"] == name)
+            print(f"  - {name}: stdout never matched /{row['work']}/")
+
+    ok = not (failed or missing or no_work)
     if ok and not skipped:
         write_stamp(args.tier)
 

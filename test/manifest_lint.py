@@ -12,6 +12,7 @@ Run via `make lint`. Exit 0 = they agree.
 """
 
 import os
+import re
 import sys
 
 MANIFEST = "manifest.tsv"
@@ -32,13 +33,13 @@ def read_manifest(path=MANIFEST):
         if line.startswith("#") or not line.strip():
             continue
         f = line.rstrip("\n").split("\t")
-        if len(f) != 6:
+        if len(f) != 7:
             raise SystemExit(
-                f"{path}:{lineno}: expected 6 tab-separated columns, got {len(f)}\n"
+                f"{path}:{lineno}: expected 7 tab-separated columns, got {len(f)}\n"
                 f"  {f!r}\n"
-                f"  (columns are: target kind needs source light-args heavy-args)"
+                f"  (columns are: target kind needs source light-args heavy-args work)"
             )
-        target, kind, needs, source, light, heavy = f
+        target, kind, needs, source, light, heavy, work = f
         rows[target] = {
             "lineno": lineno,
             "kind": kind,
@@ -46,6 +47,7 @@ def read_manifest(path=MANIFEST):
             "source": source if source != "-" else target + ".cpp",
             "light": [] if light == "-" else light.split(),
             "heavy": [] if heavy == "-" else heavy.split(),
+            "work": None if work == "-" else work,
         }
     return rows
 
@@ -71,6 +73,19 @@ def main():
                 f"{MANIFEST}:{r['lineno']}: {target}: needs '{r['needs']}' is not one of "
                 + "/".join(sorted(VALID_NEEDS))
             )
+        # A reduced test with no work pattern can hollow out unnoticed.
+        if r["kind"] == "test" and (r["light"] or r["heavy"]) and not r["work"]:
+            problems.append(
+                f"{MANIFEST}:{r['lineno']}: {target}: has reduced arguments but no "
+                f"work pattern, so it could be reduced to a no-op and still pass"
+            )
+        if r["work"]:
+            try:
+                re.compile(r["work"])
+            except re.error as e:
+                problems.append(
+                    f"{MANIFEST}:{r['lineno']}: {target}: work pattern is not a "
+                    f"valid regex ({e})")
         if not os.path.exists(r["source"]):
             problems.append(
                 f"{MANIFEST}:{r['lineno']}: {target}: no such source file '{r['source']}'"
