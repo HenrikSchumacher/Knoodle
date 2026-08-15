@@ -6,6 +6,15 @@ before filing. Status: `found` → `confirmed` → `filed` → `fixed upstream`.
 **Numbers are permanent ids: never reuse one, even after the issue closes.**
 (They were reused once already — see the note at the bottom.)
 
+> **Pending action, 2026-08-19.** Issues **11**, **5** and **4** are still open
+> and have not moved. If they are still unmoved on that date, we will file them
+> as GitHub issues, for the reason recorded in this file's own workflow note:
+> *this document is an index, not the record.* An entry here is easy to lose to
+> history; a GitHub issue is not, and can be closed with a SHA the way #33 and
+> #34 were. Filing them is not an escalation — it is the same treatment every
+> confirmed issue here has had, just applied on a timer so nothing quietly
+> ages out.
+
 **Scoreboard, re-verified 2026-08-14 against `dev_prosector` `fb4c8f0e`** with
 standalone reproducers, not through a test harness:
 
