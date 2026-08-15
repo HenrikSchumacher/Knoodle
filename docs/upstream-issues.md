@@ -11,6 +11,8 @@ standalone reproducers, not through a test harness:
 
 | # | issue | status |
 | --- | --- | --- |
+| 15 | `ScopedUnlock` is documented in both `PlanarDiagram` and `PlanarDiagramComplex` but defined nowhere, so the documented spelling does not compile | **PR'd — [GH #35](https://github.com/HenrikSchumacher/Knoodle/pull/35)** |
+| 14 | `PlanarDiagramComplex(const PD_T &)` delegates to a `PD_T &&` constructor, so the overload cannot be instantiated | **PR'd — [GH #35](https://github.com/HenrikSchumacher/Knoodle/pull/35)** |
 | 13 | `IntersectionType()` misses a transversal 3-space intersection; LE2 succeeds silently, LE3/4 throw from an accessor | **FILED — [GH #34](https://github.com/HenrikSchumacher/Knoodle/issues/34)** |
 | 12 | `ArcSimplifier`'s R_IIa is not atomic: on a locked diagram it half-applies and CHANGES THE KNOT | **FILED — [GH #33](https://github.com/HenrikSchumacher/Knoodle/issues/33)** |
 | 11 | `LinesColinearTest` asserts that two distinct degenerate segments coincide | **open — aborts** |
