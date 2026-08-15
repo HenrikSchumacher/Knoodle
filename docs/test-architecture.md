@@ -174,12 +174,39 @@ What this buys that output-inspection cannot:
 * flag-over-preset precedence asserted, which is the whole point of the
   `has_value()` cascade at lines 585–600.
 
-**One refactor needed.** `Config`, `ParseArguments` and `BuildSimplifyArgs` live in
-an anonymous namespace inside a `.cpp` that also has `main`, so nothing can link
-against them. Extract them to `tools/knoodlesimplify_config.hpp` in a named
-namespace, included by both the tool and the test. This is our code, so it needs
-no coordination with Henrik. `knoodledraw.cpp` and `knoodleidentify.cpp` have the
-same shape and get the same treatment.
+**DONE 2026-08-15.** `Config`, `ParseArguments` and `BuildSimplifyArgs` extracted
+to `tools/knoodlesimplify_config.hpp`; `test/simplify_config_check` has 129
+checks. Verified behaviour-preserving against a pre-refactor binary: identical
+on 147 diagram runs, 19 flag runs, and `--help`.
+
+### 5a-bis. The other two tools have DIFFERENT contracts
+
+Not the same treatment, despite the same file shape. Revised 2026-08-15 (JHC);
+deferred to a later pass.
+
+**`knoodledraw` → `OrthoDraw`.** Same contract as `knoodlesimplify` and the same
+argument for testing it: its flags must reach `OrthoDraw_T::Settings_T`
+faithfully. Cheaper than expected -- **`BuildSettings(const Config&) ->
+OrthoDraw_T::Settings_T` already exists** (`knoodledraw.cpp:1941`), so no code
+needs restructuring to produce the struct; it only needs extracting to a header,
+exactly as `knoodlesimplify` was. Two extras worth covering that
+`knoodlesimplify` has no analogue for: `ValidateCLPSettings` and
+`ValidateSettingsCombinations` reject certain settings *combinations*, so
+refusal is part of this contract in a way it was not there.
+
+**`knoodleidentify` → `ki::Identify`.** A much narrower surface, and narrow
+**by design** rather than by omission:
+
+* There *is* an argument struct -- `ki::IdentifyParams` (`cap`, `deep_cx`, `rot`,
+  plus `n0` and `base` which are not exposed) -- but it is built inline in `main`
+  from three Config fields, not by a function. Testing it means extracting that
+  three-line construction first.
+* It exposes **no** simplification options at all, and must not start.
+  `knoodleidentify`'s core *is* a structured simplification-and-Reapr-escalation
+  policy that has to be controlled directly; handing users the generic simplify
+  knobs would let them defeat it. So "the CLI does not forward these" is the
+  contract, and a test here should assert their **absence** rather than their
+  wiring.
 
 **Plus a small debug flag, for the one thing purity does not cover:** that `main`
 really does pass that struct to `Simplify` unmodified. A hidden
@@ -430,8 +457,10 @@ tier, and the first two must be resolved before a hook can gate on the suite.
 4. `knoodle_io_check` — no refactor needed, so it is the cheapest real coverage
    available and should not wait behind anything.
 5. The polygon corpus + `polygon_levels_check`; measure its runtime.
-6. Extract `knoodlesimplify_config.hpp`; `simplify_config_check`; the
-   `--debug-print-simplify-args` flag. Then the same for the other two tools.
+6. ~~Extract `knoodlesimplify_config.hpp`; `simplify_config_check`; the
+   `--debug-print-simplify-args` flag.~~ **DONE 2026-08-15.** The other two
+   tools are deferred to a later pass and want different contracts, not the
+   same one -- see §5a-bis.
 7. `cli_contract_check`.
 8. `make check` / `check-full`; point CI at `make check`.
 9. Versioned hooks (with the LFS chain), push policy, stamps; the `CLAUDE.md` WIP
