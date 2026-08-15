@@ -125,6 +125,9 @@ private:
             }
             else
             {
+                (void)y;
+                (void)err;
+                (void)scaleQ;
                 z.Read(x.data());   // static_cast<IReal> will be called automaticaly
             }
             

@@ -127,9 +127,7 @@ Int CountActiveCrossings() const
 
 private:
     
-/*!
- * @brief Deactivates crossing `c`. Only for internal use.
- */
+/*!@brief **UNSAFE** Deactivates crossing `c`. Only for internal use.*/
 
 template<bool assertsQ = true>
 void DeactivateCrossing( const Int c )
@@ -147,7 +145,7 @@ void DeactivateCrossing( const Int c )
         {
             wprint(ClassName()+"::Attempted to deactivate already inactive " + CrossingString(c) + ".");
         }
-#endif
+#endif // PD_DEBUG
     }
     
     PD_ASSERT( crossing_count >= Int(0) );

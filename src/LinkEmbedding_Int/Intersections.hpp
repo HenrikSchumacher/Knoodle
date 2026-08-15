@@ -392,13 +392,11 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
     // Also, we may assume that neither edge is degenerate in 3-space.
 
     using Flag_T = Prosector_T::Flag_T;
-    
-    S.LoadLineSements(
+
+    Flag_T flag = S.ComputeIntersection(
         k, EdgeData(k,Int(0)), EdgeData(k,Int(1)),
         l, EdgeData(l,Int(0)), EdgeData(l,Int(1))
     );
-
-    Flag_T flag = S.IntersectionType();
 
     if constexpr ( verboseQ ) { TOOLS_LOGDUMP(flag); }
 
@@ -428,5 +426,5 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
     ++edge_ptr[k + Int(1)];
     ++edge_ptr[l + Int(1)];
 
-    intersections.push_back( S.ComputeIntersection() );
+    intersections.push_back( S.GetIntersection() );
 }
