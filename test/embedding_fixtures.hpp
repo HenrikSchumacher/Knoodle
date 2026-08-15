@@ -242,6 +242,111 @@ inline std::array<double,9> RandomRotationMatrix( std::uint64_t seed )
     };
 }
 
+/// A random integer matrix of determinant +1.
+///
+/// The integer counterpart of `RandomRotationMatrix`, and the reason it exists:
+/// a rotation of a lattice point is not a lattice point, so a curve whose
+/// `Real_` is integral cannot be randomly rotated -- casting back to the grid
+/// gives a different, badly degenerate curve (and the rotation matrix itself
+/// truncates to something singular). A matrix with INTEGER entries and
+/// POSITIVE determinant has neither problem: it maps integer coordinates to
+/// integer coordinates exactly, and because `GL+(3,R)` is connected it is
+/// isotopic to the identity, so the image is the same knot type. It is simply
+/// no longer a *lattice* configuration -- the edges stop being unit vectors --
+/// which is exactly what makes the projection generic.
+///
+/// Built as a product of elementary integer shears, each of determinant 1, so
+/// the product is unimodular by construction rather than by hoping. Entries
+/// stay small: on the fixtures here the coordinates grow from 4 to about 36,
+/// against a budget of `m = 60` bits (see `LinkEmbedding_Int/EdgeCoordinates.hpp`),
+/// so exactness is never at risk for a single application.
+///
+/// CAUTION: do NOT compose these. Coordinates grow geometrically under
+/// repeated application, and the exact path holds only while
+/// `scaling_exponent >= 0`. Apply each transform to the ORIGINAL curve.
+inline std::array<double,9> UnimodularIntegerMatrix( std::uint64_t seed )
+{
+    std::mt19937_64 rng (seed);
+    std::uniform_int_distribution<int>  off (1,3);
+    std::uniform_int_distribution<int>  dir (0,1);
+
+    std::array<double,9> M { 1,0,0, 0,1,0, 0,0,1 };
+
+    auto compose = [&M]( const std::array<double,9> & A )
+    {
+        std::array<double,9> P {};
+        for( int r = 0; r < 3; ++r )
+        for( int c = 0; c < 3; ++c )
+        {
+            double acc = 0;
+            for( int k = 0; k < 3; ++k ) { acc += A[3*r+k] * M[3*k+c]; }
+            P[3*r+c] = acc;
+        }
+        M = P;
+    };
+
+    constexpr int planes[3][2] = { {0,1}, {1,2}, {0,2} };
+
+    for( int t = 0; t < 3; ++t )
+    {
+        std::array<double,9> S { 1,0,0, 0,1,0, 0,0,1 };
+        const int i = planes[t][0], j = planes[t][1];
+        // Either an upper or a lower shear in this plane; both have det 1, and
+        // mixing them keeps the result from being triangular.
+        if( dir(rng) ) { S[3*i+j] = off(rng); } else { S[3*j+i] = off(rng); }
+        compose(S);
+    }
+    return M;
+}
+
+/// The 24 rotations of the cube: signed permutation matrices of determinant +1.
+///
+/// These map the cubic lattice onto itself, so a lattice configuration stays a
+/// lattice configuration -- and its projection stays *maximally degenerate*.
+/// That is the point. They are not a source of generic projections (measured:
+/// the shared-column count of `lattice_04` is 96 before and after), they are 24
+/// independent hard cases per fixture, every one of which must give the same
+/// knot.
+inline const std::vector<std::array<double,9>> & OctahedralRotations()
+{
+    static const std::vector<std::array<double,9>> table = []{
+        std::vector<std::array<double,9>> out;
+        constexpr int perms[6][3] = {
+            {0,1,2},{0,2,1},{1,0,2},{1,2,0},{2,0,1},{2,1,0}
+        };
+        for( const auto & p : perms )
+        for( int signs = 0; signs < 8; ++signs )
+        {
+            std::array<double,9> M {};
+            const int sg[3] = { (signs&1)?-1:1, (signs&2)?-1:1, (signs&4)?-1:1 };
+            for( int r = 0; r < 3; ++r ) { M[3*r + p[r]] = sg[r]; }
+
+            // det of a signed permutation = sign(perm) * product(signs).
+            const int parity = ((p[0]>p[1]) + (p[0]>p[2]) + (p[1]>p[2])) % 2;
+            const int det = (parity ? -1 : 1) * sg[0] * sg[1] * sg[2];
+            if( det > 0 ) { out.push_back(M); }
+        }
+        return out;
+    }();
+    return table;
+}
+
+/// Apply a matrix to a curve, keeping the entries exact.
+inline Curve ApplyMatrix( const Curve & c, const std::array<double,9> & M,
+                          const std::string & tag )
+{
+    Curve out = c;
+    out.name = c.name + "[" + tag + "]";
+    for( std::size_t i = 0; i < c.v.size(); i += 3 )
+    {
+        const double x = c.v[i], y = c.v[i+1], z = c.v[i+2];
+        out.v[i  ] = M[0]*x + M[1]*y + M[2]*z;
+        out.v[i+1] = M[3]*x + M[4]*y + M[5]*z;
+        out.v[i+2] = M[6]*x + M[7]*y + M[8]*z;
+    }
+    return out;
+}
+
 /// A uniformly random rotation applied to the whole curve. Used for the knot-type
 /// tier: a random rotation is degeneracy-free with probability 1, so it is an
 /// independent generic projection of the same link.
@@ -261,6 +366,18 @@ inline Curve Rotate( const Curve & c, std::uint64_t seed )
     }
     return out;
 }
+
+/// An independent generic projection of the same link, whatever the coordinate
+/// type. Floating point gets a random rotation; integral coordinates get a
+/// random unimodular integer matrix, for the reasons above.
+inline Curve GenericImage( const Curve & c, std::uint64_t seed, bool integralQ )
+{
+    if( !integralQ ) { return Rotate(c,seed); }
+
+    return ApplyMatrix( c, UnimodularIntegerMatrix(seed),
+                        "int " + std::to_string(seed) );
+}
+
 
 /// Radius of gyration: the RMS distance of the vertices from their centroid.
 ///
@@ -440,13 +557,19 @@ LE_T LoadWithLibraryReader( const std::filesystem::path & file )
 
 /// Compute the intersections and say plainly whether it worked.
 ///
-/// `RequireIntersections` does not report success the same way across the
-/// family: `LinkEmbedding` returns an `int` error code where 0 means success,
-/// while `LinkEmbedding2/3/4` return a `bool` where `true` means success. The two
-/// conventions disagree about the meaning of 1, so the return type has to be
-/// inspected rather than assumed. (Worth knowing generally:
-/// `PD_T::FromLinkEmbedding(LinkEmbedding2&)` currently assumes the int
-/// convention and so treats every successful projection as "error code 1".)
+/// Compute the intersections and say plainly whether it worked.
+///
+/// Both families return an `int` error code with 0 = success as of `1d8761c7`,
+/// which unified a convention split that had `LinkEmbedding2/3/4` returning
+/// `bool`. The `bool` branch below is kept because the return type is inspected
+/// rather than assumed, which is what made this function survive that change
+/// without edits.
+///
+/// It also enforces the INTROSPECTION CONTRACT on the way through: a class that
+/// reports success must report zero 3-space intersections. Those two statements
+/// are the same statement, and a build where they disagree is broken in a way
+/// no tier would otherwise notice -- every tier asks "did it work", none asks
+/// "and does the object agree that it worked".
 template<class LE_T>
 bool RequireIntersectionsOK( LE_T & L, std::string & message, int & err )
 {
@@ -454,9 +577,29 @@ bool RequireIntersectionsOK( LE_T & L, std::string & message, int & err )
 
     using Status_T = std::remove_cvref_t<decltype(raw_status)>;
 
+    /// Success must mean IntersectionCount3D() == 0. Returns false and fills
+    /// `message` if the object contradicts its own success return.
+    auto agrees_with_itselfQ = [&L,&message,&err]() -> bool
+    {
+        if constexpr ( requires { L.IntersectionCount3D(); } )
+        {
+            const auto n3d = L.IntersectionCount3D();
+            if( n3d > 0 )
+            {
+                err     = -2;
+                message = "RequireIntersections reported SUCCESS but "
+                          "IntersectionCount3D() is " + std::to_string(Int(n3d))
+                        + "; a projection cannot both succeed and contain "
+                          "3-space intersections";
+                return false;
+            }
+        }
+        return true;
+    };
+
     if constexpr ( std::is_same_v<Status_T,bool> )
     {
-        if( raw_status ) { return true; }
+        if( raw_status ) { return agrees_with_itselfQ(); }
 
         err     = -1;
         message = "RequireIntersections returned false";
@@ -475,7 +618,7 @@ bool RequireIntersectionsOK( LE_T & L, std::string & message, int & err )
     else
     {
         err = int(raw_status);
-        if( err == 0 ) { return true; }
+        if( err == 0 ) { return agrees_with_itselfQ(); }
 
         message = "RequireIntersections returned error code " + std::to_string(err)
                 + (err == 6 ? " (line segments intersect in 3D)" : "");
@@ -995,12 +1138,22 @@ struct Expectation
 ///     xfail_exact = 2,3,4 | reason         (only LinkEmbedding2/3/4)
 struct Marker
 {
-    std::set<int> classes;    ///< empty = applies to every class
-    std::string   reason;
+    std::set<int>         classes;  ///< empty = applies to every class
+    std::set<std::string> coords;   ///< empty = applies to every coordinate type
+    std::string           reason;
 
-    bool AppliesTo( int cls ) const
+    /// A defect can be specific to a coordinate type as well as to a class, and
+    /// the two are independent. deg_stacked_points is the case that forced this:
+    /// the same root cause (upstream issue 11) CRASHES the rotation tier under
+    /// i64, where the generic image is a unimodular integer matrix that
+    /// preserves the degenerate configuration, but merely FAILS under f64,
+    /// where a random rotation separates the two points before the library ever
+    /// pairs them. One class list cannot say both.
+    bool AppliesTo( int cls, const std::string & coord_tag ) const
     {
-        return classes.empty() || classes.count(cls) > 0;
+        if( !classes.empty() && classes.count(cls) == 0 )      { return false; }
+        if( !coords.empty()  && coords.count(coord_tag) == 0 ) { return false; }
+        return true;
     }
 };
 
@@ -1032,32 +1185,36 @@ struct Expectations
 
     static std::string FirstApplicable(
         const std::map<std::string,std::vector<Marker>> & m,
-        const std::string & tier, int cls )
+        const std::string & tier, int cls, const std::string & coord_tag )
     {
         auto it = m.find(tier);
         if( it == m.end() ) { return {}; }
 
         for( const auto & marker : it->second )
         {
-            if( marker.AppliesTo(cls) ) { return marker.reason; }
+            if( marker.AppliesTo(cls,coord_tag) ) { return marker.reason; }
         }
         return {};
     }
 
-    /// The reason this tier is expected to fail for this class, or "".
-    std::string XFail( const std::string & tier, int cls ) const
+    /// The reason this tier is expected to fail here, or "".
+    std::string XFail( const std::string & tier, int cls,
+                       const std::string & coord_tag ) const
     {
-        return FirstApplicable(xfail,tier,cls);
+        return FirstApplicable(xfail,tier,cls,coord_tag);
     }
 
-    /// The reason this tier is expected to crash for this class, or "".
-    std::string XCrash( const std::string & tier, int cls ) const
+    /// The reason this tier is expected to crash here, or "".
+    std::string XCrash( const std::string & tier, int cls,
+                        const std::string & coord_tag ) const
     {
-        return FirstApplicable(xcrash,tier,cls);
+        return FirstApplicable(xcrash,tier,cls,coord_tag);
     }
 };
 
-/// Parse `"2,3,4 | reason"` or plain `"reason"`.
+/// Parse `"2,3,4 | reason"`, `"2,3,4 @i64 | reason"`, `"@f32,f64 | reason"`,
+/// or plain `"reason"`. The class list and the `@` coordinate list are both
+/// optional and both mean "every one of them" when absent.
 inline Marker ParseMarker( const std::string & value )
 {
     Marker m;
@@ -1066,6 +1223,25 @@ inline Marker ParseMarker( const std::string & value )
     if( bar == std::string::npos ) { m.reason = value; return m; }
 
     std::string list = value.substr(0,bar);
+
+    if( const std::size_t at = list.find('@'); at != std::string::npos )
+    {
+        std::string tags = list.substr(at+1);
+        list = list.substr(0,at);
+
+        std::string tag;
+        for( char ch : tags + "," )
+        {
+            if( ch == ',' )
+            {
+                const std::size_t b = tag.find_first_not_of(" \t");
+                const std::size_t e = tag.find_last_not_of(" \t");
+                if( b != std::string::npos ) { m.coords.insert(tag.substr(b,e-b+1)); }
+                tag.clear();
+            }
+            else { tag += ch; }
+        }
+    }
     m.reason = value.substr(bar+1);
 
     const std::size_t b = m.reason.find_first_not_of(" \t");

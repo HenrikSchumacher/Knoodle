@@ -367,6 +367,10 @@ int main(int argc, char* argv[])
     ki::Size_T seed_local_opt = ki::IdentifyParams{}.seed_local_opt; // --seed-local-opt=N: seed
                                                         // local_opt_level (0=off default,1=R1,2=R1+R2,
                                                         // 4=all local). See klut_identify.hpp finding.
+                                                        // WARNING: level 4 is UNSOUND today (GitHub
+                                                        // issue #33) -- it can change the knot type,
+                                                        // so a benchmark run at 4 measures wrong
+                                                        // answers. Default 0 is unaffected.
     int seed_reroute = ki::IdentifyParams{}.seed_reroute ? 1 : 0; // --seed-reroute=0/1 (default 1);
                                                         // 0 + --seed-local-opt=4 = local-only seed
     Int polygon_edges = 0;       // --polygon-edges=N: random-polygon firehose mode (N-gon knots)

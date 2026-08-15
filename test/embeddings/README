@@ -23,8 +23,8 @@ reader does not accept them.
     <census-key> >=  n        lower bound required
     knot   = ...              documentation only
     note   = ...              documentation only
-    xfail_<tier>  = [classes |] reason
-    xcrash_<tier> = [classes |] reason
+    xfail_<tier>  = [classes] [@coords] [|] reason
+    xcrash_<tier> = [classes] [@coords] [|] reason
 
 Census keys are the fields of `Census` in ../embedding_fixtures.hpp:
 `zero_length_edges`, `vertical_edges`, `coincident_vertices`, `vertex_on_edge`,
@@ -41,7 +41,18 @@ fixture containing one would make a correct error return look like a failure.
 
 `xfail_<tier>` marks a known wrong answer, `xcrash_<tier>` a known crash. Both
 take an optional comma-separated class list before a `|`, so a defect can be
-scoped to the classes that actually have it. Both are checked in both
+scoped to the classes that actually have it, and an optional `@` list of
+coordinate tags (`f64`, `f32`, `i64`, `i32`) so it can be scoped to the
+coordinate types that have it. The two are independent, and a tier may carry
+several markers whose scopes are disjoint:
+
+    xcrash_rotation = 2,3,4 @i64     | ...aborts here...
+    xfail_rotation  = 2,3,4 @f64,f32 | ...merely wrong here...
+
+deg_stacked_points is why: one root cause crashes under integral coordinates,
+where the generic image is a unimodular integer matrix that preserves the
+degenerate configuration, and merely fails under floating point, where a random
+rotation separates the two points before the library ever pairs them. Both are checked in both
 directions: if a marked check starts passing, that is reported as an XPASS
 failure so the stale marker gets removed rather than masking a later regression.
 
@@ -63,6 +74,77 @@ spelled out in the `.expect` file:
 `deg_hopf_flat` is the one whose type is fixed by construction rather than by
 computation: component 1's vertical edge at (2,2) pierces the disk bounded by
 the square component 0 exactly once, so it is a Hopf link.
+
+Split and stacked fixtures
+--------------------------
+
+  split_lattice           two disjoint lattice knots; a split diagram
+  stacked_lattice         two identical lattice knots superimposed in projection
+  deg_stacked_points      two distinct zero-length edges sharing a projected point
+
+`split_lattice` is two copies of lattice_04 with the second translated by
+(20,0,0), far enough that the projections do not meet. LinkEmbedding2/3/4
+recover 38 crossings, which is 19 + 19 exactly -- the per-component counts with
+nothing between them. That equality is the check worth having: a backend that
+leaked a crossing between two components, or lost one, would break it while
+still producing a perfectly legal diagram. It also drives the split-link paths
+no other lattice fixture reaches (HOMFLY through union-find decomposition and
+the delta rule; the Alexander |det| correctly declining a split diagram).
+
+`stacked_lattice` is the same two knots translated only in z, so the two
+projections are IDENTICAL vertex for vertex. Where split_lattice asks that
+nothing leak between two separated copies, this asks that everything be pulled
+apart when they are superimposed: max_point_multiplicity 16 against 8,
+collinear_overlap 202 against 78. Simulation of simplicity handles it at 88
+crossings = 19 + 19 + 50, and the stability ladder shows the cost -- N = 64
+where lattice_04 alone needs N = 8. The link type is checkable rather than
+asserted: the copies occupy z in [1,4] and [11,14], so a plane separates them
+and they cannot be linked; the computed diagram agrees, with all 50
+inter-component crossings summing to linking number 0.
+
+`deg_stacked_points` is eight vertices that ABORT LinkEmbedding2/3/4 --
+upstream issue 11, marked xcrash so the suite tracks it. Two zero-length edges
+at the same projected point and different heights are two distinct points of
+3-space; they do not intersect, but any two points are collinear, so
+`Prosector::LinesColinearTest` is reached with both segments degenerate and its
+closing assertions demand that they coincide. It was found on two lattice knots
+1e16 apart, where f64 rounding manufactures exactly this, and reduced to eight
+vertices of small integers.
+
+Arc-presentation fixtures (`arc_*`)
+-----------------------------------
+
+  arc_trefoil             the trefoil in open-book form, arc index 5
+
+The z-axis is the binding and every arc lies in one half-plane through it,
+running (0,0,z) -> (a,b,z) -> (a,b,z1) -> (0,0,z1). Projected down z that is
+about as bad as a projection gets:
+
+  * all n binding points land on the origin, so 2n radial segments corner there
+    (max_point_multiplicity = 10 for arc_trefoil, against 6 for the worst
+    hand-built fixture);
+  * every vertical segment projects to a point;
+  * each arc's outbound and return segments project onto EXACTLY the same
+    segment -- a complete collinear overlap of two non-adjacent edges, where
+    deg_collinear_overlap only manages a partial one.
+
+There are no transversal crossings at all in the naive projection: it is n
+doubled rays through one point. Every crossing in the answer is manufactured by
+the symbolic perturbation, and the exact-shear tier then confirms it
+independently -- 8 crossings, stable at N = 8, for all three classes and all
+three coordinate types, simplifying to the left-handed trefoil.
+
+This is not a contrived shape: it is the form of the petaluma random-knot
+model, so a generator in the wild will hand exactly this to Knoodle.
+
+`make_arc_presentation.py` emits them from a grid diagram (an arc presentation
+and a grid diagram are the same object). arc_trefoil is
+
+    ./make_arc_presentation.py --name arc_trefoil \
+        --xs 0,1,2,3,4 --os 2,3,4,0,1 > arc_trefoil.crd
+
+which reproduces the committed file byte for byte. Give it any X/O permutation
+pair to add more; it refuses grids whose arcs do not close into one component.
 
 Lattice fixtures (`lattice_NN`)
 -------------------------------

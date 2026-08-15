@@ -1,0 +1,51 @@
+# TWO ZERO-LENGTH EDGES AT THE SAME PROJECTED POINT, AT DIFFERENT HEIGHTS.
+#
+#     (0,0,0) (4,0,0) (4,0,0) (4,4,0) (4,4,5) (4,0,5) (4,0,5) (0,0,5)
+#              ^^^^^^^^^^^^^^                  ^^^^^^^^^^^^^^
+#              zero-length at (4,0,0)          zero-length at (4,0,5)
+#
+# Each of those two edges is a single point of 3-space. They are DISTINCT, so
+# they do not intersect -- but they share a projected point, so the broad phase
+# keeps the pair, and any two points are trivially collinear, so
+# `Prosector::LinesColinearTest` is reached with both segments degenerate. Its
+# loop falls through (both are degenerate in all three coordinates) into
+# assertions that demand the two coincide. They do not. Abort.
+#
+# Upstream issue 11. The assertion is wrong, and so is the `return true` below
+# it -- two distinct points do not intersect, so the answer is "no".
+#
+# WHY THIS FIXTURE IS SMALL ON PURPOSE. The crash was found on two lattice knots
+# 10^16 apart, where f64 rounding (ULP = 2 at that scale) collapses vertices
+# into zero-length edges. But the large coordinates are only a delivery
+# mechanism; eight vertices of small-integer doubles reach it directly. The same
+# assertion also fired when integral coordinates were transformed by a
+# truncated, singular rotation matrix -- one bug behind three symptoms.
+#
+# NOT reachable from the CLI today: tools/knoodle_io.hpp binds
+# LinkEmbedding<Real,Int,float>, the float class, which handles this gracefully
+# (the tools report library errors and exit 1). It is reachable now by any
+# direct user of LinkEmbedding2/3/4, and it blocks the switchover those classes
+# are headed for.
+note = two distinct zero-length edges sharing a projected point
+knot = unknot (a square with two doubled corners, pushed out of plane)
+
+zero_length_edges      == 2
+vertical_edges         == 2
+multiple_points        == 1
+max_point_multiplicity == 6
+spatial                == 0
+
+xcrash_exact     = 2,3,4   | assertion in LinesColinearTest: two distinct degenerate segments (upstream issue 11)
+xcrash_cross     = 1,2,3,4 | assertion in LinesColinearTest: two distinct degenerate segments (upstream issue 11)
+xcrash_invariant = 2,3,4   | assertion in LinesColinearTest: two distinct degenerate segments (upstream issue 11)
+xcrash_symmetry  = 2,3,4   | assertion in LinesColinearTest: two distinct degenerate segments (upstream issue 11)
+# The rotation tier splits by COORDINATE TYPE, which is what the `@` scope on a
+# marker is for. Under i64 the generic image is a unimodular integer matrix,
+# which preserves the degenerate configuration exactly -- so it crashes, same
+# issue 11. Under f64/f32 the generic image is a random rotation, which pulls
+# the two points to different projected positions before the library ever pairs
+# them, and the run instead fails gracefully with error code 3 -- that is
+# finding B (a zero-length edge makes its two neighbours share a point of
+# 3-space), a different defect with a different outcome.
+xcrash_rotation  = 2,3,4 @i64     | assertion in LinesColinearTest: two distinct degenerate segments (upstream issue 11)
+xfail_rotation   = 2,3,4 @f64,f32 | zero-length edge makes its neighbours meet in 3D (finding B)

@@ -1,0 +1,63 @@
+# NEAR MISSES AT ENORMOUS SCALE. 48 triangles, each with two edges that are
+# nearly diameters of a sphere of radius 10^4, so ~96 segments of length ~2x10^4
+# all pass within a few units of the origin and come within ~1 unit of crossing
+# each other there. A 10^4 : 1 ratio between the size of the object and the size
+# of the decisions being made about it.
+#
+# Nothing here is DEGENERATE -- max_point_multiplicity is 2, an ordinary
+# projection. That is the point. Every other fixture in this suite stresses
+# exact coincidence; this one stresses the opposite regime, where nothing
+# coincides but everything is within floating-point noise of coinciding.
+#
+# Construction (JHC): pick p on the sphere, round to the integer grid; the
+# triangle is p, -p+d1, -p+d2 with d1 != d2 drawn from [-12,12]^3.
+#
+# THE OFFSETS MUST BE UNIQUE ACROSS COMPONENTS, and that is not a detail. The
+# midpoint of the segment p -> (-p+d) is d/2, which does not depend on p at all,
+# so two components sharing a d have long edges through the SAME point of
+# 3-space and genuinely intersect. Drawing d from (+/-1)^3 gives only 8 choices:
+# the census measured spatial = 3 on four components. Using -p exactly (d = 0)
+# puts every component through the origin: spatial = 8. Both were rejected. The
+# committed curve has spatial = 0, checked by the census, which computes in
+# exact integer arithmetic independently of the classes under test.
+#
+# WHAT IT FOUND: no defect. That is a real result and worth stating plainly,
+# because the construction was designed to provoke one.
+#
+#   * LinkEmbedding2/3/4 handle it at every coordinate type, and keep handling
+#     it: escalated to K = 1000 (3000 vertices, ~2,000,000 crossings) all three
+#     still agreed crossing-for-crossing on the raw projection and on three
+#     generic rotations. A strong statement about the exact backends.
+#   * LinkEmbedding handles it at f64 -- at K = 300 the whole cross tier passes
+#     with zero failures.
+#   * At f32 it gives out, which is arithmetic rather than a bug: 24 bits of
+#     mantissa against a 10^4 : 1 scale ratio leaves no margin. It refuses with
+#     code 8 (tiny difference of intersection times, an honest refusal) and
+#     sometimes with code 6, "line segments intersect in 3D", on a curve whose
+#     spatial count is 0. The code-6 wording is a misdiagnosis -- it asserts
+#     something false about the input rather than admitting it cannot resolve it
+#     -- but refusing at all is correct here, so this is a wording complaint at
+#     a precision where the class has no business succeeding, not a defect.
+#
+# The f32 rotation failures for classes 2/3/4 are a third thing again and also
+# not a defect: composing 24 rotations in single precision degrades the CURVE at
+# this scale, and the exact classes then faithfully compute the diagram of the
+# degraded curve. f64 is unaffected.
+#
+# So the fixture pins a PRECISION FLOOR: f32 is inadequate for this geometry,
+# f64 and the exact backends are not. If a future change makes f64 or an exact
+# class fail here, that is news.
+#
+# Regenerate (the generator is in the session notes; seed 7, m = 12):
+#   K=48 triangles, R=10^4, offsets unique across components, reject spatial>0.
+note = 48 near-diameters of a 10^4 sphere, passing within ~1 unit at the origin
+knot = not established; this fixture is about resolution, not type
+
+max_point_multiplicity == 2
+transversal            == 4512
+spatial                == 0
+
+xfail_cross     = 1 @f32       | f32 cannot resolve a 10^4 : 1 scale ratio; refuses with code 8, and with code 6 misdiagnoses it as a 3D self-intersection
+xfail_invariant = 1 @f32       | same, on the generic rotation this class is anchored to
+xfail_rotation  = 1 @f32       | same, on the anchoring projection
+xfail_rotation  = 2,3,4 @f32   | composing 24 rotations in f32 degrades the curve itself at this scale; the exact classes then correctly diagram the degraded curve. f64 unaffected

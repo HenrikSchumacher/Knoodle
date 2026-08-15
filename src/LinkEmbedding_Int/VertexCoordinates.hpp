@@ -75,6 +75,10 @@ void ReadVertexCoordinates( cptr<Real> v )
                              && (std::modf(y[2], &x[2]) == 0.0);
             }
         }
+        else
+        {
+            (void)int_checkQ;
+        }
         
         y.Write(vertex_coords.data(e));
     };

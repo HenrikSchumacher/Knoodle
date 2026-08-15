@@ -57,6 +57,12 @@ struct IdentifyParams
     // (~<=5 crossings: +15..32% at 3-4 crossings), and loses above that as local
     // moves stall and force Reapr escalation. Not worth a size-adaptive branch --
     // the reroute default (seed_local_opt=0, seed_reroute=true) stays.
+    // WARNING (2026-08-14): seed_local_opt = 4 is currently UNSOUND, not merely
+    // slow. It enables the assisted R_IIa patterns, which half-apply on a
+    // locked diagram and can change the knot type -- see GitHub issue #33 and
+    // test/local_moves_check. The July finding below concerns speed and was
+    // measured before that was known; treat its level-4 numbers as suspect.
+    // The default of 0 is unaffected.
     Size_T seed_local_opt = 0;  // local_opt_level for the seed: 0=off (default), 1=R1,
                                 // 2=R1+R2, 4=all local patterns.
     bool   seed_reroute = true; // rerouteQ for the seed. false + seed_local_opt>0 = a

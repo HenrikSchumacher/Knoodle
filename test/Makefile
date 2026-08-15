@@ -146,6 +146,14 @@ link_inflate_check: link_inflate_check.cpp link_alexander.hpp homfly_invariance.
 
 # link_split_check — direct split-link corner-case test (oracle correctness vs
 # delta rule, Simplify preservation incl. free loops, |det| graceful degradation).
+# intersection3d_check -- the introspection contract from the failing side:
+# curves that really do self-intersect in 3-space, with IntersectionCount3D()
+# checked against an independent exact-integer census. Exit 0 = pass.
+intersection3d_check: intersection3d_check.cpp embedding_fixtures.hpp ../Knoodle.hpp
+	@echo "=== Building intersection3d_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) intersection3d_check.cpp -o $@
+	@echo "✓ intersection3d_check compiled successfully"
+
 # local_moves_check -- the ArcSimplifier's local patterns must preserve the
 # knot. Runs data/diagrams/hardunknots (21 diagrams that are all the UNKNOT)
 # through local_opt_level 0, 2 and 4 and requires every recognizable output to
