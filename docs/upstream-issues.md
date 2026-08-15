@@ -11,6 +11,7 @@ standalone reproducers, not through a test harness:
 
 | # | issue | status |
 | --- | --- | --- |
+| 16 | `tools/knoodle_io.hpp` still parses with `getline`/`istringstream`/`stod`; `Tools::InString` + `from_chars` is 5.5x faster on coordinate input | **ENHANCEMENT — [GH #36](https://github.com/HenrikSchumacher/Knoodle/issues/36)** (ours to do, not Henrik's) |
 | 15 | `ScopedUnlock` is documented in both `PlanarDiagram` and `PlanarDiagramComplex` but defined nowhere, so the documented spelling does not compile | **PR'd — [GH #35](https://github.com/HenrikSchumacher/Knoodle/pull/35)** |
 | 14 | `PlanarDiagramComplex(const PD_T &)` delegates to a `PD_T &&` constructor, so the overload cannot be instantiated | **PR'd — [GH #35](https://github.com/HenrikSchumacher/Knoodle/pull/35)** |
 | 13 | `IntersectionType()` misses a transversal 3-space intersection; LE2 succeeds silently, LE3/4 throw from an accessor | **FILED — [GH #34](https://github.com/HenrikSchumacher/Knoodle/issues/34)** |
