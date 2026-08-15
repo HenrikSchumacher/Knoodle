@@ -594,6 +594,13 @@ bool RequireIntersectionsOK( LE_T & L, std::string & message, int & err )
                 return false;
             }
         }
+        else
+        {
+            // This is to suppress warning message by the compiler.
+            (void)L;
+            (void)message;
+            (void)err;
+        }
         return true;
     };
 

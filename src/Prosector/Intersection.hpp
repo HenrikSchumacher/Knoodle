@@ -3,7 +3,7 @@ public:
 /*!@brief Struct for storing intersection computed by `Prosector`.*/
 struct Intersection
 {
-    Idx              edges [2] = {Idx(-2)}; /**< First edge goes over, second edge goes under. */
+    Idx    edges [2] = {Idx(-2)}; /**< First edge goes over, second edge goes under. */
     Time_T times [2]; /**< The times of intersection relative to the two line segments (left end point is at time 0, right end point is at time 1). The values here are rational functions with integer coeffients. */
 
     Sign_T handedness {0}; /**< The handedness of the resulting crossing: +1 means right-handed, -1 means left-handed, 0 means degenerate. */

@@ -155,6 +155,7 @@ void ComputeIntersections()
     edge_ptr.Fill(0);
     
     FindIntersectingEdges_DFS();
+    
     if( !std::in_range<Int>( Size_T(8) * intersections.size()) )
     {
         eprint(tag() + ": More intersections found (intersections.size() = " + ToString(intersections.size()) + ") than can be handled by integer type Int = " + TypeName<Int> + " = " + std::string(PrettyTypeName<Int>()) + ". Please try again with a wider integer type." );
@@ -391,13 +392,11 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
     // Also, we may assume that neither edge is degenerate in 3-space.
 
     using Flag_T = Prosector_T::Flag_T;
-    
-    S.LoadLineSements(
+
+    Flag_T flag = S.ComputeIntersection(
         k, EdgeData(k,Int(0)), EdgeData(k,Int(1)),
         l, EdgeData(l,Int(0)), EdgeData(l,Int(1))
     );
-
-    Flag_T flag = S.IntersectionType();
 
     if constexpr ( verboseQ ) { TOOLS_LOGDUMP(flag); }
 
@@ -427,5 +426,5 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
     ++edge_ptr[k + Int(1)];
     ++edge_ptr[l + Int(1)];
 
-    intersections.push_back( S.ComputeIntersection() );
+    intersections.push_back( S.GetIntersection() );
 }

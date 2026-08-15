@@ -24,13 +24,13 @@ namespace Knoodle
      *
      *  - A line segment is projected to a single point.
      *
-     * The usage of the class is as follows: First one loads two line segments by calling `LoadLineSements`. Then one class `IntersectionType` to probe whether an intersection exists or whether something went wrong (see `Flag_T`). If the return value is `Flag_T::Intersection`, then one can call `ComputeIntersection` to get an instance of `struct` `Intersection` that contains the relevant information.
+     * The usage of the class is as follows: First one calls `ComputeLineSegments`. The returned flag tells us whether a valid intersection has been found or whether there were any issues. If the return value is `Flag_T::Intersection`, then one can call `GetIntersection` to get an instance of `struct` `Intersection` that contains the relevant information.
      *
      * @tparam Int_ Signed integral type used for coordinates of points.
      *
      * @tparam Idx_ Integral type used for indices.
      *
-     * @tparam verboseQ Where to log events more granulary. Only meant for debugging.
+     * @tparam verboseQ Whether to log events more granulary. Only meant for debugging.
      */
     template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false>
     class Prosector4 final
@@ -43,8 +43,18 @@ namespace Knoodle
         using Int    = Int_;
         /*!@brief Longer integral type used for internal computations.*/
         using LInt   = std::conditional_t<SameQ< Int,Int32>,WInt64,WInt128>;
+//        using LInt   = std::conditional_t<
+//                            SameQ< Int,Int32>,
+//                            Int64,
+//                            std::conditional_t<Int128_availableQ,Int128,WInt128>
+//                       >;
         /*!@brief Even longer integral type used for internal computations.*/
         using LLInt  = std::conditional_t<SameQ<LInt,WInt64>,WInt128,WInt256>;
+//        using LLInt  = std::conditional_t<
+//                            SameQ<LInt,Int64>,
+//                            std::conditional_t<Int128_availableQ,Int128,WInt128>,
+//                            WInt256
+//                       >;
         
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
@@ -105,8 +115,10 @@ namespace Knoodle
         // Move assignment operator
         Prosector4 & operator=( Prosector4 && other ) = default;
         
-    protected:
-
+    private:
+        
+        Intersection isec;
+        
         Vector3_T x_0;
         Vector3_T x_1;
         Vector3_T y_0;
@@ -120,19 +132,67 @@ namespace Knoodle
         DepressedCubic P_0;
         DepressedCubic P_1;
         
-        Idx k_;
-        Idx l_;
-        
-        Flag_T flag { Flag_T::Uninitialized };
-
     public:
+        
+        /*!@brief Classify whether and how two oriented line segments in 3-space intersect when they are projected to the x-y-plane.
+         *
+         * @param k Index of the first line segment (in a upstream data structure).
+         *
+         * @param x0 Start point of the first line segment; assumed to be a 3-vector.
+         *
+         * @param x1 End point of the first line segment; assumed to be a 3-vector.
+         
+         * @param l Index of the second line segment (in a upstream data structure).
+         *
+         * @param y0 Start point of the second line segment; assumed to be a 3-vector.
+         *
+         * @param y1 End point of the second line segment; assumed to be a 3-vector.
+         *
+         * @return `Flag_T f`, specified by the following:
+         *
+         * - `f = Flag_T::Empty` if and only if the planar projections of the line segments do not intersect after sufficiently small perturbation.
+         *
+         * - `f = Flag_T::Intersection` if and only if  the line segments have exactly one point in common after sufficiently small perturbation.
+         *
+         * - `f = Flag_T::Error` if and only if the line segments have a point in common in 3-space or at least one of them has length 0.
+         */
+
+        Flag_T ComputeIntersection(
+            const Idx k, cptr<Int> x_0, cptr<Int> x_1,
+            const Idx l, cptr<Int> y_0, cptr<Int> y_1
+        )
+        {
+            [[maybe_unused]] auto tag = [](){ return MethodName("ComputeIntersection"); };
+                    
+            if constexpr ( verboseQ )
+            {
+                logprint(tag() + " in verbose mode.");
+            }
+            
+            LoadLineSegments( k, x_0, x_1, l, y_0, y_1 );
+            
+            Compute();
+            
+            return Flag();
+        }
+        
+        /*!@brief Return the previously computed intersection. Use this only if `Flag()` is `Flag_T::Intersection`
+         *
+         * @return Instance of type `Intersection`, indicating which line segments intersect (by their index), which line segment is on top, time of intersection, and handedness of the resulting crossing.
+         */
+        cref<Intersection> GetIntersection()
+        {
+            return isec;
+        }
         
         /*!@brief Return the current value of the internal state flag.*/
         Flag_T Flag() const
         {
-            return flag;
+            return isec.flag;
         }
-        
+
+    private:
+
         /*!@brief Load two line segments.
          *
          * @param k Index of the first line segment (in a upstream data structure).
@@ -148,14 +208,14 @@ namespace Knoodle
          * @param y1 End point of the second line segment; assumed to be a 3-vector.
          */
         
-        void LoadLineSements(
+        void LoadLineSegments(
             const Idx k, cptr<Int> x0, cptr<Int> x1, const Idx l, cptr<Int> y0, cptr<Int> y1
         )
         {
-            flag = Flag_T::Uninitialized;
-
-            k_ = k;
-            l_ = l;
+            isec.edges[0]   = k;
+            isec.edges[1]   = l;
+            isec.handedness = 0;
+            isec.flag       = Flag_T::Uninitialized;
             
             copy_buffer<3>( x0, &x_0[0] );
             copy_buffer<3>( x1, &x_1[0] );
@@ -176,25 +236,26 @@ namespace Knoodle
             
             if constexpr ( verboseQ )
             {
-                logvalprint("first edge",k_);
-                logvalprint("second edge",l_);
                 TOOLS_LOGDUMP(x_0);
                 TOOLS_LOGDUMP(x_1);
                 TOOLS_LOGDUMP(y_0);
                 TOOLS_LOGDUMP(y_1);
             }
         }
-        
-        // Somewhat pointless.
-        void LoadLineSements(
-            const Idx i_, cref<Vector3_T> x0, cref<Vector3_T> x1,
-            const Idx j_, cref<Vector3_T> y0, cref<Vector3_T> y1
-        )
-        {
-            LoadLineSements( i_, x0.data(), x1.data(), j_, y0.data(), y1.data() );
-        }
-        
+
         /*!@brief Classify whether and how two oriented line segments in 3-space intersect when they are projected to the x-y-plane.
+         *
+         * @param k Index of the first line segment (in a upstream data structure).
+         *
+         * @param x0 Start point of the first line segment; assumed to be a 3-vector.
+         *
+         * @param x1 End point of the first line segment; assumed to be a 3-vector.
+         
+         * @param l Index of the second line segment (in a upstream data structure).
+         *
+         * @param y0 Start point of the second line segment; assumed to be a 3-vector.
+         *
+         * @param y1 End point of the second line segment; assumed to be a 3-vector.
          *
          * @return `Flag_T f`, specified by the following:
          *
@@ -205,15 +266,14 @@ namespace Knoodle
          * - `f = Flag_T::Error` if and only if the line segments have a point in common in 3-space or at least one of them has length 0.
          */
 
-        Flag_T IntersectionType()
+        void Compute()
         {
-            [[maybe_unused]] auto tag = [](){ return MethodName("IntersectionType"); };
+            [[maybe_unused]] auto tag = [](){ return MethodName("Compute"); };
             
             if constexpr ( verboseQ )
             {
                 logprint(tag() + " in verbose mode.");
             }
-            
             
             u[0] = x_1[0] - x_0[0];
             u[1] = x_1[1] - x_0[1];
@@ -255,8 +315,8 @@ namespace Knoodle
                     {
                         logprint("A.1.2: y_0 lies on line(x_0,x_1), but y_1 does not.");
                     }
-                    flag = PointOnLineTest(y_0, x_0, x_1) ? Flag_T::Error : Flag_T::Empty;
-                    return flag;
+                    isec.flag = PointOnLineTest(y_0, x_0, x_1) ? Flag_T::Error : Flag_T::Empty;
+                    return;
                 }
             }
             else // if( sign_uxp == Sign_T(0) )
@@ -267,8 +327,8 @@ namespace Knoodle
                     {
                         logprint("Case A.2.1: y_1 lies on line(x_0,x_1), but y_0 does not.");
                     }
-                    flag = PointOnLineTest(y_1, x_0, x_1) ? Flag_T::Error : Flag_T::Empty;
-                    return flag;
+                    isec.flag = PointOnLineTest(y_1, x_0, x_1) ? Flag_T::Error : Flag_T::Empty;
+                    return;
                 }
                 else // if( sign_uxq == Sign_T(0) )
                 {
@@ -276,8 +336,8 @@ namespace Knoodle
                     {
                         logprint("Case A.2.2: The line segments are colinear. Do interval check.");
                     }
-                    flag = LinesColinearTest() ? Flag_T::Error : Flag_T::Empty;
-                    return flag;
+                    isec.flag = LinesColinearTest() ? Flag_T::Error : Flag_T::Empty;
+                    return;
                 }
             }
             
@@ -285,8 +345,8 @@ namespace Knoodle
             if( sign_uxp != sign_uxq )
             {
                 // The points {y_0[0],y_0[1]} and {y_1[0],y_1[1]} lie on the same side of the line through {x_0[0],x_0[1]} and {x_1[0],x_1[1]} (after perturbation).
-                flag = Flag_T::Empty;
-                return flag;
+                isec.flag = Flag_T::Empty;
+                return;
             }
             
             v[0] = y_1[0] - y_0[0];
@@ -321,8 +381,8 @@ namespace Knoodle
                     {
                         logprint("Case B.1.2: x_1 lies on line(y_0,y_1), but x_0 does not.");
                     }
-                    flag = PointOnLineTest(x_1, y_0, y_1) ? Flag_T::Error : Flag_T::Empty;
-                    return flag;
+                    isec.flag = PointOnLineTest(x_1, y_0, y_1) ? Flag_T::Error : Flag_T::Empty;
+                    return;
                 }
             }
             else // if( sign_vxp == Sign_T(0) )
@@ -333,8 +393,8 @@ namespace Knoodle
                     {
                         logprint("Case B.2.1: x_0 lies on line(y_0,y_1), but x_1 does not.");
                     }
-                    flag = PointOnLineTest(x_0, y_0, y_1) ? Flag_T::Error : Flag_T::Empty;
-                    return flag;
+                    isec.flag = PointOnLineTest(x_0, y_0, y_1) ? Flag_T::Error : Flag_T::Empty;
+                    return;
                 }
                 else // if( sign_vxq == Sign_T(0) )
                 {
@@ -349,34 +409,15 @@ namespace Knoodle
             if( sign_vxp != sign_vxq )
             {
                 // The points {x_0[0],x_0[1]} and {x_1[0],x_1[1]} lie on the same side of the line through {y_0[0],y_0[1]} and {y_1[0],y_1[1]} (after perturbation).
-                flag = Flag_T::Empty;
-                return flag;
+                isec.flag = Flag_T::Empty;
+                return;
             }
             
-            flag = Flag_T::Intersection;
-            return flag;
-        }
-        
-    public:
-        
-        /*!@brief Compute the intersection (if the internal flag indicates that it exists).
-         *
-         * @return Instance of type `Intersection`, indicating which line segments intersect (by their index), which line segement is on top, time of intersection, and handedness of the resulting crossing.
-         */
-        Intersection ComputeIntersection()
-        {
-            if( flag != Flag_T::Intersection )
-            {
-                wprint(MethodName("ComputeIntersection") + ": trying to compute a nonexistent intersection.");
-                return Intersection::InvalidIntersection(flag);
-            }
+            // At this point we know that the projected line segments intersect in the x-y-plane. We also have to check whether the line segments themselfes intersect in 3-space.
             
             // This post https://math.stackexchange.com/a/1008869/447001
-            // told me how to determine which edge "goes over".
+            // taught me how to determine which edge "goes over".
 
-//            const LVector3_T uxv = cross(u,v);   // Does not overflow.
-            
-            // {Q.c_0, Q.c_1, Q.c_3} == {uxv[2], uxv[0], uxv[1]}
             const DepressedCubic Q = Det_Perturbed(u,v);
             
             if constexpr ( verboseQ ) { TOOLS_LOGDUMP(Q); }
@@ -388,14 +429,26 @@ namespace Knoodle
                              + long_mul( p[2], Q.c_0 );
             
             const Sign_T sign_3 = Sign<Sign_T>(det_3);
-             
+            
             if( sign_3 == Sign_T(0) )
             {
-                error( MethodName("ComputeIntersection") + ": The line segments " + ToString(k_) + " and " + ToString(l_) + " are coplanar. Moreover, if we arrive here, then `IntersectionType()` has returned `Flag_T::Intersection`. Hence, we have an intersection also in 3D. But `IntersectionType()` should have detected this already and should have returned `Flag_T::Error`. So we should not have come here." );
+                // We know that we have an intersection in the x-y-plane.
+                // If the line segments are coplanar in 3D, then there must be an intersection, too.
+                if constexpr ( verboseQ )
+                {
+                    logprint(MethodName("ComputeIntersection") + ": The line segments " + ToString(isec.edges[0]) + " and " + ToString(isec.edges[1]) + " are coplanar.");
+                }
+                isec.flag = Flag_T::Error;;
+                return;
             }
             
             const Sign_T sign_2 = Sign<Sign_T>(Q);
-            // sign_2 != Sign_T(0), otherwise sign_3 would be equal to 0, too.
+            
+            if( sign_2 == Sign_T(0) )
+            {
+                // We should not get here
+                eprint(MethodName("ComputeIntersection") + ": The projections of the line segments " + ToString(isec.edges[0]) + " and " + ToString(isec.edges[1]) + " are parallel. No handedness assignable. But this case should have been caught before, so we should not have gotton here.");
+            }
             
             // Det_Perturbed(d,v) == Det_Perturbed(p - v,v) == Det_Perturbed(p,v)
             // Det_Perturbed(d,u) == Det_Perturbed(u - q,u) == Det_Perturbed(u,q)
@@ -410,18 +463,26 @@ namespace Knoodle
 
             P_1.c_1 = long_det(u[1],u[2],q[1],q[2]);
             P_1.c_3 = long_det(u[2],u[0],q[2],q[0]);
+
+            bool x_under_y_Q = (sign_3 == sign_2);
             
-            const bool x_under_y_Q = (sign_3 == sign_2);
+            // Det_Perturbed(d,v) == Det_Perturbed(p - v,v) == Det_Perturbed(p,v)
+            // Det_Perturbed(d,u) == Det_Perturbed(u - q,u) == Det_Perturbed(u,q)
+
+            isec.times[ x_under_y_Q] = Time_T{ P_0, Q }; // t_0
+            isec.times[!x_under_y_Q] = Time_T{ P_1, Q }; // t_1
             
             // First edge must go over.
             if( x_under_y_Q )
             {
-                return Intersection{ l_, k_, Time_T{ P_1, Q }, Time_T{ P_0, Q }, -sign_2, flag };
+                std::swap(isec.edges[0],isec.edges[1]);
+                isec.handedness = -sign_2;
             }
             else
             {
-                return Intersection{ k_, l_, Time_T{ P_0, Q }, Time_T{ P_1, Q },  sign_2, flag };
+                isec.handedness = sign_2;
             }
+            isec.flag = Flag_T::Intersection;
         }
         
     public:

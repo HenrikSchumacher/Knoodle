@@ -320,7 +320,7 @@ static bool IntegralCoordsValueQ( Coords c ) { return c == Coords::i64; }
 /// That rules out exactly one thing: the rotation tier's `composed` path, whose
 /// entire purpose is to accumulate. Everything else re-derives from the original
 /// and runs normally.
-static bool ComposableTransformsQ( Coords c ) { return !IntegralCoordsValueQ(c); }
+[[maybe_unused]] static bool ComposableTransformsQ( Coords c ) { return !IntegralCoordsValueQ(c); }
 
 /// Is this class's coordinate type integral? Derived from the class rather than
 /// threaded through, so a new integral instantiation cannot forget to say so.
