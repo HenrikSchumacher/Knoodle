@@ -119,6 +119,14 @@ intersection_flag_reset_check: intersection_flag_reset_check.cpp ../Knoodle.hpp 
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) intersection_flag_reset_check.cpp -o $@
 	@echo "✓ intersection_flag_reset_check compiled successfully"
 
+# lock_api_check -- exercise the locking API that had no user: the const-lvalue
+# PDC constructor (which was uninstantiable) and the lock state around Push.
+lock_api_check: lock_api_check.cpp ../Knoodle.hpp \
+                ../src/PlanarDiagramComplex.hpp ../src/PlanarDiagram.hpp
+	@echo "=== Building lock_api_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) lock_api_check.cpp -o $@
+	@echo "✓ lock_api_check compiled successfully"
+
 # reapr_corner_probe — reproduce/diagnose the FindIntersections CornerCorner
 # degeneracy that makes Rattle bail after 10 failed random rotations.
 reapr_corner_probe: reapr_corner_probe.cpp ../Knoodle.hpp
