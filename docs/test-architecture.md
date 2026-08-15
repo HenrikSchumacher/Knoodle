@@ -72,15 +72,20 @@ orphans happened.
 
 ### Light (`make check`) — budget: build time + 30 s of run time
 
+**BUILT 2026-08-15.** `make check` = `all` + `tools` + `lint` + `run_tier.py
+--tier=light`. Measured over 27 runnable targets:
+
 | | measured |
 |---|---|
-| 15 fast tests | 4.4 s |
-| `inflate_check --trials=1 --target=3000 --max-rounds=8` | 0.03 s |
-| `klut_check --up-to-crossing=8` | 0.01 s |
-| `link_inflate_check --trials=1 --target=3000` | 0.71 s |
-| `embedding_check` (full) | 15.0 s |
-| `polygon_levels_check` (new, §4) | *to be measured* |
-| **subtotal** | **≈ 20 s** |
+| **wall, 4 workers** | **15.0 s** |
+| cpu across workers | 23.4 s |
+| slowest: `embedding_check` | 15.0 s |
+| next: `plantri_check --up-to-crossing=6` | 1.6 s |
+| everything else (25 targets) | ≈ 7 s cpu |
+
+`embedding_check` alone now sets the wall time, so more workers buy nothing until
+that one test is reduced. The ~10 s `nearmiss_sphere` fixture is the lever if the
+budget ever gets tight.
 
 Two reductions were verified to still do real work rather than becoming no-ops:
 the reduced `inflate_check` prints `1/1 trials passed` with HOMFLY preserved, and
@@ -98,9 +103,14 @@ neither tier. They are still built by `all`, so they cannot rot.
 
 ### Heavy (`make check-full`) — budget: hours are fine
 
-Everything at full arguments, plus the expansions we have queued: the full polygon
-corpus at every level, full `plantri_check`, larger inflate targets, the wider
-`embedding_check` rotation sweep.
+**BUILT 2026-08-15**, measured at **242 s wall / 428 s cpu**, 27 passed. Heavy is
+not merely "the defaults" -- the manifest's `heavy-args` column expands coverage:
+`inflate_check --trials=5`, `link_inflate_check --trials=3`,
+`plantri_check --up-to-crossing=7` (26 s on its own),
+`embedding_check --coords=f64,f32,i32,i64 --rotations=8`.
+
+Four minutes is comfortably short of the budget, so this has room to grow as the
+corpus does.
 
 ## 4. The random-polygon corpus (new)
 
@@ -409,10 +419,21 @@ is a warning-shaped refusal with an obvious one-line fix.
   `test/.stamps/<tier>-<sha>`. The hook skips a tier whose stamp matches `HEAD`.
   One mechanism serves both the push gate (avoid re-running 30 s on every push)
   and the release gate (prove the heavy tier ran on this exact commit).
-* **CI.** `scripts/ci-build-and-test.sh` currently hard-codes its own light-tier
-  list (`component_check`, `homfly_check`, `plantri_check --up-to-crossing=6`).
-  Replace that with `make check` so there is one definition of "light tier"
-  instead of two that drift.
+* **CI.** Done. `scripts/ci-build-and-test.sh` used to hard-code three drivers;
+  it now runs `run_tier.py --tier=light`, so there is one definition of the tier
+  instead of two that drift. Coverage went 3 -> 12 tests.
+
+  **One definition, two platforms.** CI genuinely cannot run everything: several
+  images have no SuiteSparse, and it does not fetch the Git-LFS data. Rather
+  than keep a second list, both the build and the run filter on the manifest's
+  own `needs` column -- `make all EXCLUDE_NEEDS=...` for what gets BUILT,
+  `run_tier.py --exclude-needs=...` for what gets RUN, so the two cannot
+  disagree. `--exclude` covers runtime requirements the column cannot express
+  (the KLUT data; `cli_stdin_check`, which needs a pty).
+
+  Every skip is printed in the summary under "SKIPPED on this platform (this run
+  covered less than a full tier)". A subset run must never read as a full one --
+  that is the same failure mode as a reduced test silently becoming a no-op.
 
 ## 9. Prerequisite cleanups
 
@@ -480,7 +501,9 @@ tier, and the first two must be resolved before a hook can gate on the suite.
 7. ~~`cli_contract_check`.~~ **DONE 2026-08-15**, as a `kind=script` Python
    test: 53 checks. Found that the column-count rule is not what we thought --
    see §5c.
-8. `make check` / `check-full`; point CI at `make check`.
+8. ~~`make check` / `check-full`; point CI at `make check`.~~ **DONE
+   2026-08-15.** CI coverage went from 3 hand-listed drivers to 12 tests, driven
+   by the manifest. See "One definition, two platforms" below.
 9. Versioned hooks (with the LFS chain), push policy, stamps; the `CLAUDE.md` WIP
    rule lands with them.
 10. Release gate on `v*` tags.
