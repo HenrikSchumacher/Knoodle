@@ -142,8 +142,15 @@ namespace Knoodle
         :   PlanarDiagramComplex( std::move(pd), Tensor1<Int,Int>() )
         {}
         
+        /*!@brief Initialize from a `PlanarDiagram`, copying it.
+         *
+         * The copy is explicit because the delegated-to constructor takes its
+         * diagram by rvalue reference. Delegating with `pd` directly does not
+         * compile -- an lvalue will not bind to `PD_T &&` -- which made this
+         * overload uninstantiable, diagnosed only when someone used it.
+         */
         explicit PlanarDiagramComplex( const PD_T & pd )
-        :   PlanarDiagramComplex( pd, Tensor1<Int,Int>() )
+        :   PlanarDiagramComplex( PD_T(pd), Tensor1<Int,Int>() )
         {}
         
         /*!@brief Initialize from a `LinkEmbedding`, taking ownership.*/
