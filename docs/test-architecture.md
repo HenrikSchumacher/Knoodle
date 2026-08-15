@@ -230,6 +230,14 @@ The mechanism is uniform and machine-readable (`Tools/src/Profiler_Singleton.hpp
 | `eprint` | `std::cout` **and** `std::cerr` + log file | `ERROR: ` |
 | `nprint` | **log file only** | `NOTE: ` |
 
+**The tools do not use those.** `knoodle_io.hpp`'s `LogError` writes
+`"Error: "` -- mixed case, not `ERROR:` -- to `*g_log_stream`, which is stderr
+by default but is redirected to a file in streaming mode (its own comment says
+"the tap on cerr won't see it"). So a scan must match `^(ERROR|Error|WARNING):`
+to catch both layers, and for the tools it must also know where the log stream
+was pointed. Found while writing `knoodle_io_check` (§5b), whose refusal cases
+emit six `Error:` lines that a naive `^ERROR:` scan reports as zero.
+
 So a scan of stderr for `^WARNING:` and `^ERROR:` costs nothing and needs no
 change to any test. `nprint` is the gap: NOTE-level output reaches no stream at
 all, so a stream scan cannot see it and anything important must not be reported
