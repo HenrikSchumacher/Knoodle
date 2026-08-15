@@ -106,7 +106,7 @@ Int CountActiveArcs() const
 
 private:
     
-/*!@brief Deactivates arc `a`. Only for internal use.*/
+/*!@brief **UNSAFE** Deactivates arc `a`. Only for internal use.*/
 void DeactivateArc( const Int a )
 {
     if( ArcActiveQ(a) )

@@ -370,7 +370,7 @@ Int ReverseColoredArcs_Private( const Int color )
                 C_arcs(c,Out,Right) = C[In ][Right];
                 C_arcs(c,In ,Right) = C[In ][Left ];
                 C_arcs(c,In ,Left ) = C[Out][Left ];
-                this->template SwitchCrossing_Private<true>(c);
+                (void)this->template SwitchCrossing_Private<true>(c);
                 std::swap( A_cross(a,Tail),  A_cross(a,Head) );
                 // Leave b as is.
             }
@@ -384,7 +384,7 @@ Int ReverseColoredArcs_Private( const Int color )
                 C_arcs(c,Out,Right) = C[Out][Left ];
                 C_arcs(c,In ,Right) = C[Out][Right];
                 C_arcs(c,In ,Left ) = C[In ][Right];
-                this->template SwitchCrossing_Private<true>(c);
+                (void)this->template SwitchCrossing_Private<true>(c);
                 // Leave a as is.
                 std::swap( A_cross(b,Tail),  A_cross(b,Head) );
             }
