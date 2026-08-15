@@ -51,15 +51,14 @@ devel/PolyFold_Kyoto/Polyfold
 devel/PolyFold_Kyoto/PolyFold
 devel/PolyFold_Kyoto/polyfold
 devel/Dev_OrthoDraw/TestOrthoDraw
-
-devel/Example_Knoodle/Knoodle
-devel/Example_Knoodle/Diagram_Reapr.txt
-devel/Example_Knoodle/Diagram_Simplify3.txt
-devel/Example_Knoodle/Diagram_Simplify4.txt
-devel/Example_Knoodle/Diagram_Simplify5.txt
-devel/Example_Knoodle/Diagram_unsimplified.txt
-
 devel/Dev_ClisbyTree2/Example_ClisbyTree2
+
+examples/Example_Knoodle/Knoodle
+examples/Example_Knoodle/Diagram_Reapr.txt
+examples/Example_Knoodle/Diagram_Simplify3.txt
+examples/Example_Knoodle/Diagram_Simplify4.txt
+examples/Example_Knoodle/Diagram_Simplify5.txt
+examples/Example_Knoodle/Diagram_unsimplified.txt
 
 tools/ExampleKnot_simplified.tsv
 tools/knoodlesimplify
