@@ -68,6 +68,40 @@ def run_one(row, tier):
             "out": out, "err": err, "missing": False}
 
 
+STAMPS = os.path.join(HERE, ".stamps")
+
+
+def write_stamp(tier):
+    """Record that `tier` passed cleanly at this exact commit.
+
+    The pre-push hook reads these to avoid re-running a tier it already has an
+    answer for, and the release gate reads the heavy one to refuse a version tag
+    that has never been through it.
+
+    Two conditions, both necessary for the stamp to mean anything:
+
+      * the worktree must be CLEAN. A stamp for HEAD when the tree has
+        uncommitted edits would certify code that was never run.
+      * the run must have skipped nothing. A platform-limited subset covered
+        less than the tier claims, so it cannot stand in for it.
+    """
+    try:
+        sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=HERE,
+                             capture_output=True, text=True).stdout.strip()
+        dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"],
+                               cwd=HERE, capture_output=True, text=True).stdout.strip()
+    except OSError:
+        return
+    if not sha or dirty:
+        if dirty:
+            print("\n(no stamp written: the worktree has uncommitted changes)")
+        return
+    os.makedirs(STAMPS, exist_ok=True)
+    with open(os.path.join(STAMPS, f"{tier}-{sha}"), "w") as f:
+        f.write(f"{tier} tier passed at {sha}\n")
+    print(f"\nstamped: {tier} tier passed at {sha[:12]}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -180,7 +214,11 @@ def main():
     if missing:
         print("\nnot built: " + ", ".join(missing))
 
-    return 1 if (failed or missing) else 0
+    ok = not (failed or missing)
+    if ok and not skipped:
+        write_stamp(args.tier)
+
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

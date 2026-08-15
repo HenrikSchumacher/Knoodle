@@ -97,6 +97,5 @@ doc.html
 xcuserdata/
 
 Literature/
-
-
-
+# pre-push tier stamps (local only: they certify THIS checkout)
+test/.stamps/
