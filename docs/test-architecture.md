@@ -415,10 +415,12 @@ is a warning-shaped refusal with an obvious one-line fix.
   them, so the versioned `pre-push` must call `git lfs pre-push "$@"` first and
   the other three must be carried over verbatim. Getting this wrong breaks LFS
   silently, so it needs a test of its own.
-* **Stamps.** A clean tier run on a clean worktree writes
-  `test/.stamps/<tier>-<sha>`. The hook skips a tier whose stamp matches `HEAD`.
-  One mechanism serves both the push gate (avoid re-running 30 s on every push)
-  and the release gate (prove the heavy tier ran on this exact commit).
+* **Stamps.** A clean tier run writes `test/.stamps/<tier>-<sha>`, but only if
+  the worktree is clean **and nothing was skipped**: a stamp against a dirty tree
+  would certify code that was never run, and a platform-limited subset covered
+  less than the tier claims. The hook skips a tier whose stamp matches `HEAD`.
+  One mechanism serves both the push gate and the release gate. Gitignored --
+  a stamp certifies one checkout, not a commit in the abstract.
 * **CI.** Done. `scripts/ci-build-and-test.sh` used to hard-code three drivers;
   it now runs `run_tier.py --tier=light`, so there is one definition of the tier
   instead of two that drift. Coverage went 3 -> 12 tests.
@@ -504,9 +506,13 @@ tier, and the first two must be resolved before a hook can gate on the suite.
 8. ~~`make check` / `check-full`; point CI at `make check`.~~ **DONE
    2026-08-15.** CI coverage went from 3 hand-listed drivers to 12 tests, driven
    by the manifest. See "One definition, two platforms" below.
-9. Versioned hooks (with the LFS chain), push policy, stamps; the `CLAUDE.md` WIP
-   rule lands with them.
-10. Release gate on `v*` tags.
+9. ~~Versioned hooks (with the LFS chain), push policy, stamps.~~ **DONE
+   2026-08-15.** `make -C test hooks`; `test/hooks_check` has 33 checks. The
+   release gate (item 10) came with it -- the tag case is part of the same
+   policy script.
+10. ~~Release gate on `v*` tags.~~ **DONE 2026-08-15**, as part of step 9: a
+    `v*` tag push is refused unless `test/.stamps/heavy-<sha>` exists for that
+    exact commit.
 11. Work guards in the reduced-argument tests.
 
 Steps 1 and 2 are worth doing on their own merits regardless of whether the rest
