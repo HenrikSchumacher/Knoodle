@@ -81,7 +81,7 @@ int main(int argc, char** argv)
     }
 
     Klut klut{ std::filesystem::path(g_dir), static_cast<Knoodle::Size_T>(c_max) };
-    klut.LoadSubtables();
+    klut.RequireSubtables();   // LoadSubtables is deprecated for this spelling
     Reapr_T reapr{};
     auto idOf = [&](const Key& key) { auto [c, id] = klut.FindID(FromKey(key)); (void)c; return id; };
 
@@ -106,8 +106,15 @@ int main(int argc, char** argv)
                 if (!P.ValidQ() || unlinks.Size() > Int(0)
                     || P.LinkComponentCount() > Int(1) || P.DiagramComponentCount() > Int(1)) { continue; }
 
-                PDC_T pdc { P }; // No need to use push (which is considered UNSAFE); just use constructor.
-//                pdc.Push(std::move(P));
+                // std::move, not `PDC_T pdc { P }`: an lvalue selects the
+                // `const PD_T &` overload, which delegates to a 2-argument
+                // constructor that only accepts `PD_T &&` and therefore cannot
+                // be instantiated at all (src/PlanarDiagramComplex.hpp:145 ->
+                // :112). This test was that overload's only user, which is why
+                // it was the only thing in the suite that stopped compiling.
+                // Filed upstream; taking ownership is what was meant here
+                // anyway, since P is dead after this line.
+                PDC_T pdc { std::move(P) };
                 auto r = ki::Identify(klut, std::move(pdc), reapr);
                 ++tested;
                 if (r.reapr_calls > 0) { ++escalated; total_reapr += static_cast<long>(r.reapr_calls); }
@@ -130,15 +137,27 @@ int main(int argc, char** argv)
         for (const auto& key : keys) { expect.push_back(idOf(key)); }
         std::sort(expect.begin(), expect.end());
 
+        // Unlock() before every Push. A complex is LOCKED on construction and a
+        // locked complex refuses Push -- it warns on stderr and does nothing.
+        // Without this the three complexes below stay EMPTY and Identify is
+        // handed nothing, which is what made this case group fail once the file
+        // started compiling again. Unlocking is safe here in the sense the lock
+        // is guarding: we built these complexes ourselves a line ago, so there
+        // is no topological invariant of anyone else's to break.
+
         // form A: a multi-diagram PDC (all same color = one component = connect sum)
         PDC_T csA;
+        csA.Unlock();
         for (const auto& key : keys) { csA.Push(FromKey(key, Int(0))); }
         bool aiA; auto idsA = SortedIds(ki::Identify(klut, std::move(csA), reapr), aiA);
 
         // form B: the single spliced diagram (farfalle), must decompose under Identify
         PDC_T tmp;
+        tmp.Unlock();
         for (const auto& key : keys) { tmp.Push(FromKey(key, Int(0))); }
-        PDC_T csB; csB.Push(tmp.ToSingleDiagram());
+        PDC_T csB;
+        csB.Unlock();
+        csB.Push(tmp.ToSingleDiagram());
         bool aiB; auto idsB = SortedIds(ki::Identify(klut, std::move(csB), reapr), aiB);
 
         const bool okA = aiA && idsA == expect;
@@ -176,7 +195,15 @@ int main(int argc, char** argv)
         Key k3 = ReadKey(3, 0);
         PDC_T pdc;
         {
-            ScopedUnlock(pdc); // Push is considered UNSAFE an now requires unlocking.
+            // Push is UNSAFE and needs an unlocked complex. `ScopedUnlock` is
+            // described in the class documentation of both PlanarDiagram and
+            // PlanarDiagramComplex, but no such type exists anywhere in src/ --
+            // the docs are ahead of the code. Unlock() is the API that is
+            // actually there. (Note the old line was doubly wrong: as written,
+            // `ScopedUnlock(pdc);` declares a variable named pdc rather than
+            // guarding anything, and a temporary would have re-locked before
+            // the Push anyway.)
+            pdc.Unlock();
             pdc.Push(FromKey(k3, Int(0)));
             pdc.Push(FromKey(k3, Int(1)));  // 2 colors = link
         }
