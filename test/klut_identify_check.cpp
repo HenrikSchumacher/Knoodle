@@ -137,27 +137,36 @@ int main(int argc, char** argv)
         for (const auto& key : keys) { expect.push_back(idOf(key)); }
         std::sort(expect.begin(), expect.end());
 
-        // Unlock() before every Push. A complex is LOCKED on construction and a
-        // locked complex refuses Push -- it warns on stderr and does nothing.
-        // Without this the three complexes below stay EMPTY and Identify is
-        // handed nothing, which is what made this case group fail once the file
-        // started compiling again. Unlocking is safe here in the sense the lock
-        // is guarding: we built these complexes ourselves a line ago, so there
-        // is no topological invariant of anyone else's to break.
+        // Unlock() before every Push, Lock() after. A complex is LOCKED on
+        // construction and a locked complex refuses Push -- it warns on stderr
+        // and does nothing. Without this the three complexes below stay EMPTY
+        // and Identify is handed nothing, which is what made this case group
+        // fail once the file started compiling again. Unlocking is safe in the
+        // sense the lock is guarding: we built these complexes ourselves a line
+        // ago, so there is no topological invariant of anyone else's to break.
+        //
+        // The Unlock()/Lock() pairs here stand in for the `ScopedUnlock` guard
+        // the class documentation describes; see the note in case (4). They are
+        // written as pairs deliberately, so that swapping the guard back in is a
+        // local edit -- and the pairing is verified to work: re-locking before
+        // handing the complex to Identify changes nothing, all groups still pass.
 
         // form A: a multi-diagram PDC (all same color = one component = connect sum)
         PDC_T csA;
         csA.Unlock();
         for (const auto& key : keys) { csA.Push(FromKey(key, Int(0))); }
+        csA.Lock();
         bool aiA; auto idsA = SortedIds(ki::Identify(klut, std::move(csA), reapr), aiA);
 
         // form B: the single spliced diagram (farfalle), must decompose under Identify
         PDC_T tmp;
         tmp.Unlock();
         for (const auto& key : keys) { tmp.Push(FromKey(key, Int(0))); }
+        tmp.Lock();
         PDC_T csB;
         csB.Unlock();
         csB.Push(tmp.ToSingleDiagram());
+        csB.Lock();
         bool aiB; auto idsB = SortedIds(ki::Identify(klut, std::move(csB), reapr), aiB);
 
         const bool okA = aiA && idsA == expect;
@@ -195,17 +204,26 @@ int main(int argc, char** argv)
         Key k3 = ReadKey(3, 0);
         PDC_T pdc;
         {
-            // Push is UNSAFE and needs an unlocked complex. `ScopedUnlock` is
-            // described in the class documentation of both PlanarDiagram and
-            // PlanarDiagramComplex, but no such type exists anywhere in src/ --
-            // the docs are ahead of the code. Unlock() is the API that is
-            // actually there. (Note the old line was doubly wrong: as written,
-            // `ScopedUnlock(pdc);` declares a variable named pdc rather than
-            // guarding anything, and a temporary would have re-locked before
-            // the Push anyway.)
+            // TEMPORARY. Push is UNSAFE and needs an unlocked complex, and the
+            // line here used to be:
+            //
+            //     ScopedUnlock(pdc);
+            //
+            // `ScopedUnlock` is described in the class documentation of both
+            // PlanarDiagram and PlanarDiagramComplex, but no such type is in the
+            // tree, so this file did not compile. It is very likely written and
+            // simply not pushed yet. Using the plain Unlock()/Lock() pair in the
+            // meantime so the test runs; restore the guard once the type lands.
+            //
+            // (Worth noting for whoever restores it: the old line would not have
+            // worked even with the type present. `ScopedUnlock(pdc);` declares a
+            // variable named pdc rather than guarding anything, and a temporary
+            // would have re-locked before the Push. The guarded spelling is
+            // `ScopedUnlock unlocker (pdc);`.)
             pdc.Unlock();
             pdc.Push(FromKey(k3, Int(0)));
             pdc.Push(FromKey(k3, Int(1)));  // 2 colors = link
+            pdc.Lock();
         }
         auto r = ki::Identify(klut, std::move(pdc), reapr);
         const bool pass = (r.status == ki::IdentifyResult::Status::LinkOutOfScope);
