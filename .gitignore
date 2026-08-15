@@ -80,6 +80,8 @@ test/klut_e2e_*.txt
 test/klut_e2e_*.log
 test/inflate_fail_*.tsv
 test/build/
+# the polygon-corpus generator binary (the .crd corpus itself IS checked in)
+test/polygons/make_polygons
 
 # Markdown files
 *.md 
