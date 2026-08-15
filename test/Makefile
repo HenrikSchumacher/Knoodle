@@ -118,7 +118,11 @@ EXTRA_DEPS_plantri_check = $(PLANTRI)
 # ---------------------------------------------------------------------------
 
 MANIFEST      := manifest.tsv
-MANIFEST_ROWS := $(shell awk -F'\t' '$$0 !~ /^\#/ && NF>=4 { print $$1":"$$3":"(($$4=="-")?$$1".cpp":$$4) }' $(MANIFEST))
+# kind=script rows (Python) have nothing to compile, so they are filtered out
+# here. They are still manifest rows -- the runner and the lint see them -- which
+# is the point: cli_stdin_check.py used to sit outside the manifest entirely,
+# which is exactly the orphan condition the manifest exists to prevent.
+MANIFEST_ROWS := $(shell awk -F'\t' '$$0 !~ /^\#/ && NF>=4 && $$2 != "script" { print $$1":"$$3":"(($$4=="-")?$$1".cpp":$$4) }' $(MANIFEST))
 TARGETS       := $(foreach r,$(MANIFEST_ROWS),$(word 1,$(subst :, ,$(r))))
 
 define BUILD_RULE

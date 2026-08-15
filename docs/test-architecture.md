@@ -27,10 +27,13 @@ One file, `test/manifest.tsv`, as the single source of truth. Columns:
 
     target  kind  needs  light-args  heavy-args
 
-* `kind` ∈ `test` | `tool` | `bench`. This distinction is the one the sweep
-  proved we need: `reapr_corner_probe` requires a `FILE.tsv` argument (it is a
-  tool), and `klut_bench` / `klut_bench_boost` are benchmarks. Mixing them with
-  tests is why "just run everything" has never worked.
+* `kind` ∈ `test` | `tool` | `bench` | `script`. This distinction is the one the
+  sweep proved we need: `reapr_corner_probe` requires a `FILE.tsv` argument (it
+  is a tool), and `klut_bench` / `klut_bench_boost` are benchmarks. Mixing them
+  with tests is why "just run everything" has never worked. `script` (added
+  2026-08-15) covers Python tests, which compile to nothing but must still be
+  listed -- `cli_stdin_check.py` sat outside the manifest entirely, which is
+  precisely the orphan condition the manifest exists to prevent.
 * `needs` ∈ `-` | `homfly` | `umfpack` | `homfly,umfpack` | `klut`. Drives both
   the link line and CI skips on platforms lacking a dependency.
 * `light-args` / `heavy-args`: the argv for each tier. Empty means "no arguments".
@@ -231,14 +234,27 @@ the light tier's 4.4 s bucket.
 
 Clause 3. Assertions on shape rather than mathematics:
 
-* output re-reads as input (round-trip through `ReadKnot`);
-* **column counts**, explicitly. `PDCode<signQ=true>` is 7 columns, not 5, and the
-  tool emits 5 for knots and 7 for links. Misreading that cost a session and three
-  wrong commits on 2026-08-14; it deserves an assertion rather than a comment.
-* the fail-loud contract from `cli-fail-loud-contract`: a library error means
-  nonzero exit **and** no output on stdout;
-* `--help` exits 0 and mentions every flag the parser accepts — a cheap lint that
-  catches flags added without documentation.
+* output re-reads as input, and a second `-s=0` pass is a fixed point;
+* **column counts** — and the rule is NOT what the shorthand says. It is
+  `knoodlesimplify.cpp:820`:
+
+      colored_output = (input_column_count >= 6) || split_into_summands
+
+  Colors are written when they carry information: when the input had them, or
+  when splitting means the reader needs to know which summands were once one
+  component. **A 5-column LINK comes back as 5 columns.** "5 for knots, 7 for
+  links" is wrong, and believing it is what made the 2026-08-14 misreading easy;
+  all four branches of the real condition are asserted separately.
+* the fail-loud contract from `cli-fail-loud-contract`, observed **from outside
+  the process**: nonzero exit *and* empty stdout *and* something on stderr.
+  `error_tap_check` already pins the mechanism (CerrErrorTap, AtomicOutFile) in
+  process; nobody had checked the assembled tool behaves that way.
+* `--help` exits 0 and documents every flag **read out of the parser source**, so
+  a flag added without documentation fails here. 37 flags found; verified
+  non-vacuous by confirming the deliberately hidden
+  `--debug-print-simplify-args` is what the lint reports when unexempted.
+* `knoodledraw` works as a Unix filter on `knoodlesimplify`'s output, and refuses
+  garbage rather than drawing it.
 
 ## 6. The stderr scan
 
@@ -461,7 +477,9 @@ tier, and the first two must be resolved before a hook can gate on the suite.
    `--debug-print-simplify-args` flag.~~ **DONE 2026-08-15.** The other two
    tools are deferred to a later pass and want different contracts, not the
    same one -- see §5a-bis.
-7. `cli_contract_check`.
+7. ~~`cli_contract_check`.~~ **DONE 2026-08-15**, as a `kind=script` Python
+   test: 53 checks. Found that the column-count rule is not what we thought --
+   see §5c.
 8. `make check` / `check-full`; point CI at `make check`.
 9. Versioned hooks (with the LFS chain), push policy, stamps; the `CLAUDE.md` WIP
    rule lands with them.

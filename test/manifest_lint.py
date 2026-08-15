@@ -22,8 +22,8 @@ NOT_TARGETS = {
     # helper headers have no main(); only .cpp files are considered anyway
 }
 
-VALID_KINDS = {"test", "tool", "bench"}
-VALID_NEEDS = {"plain", "homfly", "umfpack", "homfly_umfpack", "boost_umfpack"}
+VALID_KINDS = {"test", "tool", "bench", "script"}
+VALID_NEEDS = {"plain", "homfly", "umfpack", "homfly_umfpack", "boost_umfpack", "-"}
 
 
 def read_manifest(path=MANIFEST):
@@ -55,6 +55,12 @@ def main():
     problems = []
 
     for target, r in sorted(rows.items()):
+        # A script row names its own interpreter file and compiles to nothing.
+        if r["kind"] == "script" and not r["source"].endswith(".py"):
+            problems.append(
+                f"{MANIFEST}:{r['lineno']}: {target}: kind=script must name a .py "
+                f"source, got '{r['source']}'"
+            )
         if r["kind"] not in VALID_KINDS:
             problems.append(
                 f"{MANIFEST}:{r['lineno']}: {target}: kind '{r['kind']}' is not one of "
