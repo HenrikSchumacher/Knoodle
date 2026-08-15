@@ -67,9 +67,15 @@ static bool IsUnknotPolynomial( const Polynomial & p )
 
 /// (fixture, level) pairs that are known to be wrong. Remove an entry when it
 /// is fixed -- the test will tell you, by failing with XPASS.
-static bool KnownFailure( const std::string & name, int level )
+///
+/// Empty since 2026-08-15. Monster at level 4 lived here (GitHub #33: R_IIa
+/// half-applied on a locked diagram and turned a 10-crossing unknot into a
+/// 6-crossing knot). Henrik fixed it in e4ebccc3 by routing
+/// ArcSimplifier::SwitchCrossing to PlanarDiagram::SwitchCrossing_Private, and
+/// this test reported the XPASS that said so.
+static bool KnownFailure( const std::string &, int )
 {
-    return (name == "Monster") && (level == 4);   // upstream issue 12
+    return false;
 }
 
 static bool ReadPDCode( const fs::path & p, std::vector<Int> & code, Int & rows )
