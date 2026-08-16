@@ -37,7 +37,7 @@ static PD_T FromInString( mref<Tools::InString> s )
     
     Int max_crossing_count;
     
-    constexpr std::string name = ClassName();
+    const std::string name = ClassName();
     
     s.SkipChars(&name[0],name.size());
     if( s.FailedQ() )
