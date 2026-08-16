@@ -11,6 +11,8 @@ long_fma(
     cref<WideInt> c
 )
 {
+    using Tools::NegativeQ;
+    
     // We do not want to create a sign extension of a and b.
     if constexpr ( signQ )
     {
@@ -51,6 +53,8 @@ long_fma_unsigned(
     cref<WideInt> c
 )
 {
+    using Tools::NegativeQ;
+    
     assert(!NegativeQ(a));
     assert(!NegativeQ(b));
     

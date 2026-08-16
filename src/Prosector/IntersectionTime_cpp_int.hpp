@@ -54,6 +54,10 @@ public:
         cref<IntersectionTime> s, cref<IntersectionTime> t
     )
     {
+        using Tools::NegativeQ;
+        using Tools::PositiveQ;
+        using Tools::ZeroQ;
+        
         // We have s = s.a / s.b and t = t.a / t.b;
         // We guarantee that s.b >= 0  and t.b >= 0;
         // If the latter are nonzero, then we have:

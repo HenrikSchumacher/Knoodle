@@ -44,6 +44,10 @@ public:
         cref<IntersectionTime_Hybrid> s, cref<IntersectionTime_Hybrid> t
     )
     {
+        using Tools::NegativeQ;
+        using Tools::PositiveQ;
+        using Tools::ZeroQ;
+        
         {
             // Computing the ration a / b of two integers has very low precision loss (empirically, way less then ten mu), provided 0 <= a <= b, which is the case here.
             // So we exploit here that comparison in `double` is good enough most of the time and that it is much faster than the wide integer arithmetic below.
@@ -134,8 +138,7 @@ public:
         if( NegativeQ(delta) ) { return std::strong_ordering::less;    }
         if( !ZeroQ(delta)    ) { return std::strong_ordering::greater; }
         
-        // We should never come here.
-        assert(false);
+        wprint("IntersectionTime_Hybrid::operator<=>: We should never get here.");
         
         return std::strong_ordering::equal;
     }
