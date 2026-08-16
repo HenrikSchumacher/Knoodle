@@ -39,9 +39,9 @@ namespace Knoodle
         /*!@brief Integral type used for coordinates.*/
         using Int    = Int_;
         /*!@brief Longer integral type used for internal computations.*/
-        using LInt   = std::conditional_t<SameQ< Int,Int32>,Int64 ,boost::multiprecision::int128_t>;
+        using LInt   = std::conditional_t<SameQ< Int,Int32>,Int64,BoostInt128>;
         /*!@brief Even longer integral type used for internal computations.*/
-        using LLInt  = std::conditional_t<SameQ<LInt,Int64>,boost::multiprecision::int128_t,boost::multiprecision::int256_t>;
+        using LLInt  = std::conditional_t<SameQ<LInt,Int64>,BoostInt128,BoostInt256>;
         
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
@@ -82,8 +82,14 @@ namespace Knoodle
 
     public:
         
-        // Default constructor
-        Prosector2() = default;
+//        // Default constructor
+//        Prosector2() = default;
+        
+        Prosector2()
+        {
+//            PrintInfo();
+        }
+        
         // Default destructor
         ~Prosector2() = default;
         
@@ -142,8 +148,8 @@ namespace Knoodle
          */
 
         Flag_T ComputeIntersection(
-            const Idx k, cptr<Int> x_0, cptr<Int> x_1,
-            const Idx l, cptr<Int> y_0, cptr<Int> y_1
+            const Idx k, cptr<Int> x0, cptr<Int> x1,
+            const Idx l, cptr<Int> y0, cptr<Int> y1
         )
         {
             [[maybe_unused]] auto tag = [](){ return MethodName("ComputeIntersection"); };
@@ -153,7 +159,7 @@ namespace Knoodle
                 logprint(tag() + " in verbose mode.");
             }
             
-            LoadLineSegments( k, x_0, x_1, l, y_0, y_1 );
+            LoadLineSegments( k, x0, x1, l, y0, y1 );
             
             Compute();
             

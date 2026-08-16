@@ -123,7 +123,7 @@ public:
         if( lhs > rhs ) { return std::strong_ordering::greater; }
         
         // We should never come here.
-        assert(false);
+        wprint("IntersectionTime::operator<=>: We should never get here.");
 
         return std::strong_ordering::equal;
     }

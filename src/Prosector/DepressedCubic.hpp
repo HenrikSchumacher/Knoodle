@@ -64,8 +64,10 @@ public:
     
     friend std::string ToString( cref<DepressedCubic> P )
     {
+        using Tools::ToString;
+        
         std::stringstream s;
-        s << "DepressedCubic{ " << P.c_0 << ", " << P.c_1 << ", " << P.c_3 << " }";
+        s << "DepressedCubic{ " << ToString(P.c_0) << ", " << ToString(P.c_1) << ", " << ToString(P.c_3) << " }";
         return s.str();
     }
     

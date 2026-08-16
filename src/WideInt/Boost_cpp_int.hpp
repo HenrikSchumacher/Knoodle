@@ -5,22 +5,25 @@
 
 namespace Tools
 {
-    template<> constexpr const char * TypeName<boost::multiprecision::int128_t>  = "Boost_I128";
-    template<> constexpr const char * FullTypeName<boost::multiprecision::int128_t>  = "boost::multiprecision::int128_t";
+    using BoostInt128 = boost::multiprecision::int128_t;
+    using BoostInt256 = boost::multiprecision::int256_t;
+    
+    template<> constexpr const char * TypeName<BoostInt128>  = "BoostInt128";
+    template<> constexpr const char * FullTypeName<BoostInt128>  = "boost::multiprecision::int128_t";
     
     namespace Scalar
     {
-        template<> constexpr bool RealQ<boost::multiprecision::int128_t> = true;
-        template<> constexpr bool ComplexQ<boost::multiprecision::int128_t> = false;
+        template<> constexpr bool RealQ<BoostInt128> = true;
+        template<> constexpr bool ComplexQ<BoostInt128> = false;
     }
     
-    double ToDouble( cref<boost::multiprecision::int128_t> number )
+    TOOLS_FORCE_INLINE double ToDouble( cref<BoostInt128> number )
     {
         return static_cast<double>(number);
     }
     
     // String generator.
-    std::string ToString( cref<boost::multiprecision::int128_t> number )
+    std::string ToString( cref<BoostInt128> number )
     {
         std::stringstream s;
         s << number;
@@ -28,21 +31,36 @@ namespace Tools
     }
     
     template<SignedIntQ R = FastInt8>
-    R Sign( cref<boost::multiprecision::int128_t> number )
+    TOOLS_FORCE_INLINE constexpr R Sign( cref<BoostInt128> number )
     {
         if( number < 0 ) { return R(-1); }
         if( number > 0 ) { return R( 1); }
         return R(0);
     }
+    
+    TOOLS_FORCE_INLINE constexpr bool NegativeQ( cref<BoostInt128> a )
+    {
+        return (a < 0);
+    }
+    
+    TOOLS_FORCE_INLINE constexpr bool PositiveQ( cref<BoostInt128> a )
+    {
+        return (a > 0);
+    }
+    
+    TOOLS_FORCE_INLINE constexpr bool ZeroQ( cref<BoostInt128> a )
+    {
+        return (a == 0);
+    }
 
     // String generator to make it work with OutString.
-    template<> struct ToChars<boost::multiprecision::int128_t>
+    template<> struct ToChars<BoostInt128>
     {
         static constexpr bool implementedQ = true;
         
         static constexpr Size_T char_count = 40;
         
-        ToCharResult operator()( char * begin, char * end, const boost::multiprecision::int128_t & x ) const
+        ToCharResult operator()( char * begin, char * end, const BoostInt128 & x ) const
         {
             std::string s = ToString(x);
             
@@ -61,22 +79,22 @@ namespace Tools
     };
     
     
-    template<> constexpr const char * TypeName<boost::multiprecision::int256_t>  = "Boost_I256";
-    template<> constexpr const char * FullTypeName<boost::multiprecision::int256_t>  = "boost::multiprecision::int256_t";
+    template<> constexpr const char * TypeName<BoostInt256>  = "BoostInt256";
+    template<> constexpr const char * FullTypeName<BoostInt256>  = "boost::multiprecision::int256_t";
     
     namespace Scalar
     {
-        template<> constexpr bool RealQ<boost::multiprecision::int256_t> = true;
-        template<> constexpr bool ComplexQ<boost::multiprecision::int256_t> = false;
+        template<> constexpr bool RealQ<BoostInt256> = true;
+        template<> constexpr bool ComplexQ<BoostInt256> = false;
     }
     
-    double ToDouble( cref<boost::multiprecision::int256_t> number )
+    TOOLS_FORCE_INLINE double ToDouble( cref<BoostInt256> number )
     {
         return static_cast<double>(number);
     }
     
     // String generator.
-    std::string ToString( cref<boost::multiprecision::int256_t> number )
+    std::string ToString( cref<BoostInt256> number )
     {
         std::stringstream s;
         s << number;
@@ -84,21 +102,36 @@ namespace Tools
     }
     
     template<SignedIntQ R = FastInt8>
-    R Sign( cref<boost::multiprecision::int256_t> number )
+    TOOLS_FORCE_INLINE constexpr R Sign( cref<BoostInt256> number )
     {
         if( number < 0 ) { return R(-1); }
         if( number > 0 ) { return R( 1); }
         return R(0);
     }
     
+    TOOLS_FORCE_INLINE constexpr bool NegativeQ( cref<BoostInt256> a )
+    {
+        return (a < 0);
+    }
+    
+    TOOLS_FORCE_INLINE constexpr bool PositiveQ( cref<BoostInt256> a )
+    {
+        return (a > 0);
+    }
+    
+    TOOLS_FORCE_INLINE constexpr bool ZeroQ( cref<BoostInt256> a )
+    {
+        return (a == 0);
+    }
+    
     // String generator to make it work with OutString.
-    template<> struct ToChars<boost::multiprecision::int256_t>
+    template<> struct ToChars<BoostInt256>
     {
         static constexpr bool implementedQ = true;
         
         static constexpr Size_T char_count = 79;
         
-        ToCharResult operator()( char * begin, char * end, const boost::multiprecision::int256_t & x ) const
+        ToCharResult operator()( char * begin, char * end, const BoostInt256 & x ) const
         {
             std::string s = ToString(x);
             
@@ -115,5 +148,7 @@ namespace Tools
             }
         }
     };
+    
+
     
 } // namespace Tools

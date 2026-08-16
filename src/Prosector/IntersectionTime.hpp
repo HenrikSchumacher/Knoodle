@@ -71,18 +71,18 @@ public:
         LLInt delta;
         
         // Order 0
-        // The leading order terms of the numerators and denominators should be nonnegative due to fact that the intersection times should lie in [0,1] to leading order and due the normalization of the ratios. Hence we can spare some conditionals and some bit twiddling by using long_mul_unsigned. Alas, the branch prediction seems to guess the branches very well, so I do not see much difference in the timings.
+        // TODO: The leading order terms of the numerators and denominators should be nonnegative due to fact that the intersection times should lie in [0,1] to leading order and due the normalization of the ratios. Hence we can spare some conditionals and some bit twiddling by using long_mul_unsigned. Alas, the branch prediction seems to guess the branches very well, so I do not see much difference in the timings.
         
-        assert(!s.a.c_0.NegativeQ());
-        assert(!s.b.c_0.NegativeQ());
-        assert(!t.a.c_0.NegativeQ());
-        assert(!t.b.c_0.NegativeQ());
+//        assert(!NegativeQ(s.a.c_0));
+//        assert(!NegativeQ(s.b.c_0));
+//        assert(!NegativeQ(t.a.c_0));
+//        assert(!NegativeQ(t.b.c_0));
         
-        lhs = long_mul_unsigned(s.a.c_0, t.b.c_0);
-        rhs = long_mul_unsigned(s.b.c_0, t.a.c_0);
+        lhs = long_mul(s.a.c_0, t.b.c_0);
+        rhs = long_mul(s.b.c_0, t.a.c_0);
         delta = lhs - rhs;
-        if( delta.NegativeQ() ) { return std::strong_ordering::less;    }
-        if( !delta.ZeroQ()    ) { return std::strong_ordering::greater; }
+        if( NegativeQ(delta) ) { return std::strong_ordering::less;    }
+        if( !ZeroQ(delta)    ) { return std::strong_ordering::greater; }
 
 //        if( lhs < rhs ) { return std::strong_ordering::less;    }
 //        if( lhs > rhs ) { return std::strong_ordering::greater; }
@@ -93,42 +93,42 @@ public:
         lhs = long_mul(s.a.c_0, t.b.c_1) + long_mul(s.a.c_1, t.b.c_0);
         rhs = long_mul(s.b.c_0, t.a.c_1) + long_mul(s.b.c_1, t.a.c_0);
         delta = lhs - rhs;
-        if( delta.NegativeQ() ) { return std::strong_ordering::less;    }
-        if( !delta.ZeroQ()    ) { return std::strong_ordering::greater; }
+        if( NegativeQ(delta) ) { return std::strong_ordering::less;    }
+        if( !ZeroQ(delta)    ) { return std::strong_ordering::greater; }
         
         // Order 2
         lhs = long_mul(s.a.c_1, t.b.c_1);
         rhs = long_mul(s.b.c_1, t.a.c_1);
         delta = lhs - rhs;
-        if( delta.NegativeQ() ) { return std::strong_ordering::less;    }
-        if( !delta.ZeroQ()    ) { return std::strong_ordering::greater; }
-        
+        if( NegativeQ(delta) ) { return std::strong_ordering::less;    }
+        if( !ZeroQ(delta)    ) { return std::strong_ordering::greater; }
+            
         // Order 3
         lhs = long_mul(s.a.c_0, t.b.c_3) + long_mul(s.a.c_3, t.b.c_0);
         rhs = long_mul(s.b.c_0, t.a.c_3) + long_mul(s.b.c_3, t.a.c_0);
         delta = lhs - rhs;
-        if( delta.NegativeQ() ) { return std::strong_ordering::less;    }
-        if( !delta.ZeroQ()    ) { return std::strong_ordering::greater; }
-        
+        if( NegativeQ(delta) ) { return std::strong_ordering::less;    }
+        if( !ZeroQ(delta)    ) { return std::strong_ordering::greater; }
+
         // Order 4
         lhs = long_mul(s.a.c_1, t.b.c_3) + long_mul(s.a.c_3, t.b.c_1);
         rhs = long_mul(s.b.c_1, t.a.c_3) + long_mul(s.b.c_3, t.a.c_1);
         delta = lhs - rhs;
-        if( delta.NegativeQ() ) { return std::strong_ordering::less;    }
-        if( !delta.ZeroQ()    ) { return std::strong_ordering::greater; }
+        if( NegativeQ(delta) ) { return std::strong_ordering::less;    }
+        if( !ZeroQ(delta)    ) { return std::strong_ordering::greater; }
         
         // Order 5 -- not existent.
-        
+
         // Order 6
         lhs = long_mul(s.a.c_3, t.b.c_3);
         rhs = long_mul(s.b.c_3, t.a.c_3);
         delta = lhs - rhs;
-        if( delta.NegativeQ() ) { return std::strong_ordering::less;    }
-        if( !delta.ZeroQ()    ) { return std::strong_ordering::greater; }
+        if( NegativeQ(delta) ) { return std::strong_ordering::less;    }
+        if( !ZeroQ(delta)    ) { return std::strong_ordering::greater; }
         
         // We should never come here.
         assert(false);
-        
+
         return std::strong_ordering::equal;
     }
     

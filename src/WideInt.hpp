@@ -4,6 +4,24 @@
 
 namespace Knoodle
 {
+    
+#ifdef TOOLS_INT128_AVAILABLE
+    /*!@brief Biggest limb type on this system.*/
+    using DefaultLimb_T = UInt64;
+    /*!@brief Biggest comp type on this system.*/
+    using DefaultComp_T = UInt128;
+#else
+    /*!@brief Biggest limb type on this system.*/
+    using DefaultLimb_T = UInt32;
+    /*!@brief Biggest comp type on this system.*/
+    using DefaultComp_T = UInt64;
+#endif
+    
+    /*!@brief Biggest limb type on this system.*/
+    using DefaultSignedLimb_T = ToSigned<DefaultLimb_T>;
+    /*!@brief Biggest comp type on this system.*/
+    using DefaultSignedComp_T = ToSigned<DefaultComp_T>;
+    
     /*!@brief A class for wide integers.
      
      * An integer is represented by `limb_count` limbs of unsigned integer type `Limb_T`.
@@ -24,6 +42,9 @@ namespace Knoodle
         using Limb_T = Limb_T_;
         using Comp_T = Comp_T_;
         using Idx    = std::int_fast32_t;
+        
+        using SignedLimb_T = ToSigned<Limb_T>;
+        using SignedComp_T = ToSigned<Comp_T>;
         
         static constexpr Idx limb_count = static_cast<Idx>(limb_count_);
         
@@ -123,6 +144,27 @@ namespace Knoodle
             // No need to fill up  with zeroes as WideInt is initialized by 0.
         }
         
+        constexpr explicit WideInt( SignedLimb_T a )
+        :   WideInt { static_cast<Limb_T>(a)}
+        {
+            // No need to fill up  with zeroes as WideInt is initialized by 0.
+        }
+        
+        template<typename dummy = std::conditional_t<limb_count == Size_T(2),void,void>>
+        constexpr explicit WideInt( Comp_T a )
+        {
+            limbs[0] = Lo_Limb(a);
+            limbs[1] = Hi_Limb(a);
+            // No need to fill up  with zeroes as WideInt is initialized by 0.
+        }
+        
+        template<typename dummy = std::conditional_t<limb_count == Size_T(2),void,void>>
+        constexpr explicit WideInt( SignedComp_T a )
+        : WideInt { static_cast<Comp_T>(a)}
+        {
+            // No need to fill up  with zeroes as WideInt is initialized by 0.
+        }
+        
         constexpr explicit WideInt( cref<BitSet_T> a  )
         {
             std::copy_n(
@@ -168,21 +210,35 @@ namespace Knoodle
             }
             else if( sizeof(a) <= byte_count )
             {
-                // TODO: This is dangerous because it may break in big-endian systems.
-                *this = WideInt( reinterpret_cast<const Limb_T *>(&a), sizeof(a)/sizeof(Limb_T) );
+//                // TODO: This is dangerous because it may break in big-endian systems.
+//                *this = WideInt( reinterpret_cast<const Limb_T *>(&a), sizeof(a)/sizeof(Limb_T) );
+                
+                UInt b = a;
+                
+                constexpr int n = static_cast<int>(sizeof(UInt)/sizeof(Limb_T)) - 1;
+                
+                for( int i = 0; i < n; ++i )
+                {
+                    limbs[i] = static_cast<Limb_T>(b);
+                    b >> limb_bit_count;
+                }
+                limbs[n-1] = static_cast<Limb_T>(b);
             }
             else
             {
-                eprint(ClassName()+"(const " + TypeName<UInt> + " &): To many bytes to fit into type.");
+                eprint(ClassName()+"(" + TypeName<UInt> + "): To many bytes to fit into type.");
             }
         }
         
+        
         template<SignedIntQ Int>
         constexpr WideInt( Int a )
-        :   WideInt{ static_cast<ToUnsigned<Int>>( a < Int(0) ? -a : a) }
+        :   WideInt{ static_cast<ToUnsigned<Int>>( NegativeQ(a) ? -a : a) }
         {
+            // TODO: Make this more efficient in the important case sizeof(Int) == sizeof(WideInt).
+            
 //            print("WideInt{ static_cast<ToUnsigned<Int>>(Abs(a)) }");
-            if( a < Int{0} ) { this->Negate(); }
+            if( NegativeQ(a) ) { this->Negate(); }
         }
         
         template<Size_T m>
@@ -260,44 +316,72 @@ namespace Knoodle
             return c;
         }
 
-        
-        /*!@brief Return the value of the sign but.*/
-        TOOLS_FORCE_INLINE constexpr bool SignBit() const
+        Limb_T & MostSignificantLimb()
         {
-            return get_bit(limbs[limb_count-Idx(1)],limb_bit_count-Idx(1));
+            return limbs[limb_count-Idx(1)];
+        }
+        
+        const Limb_T & MostSignificantLimb() const
+        {
+            return limbs[limb_count-Idx(1)];
+        }
+        
+        SignedLimb_T & MostSignificantSignedLimb()
+        {
+            return reinterpret_cast<SignedLimb_T &>(
+                this->MostSignificantLimb()
+            );
+        }
+        
+        const SignedLimb_T & MostSignificantSignedLimb() const
+        {
+            return reinterpret_cast<const SignedLimb_T &>(
+                this->MostSignificantLimb()
+            );
+        }
+        
+//        /*!@brief Return the value of the sign bit.*/
+//        TOOLS_FORCE_INLINE friend constexpr
+//        bool SignBit( cref<WideInt> a )
+//        {
+//            // Not portable.
+//            return get_bit(a.MostSignificantLimb(),limb_bit_count-Idx(1));
+//        }
+        
+        /*!@brief Check whether this wide integer is negative.*/
+        TOOLS_FORCE_INLINE friend constexpr
+        bool NegativeQ( cref<WideInt> a )
+        {
+            if( !signQ ) return false;
+
+            return NegativeQ(a.MostSignificantSignedLimb());
         }
         
         /*!@brief Check whether this wide integer is negative.*/
-        TOOLS_FORCE_INLINE constexpr bool NegativeQ() const
-        {
-            if( !signQ ) return false;
-            
-            return SignBit();
-        }
-        
-        /*!@brief Check whether this wide integer is positive. (This costs as much as `NegativeQ` and `ZeroQ` together, so it is relatively expensive.) */
-        TOOLS_FORCE_INLINE constexpr bool PositiveQ() const
+        TOOLS_FORCE_INLINE friend constexpr
+        bool PositiveQ( cref<WideInt> a )
         {
             if constexpr ( signQ )
             {
-                if( NegativeQ() ) return false;
+                if( NegativeQ(a) ) return false;
             }
             
-            if( ZeroQ() ) return false;
+            if( ZeroQ(a) ) return false;
             
             return true;
         }
         
         /*!@brief Return the sign of  */
         template<SignedIntQ R = FastInt8>
-        TOOLS_FORCE_INLINE constexpr friend R Sign( cref<This_T> a )
+        TOOLS_FORCE_INLINE friend constexpr
+        R Sign( cref<This_T> a )
         {
             if constexpr ( signQ )
             {
-                if( a.NegativeQ() ) return R(-1);
+                if( NegativeQ(a) ) return R(-1);
             }
             
-            if( a.ZeroQ() ) return R(0);
+            if( ZeroQ(a) ) return R(0);
             
             return R(1);
         }
@@ -305,12 +389,12 @@ namespace Knoodle
         /*!@brief Comparison operator.*/
         TOOLS_FORCE_INLINE constexpr friend bool operator<( cref<This_T> a, cref<This_T> b )
         {
-            if( a.SignBit() )
+            if( NegativeQ(a) )
             {
-                if( b.SignBit() )
+                if( NegativeQ(b) )
                 {
                     // If a and b have the same sign, then a - b cannot overflow.
-                    return (a - b).SignBit();
+                    return NegativeQ(a - b);
                 }
                 else
                 {
@@ -319,14 +403,14 @@ namespace Knoodle
             }
             else
             {
-                if( b.SignBit() )
+                if( NegativeQ(b) )
                 {
                     return !signQ;
                 }
                 else
                 {
                     // If a and b have the same sign, then a - b cannot overflow.
-                    return (a - b).SignBit();
+                    return NegativeQ(a - b);
                 }
             }
         }
@@ -352,16 +436,16 @@ namespace Knoodle
         /*!@brief Three-way comparison operator.*/
         TOOLS_FORCE_INLINE constexpr friend std::strong_ordering operator<=>( cref<This_T> a, cref<This_T> b )
         {
-            if( a.SignBit() )
+            if( NegativeQ(a) )
             {
-                if( !b.SignBit() )
+                if( !NegativeQ(b) )
                 {
                     return signQ ? std::strong_ordering::less : std::strong_ordering::greater;
                 }
             }
             else
             {
-                if( b.SignBit() )
+                if( NegativeQ(b) )
                 {
                     return !signQ ? std::strong_ordering::less : std::strong_ordering::greater;
                 }
@@ -371,8 +455,8 @@ namespace Knoodle
             
             This_T c = a - b;
             
-            if( c.SignBit() ) { return std::strong_ordering::less; }
-            if( c.ZeroQ()   ) { return std::strong_ordering::equal; }
+            if( NegativeQ(c) ) { return std::strong_ordering::less; }
+            if( ZeroQ(c)     ) { return std::strong_ordering::equal; }
             return std::strong_ordering::greater;
         }
         
@@ -426,7 +510,7 @@ namespace Knoodle
             static_assert(sizeof(T) >= byte_count, "");
             WideInt b = *this;
             
-            if( NegativeQ() ) { b.Negate(); }
+            if( NegativeQ(*this) ) { Negate(b); }
             
             T   x = 0;
             Idx s = 0;
@@ -437,7 +521,7 @@ namespace Knoodle
                 s += 8 * sizeof(Limb_T);
             }
             
-            if( NegativeQ() ) { x = -x; }
+            if( NegativeQ(*this) ) { x = -x; }
             
             return x;
         }
@@ -447,7 +531,7 @@ namespace Knoodle
         {
             WideInt b = a;
             
-            bool negativeQ = b.NegativeQ();
+            bool negativeQ = NegativeQ(b);
             
             if( negativeQ ) { b.Negate(); }
             
@@ -518,34 +602,42 @@ namespace Knoodle
         }
     };
     
-    // Some convenience type cast.
+    // Some convenience type casts.
+
+    template<IntQ Int, UnsignedIntQ Limb_T, UnsignedIntQ Comb_T>
+    using ToWideInt = WideInt<
+        CeilDivide(sizeof(Int),sizeof(Limb_T)), Limb_T, Comb_T, SignedIntQ<Int>
+    >;
+    
+    template<IntQ Int>
+    using DefaultWideInt = ToWideInt<Int,DefaultLimb_T,DefaultComp_T>;
 
 
-    using WInt8     = WideInt<1,UInt8,UInt16,true>;    // Just make it Int8?
-    using WUInt8    = WideInt<1,UInt8,UInt16,false>;
-    
-    // TODO: Problem: long_mul on two WInt8s does not return a WInt16 = WideInt<1,UInt16,UInt32,true>, but a WideInt<2,UInt8,UInt16,true>.
-    
-    using WInt16    = WideInt<1,UInt16,UInt32,true>;
-    using WUInt16   = WideInt<1,UInt16,UInt32,false>;  // Just make it Int16?
-    
-    // TODO: Problem: long_mul on two WInt16s does not return a WInt32 = WideInt<1,UInt32,UInt64,true>, but a WideInt<2,UInt16,UInt32,true>.
-    
-    using WInt32    = WideInt<1,UInt32,UInt64,true>;   // Just make it Int32?
-    using WUInt32   = WideInt<1,UInt32,UInt64,false>;
+//    using WInt8     = WideInt<1,UInt8,UInt16,true>;    // Just make it Int8?
+//    using WUInt8    = WideInt<1,UInt8,UInt16,false>;
+//    
+//    // TODO: Problem: long_mul on two WInt8s does not return a WInt16 = WideInt<1,UInt16,UInt32,true>, but a WideInt<2,UInt8,UInt16,true>.
+//    
+//    using WInt16    = WideInt<1,UInt16,UInt32,true>;
+//    using WUInt16   = WideInt<1,UInt16,UInt32,false>;  // Just make it Int16?
+//    
+//    // TODO: Problem: long_mul on two WInt16s does not return a WInt32 = WideInt<1,UInt32,UInt64,true>, but a WideInt<2,UInt16,UInt32,true>.
+//    
+//    using WInt32    = WideInt<1,UInt32,UInt64,true>;   // Just make it Int32?
+//    using WUInt32   = WideInt<1,UInt32,UInt64,false>;
 
 #ifdef TOOLS_INT128_AVAILABLE
-    
-    // TODO: Problem: long_mul on two WInt32s does not return a WInt64 = WideInt< 1,UInt64,UInt128,true>, but a WideInt<2,UInt32,UInt64,true>.
 
     using WInt64    = WideInt< 1,UInt64,UInt128,true>;
     using WInt128   = WideInt< 2,UInt64,UInt128,true>;
+    using WInt192   = WideInt< 3,UInt64,UInt128,true>;
     using WInt256   = WideInt< 4,UInt64,UInt128,true>;
     using WInt512   = WideInt< 8,UInt64,UInt128,true>;
     using WInt1024  = WideInt<16,UInt64,UInt128,true>;
     
     using WUInt64   = WideInt< 1,UInt64,UInt128,false>;
     using WUInt128  = WideInt< 2,UInt64,UInt128,false>;
+    using WUInt192  = WideInt< 3,UInt64,UInt128,false>;
     using WUInt256  = WideInt< 4,UInt64,UInt128,false>;
     using WUInt512  = WideInt< 8,UInt64,UInt128,false>;
     using WUInt1024 = WideInt<16,UInt64,UInt128,false>;
@@ -553,12 +645,14 @@ namespace Knoodle
 
     using WInt64    = WideInt< 2,UInt32,UInt64,true>;
     using WInt128   = WideInt< 4,UInt32,UInt64,true>;
+    using WInt192   = WideInt< 6,UInt32,UInt64,true>;
     using WInt256   = WideInt< 8,UInt32,UInt64,true>;
     using WInt512   = WideInt<16,UInt32,UInt64,true>;
     using WInt1024  = WideInt<32,UInt32,UInt64,true>;
     
     using WUInt64   = WideInt< 2,UInt32,UInt64,false>;
     using WUInt128  = WideInt< 4,UInt32,UInt64,false>;
+    using WUInt192  = WideInt< 3,UInt32,UInt64,false>;
     using WUInt256  = WideInt< 8,UInt32,UInt64,false>;
     using WUInt512  = WideInt<16,UInt32,UInt64,false>;
     using WUInt1024 = WideInt<32,UInt32,UInt64,false>;
@@ -570,20 +664,16 @@ namespace Knoodle
 
 namespace Tools
 {
-    template<> constexpr const char * TypeName<Knoodle::WInt8>     = "WInt8";
-    template<> constexpr const char * TypeName<Knoodle::WInt16>    = "WInt16";
-    template<> constexpr const char * TypeName<Knoodle::WInt32>    = "WInt32";
     template<> constexpr const char * TypeName<Knoodle::WInt64>    = "WInt64";
     template<> constexpr const char * TypeName<Knoodle::WInt128>   = "WInt128";
+    template<> constexpr const char * TypeName<Knoodle::WInt192>   = "WInt192";
     template<> constexpr const char * TypeName<Knoodle::WInt256>   = "WInt256";
     template<> constexpr const char * TypeName<Knoodle::WInt512>   = "WInt512";
     template<> constexpr const char * TypeName<Knoodle::WInt1024>  = "WInt1024";
     
-    template<> constexpr const char * TypeName<Knoodle::WUInt8>    = "WUInt8";
-    template<> constexpr const char * TypeName<Knoodle::WUInt16>   = "WUInt16";
-    template<> constexpr const char * TypeName<Knoodle::WUInt32>   = "WUInt32";
     template<> constexpr const char * TypeName<Knoodle::WUInt64>   = "WUInt64";
     template<> constexpr const char * TypeName<Knoodle::WUInt128>  = "WUInt128";
+    template<> constexpr const char * TypeName<Knoodle::WUInt192>  = "WUInt192";
     template<> constexpr const char * TypeName<Knoodle::WUInt256>  = "WUInt256";
     template<> constexpr const char * TypeName<Knoodle::WUInt512>  = "WUInt512";
     template<> constexpr const char * TypeName<Knoodle::WUInt1024> = "WUInt1024";
@@ -686,102 +776,4 @@ namespace Tools
     
 } // namespace Tools
 
-
-namespace Knoodle
-{
-    // If `Int128` is available, we can circumvent a lot of sign tiddling by using it directly for `long_fma`, `long_mul`, and `long_det` instread of casting to `WInt64`.
-
-    // TODO: If Int128 is available, then better use Int128 as output type. This should make sure that always the fastest path is chosen because WInt128 is basically and Int128 but with a lot of unnecessary sign twiddling.
-    
-    // TODO: Should return Int128.
-    TOOLS_FORCE_INLINE constexpr
-    WInt128 long_fma( cref<Int64> a, cref<Int64> b, cref<Int64> c )
-    {
-        if constexpr ( Int128_availableQ )
-        {
-            return WInt128{ Int128{a} * Int128{b} + Int128{c} };
-        }
-        else
-        {
-            return long_fma( WInt64{a}, WInt64{b}, WInt64{c} );
-        }
-    }
-    
-    // TODO: Should return Int128.
-    TOOLS_FORCE_INLINE constexpr
-    WInt128 long_mul( cref<Int64> a, cref<Int64> b )
-    {
-        if constexpr ( Int128_availableQ )
-        {
-            return WInt128{ Int128{a} * Int128{b} };
-        }
-        else
-        {
-            return long_mul( WInt64{a}, WInt64{b} );
-        }
-    }
-    
-    // TODO: Should return Int128.
-    TOOLS_FORCE_INLINE constexpr
-    WInt128 long_det( cref<Int64> a, cref<Int64> b, cref<Int64> c, cref<Int64> d )
-    {
-        if constexpr ( Int128_availableQ )
-        {
-            return WInt128{ Int128{a} * Int128{d} - Int128{b} * Int128{c} };
-        }
-        else
-        {
-            return long_det( WInt64{a}, WInt64{b}, WInt64{c}, WInt64{d} );
-        }
-    }
-
-    
-    // Since `Int64` is available on modern system, we can circumvent a lot of sign twiddling by using it directly for `long_fma`, `long_mul`, and `long_det` instread of casting to `WInt32`.
-    
-    // TODO: Should return Int64.
-    TOOLS_FORCE_INLINE constexpr
-    WInt64 long_fma( cref<Int32> a, cref<Int32> b, cref<Int32> c )
-    {
-        return WInt64{ Int64{a} * Int64{b} + Int64{c} };
-    }
-    
-    // TODO: Should return Int64.
-    TOOLS_FORCE_INLINE constexpr
-    WInt64 long_mul( cref<Int32> a, cref<Int32> b )
-    {
-        return WInt64{ Int64{a} * Int64{b} };
-    }
-    
-    // TODO: Should return Int64.
-    TOOLS_FORCE_INLINE constexpr
-    WInt64 long_det( cref<Int32> a, cref<Int32> b, cref<Int32> c, cref<Int32> d )
-    {
-        return WInt64{ Int64{a} * Int64{d} - Int64{b} * Int64{c} };
-    }
-    
-
-    // TODO: We also need mixed overloads Int64/Int128.
-    
-#ifdef TOOLS_INT128_AVAILABLE
-    
-    TOOLS_FORCE_INLINE constexpr
-    WInt256 long_fma( cref<Int128> a, cref<Int128> b, cref<Int128> c )
-    {
-        return long_fma( WInt128{a}, WInt128{b}, WInt128{c} );
-    }
-    
-    TOOLS_FORCE_INLINE constexpr
-    WInt256 long_mul( cref<Int128> a, cref<Int128> b )
-    {
-        return long_mul( WInt128{a}, WInt128{b} );
-    }
-    
-    TOOLS_FORCE_INLINE constexpr
-    WInt256 long_det( cref<Int128> a, cref<Int128> b, cref<Int128> c, cref<Int128> d )
-    {
-        return long_det( WInt128{a}, WInt128{b}, WInt128{c}, WInt128{d} );
-    }
-    
-#endif // TOOLS_INT128_AVAILABLE
-    
-} // namespace Knoodle
+#include "WideInt/long_mul_extern.hpp"
