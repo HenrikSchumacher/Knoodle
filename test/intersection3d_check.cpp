@@ -33,15 +33,19 @@ using Int = std::int64_t;
 
 static bool ok = true;
 
-/// Everything about detecting a transversal 3-space intersection is currently
-/// broken, in two different ways depending on the backend, so the whole of that
-/// contract is a known failure. Recorded as XFAIL rather than left red, and
+/// FIXED 2026-08-15 in b53a9ecb, "Fixed a bug in Prosector classes that allowed
+/// 3D intersections to go unnoticed" -- this test reported the 24 XPASS that
+/// said so. Flag kept, set false, because it is the switch to flip if the
+/// contract ever regresses.
+///
+/// It was: detecting a transversal 3-space intersection failed in two different
+/// ways depending on the backend, so the whole contract was a known failure. Recorded as XFAIL rather than left red, and
 /// reported as XPASS if it starts working -- that is the signal to delete this.
 /// See GitHub issue for the analysis; in short, Prosector's IntersectionType()
 /// does not return Flag_T::Error for a genuine 3D crossing, which Prosector3
 /// and Prosector4 detect internally and throw over, while Prosector2 carries on
 /// and builds a diagram for a curve that has none.
-static bool kDetection3DIsBroken = true;
+static bool kDetection3DIsBroken = false;
 
 static void check( bool passedQ, const std::string & what, bool known_broken = false )
 {
@@ -92,10 +96,11 @@ static void Probe( const kt::Curve & c, const char * label, Int expected3D,
     // A curve that self-intersects in 3-space is not an embedding, so the class
     // must refuse. Succeeding here would be the serious failure: it would mean
     // a diagram was built for a curve that has no diagram.
-    // Prosector3/4 DO refuse (they catch their own inconsistency and throw, which
-    // RunEmbedding turns into a failure). Prosector2 does not -- it succeeds and
-    // hands back a diagram for a curve that has none. So only the latter is a
-    // known failure here, and marking both would hide the difference.
+    // All classes refuse since b53a9ecb. Before that, Prosector3/4 refused by
+    // throwing out of their own consistency check while Prosector2 succeeded and
+    // handed back a diagram for a curve that has none, so the two had to be
+    // marked differently. The parameter is kept because that distinction is the
+    // one worth noticing again if it comes back.
     check(!r.ok, base + ": refuses a curve that is not an embedding",
           !refuses_correctlyQ);
 
@@ -196,8 +201,8 @@ int main()
               c.curve.name + ": the census confirms this curve is not an embedding");
         if( cen.spatial <= Int(0) ) { continue; }
 
-        Probe<Knoodle::LinkEmbedding2<double,Int,Int>>(c.curve,"LinkEmbedding2<f64>",cen.spatial,false);
-        Probe<Knoodle::LinkEmbedding2<Int,   Int,Int>>(c.curve,"LinkEmbedding2<i64>",cen.spatial,false);
+        Probe<Knoodle::LinkEmbedding2<double,Int,Int>>(c.curve,"LinkEmbedding2<f64>",cen.spatial,true);
+        Probe<Knoodle::LinkEmbedding2<Int,   Int,Int>>(c.curve,"LinkEmbedding2<i64>",cen.spatial,true);
         Probe<Knoodle::LinkEmbedding3<Int,   Int,Int>>(c.curve,"LinkEmbedding3<i64>",cen.spatial,true);
         Probe<Knoodle::LinkEmbedding4<Int,   Int,Int>>(c.curve,"LinkEmbedding4<i64>",cen.spatial,true);
     }

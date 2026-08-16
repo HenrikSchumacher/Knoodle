@@ -6,13 +6,25 @@ before filing. Status: `found` → `confirmed` → `filed` → `fixed upstream`.
 **Numbers are permanent ids: never reuse one, even after the issue closes.**
 (They were reused once already — see the note at the bottom.)
 
+> **Pending action, 2026-08-19.** Issues **11**, **5** and **4** are still open
+> and have not moved. If they are still unmoved on that date, we will file them
+> as GitHub issues, for the reason recorded in this file's own workflow note:
+> *this document is an index, not the record.* An entry here is easy to lose to
+> history; a GitHub issue is not, and can be closed with a SHA the way #33 and
+> #34 were. Filing them is not an escalation — it is the same treatment every
+> confirmed issue here has had, just applied on a timer so nothing quietly
+> ages out.
+
 **Scoreboard, re-verified 2026-08-14 against `dev_prosector` `fb4c8f0e`** with
 standalone reproducers, not through a test harness:
 
 | # | issue | status |
 | --- | --- | --- |
-| 13 | `IntersectionType()` misses a transversal 3-space intersection; LE2 succeeds silently, LE3/4 throw from an accessor | **FILED — [GH #34](https://github.com/HenrikSchumacher/Knoodle/issues/34)** |
-| 12 | `ArcSimplifier`'s R_IIa is not atomic: on a locked diagram it half-applies and CHANGES THE KNOT | **FILED — [GH #33](https://github.com/HenrikSchumacher/Knoodle/issues/33)** |
+| 16 | `tools/knoodle_io.hpp` still parses with `getline`/`istringstream`/`stod`; `Tools::InString` + `from_chars` is 5.5x faster on coordinate input | **ENHANCEMENT — [GH #36](https://github.com/HenrikSchumacher/Knoodle/issues/36)** (ours to do, not Henrik's) |
+| 15 | `ScopedUnlock` is documented in both `PlanarDiagram` and `PlanarDiagramComplex` but defined nowhere, so the documented spelling does not compile | **PR'd — [GH #35](https://github.com/HenrikSchumacher/Knoodle/pull/35)** |
+| 14 | `PlanarDiagramComplex(const PD_T &)` delegates to a `PD_T &&` constructor, so the overload cannot be instantiated | **PR'd — [GH #35](https://github.com/HenrikSchumacher/Knoodle/pull/35)** |
+| 13 | `IntersectionType()` misses a transversal 3-space intersection; LE2 succeeds silently, LE3/4 throw from an accessor | **FIXED — `b53a9ecb`; [GH #34](https://github.com/HenrikSchumacher/Knoodle/issues/34) closed 2026-08-15** |
+| 12 | `ArcSimplifier`'s R_IIa is not atomic: on a locked diagram it half-applies and CHANGES THE KNOT | **FIXED — `e4ebccc3`; [GH #33](https://github.com/HenrikSchumacher/Knoodle/issues/33) closed 2026-08-15** |
 | 11 | `LinesColinearTest` asserts that two distinct degenerate segments coincide | **open — aborts** |
 | 10 | `LinkEmbedding3/4` class docs promise a path into `PlanarDiagram` that is not built yet | **docs ahead of code**, not a defect |
 | 9 | `Transform` does not invalidate its caches | fixed — `8db4cdc4` |
@@ -27,8 +39,15 @@ standalone reproducers, not through a test harness:
 
 ## 13. A transversal 3-space intersection is not detected by `IntersectionType()`
 
-**Status:** FILED as [GitHub issue #34](https://github.com/HenrikSchumacher/Knoodle/issues/34)
-on 2026-08-14. No patch proposed; where the check belongs is Henrik's call.
+**Status:** FIXED by Henrik in `b53a9ecb` ("Fixed a bug in Prosector classes
+that allowed 3D intersections to go unnoticed"), 2026-08-15.
+[GitHub issue #34](https://github.com/HenrikSchumacher/Knoodle/issues/34) closed
+the same day. Both halves went: LinkEmbedding2 no longer succeeds silently, and
+LinkEmbedding3/4 no longer throw out of the accessor -- all four refuse and
+report the count. `test/intersection3d_check` announced it as 24 XPASS and its
+`kDetection3DIsBroken` flag is now `false`.
+
+Filed 2026-08-14. No patch was proposed; where the check belonged was Henrik's call.
 These are the experimental classes and this is what debugging them looks like,
 so it is recorded rather than escalated.
 
@@ -60,9 +79,18 @@ XPASS when this changes. `embedding_check` asserts the converse everywhere.
 
 ## 12. `ArcSimplifier` R_IIa half-applies on a locked diagram and changes the knot type
 
-**Status:** FILED as [GitHub issue #33](https://github.com/HenrikSchumacher/Knoodle/issues/33)
-on 2026-08-14. Deliberately no PR: the fix turns on which operations the
-locking feature was meant to guard, and that is Henrik's design call, not ours.
+**Status:** FIXED by Henrik in `e4ebccc3`, 2026-08-15 -- ArcSimplifier's
+SwitchCrossing redirected to `PlanarDiagram::SwitchCrossing_Private`, which is
+not lock-guarded, so R_IIa no longer half-applies.
+[GitHub issue #33](https://github.com/HenrikSchumacher/Knoodle/issues/33) closed
+the same day. `test/local_moves_check` reported Monster@level-4 as XPASS and its
+known-failure list is now empty.
+
+Filed 2026-08-14, deliberately with no PR: the fix turned on which operations the
+locking feature was meant to guard, which was Henrik's design call, not ours.
+The analysis below is kept because the mechanism is worth remembering -- it is
+the non-atomic-composite-mutation shape, and the corpus gap that let it survive
+is why `test/polygon_levels_check` exists.
 Regression test `test/local_moves_check` is on **both** `main` (`5c7d64a4`) and
 `dev_prosector`, recording Monster@level-4 as a known failure so it reports
 XPASS the moment this is fixed.

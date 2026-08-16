@@ -1,0 +1,175 @@
+#!/bin/sh
+#
+# The push policy. Invoked by pre-push with the ref list on stdin.
+#
+#   local commit, any branch   nothing runs. Commits are free, and main is
+#                              allowed to carry WIP history.
+#   push to a branch           light tier runs. Red is a WARNING and the push
+#                              proceeds -- that is what WIP is for -- but a
+#                              commit of ours must SAY so.
+#   push to main               light tier runs. Red REFUSES. Everybody,
+#                              including Henrik, has to override deliberately.
+#   push a v* tag              the heavy-tier stamp for that commit is
+#                              required. Refuses without it.
+#
+# Override: KNOODLE_PUSH_RED=1. Deliberately NOT --no-verify, which would also
+# skip the Git LFS hook above and corrupt the push.
+
+set -u
+
+REPO=$(git rev-parse --show-toplevel)
+TEST_DIR="$REPO/test"
+STAMPS="$TEST_DIR/.stamps"
+OVERRIDE="${KNOODLE_PUSH_RED:-}"
+ZERO="0000000000000000000000000000000000000000"
+
+# What kinds of push is this? A single `git push` can carry several refs.
+pushing_main=0
+pushing_tag=""
+pushing_branch=""
+tag_sha=""
+main_sha=""
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ -z "${remote_ref:-}" ] && continue
+    [ "${local_sha:-}" = "$ZERO" ] && continue          # deleting a ref
+    case "$remote_ref" in
+        refs/heads/main)  pushing_main=1; main_sha="$local_sha" ;;
+        refs/tags/v*)     pushing_tag="$remote_ref"; tag_sha="$local_sha" ;;
+        refs/heads/*)     pushing_branch="${remote_ref#refs/heads/}" ;;
+    esac
+done
+
+[ "$pushing_main" = 0 ] && [ -z "$pushing_tag" ] && [ -z "$pushing_branch" ] && exit 0
+
+# --- the release gate -------------------------------------------------------
+if [ -n "$pushing_tag" ]; then
+    version="${pushing_tag#refs/tags/}"
+    if [ -f "$STAMPS/heavy-$tag_sha" ]; then
+        printf '\npre-push: heavy tier verified for %s at %s\n\n' "$version" "$(echo "$tag_sha" | cut -c1-12)"
+    elif [ -n "$OVERRIDE" ]; then
+        printf '\npre-push: KNOODLE_PUSH_RED set -- releasing %s without a heavy-tier run.\n\n' "$version"
+    else
+        cat >&2 <<EOF
+
+Refusing to push the version tag $version.
+
+The heavy tier has not been run cleanly at this commit ($(echo "$tag_sha" | cut -c1-12)).
+A tag is where a release starts, so this is the last point at which a corner-case
+regression can be caught before users see it.
+
+  To run it (about four minutes):
+      make -C test check-full
+
+  To tag anyway, without having run it:
+      KNOODLE_PUSH_RED=1 git push $* $version
+
+EOF
+        exit 1
+    fi
+fi
+
+[ "$pushing_main" = 0 ] && [ -z "$pushing_branch" ] && exit 0
+
+# --- the light tier ---------------------------------------------------------
+head_sha=$(git rev-parse HEAD)
+dirty=$(git status --porcelain --untracked-files=no)
+
+# Test seam: test/hooks_check sets KNOODLE_PUSH_TIER_RESULT to exercise the
+# red paths without waiting 15s for a real run, and without needing a way to
+# make a passing suite fail. Unset in normal use, which is the only way the
+# tier actually runs.
+if [ -n "${KNOODLE_PUSH_TIER_RESULT:-}" ]; then
+    tier_rc="$KNOODLE_PUSH_TIER_RESULT"
+elif [ -z "$dirty" ] && [ -f "$STAMPS/light-$head_sha" ]; then
+    printf '\npre-push: light tier already verified at %s\n' "$(echo "$head_sha" | cut -c1-12)"
+    tier_rc=0
+else
+    printf '\npre-push: running the light tier (about 15s)...\n\n'
+    ( cd "$TEST_DIR" && make --no-print-directory check >/tmp/knoodle-prepush.$$ 2>&1 )
+    tier_rc=$?
+    if [ "$tier_rc" != 0 ]; then
+        tail -40 /tmp/knoodle-prepush.$$ >&2
+    else
+        tail -4 /tmp/knoodle-prepush.$$
+    fi
+    rm -f /tmp/knoodle-prepush.$$
+fi
+
+if [ "$tier_rc" = 0 ]; then
+    exit 0
+fi
+
+if [ -n "${KNOODLE_PUSH_TIER_RESULT:-}" ]; then
+    failed="${KNOODLE_PUSH_TIER_FAILED:-example_check}"
+else
+    failed=$(cd "$TEST_DIR" && python3 run_tier.py --tier=light 2>/dev/null \
+             | sed -n 's/^  FAIL     \([a-z_0-9]*\).*/\1/p' | tr '\n' ' ')
+fi
+[ -z "$failed" ] && failed="(see the output above)"
+
+# --- red, pushing to main ---------------------------------------------------
+if [ "$pushing_main" = 1 ]; then
+    if [ -n "$OVERRIDE" ]; then
+        printf '\npre-push: KNOODLE_PUSH_RED set -- pushing red tests to main.\n\n' >&2
+        exit 0
+    fi
+    cat >&2 <<EOF
+
+Tests failed: $failed
+
+Pushing red tests to main is blocked. Recommend investigating before pushing to
+main, or pushing this commit to a branch instead.
+
+  To push to main anyway:
+      KNOODLE_PUSH_RED=1 git push origin main
+
+  To put it on a branch instead:
+      git push origin HEAD:refs/heads/<branch-name>
+
+EOF
+    exit 1
+fi
+
+# --- red, pushing to a branch: allowed, but it has to say so ----------------
+# Red on a branch is legitimate -- that is what WIP is for. The only
+# requirement is that the history says so honestly. "Ours" is detected by the
+# mandatory credit line, so this binds our commits and not hand-written ones.
+range_start=$(git rev-parse "origin/$pushing_branch" 2>/dev/null)
+if [ -n "$range_start" ]; then
+    range="$range_start..HEAD"
+else
+    range="origin/main..HEAD"
+fi
+
+ours=$(git log --format='%H' --grep='Prepared with Claude Code' "$range" 2>/dev/null | head -1)
+wip=$(git log -1 --format='%B' 2>/dev/null | grep -ciE 'WIP|does not pass testing')
+
+if [ -n "$ours" ] && [ "$wip" = 0 ] && [ -z "$OVERRIDE" ]; then
+    cat >&2 <<EOF
+
+Tests failed: $failed
+
+Pushing red tests to a branch is fine -- that is what WIP is for -- but the
+commit message has to say so, and this one does not.
+
+  To fix the message and push:
+      git commit --amend
+      (add a line such as: "WIP: pushes red, $failed failing")
+      git push $*
+
+  To push as-is:
+      KNOODLE_PUSH_RED=1 git push $*
+
+EOF
+    exit 1
+fi
+
+cat >&2 <<EOF
+
+WARNING: tests failed: $failed
+
+Pushing to a branch anyway. Investigate before this reaches main.
+
+EOF
+exit 0

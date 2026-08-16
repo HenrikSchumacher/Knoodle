@@ -79,7 +79,35 @@ test/klut_e2e_*.tsv
 test/klut_e2e_*.txt
 test/klut_e2e_*.log
 test/inflate_fail_*.tsv
+# Built test binaries. Every kind != script row of test/manifest.tsv; the
+# manifest is the source of truth for what exists, and `make clean` removes
+# exactly this set.
+test/canon_check
+test/component_check
+test/embedding_check
+test/embedding_inflation_check
+test/error_tap_check
+test/intersection3d_check
+test/intersection_flag_reset_check
+test/klut_bench
+test/klut_bench_boost
+test/klut_identify_check
+test/klut_identify_random_check
+test/knoodle_io_check
+test/link_alex_probe
+test/link_color_roundtrip
+test/link_inflate_check
+test/link_split_check
+test/local_moves_check
+test/pd_internal_state_check
+test/plantri_check
+test/polygon_levels_check
+test/reapr_corner_probe
+test/simplify_config_check
+
 test/build/
+# the polygon-corpus generator binary (the .crd corpus itself IS checked in)
+test/polygons/make_polygons
 
 # Markdown files
 *.md 
@@ -95,6 +123,5 @@ doc.html
 xcuserdata/
 
 Literature/
-
-
-
+# pre-push tier stamps (local only: they certify THIS checkout)
+test/.stamps/

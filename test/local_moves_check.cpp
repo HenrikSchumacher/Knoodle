@@ -67,9 +67,15 @@ static bool IsUnknotPolynomial( const Polynomial & p )
 
 /// (fixture, level) pairs that are known to be wrong. Remove an entry when it
 /// is fixed -- the test will tell you, by failing with XPASS.
-static bool KnownFailure( const std::string & name, int level )
+///
+/// Empty since 2026-08-15. Monster at level 4 lived here (GitHub #33: R_IIa
+/// half-applied on a locked diagram and turned a 10-crossing unknot into a
+/// 6-crossing knot). Henrik fixed it in e4ebccc3 by routing
+/// ArcSimplifier::SwitchCrossing to PlanarDiagram::SwitchCrossing_Private, and
+/// this test reported the XPASS that said so.
+static bool KnownFailure( const std::string &, int )
 {
-    return (name == "Monster") && (level == 4);   // upstream issue 12
+    return false;
 }
 
 static bool ReadPDCode( const fs::path & p, std::vector<Int> & code, Int & rows )
@@ -115,6 +121,13 @@ int main( int argc, char ** argv )
     Int passed = 0, failed = 0, xfailed = 0, skipped = 0;
     std::vector<std::string> failures;
 
+    // COVERAGE, not correctness. A corpus can pass every check without the
+    // local tier ever doing anything -- hard unknots are built to resist local
+    // moves, so on most of them level 4 and level 0 return the same diagram and
+    // the tier under test was never entered. Counting where the levels actually
+    // diverge is what says whether this corpus exercises anything.
+    Int exercised = 0, considered = 0;
+
     for( const auto & f : files )
     {
         const std::string name = f.stem().string();
@@ -129,6 +142,9 @@ int main( int argc, char ** argv )
 
         const PD_T input = PD_T::FromSignedPDCode(code.data(), rows, false, false);
 
+        Int baseline_cx = -1;
+        bool divergedQ  = false;
+
         for( int level : kLevels )
         {
             PD_T  copy(input);
@@ -139,6 +155,12 @@ int main( int argc, char ** argv )
             pdc.Simplify(args);
 
             const PD_T out = pdc.ToSingleDiagram();
+
+            {
+                const Int cx = out.ValidQ() ? out.CrossingCount() : Int(0);
+                if( level == kLevels[0] ) { baseline_cx = cx; }
+                else if( cx != baseline_cx ) { divergedQ = true; }
+            }
 
             // Simplified entirely away, or down to a farfalle: that is the
             // unknot and needs no oracle.
@@ -204,9 +226,21 @@ int main( int argc, char ** argv )
             failures.push_back(what + ": simplification changed the knot type");
             ++failed;
         }
+        ++considered;
+        if( divergedQ ) { ++exercised; }
     }
 
     std::printf("\n%s\n", std::string(70,'-').c_str());
+    std::printf("local tiers changed the answer on %lld of %lld diagrams"
+                " (coverage, not correctness)\n",
+                (long long)exercised, (long long)considered);
+    if( considered > 0 && exercised * Int(4) < considered )
+    {
+        std::printf("  NOTE: the local tiers barely fire on this corpus, so a"
+                    " green run here says little.\n"
+                    "        Easier inputs -- random polygons of a few hundred"
+                    " edges -- would exercise them.\n");
+    }
     std::printf("passed %lld, failed %lld, skipped %lld, known-failing %lld\n",
                 (long long)passed, (long long)failed,
                 (long long)skipped, (long long)xfailed);
