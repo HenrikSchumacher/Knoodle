@@ -2527,3 +2527,8 @@ data/Klut/Klut_Values_08.tsv filter=lfs diff=lfs merge=lfs -text
 *.mx filter=lfs diff=lfs merge=lfs -text
 *.csv filter=lfs diff=lfs merge=lfs -text
 Mathematica/sikora-hard-unknots/*.txt filter=lfs diff=lfs merge=lfs -text
+
+# --- Not LFS: test infrastructure CI must read from a plain (no-LFS) checkout.
+# The blanket *.tsv rule above swept these in at creation; last match wins.
+test/manifest.tsv -filter -diff -merge text
+test/polygons/expected.tsv -filter -diff -merge text
