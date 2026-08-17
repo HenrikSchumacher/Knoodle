@@ -26,7 +26,10 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s )
     component_ptr_agg.push_back(Size_T(0));
     std::vector<Int> color_agg;
     
-    auto lc = [&component_ptr_agg](){ return component_ptr_agg.size() - Size_T(1); };
+    auto lc = [&component_ptr_agg]()
+    {
+        return static_cast<Int>(component_ptr_agg.size() - Size_T(1));
+    };
     
     bool color_declaredQ    = false; // Whether some #color attribute has beend found before.
     bool comp_wo_colorQ     = false; // Whether there is some component without #color.

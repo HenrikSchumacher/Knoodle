@@ -244,20 +244,6 @@ namespace Knoodle
 
         /*!@brief Classify whether and how two oriented line segments in 3-space intersect when they are projected to the x-y-plane.
          *
-         * @param k Index of the first line segment (in a upstream data structure).
-         *
-         * @param x0 Start point of the first line segment; assumed to be a 3-vector.
-         *
-         * @param x1 End point of the first line segment; assumed to be a 3-vector.
-         
-         * @param l Index of the second line segment (in a upstream data structure).
-         *
-         * @param y0 Start point of the second line segment; assumed to be a 3-vector.
-         *
-         * @param y1 End point of the second line segment; assumed to be a 3-vector.
-         *
-         * @return `Flag_T f`, specified by the following:
-         *
          * - `f = Flag_T::Empty` if and only if the planar projections of the line segments do not intersect after sufficiently small perturbation.
          *
          * - `f = Flag_T::Intersection` if and only if  the line segments have exactly one point in common after sufficiently small perturbation.
@@ -475,7 +461,7 @@ namespace Knoodle
             if( x_under_y_Q )
             {
                 std::swap(isec.edges[0],isec.edges[1]);
-                isec.handedness = -sign_2;
+                isec.handedness = static_cast<Sign_T>(-sign_2);
             }
             else
             {

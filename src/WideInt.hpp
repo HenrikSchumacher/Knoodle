@@ -611,53 +611,38 @@ namespace Knoodle
     
     template<IntQ Int>
     using DefaultWideInt = ToWideInt<Int,DefaultLimb_T,DefaultComp_T>;
-
-
-//    using WInt8     = WideInt<1,UInt8,UInt16,true>;    // Just make it Int8?
-//    using WUInt8    = WideInt<1,UInt8,UInt16,false>;
-//    
-//    // TODO: Problem: long_mul on two WInt8s does not return a WInt16 = WideInt<1,UInt16,UInt32,true>, but a WideInt<2,UInt8,UInt16,true>.
-//    
-//    using WInt16    = WideInt<1,UInt16,UInt32,true>;
-//    using WUInt16   = WideInt<1,UInt16,UInt32,false>;  // Just make it Int16?
-//    
-//    // TODO: Problem: long_mul on two WInt16s does not return a WInt32 = WideInt<1,UInt32,UInt64,true>, but a WideInt<2,UInt16,UInt32,true>.
-//    
-//    using WInt32    = WideInt<1,UInt32,UInt64,true>;   // Just make it Int32?
-//    using WUInt32   = WideInt<1,UInt32,UInt64,false>;
-
-#ifdef TOOLS_INT128_AVAILABLE
-
-    using WInt64    = WideInt< 1,UInt64,UInt128,true>;
-    using WInt128   = WideInt< 2,UInt64,UInt128,true>;
-    using WInt192   = WideInt< 3,UInt64,UInt128,true>;
-    using WInt256   = WideInt< 4,UInt64,UInt128,true>;
-    using WInt512   = WideInt< 8,UInt64,UInt128,true>;
-    using WInt1024  = WideInt<16,UInt64,UInt128,true>;
     
-    using WUInt64   = WideInt< 1,UInt64,UInt128,false>;
-    using WUInt128  = WideInt< 2,UInt64,UInt128,false>;
-    using WUInt192  = WideInt< 3,UInt64,UInt128,false>;
-    using WUInt256  = WideInt< 4,UInt64,UInt128,false>;
-    using WUInt512  = WideInt< 8,UInt64,UInt128,false>;
-    using WUInt1024 = WideInt<16,UInt64,UInt128,false>;
-#else
-
-    using WInt64    = WideInt< 2,UInt32,UInt64,true>;
-    using WInt128   = WideInt< 4,UInt32,UInt64,true>;
-    using WInt192   = WideInt< 6,UInt32,UInt64,true>;
-    using WInt256   = WideInt< 8,UInt32,UInt64,true>;
-    using WInt512   = WideInt<16,UInt32,UInt64,true>;
-    using WInt1024  = WideInt<32,UInt32,UInt64,true>;
+    /*!@brief The smallest signed `WideInt` using the standard settings for limb type and comp type that has at least `bit_count` bits.*/
+    template<Size_T bit_count>
+    using WInt = WideInt<
+        CeilDivide(bit_count, CHAR_BIT * sizeof(DefaultLimb_T)),
+        DefaultLimb_T,
+        DefaultComp_T,
+        true
+    >;
     
-    using WUInt64   = WideInt< 2,UInt32,UInt64,false>;
-    using WUInt128  = WideInt< 4,UInt32,UInt64,false>;
-    using WUInt192  = WideInt< 3,UInt32,UInt64,false>;
-    using WUInt256  = WideInt< 8,UInt32,UInt64,false>;
-    using WUInt512  = WideInt<16,UInt32,UInt64,false>;
-    using WUInt1024 = WideInt<32,UInt32,UInt64,false>;
-#endif
-
+    /*!@brief The smallest unsigned `WideInt` using the standard settings for limb type and comp type that has at least `bit_count` bits.*/
+    template<Size_T bit_count>
+    using WUInt = WideInt<
+        CeilDivide(bit_count, CHAR_BIT * sizeof(DefaultLimb_T)),
+        DefaultLimb_T,
+        DefaultComp_T,
+        false
+    >;
+    
+    using WInt64    = WInt< 64>;
+    using WInt128   = WInt<128>;
+    using WInt192   = WInt<192>;
+    using WInt256   = WInt<256>;
+    using WInt512   = WInt<512>;
+    using WInt1024  = WInt<1024>;
+    
+    using WUInt64    = WUInt< 64>;
+    using WUInt128   = WUInt<128>;
+    using WUInt192   = WUInt<192>;
+    using WUInt256   = WUInt<256>;
+    using WUInt512   = WUInt<512>;
+    using WUInt1024  = WUInt<1024>;
     
 } // namespace Knoodle
 
@@ -679,39 +664,6 @@ namespace Tools
     template<> constexpr const char * TypeName<Knoodle::WUInt1024> = "WUInt1024";
     
     constexpr int const_evaluatedQ = -1;
-    
-    //    // default implementation
-    template<typename T>
-    struct TypeNameHelper
-    {
-        static constexpr std::string name() { return "UnknownType"; }
-    };
-    
-    
-    template<typename T>
-    constexpr const std::string newTypeName = TypeNameHelper<T>::name();
-    
-    
-    template<> constexpr std::string TypeNameHelper<Int64>::name()
-    {
-        return "Int64";
-    }
-    
-    template<> constexpr std::string TypeNameHelper<Int128>::name()
-    {
-        return "Int128";
-    }
-    
-    template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T,bool signQ>
-    struct TypeNameHelper<typename Knoodle::WideInt<limb_count,Limb_T,Comp_T,signQ>>
-    {
-        using Class_T = Knoodle::WideInt<limb_count,Limb_T,Comp_T,signQ>;
-        
-        static constexpr std::string name()
-        {
-            return Class_T::ClassName();
-        }
-    };
     
     namespace Scalar
     {

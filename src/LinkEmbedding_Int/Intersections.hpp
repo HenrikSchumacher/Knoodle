@@ -92,6 +92,8 @@ cref<Tensor1<Int,Int>> EdgeIntersections()
  */
 Tensor1<double,Int> EdgeIntersectionTimesAsDouble()
 {
+    using Tools::ToDouble;
+    
     (void)RequireIntersections();
     
     Tensor1<double,Int> result ( edge_times.Size() );

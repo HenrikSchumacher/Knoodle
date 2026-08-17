@@ -1,7 +1,12 @@
 #pragma  once
 
+#ifdef KNOODLE_USE_BOOST_MP
+    #include "Prosector2.hpp"
+#endif
+
+#include "Prosector3.hpp"
 #include "Prosector4.hpp"
-//#include "Prosector4a.hpp"
+#include "Prosector4a.hpp"
 
 
 namespace Knoodle
@@ -9,13 +14,16 @@ namespace Knoodle
     
     /*!@brief **EXPERIMENTAL.** This class is mostly intended for reading in 3D vertex coordinates, applying a planar projection, and computing the crossings. Then it can be handed over to class `PlanarDiagram` or `PlanarDiagramComplex`.
      *
-     *  This class's main routine is `RequireIntersections`. It uses a static binary tree, exact integer computations, and _symbolic_ perturbation techniques to compute the planar diagram as exactly as possible. It can deal with many geometric degeneracies: line segments that have length 0, line segments that project to a point, line segments whose endpoints project to the projections of other line segments, multiple intersections at a single point, intersecting line segments that a parallel. In particular, this class can deal with lattice links.
+     *  This class's main routines are `ReadVertexCoordinates` and `RequireIntersections`.
+     *  `ReadVertexCoordinates` loads vertex coordinates from a raw buffer; the intrinsic topology of the link and the ordering in which individual vertices are loaded depends on which constructor was used.
+     *  `RequireIntersections` uses a static binary tree, exact integer computations, and _symbolic_ perturbation techniques to compute the planar diagram as exactly as possible. It can deal with many geometric degeneracies: line segments that have length 0, line segments that project to a point, line segments whose endpoints project to the projections of other line segments, multiple intersections at a single point, intersecting line segments that a parallel. In particular, this class can deal with lattice links.
+     *
      *
      *  There are really only two cases in which this can go wrong:
      *
      *  -# If floating-point inputs are used, then the initial rounding (see `ComputeEdgeCoordinates`) to an integer grid can induce a bit of rounding error. Caution is used, though to mediate this: we try to use a relatively big scaling factor and we scale only by powers of 2 (which does not lead to rouding errors on its own, unless some inputs are really tiny or really so that we have overflow in the exponent). We intentionally do not translate the inputs to avoid catastrophic cancellation. Note that this means that the range of the employed integer type may be used in an optimal way. It is in the user's discretion to apply appropriate measures to "center" the inputs around 0. If `Real_ = double` and `IReal_ = int64_t`, then often the rounding error is 0. You can check with `RoundingError()` after the computations have finished.
      *
-     *  -# If after, the rounding procedure, two non-neigboring line segments intersect nontrivially in 3-space, there is no way to perturb it in a topologically meaningful way. Then `RequireIntersections` aborts and returns a nonzero error flag.
+     *  -# If, after the rounding procedure, two non-neigboring line segments intersect nontrivially in 3-space, there is no way to perturb it in a topologically meaningful way. Then `RequireIntersections` aborts and returns a nonzero error flag.
      *
      * This implementation is single-threaded only so that many instances of this object can be used in parallel.
      *
@@ -23,33 +31,33 @@ namespace Knoodle
      *
      * @tparam Real_ The scalar type used for the coordinates of the link embedding. This is the format for loading and storing these curves. Allowed are `float`, `double`, and signed integral types.
      *
-     * @tparam Int_ Integral type used for indices. Unsigned integers should work, too, but we give no guarantees. CAUTION: It must be big enough to hold the number of crossings that emerge after projecting the link to the x-y-plane. So `Int64` is probably the safest bet.
-     *
-     * @tparam IReal_ Internal scalar type used for computation geometry routines. Must be an signed integral type. If `Real_` is a floating-point type, the coordinates will be scaled appropriately and then rounded to the integer grid. If `Real_` is `double`, then `IReal_ = int64_t` can often do the job without any rounding. Should be the same for `Real_ = float` and `IReal_ = int32_t`. If `Real_` is a integral type, then `IReal_` must be identical to `Real_`.
+     * @tparam Prosector_T_ What is expected here is one of the `Prosector*` classes that the backend for projecting the coordinates to a plane and for computing the intersections. This also specified which integer classes to use for indexing and for coordinate computations. CAUTION: The type `Prosector_T_::Idx` must be an integral type big enough to hold the number of crossings that emerge after projecting the link to the x-y-plane. So `Int64` is probably the safest bet here.
      */
     
     template<
-        typename   Real_  = Real64,
-        IntQ       Int_   = Int64,
-        SignedIntQ IReal_ = std::conditional_t<SameQ<Real_,Real64>, Int64,
-                                std::conditional_t<SameQ<Real_,Real32>, Int32, Real_>
-                            >
+        typename Real_,
+        typename Prosector_T_
     >
-    class alignas( ObjectAlignment ) LinkEmbedding4 : public Link<Int_>
+    class alignas( ObjectAlignment ) LinkEmbedding_Int : public Link<typename Prosector_T_::Idx>
     {
         static_assert( FloatQ<Real_> || SignedIntQ<Real_>, "");
         
     public:
         
-        using Real  = Real_;
-        using Int   = Int_;
-        using IReal = IReal_;
+        using Real            = Real_;
+        using Prosector_T     = Prosector_T_;
+        
+        using Int             = Prosector_T::Idx;
+        using IReal           = Prosector_T::Int;
+        
+        using Intersection_T  = Prosector_T::Intersection;
+        using Time_T          = Prosector_T::Time_T;
         
         static constexpr Int AmbDim = 3;
         static constexpr Int InvalidColor = PlanarDiagram<Int>::InvalidColor;
         
         using Base_T          = Link<Int>;
-        using LinkEmbedding_T = LinkEmbedding4;
+        using LinkEmbedding_T = LinkEmbedding_Int;
 
         using Tree2_T         = AABBTree<2,IReal,Int,IReal,false>;
         using Tree3_T         = AABBTree<3,IReal,Int,IReal,false>;
@@ -61,10 +69,6 @@ namespace Knoodle
         using VContainer_T    = Tiny::VectorList_AoS<3,Real,Int>;
         using EContainer_T    = typename Tree3_T::EContainer_T;
         using BContainer_T    = typename Tree2_T::BContainer_T;
-         
-        using Prosector_T     = Prosector4<IReal,Int>;
-        using Intersection_T  = Prosector_T::Intersection;
-        using Time_T          = Prosector_T::Time_T;
         
     protected:
         
@@ -136,34 +140,34 @@ namespace Knoodle
     public:
         
         // Default constructor
-        LinkEmbedding4() = default;
+        LinkEmbedding_Int() = default;
         // Destructor (virtual because of inheritance)
-        virtual ~LinkEmbedding4() = default;
+        virtual ~LinkEmbedding_Int() = default;
         // Copy constructor
-        LinkEmbedding4( const LinkEmbedding4 & other ) = default;
+        LinkEmbedding_Int( const LinkEmbedding_Int & other ) = default;
         // Copy assignment operator
-        LinkEmbedding4 & operator=( const LinkEmbedding4 & other ) = default;
+        LinkEmbedding_Int & operator=( const LinkEmbedding_Int & other ) = default;
         // Move constructor
-        LinkEmbedding4( LinkEmbedding4 && other ) = default;
+        LinkEmbedding_Int( LinkEmbedding_Int && other ) = default;
         // Move assignment operator
-        LinkEmbedding4 & operator=( LinkEmbedding4 && other ) = default;
+        LinkEmbedding_Int & operator=( LinkEmbedding_Int && other ) = default;
         
         /*!@brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
         template<IntQ I>
-        explicit LinkEmbedding4( const I edge_count_ )
+        explicit LinkEmbedding_Int( const I edge_count_ )
         :   Base_T        { int_cast<Int>(edge_count_) }
         ,   vertex_coords { edge_count                 }
         {}
         
-        LinkEmbedding4( Tensor1<Int,Int> && component_ptr_, Tensor1<Int,Int> && component_color_ )
+        LinkEmbedding_Int( Tensor1<Int,Int> && component_ptr_, Tensor1<Int,Int> && component_color_ )
         :   Base_T        { std::move(component_ptr_), std::move(component_color_)  }
         ,   vertex_coords { edge_count                                              }
         {}
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         template<IntQ I_0, IntQ I_1>
-        LinkEmbedding4(
+        LinkEmbedding_Int(
             cptr<I_0> edges_, cptr<I_0> edges_colors_, const I_1 edge_count_
         )
         :   Base_T        { edges_, edges_colors_, int_cast<Int>(edge_count_) }
@@ -172,7 +176,7 @@ namespace Knoodle
         
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
         template<IntQ I_0, IntQ I_1>
-        LinkEmbedding4(
+        LinkEmbedding_Int(
             cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, cptr<I_0> edges_colors_, const I_1 edge_count_
         )
         :   Base_T        { edge_tails_, edge_tips_, edges_colors_, edge_count_ }
@@ -210,7 +214,7 @@ namespace Knoodle
         
         Size_T ByteCount() const
         {
-            return sizeof(LinkEmbedding4) + AllocatedByteCount();
+            return sizeof(LinkEmbedding_Int) + AllocatedByteCount();
         }
         
         template<int t0>
@@ -239,12 +243,58 @@ namespace Knoodle
         
         static constexpr std::string ClassName()
         {
-            return std::string("LinkEmbedding4")
+            return std::string("LinkEmbedding_Int")
                 + "<" + TypeName<Real>
-                + "," + TypeName<Int>
+                + "," + Prosector_T::ClassName()
                 + ">";
         }
         
-    }; // LinkEmbedding4
+    }; // LinkEmbedding_Int
+    
+#ifdef KNOODLE_USE_BOOST_MP
+    /*!@brief **EXPERIMENTAL** Type alias of `LinkEmbedding_Int` with backend that uses wide integers classes `boost::multiprecision::int128_t` and `boost::multiprecision::int256_t`. This is only available if the preprocessor macro `KNOODLE_USE_BOOST_MP` is defined.
+     *
+     * This is not a very efficient implementation, in particular when scalar type `IReal = std::int32_t` is used. But it should lead to correct results. We use it for test purposed. */
+    template<
+        typename   Real  = Real64,
+        IntQ       Int   = Int64,
+        SignedIntQ IReal = std::conditional_t<SameQ<Real,Real64>, Int64,
+                                std::conditional_t<SameQ<Real,Real32>, Int32, Real>
+                           >
+    >
+    using LinkEmbedding2 = LinkEmbedding_Int<Real, Prosector2<IReal,Int>>;
+#endif // KNOODLE_USE_BOOST_MP
+
+    
+    /*!@brief Type alias of `LinkEmbedding_Int` with backend that uses wide integers classes `WideInt`, our implementation of wide integers. This is obtimized towards useing native integer classes or the compiler extension`__int128` as long as possible. Only starting with 192-bit integers, `WideInt` is used.*/
+    template<
+        typename   Real  = Real64,
+        IntQ       Int   = Int64,
+        SignedIntQ IReal = std::conditional_t<SameQ<Real,Real64>, Int64,
+                                std::conditional_t<SameQ<Real,Real32>, Int32, Real>
+                           >
+    >
+    using LinkEmbedding3 = LinkEmbedding_Int<Real, Prosector3<IReal,Int>>;
+    
+    
+    /*!@brief **EXPERIMENTAL** Type alias of `LinkEmbedding_Int` with backend that uses wide integers classes `WideInt`, our implementation of wide integers. This is obtimized towards using native integer classes or the compiler extension`__int128` as long as possible. Only starting with 192-bit integers, `WideInt` is used.*/
+    template<
+        typename   Real  = Real64,
+        IntQ       Int   = Int64,
+        SignedIntQ IReal = std::conditional_t<SameQ<Real,Real64>, Int64,
+                                std::conditional_t<SameQ<Real,Real32>, Int32, Real>
+                           >
+    >
+    using LinkEmbedding4 = LinkEmbedding_Int<Real, Prosector4<IReal,Int>>;
+    
+    /*!@brief **EXPERIMENTAL** **INEXACT** Mostly like `LinkEmbedding4`, but it deliberately uses inexact double arithmetic for the sorting the intersections. This is only for benchmarking; it allows us to get a lower bound on the time for sorting.*/
+    template<
+        typename   Real  = Real64,
+        IntQ       Int   = Int64,
+        SignedIntQ IReal = std::conditional_t<SameQ<Real,Real64>, Int64,
+                                std::conditional_t<SameQ<Real,Real32>, Int32, Real>
+                           >
+    >
+    using LinkEmbedding4a = LinkEmbedding_Int<Real, Prosector4a<IReal,Int>>;
     
 } // namespace Knoodle

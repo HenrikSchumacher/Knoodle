@@ -12,8 +12,11 @@ public:
     IntersectionTime_Double() = default;
     
     IntersectionTime_Double( cref<DepressedCubic> numerator, cref<DepressedCubic> denominator )
-    :   t { ToDouble(numerator) / ToDouble(denominator) }
-    {}
+    {
+        using Tools::ToDouble;
+        
+        t = ToDouble(numerator) / ToDouble(denominator);
+    }
 
     friend double ToDouble( cref<IntersectionTime_Double> T )
     {

@@ -87,12 +87,14 @@ using Alexander_T = kt::LinkAlexander<std::complex<double>,std::int64_t>;
 //        `static_assert(FloatQ<Real>)`, so the "Case 2. `Real` is an integral
 //        type / then we can simply copy" branch is unwritten.
 //        Buildable since 4d2d0624; in the default set as of 2026-08-14.
+//        Henrik speaking: This should resolved by now (2026-08-17).
 //
 //   i32  The 32-bit backend (`IReal_ = Int32`), which the class docs recommend
 //        pairing with `Real_ = float`. Prosector2 hits an ambiguous `Sign` call
 //        (src/Prosector2/Helpers.hpp:16); Prosector3 and Prosector4 hit
 //        "excess elements in array initializer" at src/WideInt.hpp:112.
 //        Enable with -DKNOODLE_TEST_INT32_BACKEND.
+//        Henrik speaking: This should resolved by now (2026-08-17).
 //
 // The integral-coordinate *path* is nevertheless exercised by default:
 // `ReadVertexCoordinates` detects all-integral input and sets

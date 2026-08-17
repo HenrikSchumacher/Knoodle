@@ -1,7 +1,11 @@
-#define TOOLS_NO_RESTRICT
+//#define TOOLS_NO_RESTRICT
+
+#define TOOLS_NO_INT128
+
+#define KNOODLE_USE_BOOST_MP
+
 
 #include "../../Knoodle.hpp"
-#include "../../src/LinkEmbedding3.hpp"
 
 using namespace Knoodle;
 using namespace Tools;
@@ -16,7 +20,10 @@ using IReal = Int64;
 
 using Int  = Int64;
 
-//using Link_T         = LinkEmbedding3<Real,Int,IReal>;
+using Link2_T         = LinkEmbedding2<Real,Int,IReal>;
+using Link3_T         = LinkEmbedding3<Real,Int,IReal>;
+using Link4_T         = LinkEmbedding4<Real,Int,IReal>;
+
 //using Prosector_T    = Link_T::Prosector_T;
 //using Vector3_T      = Prosector_T::Vector3_T;
 //using Intersection_T = Prosector_T::Intersection;
@@ -53,30 +60,30 @@ int main()
 //    TOOLS_DUMP(sizeof(Prosector_T::IntersectionTime)/sizeof(double));
 //    TOOLS_DUMP(sizeof(Prosector_T::Intersection)/sizeof(Knoodle::Intersection<>));
 
-    TOOLS_DUMP(TypeName<DefaultLimb_T>);
-    TOOLS_DUMP(TypeName<DefaultComp_T>);
-    
-    fun(  Int16{3},  Int16{4} );
-    
-    fun(  Int32{3},  Int32{4} );
-    fun(  Int32{3},  Int64{4} );
-    fun(  Int32{3}, Int128{4} );
-    
-    fun(  Int64{3},  Int64{4} );
-    fun( Int128{3},  Int64{4} );
-    fun(  Int64{3}, Int128{4} );
-    fun( Int128{3}, Int128{4} );
-    
-    fun(  WInt64{3},  WInt64{4} );
-    fun( WInt128{3},  WInt64{4} );
-    fun(  WInt64{3}, WInt128{4} );
-    fun( WInt128{3}, WInt128{4} );
-    
-    auto a = WideInt<2,UInt64,UInt128, false>( Int64(1) );
-    TOOLS_DUMP(a);
-    auto b = WideInt<2,UInt64,UInt128, false>( Int128(1) );
-    TOOLS_DUMP(b);
-    
+//    TOOLS_DUMP(TypeName<DefaultLimb_T>);
+//    TOOLS_DUMP(TypeName<DefaultComp_T>);
+//    
+//    fun(  Int16{3},  Int16{4} );
+//    
+//    fun(  Int32{3},  Int32{4} );
+//    fun(  Int32{3},  Int64{4} );
+//    fun(  Int32{3}, Int128{4} );
+//    
+//    fun(  Int64{3},  Int64{4} );
+//    fun( Int128{3},  Int64{4} );
+//    fun(  Int64{3}, Int128{4} );
+//    fun( Int128{3}, Int128{4} );
+//    
+//    fun(  WInt64{3},  WInt64{4} );
+//    fun( WInt128{3},  WInt64{4} );
+//    fun(  WInt64{3}, WInt128{4} );
+//    fun( WInt128{3}, WInt128{4} );
+//    
+//    auto a = WideInt<2,UInt64,UInt128, false>( Int64(1) );
+//    TOOLS_DUMP(a);
+//    auto b = WideInt<2,UInt64,UInt128, false>( Int128(1) );
+//    TOOLS_DUMP(b);
+//    
 //    {
 //        Int64  b = 1;
 //        Int128 a = 2;
@@ -111,9 +118,9 @@ int main()
 //    TOOLS_DUMP(sizeof(WInt192));
 //    TOOLS_DUMP(sizeof(WInt256));
 //    
-//    Profiler::Clear();
-//    Link_T L = Link_T::FromFile("/Users/Henrik/a.txt");
-//    TOOLS_DUMP(L.EdgeCount());
-//    auto err = L.RequireIntersections();
-//    TOOLS_DUMP(err);
+    Profiler::Clear();
+    Link4_T L = Link4_T::FromFile("/Users/Henrik/a.txt");
+    TOOLS_DUMP(L.EdgeCount());
+    auto err = L.RequireIntersections();
+    TOOLS_DUMP(err);
 }

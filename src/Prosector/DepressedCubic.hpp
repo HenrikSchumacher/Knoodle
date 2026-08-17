@@ -50,6 +50,7 @@ public:
     
     friend double ToDouble( cref<DepressedCubic> P )
     {
+        using Tools::ToDouble;
         
         if constexpr ( std::is_convertible<LInt,double>::value )
         {
@@ -57,7 +58,6 @@ public:
         }
         else
         {
-            using Tools::ToDouble;
             return ToDouble(P.c_0);
         }
     }

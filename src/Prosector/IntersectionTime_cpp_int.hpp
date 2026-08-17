@@ -45,9 +45,11 @@ public:
 //        :   IntersectionTime{ DepressedCubic{a_0,a_1,a_2}, DepressedCubic{b_0,b_1,b_2} }
 //        {}
     
-    friend double ToDouble( cref<IntersectionTime> t )
+    friend double ToDouble( cref<IntersectionTime> T )
     {
-        return ToDouble(t.a) / ToDouble(t.b);
+        using Tools::ToDouble;
+        
+        return ToDouble(T.a) / ToDouble(T.b);
     }
   
     friend std::strong_ordering operator<=>(
@@ -132,8 +134,8 @@ public:
         return std::strong_ordering::equal;
     }
     
-    friend std::string ToString( cref<IntersectionTime> I )
+    friend std::string ToString( cref<IntersectionTime> T )
     {
-        return ToString(I.a) + " / " + ToString(I.b);
+        return ToString(T.a) + " / " + ToString(T.b);
     }
 };

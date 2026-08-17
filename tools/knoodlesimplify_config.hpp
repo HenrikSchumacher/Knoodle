@@ -560,7 +560,7 @@ PDC_T::Simplify_Args_T BuildSimplifyArgs(const Config& config)
  * returned, unmodified. The variable is already const, so this is
  * belt-and-braces -- and a useful thing to be able to ask the tool.
  */
-void PrintSimplifyArgs(const PDC_T::Simplify_Args_T& a, std::ostream& out)
+[[maybe_unused]] void PrintSimplifyArgs(const PDC_T::Simplify_Args_T& a, std::ostream& out)
 {
     out << "simplify-args:"
         << "\n  local_opt_level          = " << int(a.local_opt_level)

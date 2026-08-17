@@ -420,7 +420,7 @@ namespace Knoodle
             if( x_under_y_Q )
             {
                 std::swap(isec.edges[0],isec.edges[1]);
-                isec.handedness = -sign_2;
+                isec.handedness = static_cast<Sign_T>(-sign_2);
             }
             else
             {
