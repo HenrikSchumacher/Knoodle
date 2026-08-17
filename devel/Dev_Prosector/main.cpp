@@ -2,7 +2,7 @@
 
 #define TOOLS_NO_INT128
 
-#define KNOODLE_USE_BOOST_MP
+#define KNOODLE_USE_BOOST_MULTIPRECISION
 
 
 #include "../../Knoodle.hpp"

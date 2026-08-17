@@ -1,6 +1,6 @@
 #pragma  once
 
-#ifdef KNOODLE_USE_BOOST_MP
+#ifdef KNOODLE_USE_BOOST_MULTIPRECISION
     #include "Prosector2.hpp"
 #endif
 
@@ -251,8 +251,8 @@ namespace Knoodle
         
     }; // LinkEmbedding_Int
     
-#ifdef KNOODLE_USE_BOOST_MP
-    /*!@brief **EXPERIMENTAL** Type alias of `LinkEmbedding_Int` with backend that uses wide integers classes `boost::multiprecision::int128_t` and `boost::multiprecision::int256_t`. This is only available if the preprocessor macro `KNOODLE_USE_BOOST_MP` is defined.
+#ifdef KNOODLE_USE_BOOST_MULTIPRECISION
+    /*!@brief **EXPERIMENTAL** Type alias of `LinkEmbedding_Int` with backend that uses wide integers classes `boost::multiprecision::int128_t` and `boost::multiprecision::int256_t`. This is only available if the preprocessor macro `KNOODLE_USE_BOOST_MULTIPRECISION` is defined.
      *
      * This is not a very efficient implementation, in particular when scalar type `IReal = std::int32_t` is used. But it should lead to correct results. We use it for test purposed. */
     template<
@@ -263,7 +263,7 @@ namespace Knoodle
                            >
     >
     using LinkEmbedding2 = LinkEmbedding_Int<Real, Prosector2<IReal,Int>>;
-#endif // KNOODLE_USE_BOOST_MP
+#endif // KNOODLE_USE_BOOST_MULTIPRECISION
 
     
     /*!@brief Type alias of `LinkEmbedding_Int` with backend that uses wide integers classes `WideInt`, our implementation of wide integers. This is obtimized towards useing native integer classes or the compiler extension`__int128` as long as possible. Only starting with 192-bit integers, `WideInt` is used.*/

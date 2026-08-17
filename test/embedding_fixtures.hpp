@@ -34,7 +34,7 @@
 #pragma once
 
 // This is required, otherwise LinkEmbedding2 won't be available.
-#define KNOODLE_USE_BOOST_MP
+#define KNOODLE_USE_BOOST_MULTIPRECISION
 
 #include "../Knoodle.hpp"
 
