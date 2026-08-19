@@ -102,13 +102,13 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding<Re
     );
 }
 
-/*!@brief Construction from `FromLinkEmbedding2` object. Returns a planar diagram and the number of unlinks found in the input.
+/*!@brief Construction from `FromLinkEmbedding_Int` object. Returns a planar diagram and the number of unlinks found in the input.
  */
 
-template<typename Real, typename IReal>
-static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding2<Real,Int,IReal>> L )
+template<typename Real, typename Prosector_T>
+static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding_Int<Real,Prosector_T>> L )
 {
-    using Link_T [[maybe_unused]] = LinkEmbedding2<Real,Int,IReal>;
+    using Link_T [[maybe_unused]] = LinkEmbedding_Int<Real,Prosector_T>;
     
     TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding")+"("+Link_T::ClassName()+")");
 
@@ -130,7 +130,6 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding2<R
         L.EdgeStates().data()
     );
 }
-
 
 /*!@brief Construction from the coordinates of a polygonal curve in 3-space.
  *

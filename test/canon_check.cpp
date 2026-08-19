@@ -69,7 +69,7 @@ int main(int argc, char** argv)
     }
 
     Klut klut{ std::filesystem::path(dir), static_cast<Knoodle::Size_T>(c_max) };
-    klut.LoadSubtables();
+    klut.RequireSubtables();
     Reapr_T reapr{};
 
     auto found = [](Klut::ID_T id) {

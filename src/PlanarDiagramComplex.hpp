@@ -165,15 +165,15 @@ namespace Knoodle
         :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
         {}
         
-        /*!@brief Initialize from a `LinkEmbedding2`, taking ownership.*/
-        template<typename Real, typename IReal>
-        explicit PlanarDiagramComplex( LinkEmbedding2<Real,Int,IReal> && L )
+        /*!@brief Initialize from a `LinkEmbedding_Int`, taking ownership.*/
+        template<typename Real, typename IReal, typename Prosector_T>
+        explicit PlanarDiagramComplex( LinkEmbedding_Int<Real,Prosector_T> && L )
         :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
         {}
         
-        /*!@brief Initialize from a `LinkEmbedding2`.*/
-        template<typename Real, typename IReal>
-        explicit PlanarDiagramComplex( LinkEmbedding2<Real,Int,IReal> & L )
+        /*!@brief Initialize from a `LinkEmbedding_Int`.*/
+        template<typename Real, typename IReal, typename Prosector_T>
+        explicit PlanarDiagramComplex( LinkEmbedding_Int<Real,Prosector_T> & L )
         :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
         {}
         

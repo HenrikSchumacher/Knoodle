@@ -1,4 +1,17 @@
 public:
+    
+static void PrintInfo()
+{
+    std::string s { ClassName() + " uses the following types:" };
+    s.append("\n  Int = ").append(TypeName<  Int>);
+    s.append("\n LInt = ").append(TypeName< LInt>);
+    s.append("\nLLInt = ").append(TypeName<LLInt>);
+    logprint(s);
+    
+//    s.append("\n  Int = ").append(PrettyTypeName<  Int>());
+//    s.append("\n LInt = ").append(PrettyTypeName< LInt>());
+//    s.append("\nLLInt = ").append(PrettyTypeName<LLInt>());
+}
 
 // Not used by anyone.
 TOOLS_FORCE_INLINE static LVector3_T cross( cref<Vector3_T> a, cref<Vector3_T> b )

@@ -92,6 +92,8 @@ cref<Tensor1<Int,Int>> EdgeIntersections()
  */
 Tensor1<double,Int> EdgeIntersectionTimesAsDouble()
 {
+    using Tools::ToDouble;
+    
     (void)RequireIntersections();
     
     Tensor1<double,Int> result ( edge_times.Size() );
@@ -215,11 +217,35 @@ void ComputeIntersections()
         // Sort intersections edgewise w.r.t. edge_times.
         ThreeArraySort<Time_T,Int,Int8,Int> sort ( intersection_count );
 
+//        TOOLS_LOGDUMP(edge_count);
+//        TOOLS_LOGDUMP(intersection_count);
+//        TOOLS_LOGDUMP(edge_intersections.Size());
+//        TOOLS_LOGDUMP(edge_times.Size());
+//        TOOLS_LOGDUMP(edge_state.Size());
+//        TOOLS_LOGDUMP(edge_ptr.Max());
+//        
         for( Int i = 0; i < edge_count; ++i )
         {
             // This is the range of data in edge_intersections/edge_times that belongs to edge i.
             const Int k_begin = edge_ptr[i  ];
             const Int k_end   = edge_ptr[i+1];
+            
+//            TOOLS_LOGDUMP(i);
+//            
+//            if( (i >= Int(15593-4)) && ((i <= Int(15593+4))) )
+//            {
+//                TOOLS_LOGDUMP(k_begin);
+//                TOOLS_LOGDUMP(k_end);
+//                TOOLS_LOGDUMP(edge_times.Size());
+//                
+//                for( Int k = k_begin; k < k_end; ++k )
+//                {
+//                    TOOLS_LOGDUMP(k);
+//                    TOOLS_LOGDUMP(edge_times[k]);
+//                    TOOLS_LOGDUMP(edge_intersections[k]);
+//                    TOOLS_LOGDUMP(edge_state[k]);
+//                }
+//            }
 
             // We need to sort only if there are at least two intersections on that edge.
             if( k_begin + Int(1) < k_end )

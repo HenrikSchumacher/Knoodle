@@ -17,10 +17,10 @@ bool PointOnLineTest( cref<Vector3_T> z, cref<Vector3_T> a_0, cref<Vector3_T> a_
 //    }
     
     // Find coordinate direction k so that a_0[k] != a_1[k];
-    int k = 0;
-    while((a_0[k] == a_1[k]) && (k < 3)) { ++k; };
+    Size_T k = 0;
+    while((a_0[k] == a_1[k]) && (k < Size_T(3))) { ++k; };
     
-    if( k == 3 )
+    if( k == Size_T(3) )
     {
         if constexpr ( verboseQ )
         {
@@ -62,7 +62,7 @@ bool LinesColinearTest()
     
     if constexpr ( verboseQ ) { logprint(MethodName("LinesColinearTest")); }
     
-    for( int k = 0; k < 3; ++k )
+    for( Size_T k = 0; k < 3; ++k )
     {
         if( (x_0[k] == x_1[k]) && (y_0[k] == y_1[k]) ) { continue; }
         

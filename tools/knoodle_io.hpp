@@ -949,7 +949,7 @@ bool ParseNumericLine(const std::string& line,
  * knoodlesimplify's --format=pdc) get Henrik's exact, unmodified output
  * regardless of whether their own destination is a file or stdout.
  */
-bool WritePdcNativeFormat(PDC_T& pdc, std::ostream& output, bool leading_kQ = true)
+[[maybe_unused]] bool WritePdcNativeFormat(PDC_T& pdc, std::ostream& output, bool leading_kQ = true)
 {
     static std::atomic<unsigned long long> counter{0};
 
@@ -1138,7 +1138,7 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
  * @param[out] reached_eof Set to true if we hit EOF.
  * @return The parsed InputKnot, or nullopt on error.
  */
-std::optional<InputKnot> ReadKnot(std::istream& input,
+[[maybe_unused]] std::optional<InputKnot> ReadKnot(std::istream& input,
                                    bool randomize_projection,
                                    Knoodle::PRNG_T& rng,
                                    const std::string& source_name,

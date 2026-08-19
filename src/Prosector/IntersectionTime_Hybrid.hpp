@@ -23,6 +23,8 @@ public:
     
     IntersectionTime_Hybrid( cref<DepressedCubic> numerator, cref<DepressedCubic> denominator )
     {
+        using Tools::ToDouble;
+        
         // Make sure at the time of initialization that the denominator is >= 0!
         // This is important for later < and > comparisons.
         
@@ -41,15 +43,19 @@ public:
     }
     
     friend std::strong_ordering operator<=>(
-        cref<IntersectionTime_Hybrid> s, cref<IntersectionTime_Hybrid> t
+        cref<IntersectionTime_Hybrid> S, cref<IntersectionTime_Hybrid> T
     )
     {
+        using Tools::NegativeQ;
+        using Tools::PositiveQ;
+        using Tools::ZeroQ;
+        
         {
             // Computing the ration a / b of two integers has very low precision loss (empirically, way less then ten mu), provided 0 <= a <= b, which is the case here.
             // So we exploit here that comparison in `double` is good enough most of the time and that it is much faster than the wide integer arithmetic below.
             constexpr double tol = 1.4901161193847656e-8;
             
-            const double delta = s.t - t.t;
+            const double delta = S.t - T.t;
             
             if( Abs(delta) > tol )
             {
@@ -64,15 +70,15 @@ public:
         
         // From hereon, we do the same as in IntersectionTime.hpp.
         
-        // We have s = s.a / s.b and t = t.a / t.b;
-        // We guarantee that s.b >= 0  and t.b >= 0;
+        // We have s = S.a / S.b and t = T.a / T.b;
+        // We guarantee that S.b >= 0  and T.b >= 0;
         // If the latter are nonzero, then we have:
         //
-        //      s < t  if and only if s.a * t.b < t.a * s.b
+        //      s < t  if and only if S.a * T.b < T.a * S.b
         //
         // And this is what we check step by step.
         // We do it in a way that most computations are deferred until they are really needed.
-        // In a generic situation, we just check s.a[0] * t.b[0] < t.a[0] * s.b[0].
+        // In a generic situation, we just check S.a[0] * T.b[0] < T.a[0] * S.b[0].
         
         LLInt lhs;
         LLInt rhs;
@@ -81,16 +87,16 @@ public:
         // Order 0
         // The leading order terms of the numerators and denominators should be nonnegative due to fact that the intersection times should lie in [0,1] to leading order and due the normalization of the ratios. Hence we can spare some conditionals and some bit twiddling by using long_mul_unsigned. Alas, the branch prediction seems to guess the branches very well, so I do not see much difference in the timings.
         
-        assert(!s.a.c_0.NegativeQ());
-        assert(!s.b.c_0.NegativeQ());
-        assert(!t.a.c_0.NegativeQ());
-        assert(!t.b.c_0.NegativeQ());
+        assert(!NegativeQ(S.a.c_0));
+        assert(!NegativeQ(S.b.c_0));
+        assert(!NegativeQ(T.a.c_0));
+        assert(!NegativeQ(T.b.c_0));
         
-        lhs = long_mul_unsigned(s.a.c_0, t.b.c_0);
-        rhs = long_mul_unsigned(s.b.c_0, t.a.c_0);
+        lhs = long_mul(S.a.c_0, T.b.c_0);
+        rhs = long_mul(S.b.c_0, T.a.c_0);
         delta = lhs - rhs;
-        if( delta.NegativeQ() ) { return std::strong_ordering::less;    }
-        if( !delta.ZeroQ()    ) { return std::strong_ordering::greater; }
+        if( NegativeQ(delta) ) { return std::strong_ordering::less;    }
+        if( !ZeroQ(delta)    ) { return std::strong_ordering::greater; }
 
 //        if( lhs < rhs ) { return std::strong_ordering::less;    }
 //        if( lhs > rhs ) { return std::strong_ordering::greater; }
@@ -98,44 +104,43 @@ public:
         // For generic real inputs, it is very unlikely that we arrive here.
         
         // Order 1
-        lhs = long_mul(s.a.c_0, t.b.c_1) + long_mul(s.a.c_1, t.b.c_0);
-        rhs = long_mul(s.b.c_0, t.a.c_1) + long_mul(s.b.c_1, t.a.c_0);
+        lhs = long_mul(S.a.c_0, T.b.c_1) + long_mul(S.a.c_1, T.b.c_0);
+        rhs = long_mul(S.b.c_0, T.a.c_1) + long_mul(S.b.c_1, T.a.c_0);
         delta = lhs - rhs;
-        if( delta.NegativeQ() ) { return std::strong_ordering::less;    }
-        if( !delta.ZeroQ()    ) { return std::strong_ordering::greater; }
+        if( NegativeQ(delta) ) { return std::strong_ordering::less;    }
+        if( !ZeroQ(delta)    ) { return std::strong_ordering::greater; }
         
         // Order 2
-        lhs = long_mul(s.a.c_1, t.b.c_1);
-        rhs = long_mul(s.b.c_1, t.a.c_1);
+        lhs = long_mul(S.a.c_1, T.b.c_1);
+        rhs = long_mul(S.b.c_1, T.a.c_1);
         delta = lhs - rhs;
-        if( delta.NegativeQ() ) { return std::strong_ordering::less;    }
-        if( !delta.ZeroQ()    ) { return std::strong_ordering::greater; }
+        if( NegativeQ(delta) ) { return std::strong_ordering::less;    }
+        if( !ZeroQ(delta)    ) { return std::strong_ordering::greater; }
         
         // Order 3
-        lhs = long_mul(s.a.c_0, t.b.c_3) + long_mul(s.a.c_3, t.b.c_0);
-        rhs = long_mul(s.b.c_0, t.a.c_3) + long_mul(s.b.c_3, t.a.c_0);
+        lhs = long_mul(S.a.c_0, T.b.c_3) + long_mul(S.a.c_3, T.b.c_0);
+        rhs = long_mul(S.b.c_0, T.a.c_3) + long_mul(S.b.c_3, T.a.c_0);
         delta = lhs - rhs;
-        if( delta.NegativeQ() ) { return std::strong_ordering::less;    }
-        if( !delta.ZeroQ()    ) { return std::strong_ordering::greater; }
+        if( NegativeQ(delta) ) { return std::strong_ordering::less;    }
+        if( !ZeroQ(delta)    ) { return std::strong_ordering::greater; }
         
         // Order 4
-        lhs = long_mul(s.a.c_1, t.b.c_3) + long_mul(s.a.c_3, t.b.c_1);
-        rhs = long_mul(s.b.c_1, t.a.c_3) + long_mul(s.b.c_3, t.a.c_1);
+        lhs = long_mul(S.a.c_1, T.b.c_3) + long_mul(S.a.c_3, T.b.c_1);
+        rhs = long_mul(S.b.c_1, T.a.c_3) + long_mul(S.b.c_3, T.a.c_1);
         delta = lhs - rhs;
-        if( delta.NegativeQ() ) { return std::strong_ordering::less;    }
-        if( !delta.ZeroQ()    ) { return std::strong_ordering::greater; }
+        if( NegativeQ(delta) ) { return std::strong_ordering::less;    }
+        if( !ZeroQ(delta)    ) { return std::strong_ordering::greater; }
         
         // Order 5 -- not existent.
         
         // Order 6
-        lhs = long_mul(s.a.c_3, t.b.c_3);
-        rhs = long_mul(s.b.c_3, t.a.c_3);
+        lhs = long_mul(S.a.c_3, T.b.c_3);
+        rhs = long_mul(S.b.c_3, T.a.c_3);
         delta = lhs - rhs;
-        if( delta.NegativeQ() ) { return std::strong_ordering::less;    }
-        if( !delta.ZeroQ()    ) { return std::strong_ordering::greater; }
+        if( NegativeQ(delta) ) { return std::strong_ordering::less;    }
+        if( !ZeroQ(delta)    ) { return std::strong_ordering::greater; }
         
-        // We should never come here.
-        assert(false);
+        wprint("IntersectionTime_Hybrid::operator<=>: We should never get here.");
         
         return std::strong_ordering::equal;
     }

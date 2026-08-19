@@ -137,7 +137,19 @@ int main()
     // file, used to end a component that had not started -- manufacturing an
     // empty phantom component the user cannot see anywhere in the file. Easy to
     // trip by hand, and invisible until something downstream counts components.
-    std::cout << "=== stray blank lines do not manufacture components ===\n";
+    //
+    // THE CONTRACT CHANGED, 2026-08-12 (Henrik's colored-I/O work, c4073ac1).
+    // FromInString is now an explicit state machine -- `blank_may_followQ`,
+    // `color_may_followQ`, `coords_may_followQ` in src/LinkEmbedding/FromFile.hpp
+    // -- and a blank line outside its grammar is REFUSED rather than tolerated.
+    // Both behaviours prevent the phantom component this test was written to
+    // guard against; the new one is stricter about how.
+    //
+    // This test asserted the old tolerant reading and had been failing since,
+    // which nobody saw: `ReadFromFile` was renamed to `FromFile` the day before
+    // (becfe258), so the file had stopped compiling and the binary being run was
+    // four days stale. Found when the manifest made `all` build everything.
+    std::cout << "=== stray blank lines are refused, not turned into components ===\n";
     {
         const std::string c0  = "0 0 0\n1 0 0\n0 1 0";
         const std::string c1  = "5 5 1\n6 5 1\n5 6 1";
@@ -146,21 +158,32 @@ int main()
         auto read_back = [&](const std::string& body)
         {
             { std::ofstream f (blanks); f << body; }
-            return Link_T::ReadFromFile(blanks);
+            return Link_T::FromFile(blanks);
         };
 
+        // Well formed: exactly one blank line between components, and an
+        // optional single trailing newline ending the last coordinate line.
         for (const auto& [body, what] : {
-                 std::pair{two,                std::string("no stray blank lines")},
-                 std::pair{two + "\n",         std::string("trailing newline")},
-                 std::pair{two + "\n\n",       std::string("trailing blank line")},
-                 std::pair{"\n" + two,         std::string("leading blank line")},
-                 std::pair{c0 + "\n\n\n" + c1, std::string("two blank lines between components")},
+                 std::pair{two,        std::string("no stray blank lines")},
+                 std::pair{two + "\n", std::string("trailing newline")},
              })
         {
             Link_T back = read_back(body);
             check(back.ValidQ() && (back.ComponentCount() == Int(2))
                                 && (back.EdgeCount() == Int(6)),
                   what + " -> 2 components, 6 vertices");
+        }
+
+        // Outside the grammar. The requirement is that these do NOT silently
+        // yield a phantom third component; refusing is one way to satisfy it.
+        for (const auto& [body, what] : {
+                 std::pair{two + "\n\n",       std::string("trailing blank line")},
+                 std::pair{"\n" + two,         std::string("leading blank line")},
+                 std::pair{c0 + "\n\n\n" + c1, std::string("two blank lines between components")},
+             })
+        {
+            Link_T back = read_back(body);
+            check(!back.ValidQ(), what + " -> refused (no phantom component)");
         }
     }
 
@@ -180,7 +203,7 @@ int main()
         auto read_back = [&](const std::string& body)
         {
             { std::ofstream f (mixed); f << body; }
-            return Link_T::ReadFromFile(mixed);
+            return Link_T::FromFile(mixed);
         };
 
         check(!read_back(c0 + sep + "#color 0\n" + c1).ValidQ(),

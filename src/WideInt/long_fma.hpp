@@ -11,14 +11,16 @@ long_fma(
     cref<WideInt> c
 )
 {
+    using Tools::NegativeQ;
+    
     // We do not want to create a sign extension of a and b.
     if constexpr ( signQ )
     {
         // TODO: The fact that the sign of c also needs to be flipped makes the idea of fma less attractive. fused multiply-subtract also did not work better than switching the sign of c.
         
-        if( a.NegativeQ() )
+        if( NegativeQ(a) )
         {
-            if( b.NegativeQ() )
+            if( NegativeQ(b) )
             {
                 return long_fma_unsigned(-a,-b,c);
             }
@@ -29,7 +31,7 @@ long_fma(
         }
         else
         {
-            if( b.NegativeQ() )
+            if( NegativeQ(b) )
             {
                 return -long_fma_unsigned(a,-b,-c);
             }
@@ -51,8 +53,10 @@ long_fma_unsigned(
     cref<WideInt> c
 )
 {
-    assert(!a.NegativeQ());
-    assert(!b.NegativeQ());
+    using Tools::NegativeQ;
+    
+    assert(!NegativeQ(a));
+    assert(!NegativeQ(b));
     
     constexpr Idx m = limb_count;
     constexpr Idx n = static_cast<Idx>(other_limb_count);

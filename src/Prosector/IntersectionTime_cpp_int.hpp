@@ -45,15 +45,21 @@ public:
 //        :   IntersectionTime{ DepressedCubic{a_0,a_1,a_2}, DepressedCubic{b_0,b_1,b_2} }
 //        {}
     
-    friend double ToDouble( cref<IntersectionTime> t )
+    friend double ToDouble( cref<IntersectionTime> T )
     {
-        return ToDouble(t.a) / ToDouble(t.b);
+        using Tools::ToDouble;
+        
+        return ToDouble(T.a) / ToDouble(T.b);
     }
   
     friend std::strong_ordering operator<=>(
         cref<IntersectionTime> s, cref<IntersectionTime> t
     )
     {
+        using Tools::NegativeQ;
+        using Tools::PositiveQ;
+        using Tools::ZeroQ;
+        
         // We have s = s.a / s.b and t = t.a / t.b;
         // We guarantee that s.b >= 0  and t.b >= 0;
         // If the latter are nonzero, then we have:
@@ -123,13 +129,13 @@ public:
         if( lhs > rhs ) { return std::strong_ordering::greater; }
         
         // We should never come here.
-        assert(false);
+        wprint("IntersectionTime::operator<=>: We should never get here.");
 
         return std::strong_ordering::equal;
     }
     
-    friend std::string ToString( cref<IntersectionTime> I )
+    friend std::string ToString( cref<IntersectionTime> T )
     {
-        return ToString(I.a) + " / " + ToString(I.b);
+        return ToString(T.a) + " / " + ToString(T.b);
     }
 };

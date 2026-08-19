@@ -42,19 +42,12 @@ namespace Knoodle
         /*!@brief Integral type used for coordinates.*/
         using Int    = Int_;
         /*!@brief Longer integral type used for internal computations.*/
-        using LInt   = std::conditional_t<SameQ< Int,Int32>,WInt64,WInt128>;
-//        using LInt   = std::conditional_t<
-//                            SameQ< Int,Int32>,
-//                            Int64,
-//                            std::conditional_t<Int128_availableQ,Int128,WInt128>
-//                       >;
+        using LInt   = decltype(long_mul(Int{1},Int{1}));
         /*!@brief Even longer integral type used for internal computations.*/
-        using LLInt  = std::conditional_t<SameQ<LInt,WInt64>,WInt128,WInt256>;
-//        using LLInt  = std::conditional_t<
-//                            SameQ<LInt,Int64>,
-//                            std::conditional_t<Int128_availableQ,Int128,WInt128>,
-//                            WInt256
-//                       >;
+        using LLInt  = decltype(long_mul(LInt{1},LInt{1}));
+    
+        static_assert(SameQ<LInt,decltype(long_fma(Int{1},Int{1},Int{1}))> ,"");
+        static_assert(SameQ<LInt,decltype(long_det(Int{1},Int{0},Int{0},Int{1}))> ,"");
         
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
@@ -101,8 +94,14 @@ namespace Knoodle
         
     public:
         
-        // Default constructor
-        Prosector3() = default;
+//        // Default constructor
+//        Prosector3() = default;
+        
+        Prosector3()
+        {
+//            PrintInfo();
+        }
+        
         // Default destructor
         ~Prosector3() = default;
         
@@ -158,8 +157,8 @@ namespace Knoodle
          */
 
         Flag_T ComputeIntersection(
-            const Idx k, cptr<Int> x_0, cptr<Int> x_1,
-            const Idx l, cptr<Int> y_0, cptr<Int> y_1
+            const Idx k, cptr<Int> x0, cptr<Int> x1,
+            const Idx l, cptr<Int> y0, cptr<Int> y1
         )
         {
             [[maybe_unused]] auto tag = [](){ return MethodName("ComputeIntersection"); };
@@ -169,7 +168,7 @@ namespace Knoodle
                 logprint(tag() + " in verbose mode.");
             }
             
-            LoadLineSegments( k, x_0, x_1, l, y_0, y_1 );
+            LoadLineSegments( k, x0, x1, l, y0, y1 );
             
             Compute();
             
@@ -244,20 +243,6 @@ namespace Knoodle
         }
 
         /*!@brief Classify whether and how two oriented line segments in 3-space intersect when they are projected to the x-y-plane.
-         *
-         * @param k Index of the first line segment (in a upstream data structure).
-         *
-         * @param x0 Start point of the first line segment; assumed to be a 3-vector.
-         *
-         * @param x1 End point of the first line segment; assumed to be a 3-vector.
-         
-         * @param l Index of the second line segment (in a upstream data structure).
-         *
-         * @param y0 Start point of the second line segment; assumed to be a 3-vector.
-         *
-         * @param y1 End point of the second line segment; assumed to be a 3-vector.
-         *
-         * @return `Flag_T f`, specified by the following:
          *
          * - `f = Flag_T::Empty` if and only if the planar projections of the line segments do not intersect after sufficiently small perturbation.
          *
@@ -476,7 +461,7 @@ namespace Knoodle
             if( x_under_y_Q )
             {
                 std::swap(isec.edges[0],isec.edges[1]);
-                isec.handedness = -sign_2;
+                isec.handedness = static_cast<Sign_T>(-sign_2);
             }
             else
             {
