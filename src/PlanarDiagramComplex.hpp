@@ -142,8 +142,9 @@ namespace Knoodle
         :   PlanarDiagramComplex( std::move(pd), Tensor1<Int,Int>() )
         {}
         
+        /*!@brief Initialize from a `PlanarDiagram`, copying it.*/
         explicit PlanarDiagramComplex( const PD_T & pd )
-        :   PlanarDiagramComplex( pd, Tensor1<Int,Int>() )
+        :   PlanarDiagramComplex( PD_T(pd), Tensor1<Int,Int>() )
         {}
         
         /*!@brief Initialize from a `LinkEmbedding`, taking ownership.*/
