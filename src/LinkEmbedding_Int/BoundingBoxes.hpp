@@ -48,6 +48,11 @@ void ComputeBoundingBoxes()
         box_coords = T.AllocateBoxes();
     }
     
+    // Here we do something strange:
+    // We hand over edge_coords, a Tensor3 of size edge_count x 2 x 3
+    // to a T which is a Tree2_T.
+    // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the entries only via data(i,j), so this is safe!
+    
     T.template ComputeBoundingBoxes<2,3>( edge_coords.data(), box_coords.data() );
     
     bounding_boxes_computedQ = true;
