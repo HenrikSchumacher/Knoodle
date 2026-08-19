@@ -35,7 +35,6 @@
 #
 # NOT LISTED, deliberately:
 #   libhomfly, build  infrastructure, not targets
-#   lock_api_check    arrives with PR #35; it needs that PR's src fix to compile
 #
 # NEEDS THE TOOLS BUILT: klut_e2e shells out to ../tools/knoodlesimplify and
 # ../tools/knoodleidentify. It is really a tool-contract test that happens to
@@ -70,6 +69,7 @@ link_color_roundtrip	test	plain	-	-	-	-
 link_inflate_check	test	homfly_umfpack	-	--trials=1 --target=3000	--trials=3	link_inflate_check: [1-9][0-9]*/[1-9][0-9]* trials passed
 link_split_check	test	homfly_umfpack	-	-	-	-
 local_moves_check	test	homfly_umfpack	-	-	-	passed [1-9][0-9]*,
+lock_api_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)
 pd_internal_state_check	test	plain	-	-	-	-
 polygon_levels_check	test	homfly_umfpack	-	-	-	different diagrams on [1-9][0-9]* of [1-9][0-9]* polygons
 run_tests	script	-	run_tests.py	--smoke-only	-	[1-9][0-9]*/[1-9][0-9]* passed

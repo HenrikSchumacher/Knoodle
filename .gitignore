@@ -99,6 +99,7 @@ test/link_color_roundtrip
 test/link_inflate_check
 test/link_split_check
 test/local_moves_check
+test/lock_api_check
 test/pd_internal_state_check
 test/plantri_check
 test/polygon_levels_check
