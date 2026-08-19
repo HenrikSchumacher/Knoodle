@@ -21,10 +21,12 @@ using Int   = std::int64_t;
 using PD_T  = Knoodle::PlanarDiagram<Int>;
 using PDC_T = Knoodle::PlanarDiagramComplex<Int>;
 
-static int fails = 0;
+static int checks = 0;
+static int fails  = 0;
 static void check( bool ok, const char * what )
 {
     std::printf("  %-64s %s\n", what, ok ? "OK" : "FAILED");
+    ++checks;
     if( !ok ) { ++fails; }
 }
 
@@ -77,6 +79,10 @@ int main()
         check(pd.LockedQ(), "and locks again");
     }
 
-    std::printf("\n%s\n", fails == 0 ? "LOCK API CHECK OK" : "LOCK API CHECK FAILED");
+    // The count is what manifest.tsv's work pattern matches: a run that
+    // asserted nothing must not read as a pass.
+    std::printf("\n%s (%d checks, %d failed)\n",
+                fails == 0 ? "LOCK API CHECK OK" : "LOCK API CHECK FAILED",
+                checks, fails);
     return fails == 0 ? 0 : 1;
 }
