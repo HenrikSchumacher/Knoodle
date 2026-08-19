@@ -234,7 +234,7 @@ int main(int argc, char** argv)
             // I recommend preferring construction of a ScopedUnlock instance over manual Unlock()/Lock() calls. In the long run, RAII types are safer. The only issue is to declare it right (`ScopedUnlock (pdc)` wont't work!.
             // `ScopedUnlock` has a little bit more overhead, but its destructor runs a small sanity check. No issue if the bracketed code passages is as short as here. But for longer code it certainly helps to reduce complexity.
             // Plus, it is good to have a test case for it.
-            ScopedUnlock unlocker (pdc);
+            Knoodle::ScopedUnlock unlocker (pdc);
             
             pdc.Push(FromKey(k3, Int(0)));
             pdc.Push(FromKey(k3, Int(1)));  // 2 colors = link
