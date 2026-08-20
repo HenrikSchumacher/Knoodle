@@ -1,5 +1,13 @@
-bool CheckCrossing( const Int c  ) const
+// We need to make this public so debugging routines can easily call.
+// But the ordinary user won't/shouldn't have much interest in these functions.
+// Therefore we don't document them with doxygen.
+
+public:
+
+bool CheckCrossing( const Int c ) const
 {
+    // Run some local consistence checks on crossing c.
+    
     auto tag = [](){ return MethodName("CheckCrossing"); };
     
     if( c == Uninitialized )
@@ -65,6 +73,8 @@ bool CheckCrossing( const Int c  ) const
 
 bool CheckAllCrossings() const
 {
+    // Run some local consistence checks on all active crossings.
+    
     auto tag = [](){ return MethodName("CheckAllCrossings"); };
     
     bool passedQ = true;
@@ -98,14 +108,6 @@ bool CheckAllCrossings() const
         passedQ = passedQ && CheckCrossing(c);
     }
     
-#ifdef KNOODLE_USE_BOOST_PLANARITY
-    if( !PlanarGraphQ() )
-    {
-        eprint(tag()+": Underlying graph is not planar.");
-        return false;
-    }
-#endif
-    
 //    if( passedQ )
 //    {
 //        logprint(tag()+": passed.");
@@ -120,6 +122,8 @@ bool CheckAllCrossings() const
 
 bool CheckArc( const Int a ) const
 {
+    // Run some local consistence checks on crossing a.
+    
     auto tag = [](){ return MethodName("CheckArc"); };
     
     if( a == Uninitialized )
@@ -142,7 +146,6 @@ bool CheckArc( const Int a ) const
     // Check whether the two crossings of arc a are active and have the correct connectivity to c.
     bool A_passedQ = true;
     
-
     for( bool headtail : {Tail, Head} )
     {
         const Int c = A_cross(a,headtail);
@@ -155,7 +158,6 @@ bool CheckArc( const Int a ) const
         }
         
         const bool C_activeQ = CrossingActiveQ(c);
-        
         
         if( !C_activeQ )
         {
@@ -197,6 +199,8 @@ bool CheckArc( const Int a ) const
 
 bool CheckAllArcs() const
 {
+    // Run some local consistence checks on all active arcs.
+    
     auto tag = [](){ return MethodName("CheckAllArcs"); };
     
     bool passedQ = true;
@@ -280,6 +284,8 @@ bool CheckAllArcs() const
 
 bool CheckVertexDegrees() const
 {
+    // Check whether all active crossings have degree 4 and whether all inactive crossing have degree 0. Only active arcs contribute to the crossing degree.
+    
     bool passed = true;
     
     Tensor1<Int,Int> d (max_crossing_count,Int(0));
@@ -318,6 +324,8 @@ bool CheckVertexDegrees() const
 
 bool CheckArcDegrees() const
 {
+    // Check whether all active arcs have degree 2 and whether all inactive arc have degree 0. Only active crossings contribute to the arc degree.
+    
     bool passed = true;
     
     Tensor1<Int,Int> d (max_arc_count,Int(0));
@@ -359,9 +367,14 @@ bool CheckArcDegrees() const
 
 bool CheckAll() const
 {
+    // Contrary to the name, this does _not_ check everything. It only performs local consistency checks on all crossings and all arcs (`CheckAllCrossings` and `CheckAllArcs`), checkes whther vertex and arc degrees are okay (`CheckVertexDegrees` and `CheckArcDegrees`) and whether pairs of consecutive arcs have the same color (`CheckArcColors`).
+    // In particular, this function does _not_ check for planarity, unless you compile with KNOODLE_USE_BOOST_PLANARITY
+    // So do not assume that an instance of `PD_T` is a valid planar diagram just because `CheckAll` returned `true`.
+    
     auto tag = [](){ return MethodName("CheckAll"); };
     
     const bool passedQ = CheckAllCrossings() && CheckAllArcs() && CheckVertexDegrees() && CheckArcDegrees() && CheckArcColors();
+    
 
     if( passedQ )
     {
@@ -371,6 +384,15 @@ bool CheckAll() const
     {
         eprint(tag()+": failed.");
     }
+    
+#ifdef KNOODLE_USE_BOOST_PLANARITY
+    if( !PlanarGraphQ() )
+    {
+        eprint(tag()+": Underlying graph is not planar.");
+        return false;
+    }
+#endif // KNOODLE_USE_BOOST_PLANARITY
+    
     
     return passedQ;
 }

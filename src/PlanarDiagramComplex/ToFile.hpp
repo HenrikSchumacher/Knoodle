@@ -24,7 +24,7 @@ bool WriteToOutString( mref<Tools::OutString> s, const bool leading_kQ = true ) 
 {
     if( leading_kQ ) { s.PutChars("k\n"); }
     
-    const Size_T diagram_count = DiagramCount();
+    const Size_T diagram_count = pd_list.size();
     
     constexpr Int code_width = PD_T::PDCodeWidth(true,true);
     
