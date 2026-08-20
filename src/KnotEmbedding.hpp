@@ -91,8 +91,9 @@ namespace Knoodle
         Intersector_T S;
         IntersectionFlagCounts_T intersection_flag_counts = {};
         
-        Int intersection_count    = 0;
-        Int intersection_count_3D = 0;
+        Int    intersection_count     = 0;
+        Size_T intersection_count_3D  = 0;
+//        Size_T edge_edge_counter      = 0;
         
         bool intersections_computedQ  = false;
         bool bounding_boxes_computedQ = false;
@@ -126,7 +127,7 @@ namespace Knoodle
                 std::cmp_greater_equal(edge_count_, Scalar::Max<Int> - Int(1))
                 ||
                 std::cmp_less(edge_count_, Int(0))
-            ) [[unlikely]]
+            )
             {
                 edge_count = 0;
             }

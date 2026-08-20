@@ -28,7 +28,7 @@ template<bool verboseQ = true> // whether to print errors and warnings
         return 2;
     }
     
-    if( intersection_count_3D > Int(0) )
+    if( intersection_count_3D > Size_T(0) )
     {
         wprint(tag() + ": Detected at least "  + ToString(intersection_count_3D)+ " self-intersections in 3-space after perturbation. Link is not an embedding." );
         return 3;

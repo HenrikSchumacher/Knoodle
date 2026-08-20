@@ -160,8 +160,8 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
             // Prevent overflow by min - function.
             intersection_count_3D = std::min(
                  intersection_count_3D,
-                 std::numeric_limits<Int>::max() - Int(1)
-             ) + Int(1);
+                 std::numeric_limits<Size_T>::max() - Size_T(1)
+             ) + Size_T(1);
             return;
         }
         default:

@@ -207,8 +207,8 @@ namespace Knoodle
                     // Prevent overflow by min - function.
                     L.intersection_count_3D = std::min(
                          L.intersection_count_3D,
-                         std::numeric_limits<Idx>::max() - Idx(1)
-                     ) + Idx(1);
+                         std::numeric_limits<Size_T>::max() - Size_T(1)
+                     ) + Size_T(1);
                     // TODO: LineSweep won't work from here on if we return here. Maybe we better return an error flag?
                     return;
                 }

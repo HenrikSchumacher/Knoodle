@@ -101,8 +101,9 @@ namespace Knoodle
         Intersector_T S;
         IntersectionFlagCounts_T intersection_flag_counts = {};
 
-        Int intersection_count    = 0;
-        Size_T intersection_count_3D = 0;
+        Size_T intersection_count_3D  = 0;
+//        Size_T edge_edge_counter      = 0;
+        Int intersection_count        = 0;
         
         bool intersections_computedQ  = false;
         bool bounding_boxes_computedQ = false;

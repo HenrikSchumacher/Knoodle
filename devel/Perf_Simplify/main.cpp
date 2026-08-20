@@ -1,10 +1,6 @@
-//#define TOOLS_NO_RESTRICT
-
-//#define TOOLS_NO_INT128
-//#define KNOODLE_USE_BOOST_MULTIPRECISION
 #define TOOLS_AGGRESSIVE_INLINING
 #define TOOLS_USE_BOOST_UNORDERED
-#define KNOODLE_USE_BOOST_UNORDERED
+#define TOOLS_USE_MIMALLOC
 //#define PD_ALLOCATE_SCRATCH
 
 #ifdef __APPLE__
@@ -26,32 +22,38 @@ using PD_T  = PDC_T::PD_T;
 
 int main()
 {
-    Profiler::Clear();
+    Profiler::Clear( HomeDirectory() );
+    
+#ifdef TOOLS_USE_MIMALLOC
+    print("Compiled with mimalloc.");
+#else
+    print("Compiled without mimalloc.");
+#endif
     
     std::filesystem::path in_file = HomeDirectory() / "Perf_Simplify_Diagram.txt";
 
     std::filesystem::path out_file = HomeDirectory() / "Perf_Simplify_PDCodes.txt";
     
-    tic("PD_T::FromFile");
-    PDC_T pdc { PD_T::FromFile(in_file) };
-    toc("PD_T::FromFile");
+    PD_T pd = PD_T::FromFile(in_file);
+    PDC_T pdc { PD_T(pd) };
+    TOOLS_DUMP(pdc.CrossingCount());
     
-//    tic("PD_T::WriteToFile");
-//    pdc.Diagram(0).WriteToFile(out_file);
-//    toc("PD_T::WriteToFile");
+    Int counter = 0;
     
-    TOOLS_DUMP(pdc.TotalCrossingCount());
-  
-//    TOOLS_DUMP(pdc.Diagram(0).FaceCount());
-    
-    tic("pdc.Simplify");
-    pdc.Simplify( {.embedding_trials = 2, .canonicalizeQ = true});
-    toc("pdc.Simplify");
+    tic("Main loop");
+    for( int i = 0; i < 200; ++i )
+    {
+        pdc = PDC_T { PD_T(pd) };
+        pdc.Simplify( {.embedding_trials = 10, .canonicalizeQ = true});
+        counter += pdc.DiagramCount();
+    }
+    toc("Main loop");
     
     TOOLS_DUMP(pdc.DiagramCount());
     TOOLS_DUMP(pdc.TotalCrossingCount());
+    TOOLS_DUMP(counter);
     
-//    tic("pdc.WriteToFile");
-//    pdc.WriteToFile(out_file);
-//    toc("pdc.WriteToFile");
+    tic("pdc.WriteToFile");
+    pdc.WriteToFile(out_file);
+    toc("pdc.WriteToFile");
 }

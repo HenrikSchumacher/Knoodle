@@ -90,9 +90,9 @@ Size_T SimplifyPasses( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
             ++a_ptr;
         }
 
-        if( a_ptr >= pd_max_arc_count ) [[unlikely]]
+        if( a_ptr >= pd_max_arc_count )
         {
-            PD_PRINT("Breaking many loop because we marked all active arcs; we ar done for this round.");
+            PD_PRINT("Breaking loop because we marked all active arcs; we are done for this round.");
             break;
         }
         
@@ -194,7 +194,7 @@ Size_T SimplifyPasses( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
                 }
                 
                 // We may try to start at the and of the strand, but `pass.next` must be active for this.
-                if( !ArcActiveQ(pass.next) ) [[unlikely]]
+                if( !ArcActiveQ(pass.next) )
                 {
                     PD_PRINT("Breaking because " + ArcString(pass.next)+ " is inactive.");
                     break; // Search new arc by incrementing a_ptr.
@@ -222,7 +222,7 @@ Size_T SimplifyPasses( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
             PD_ASSERT(pd->ArcOverQ(pass.next,Tail) != overQ);
             
             // Rerouting arcs that we have been marked recently is a bad idea.
-            if( ArcRecentlyMarkedQ(pass.next) ) [[unlikely]]
+            if( ArcRecentlyMarkedQ(pass.next) )
             {
                 PD_PRINT("Breaking because " + ArcString(pass.next)+ " has been visited recently.");
                 break; // Search new arc by incrementing a_ptr.

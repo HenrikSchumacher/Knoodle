@@ -21,6 +21,8 @@ public:
         // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the
         // enties only via operator(i,j,k), so this is safe!
         
+//        edge_edge_counter = 0;
+        
         RequireBoundingBoxes();
         
         const Int degenerate_edge_count = DegenerateEdgeCount();
@@ -41,6 +43,9 @@ public:
         }
 
         FindIntersectingEdges_DFS();
+        
+//        logvalprint("number of edges", EdgeCount());
+//        logvalprint("number of edge-edge checks", edge_edge_counter);
         
         intersections_computedQ = true;
         
@@ -481,7 +486,7 @@ public:
 protected:
 
     void ComputeEdgeEdgeIntersection( const Int k, const Int l )
-{
+    {
         // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
         if( (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) )
         {
@@ -515,6 +520,8 @@ protected:
             TOOLS_LOGDUMP(k);
             TOOLS_LOGDUMP(l);
         }
+        
+//        ++edge_edge_counter;
         
         // At this point we assume that `k != l` and that they are also not direct neighbors.
 

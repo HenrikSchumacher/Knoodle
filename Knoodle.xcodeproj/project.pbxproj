@@ -6,6 +6,10 @@
 	objectVersion = 70;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AFD2D32F3037232B0019850A /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF5B87F32BAE053100CB5CAF /* Accelerate.framework */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		AF0DC0EA302399A800D2B90D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -2171,6 +2175,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AFD2D32F3037232B0019850A /* Accelerate.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5342,7 +5347,6 @@
 					"-pthread",
 					"-fenable-matrix",
 					"-mcpu=native",
-					"-mtune=native",
 					"-flto",
 					"-Wall",
 					"-Wextra",
@@ -5441,7 +5445,6 @@
 					"-pthread",
 					"-fenable-matrix",
 					"-mcpu=native",
-					"-mtune=native",
 					"-flto",
 					"-Wall",
 					"-Wextra",
@@ -5687,7 +5690,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_USE_OPTIMIZATION_PROFILE = YES;
+				CLANG_OPTIMIZATION_PROFILE_FILE = "";
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
@@ -5695,6 +5698,13 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				OTHER_LDFLAGS = (
+					"-lmimalloc",
+					"-lamd",
+					"-lCoinUtils",
+					"-lClp",
+					"-lumfpack",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -5703,7 +5713,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_USE_OPTIMIZATION_PROFILE = YES;
+				CLANG_OPTIMIZATION_PROFILE_FILE = "";
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
@@ -5711,6 +5721,13 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				OTHER_LDFLAGS = (
+					"-lmimalloc",
+					"-lamd",
+					"-lCoinUtils",
+					"-lClp",
+					"-lumfpack",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

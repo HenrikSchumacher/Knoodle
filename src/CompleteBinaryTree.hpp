@@ -56,7 +56,7 @@ namespace Knoodle
         , regular_leaf_node_count { int_cast<Int>(Int(1) << actual_depth)                             }
         ,          last_row_count { int_cast<Int>(Int(2) * leaf_node_count - regular_leaf_node_count) }
         {
-            if( std::cmp_greater(leaf_node_count_, Scalar::Max<Int> / Int(2)) ) [[unlikely]]
+            if( std::cmp_greater(leaf_node_count_, Scalar::Max<Int> / Int(2)) )
             {
                 eprint(ClassName()+" leaf node count " + Tools::ToString(leaf_node_count_) + " is too big for type " + TypeName<Int> + ". Aborting.");
                 *this = CompleteBinaryTree(Int(0));
