@@ -57,6 +57,9 @@ namespace Knoodle
         using Intersector_T  = PlanarLineSegmentIntersector<Real,Int>;
         using IntersectionFlagCounts_T = Tiny::Vector<9,Size_T,Int>;
         
+        
+        static constexpr bool countersQ = false;
+        
     protected:
         
         static_assert(std::in_range<Int>(4 * 64 + 1),"");
@@ -93,7 +96,8 @@ namespace Knoodle
         
         Int    intersection_count     = 0;
         Size_T intersection_count_3D  = 0;
-//        Size_T edge_edge_counter      = 0;
+        Size_T box_box_counter        = 0;
+        Size_T edge_edge_counter      = 0;
         
         bool intersections_computedQ  = false;
         bool bounding_boxes_computedQ = false;

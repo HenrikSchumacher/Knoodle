@@ -21,7 +21,11 @@ public:
         // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the
         // enties only via operator(i,j,k), so this is safe!
         
-//        edge_edge_counter = 0;
+        if constexpr ( countersQ )
+        {
+            box_box_counter = 0;
+            edge_edge_counter = 0;
+        }
         
         RequireBoundingBoxes();
         
@@ -44,9 +48,15 @@ public:
 
         FindIntersectingEdges_DFS();
         
-//        logvalprint("number of edges", EdgeCount());
-//        logvalprint("number of edge-edge checks", edge_edge_counter);
         
+        if constexpr ( countersQ )
+        {
+            logvalprint("number of edges", EdgeCount());
+            logvalprint("number of box-box checks", box_box_counter);
+            logvalprint("number of edge-edge checks", edge_edge_counter);
+            logvalprint("number of intersections", intersections.size());
+        }
+                
         intersections_computedQ = true;
         
         // Check for bad intersections.
@@ -478,8 +488,12 @@ private:
 
 public:
 
-    bool BoxesIntersectQ( const Int i, const Int j ) const
+    bool BoxesIntersectQ( const Int i, const Int j )
     {
+        if constexpr ( countersQ )
+        {
+            ++box_box_counter;
+        }
         return T.BoxesIntersectQ( box_coords.data(i), box_coords.data(j) );
     }
 
@@ -490,20 +504,10 @@ protected:
         // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
         if( (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) )
         {
-//            constexpr Int k0 = 4453;
-//            constexpr Int l0 = 7619;
-//
-//            const bool verboseQ = (k == k0) && (l == l0);
-//
-//            if( verboseQ )
-//            {
-//                this->template ComputeEdgeEdgeIntersection_impl<true>(k,l);
-//            }
-//            else
-//            {
-//                this->template ComputeEdgeEdgeIntersection_impl<false>(k,l);
-//            }
-            
+            if constexpr ( countersQ )
+            {
+                ++edge_edge_counter;
+            }
             this->template ComputeEdgeEdgeIntersection_impl<false>(k,l);
         }
     }

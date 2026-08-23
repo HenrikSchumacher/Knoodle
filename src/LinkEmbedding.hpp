@@ -51,6 +51,8 @@ namespace Knoodle
         static constexpr Int AmbDim = 3;
         static constexpr Int InvalidColor = PlanarDiagram<Int>::InvalidColor;
         
+        static constexpr bool countersQ = false;
+        
     protected:
         
         static_assert(std::in_range<Int>(4 * 64 + 1),"");
@@ -102,7 +104,8 @@ namespace Knoodle
         IntersectionFlagCounts_T intersection_flag_counts = {};
 
         Size_T intersection_count_3D  = 0;
-//        Size_T edge_edge_counter      = 0;
+        Size_T box_box_counter        = 0;
+        Size_T edge_edge_counter      = 0;
         Int intersection_count        = 0;
         
         bool intersections_computedQ  = false;
