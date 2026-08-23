@@ -123,13 +123,13 @@ namespace Knoodle
         
         Prosector_T S;
         
-        Real scaling_factor           = 1;
-        Real rounding_error           = 0;
-        Real max_modulus              = 0;
-        Int  intersection_count       = 0;
-        Int  intersection_count_3D    = 0;
+        Real   scaling_factor           = 1;
+        Real   rounding_error           = 0;
+        Real   max_modulus              = 0;
+        Size_T intersection_count_3D    = 0;
+        Int    intersection_count       = 0;
         
-        int  scaling_exponent         = 0;
+        int    scaling_exponent         = 0;
         
         bool vertex_coords_loadedQ    = false;
         bool edge_coords_computedQ    = false;
