@@ -41,7 +41,7 @@ int main()
     Int counter = 0;
     
     tic("Main loop");
-    for( int i = 0; i < 200; ++i )
+    for( int i = 0; i < 1; ++i )
     {
         pdc = PDC_T { PD_T(pd) };
         pdc.Simplify( {.embedding_trials = 10, .canonicalizeQ = true});
