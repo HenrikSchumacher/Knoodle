@@ -1,3 +1,5 @@
+public:
+
 bool AdmissableEdgeQ( const Int p, const bool side, const Int x )
 {
     if( p==NIL ) { return (x == root); }
@@ -16,6 +18,8 @@ bool AssertAdmissableEdge( const Int p, const bool side, const Int x )
     return true;
 }
 
+public: // TODO: Make this private after testing.
+
 /*!@brief Rotate tree at node `x` in direction `dir`.
  *
  * @param p The parent node of `x`. It must be `NIL` if `x` is the root of the tree.
@@ -28,7 +32,7 @@ bool AssertAdmissableEdge( const Int p, const bool side, const Int x )
  */
 int RotateTree( const Int p, const bool side, const Int x, const bool dir )
 {
-    if constexpr ( debug )
+    if constexpr ( debugQ )
     {
         TOOLS_PTIMER(timer,MethodName("RotateTree(") + (dir ? "right)" : "left)") );
     }
@@ -58,7 +62,7 @@ int RotateTree( const Int p, const bool side, const Int x, const bool dir )
      */
     Int y = Child(x,!dir);
     Int z = Child(y, dir);
-    
+
     Child(x,!dir) = z;
     Child(y, dir) = x;
     

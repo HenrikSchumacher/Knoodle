@@ -37,20 +37,81 @@ void InitializePath()
 void ResetPath()
 {
     path_ptr = 2;
-    path[path_ptr] = PNIL;
+    Path(path_ptr) = PNIL;
     current = root;
+//    
+//    // DEBUGGING
+//    fill_buffer( &path[0], PNIL, max_path_size + Int{2});
 }
 
+template<bool verboseQ = false>
 void PushPath( const bool side )
 {
-    const Int P = current;
-    path[++path_ptr] = ToPathNode(P,side);
-    current = Child(P,side);
+    if constexpr ( verboseQ )
+    {
+        logprint(MethodName("PushPath(" + (side ? std::string("Right") : std::string("Left")) + ")"));
+        
+        logvalprint("path_ptr",path_ptr);
+    }
+    
+    if constexpr ( bound_checksQ )
+    {
+        if ( !NodeActiveQ(current) )
+        {
+            wprint(MethodName("PushPath") + ": current == NIL.");
+        }
+        
+        if( path_ptr >= max_path_size )
+        {
+            std::string msg = MethodName("PushPath") + ": Path overflow.";
+            eprint(msg);
+            logvalprint("max_path_size",max_path_size);
+            logvalprint("path_ptr",path_ptr);
+            logvalprint("path",
+                std::string(OutString::FromVector(&path[0],max_path_size))
+            );
+            
+            throw std::runtime_error(msg);
+        }
+    }
+    
+    const Int parent = current;
+    Path(++path_ptr) = ToPathNode(parent,side);
+    current = Child(parent,side);
+    
+    if constexpr ( verboseQ )
+    {
+        TOOLS_LOGDUMP(current);
+    }
+    
+    if constexpr ( bound_checksQ )
+    {
+        if( parent == current )
+        {
+            eprint(MethodName("PushPath") + ": parent == current = " + ToString(parent) + ".");
+            
+            TOOLS_LOGDUMP(State(parent));
+            TOOLS_LOGDUMP(Child(parent,Left ));
+            TOOLS_LOGDUMP(Child(parent,Right));
+            TOOLS_LOGDUMP(Data(parent));
+        }
+    }
 }
 
 void PopPath()
 {
-    current = NodeFromPathNode(path[path_ptr--]);
+    if constexpr ( bound_checksQ )
+    {
+        if( path_ptr < Int{2} )
+        {
+            std::string msg = MethodName("PopPath") + ": Path underflow.";
+            eprint(msg);
+            logvalprint("path_ptr",path_ptr);
+            
+            throw std::runtime_error(msg);
+        }
+    }
+    current = NodeFromPathNode(Path(path_ptr--));
 }
 
 public:
@@ -59,70 +120,70 @@ Int Current() const { return current; }
 
 std::pair<Int,bool> ParentData() const
 {
-    return FromPathNode(path[path_ptr]);
+    return FromPathNode(Path(path_ptr));
 }
 
 Int Parent() const
 {
-    return NodeFromPathNode(path[path_ptr]);
+    return NodeFromPathNode(Path(path_ptr));
 }
 
 bool ParentSide() const
 {
-    return SideFromPathNode(path[path_ptr]);
+    return SideFromPathNode(Path(path_ptr));
 }
 
 
 Int GrandParent() const
 {
-    return NodeFromPathNode(path[path_ptr-Int{1}]);
+    return NodeFromPathNode(Path(path_ptr-Int{1}));
 }
 
 bool GrandParentSide() const
 {
-    return SideFromPathNode(path[path_ptr-Int{1}]);
+    return SideFromPathNode(Path(path_ptr-Int{1}));
 }
 
 std::pair<Int,bool> GrandParentData() const
 {
-    return FromPathNode(path[path_ptr-Int{1}]);
+    return FromPathNode(Path(path_ptr-Int{1}));
 }
 
 
 Int GreatGrandParent() const
 {
-    return NodeFromPathNode(path[path_ptr-Int{2}]);
+    return NodeFromPathNode(Path(path_ptr-Int{2}));
 }
 
 bool GreatGrandParentSide() const
 {
-    return SideFromPathNode(path[path_ptr-Int{2}]);
+    return SideFromPathNode(Path(path_ptr-Int{2}));
 }
 
 std::pair<Int,bool> GreatGrandParentData() const
 {
-    return FromPathNode(path[path_ptr-Int{2}]);
+    return FromPathNode(Path(path_ptr-Int{2}));
 }
 
-Int Sibling() const
+Int Sibling() // const
 {
-    const UInt P = path[path_ptr];
+    const UInt P = Path(path_ptr);
     if(P == PNIL) return NIL;
     auto [N,side] = FromPathNode(P);
     return Child(N, !side);
 }
 
-Int Uncle() const
+Int Uncle() // const
 {
-    const UInt P = path[path_ptr-Int{1}];
+    const UInt P = Path(path_ptr-Int{1});
     if(P == PNIL) return NIL;
     auto [N,side] = FromPathNode(P);
     return Child(N, !side);
 }
 
-Int GreatUncle() const
+Int GreatUncle() // const
 {
-    const UInt P = path[path_ptr-Int{2}];
+    const UInt P = Path(path_ptr-Int{2});
     if(P == PNIL) return NIL;
     auto [N,side] = FromPathNode(P);
     return Child(N, !side);
@@ -130,10 +191,36 @@ Int GreatUncle() const
 
 private:
 
-template<bool side>
-void WalkToEnd()
+void WalkToEnd( const bool side )
 {
     while( Current() != NIL ) { PushPath(side); }
 
-    if( path[path_ptr] != PNIL ) { PopPath(); }
+    if( Path(path_ptr) != PNIL ) { PopPath(); }
+}
+
+
+UInt & Path( const Int i )
+{
+    if constexpr ( bound_checksQ )
+    {
+        if( (i < Int{0}) || (i >= max_path_size) )
+        {
+            eprint(this->MethodName("Path") + ": index = " + ToString(i)+ " is out of bounds.");
+            return dummy_path;
+        }
+    }
+    return path[i];
+}
+
+const UInt & Path( const Int i ) const
+{
+    if constexpr ( bound_checksQ )
+    {
+        if( (i < Int{0}) || (i >= max_path_size) )
+        {
+            eprint(this->MethodName("Path") + ": index = " + ToString(i)+ " is out of bounds.");
+            return dummy_path;
+        }
+    }
+    return path[i];
 }

@@ -19,9 +19,16 @@ bool ContainsQ( const Data_T & data, F && f = F(), C && cmp = C() )
 
 /*!@brief Search the node whose data filed equals `data` and tracks the path from the root in an internal stack. If such a node is found, then make it available through `Current()` and return `true`. Otherwise, make `Current()` return the `NIL`, make `Parent()` the leave node where the search was terminated, and return false.
  */
-template<typename F = std::identity, typename C = std::less<>>
+template<
+    bool verboseQ = false, typename F = std::identity, typename C = std::less<>
+>
 bool Find( const Data_T & data, F && f = F(), C && cmp = C() )
 {
+    if constexpr ( verboseQ )
+    {
+        logprint(MethodName("Find(" + ToString(data)+ ")"));
+    }
+    
     auto target_val = std::invoke(f, data);
     ResetPath();
     
@@ -40,7 +47,7 @@ bool Find( const Data_T & data, F && f = F(), C && cmp = C() )
 void FindMin()
 {
     ResetPath();
-    WalkToEnd<Left>();
+    WalkToEnd(Left);
 }
 
 Int MinNode()
@@ -52,7 +59,7 @@ Int MinNode()
 void FindMax()
 {
     ResetPath();
-    WalkToEnd<Right>();
+    WalkToEnd(Right);
 }
 
 Int MaxNode()

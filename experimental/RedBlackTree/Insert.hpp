@@ -11,13 +11,13 @@ public:
  * @return `0` if the insertion was successful and if the internal path stack traces the path to the inserted node. `1` if the insertion was successful, but the path to the inserted node is not traced. `-1` if a node with that data field already existed.
  */
 template<
-    bool rebalanceQ = true, typename F = std::identity, typename C = std::less<>
+    bool verboseQ = false, typename F = std::identity, typename C = std::less<>
 >
 int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
 {
-    if constexpr ( debug )
+    if constexpr ( verboseQ )
     {
-        TOOLS_PTIMER(timer,MethodName("Insert"));
+        logprint(MethodName("Insert(" + ToString(data)+ ")"));
     }
     
     // First we do a standard BST insertion.
@@ -27,29 +27,27 @@ int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
     {
         return -1;
     };
-
-    const Int node = CreateNode(data);
-
+    
+    const Int new_node = CreateNode(data);
+    
     if( Parent() == NIL )
     {
-        root = node;
+        root = new_node;
         State(root) = State_T::Black;
         return 0;
     }
     
-    Child(Parent(),ParentSide()) = node;
+    Child(Parent(),ParentSide()) = new_node;
     // `Current()` is still a `NIL`. We inserted `node` there, so we have to tell the path about it, too.
-    current = node;
-    
-    if constexpr ( !rebalanceQ ) { return 0; }
-    
+    current = new_node;
+
     // Rebalance the tree.
     do
     {
         auto [P,P_side] = ParentData();
         if( State(P) == State_T::Black )
         {
-//            print("Case 1");
+//            logprint("Case 1");
             return 0;
         }
         
@@ -58,7 +56,7 @@ int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
         auto [G,G_side] = GrandParentData();
         if( G == NIL )
         {
-//            print("Case 4");
+//            logprint("Case 4");
             State(P) = State_T::Black;
             return 0;
         }
@@ -69,7 +67,7 @@ int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
         if( (U == NIL) || (State(U) == State_T::Black) )
         {
             // parent is red but uncle is black.
-//            print("Case 5 or 6");
+//            logprint("Case 5 or 6");
             
             Int N = Current();
             
@@ -78,7 +76,7 @@ int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
             
             if( G_side != P_side )
             {
-//                print("Case 5");
+//                logprint("Case 5");
                 /*! The goals is to transform this to case 6.
                  *
                  *  GrandParentSide() == Left; (color in parentheses)
@@ -105,7 +103,7 @@ int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
                 std::swap(P,N);
             }
             
-//            print("Case 6");
+//            logprint("Case 6");
 
             /*! GrandParentSide() == ParentSide == Left; (color in parentheses)
              *  .
@@ -136,7 +134,7 @@ int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
             return 1;
         }
         
-//        print("Case 2");
+//        logprint("Case 2");
         // Case 2: parent and uncle are both red.
         // We make both black, and turn the grandparent red.
         State(P) = State_T::Black;
@@ -148,7 +146,7 @@ int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
 
     } while ( Parent() != NIL );
     
-//    print("Case 3");
+//    logprint("Case 3");
     // Now Current() should be the root and have color red.
     return 0;
 }
@@ -161,18 +159,16 @@ Int NewNodeId()
     ++node_count;
     
     Int node;
-    if( !deleted_nodes.EmptyQ() )
+    if( !deleted_nodes.empty() )
     {
-        node = deleted_nodes.Pop();
+        node = deleted_nodes.back();
+        deleted_nodes.pop_back();
     }
     else
     {
-        if( node_end >= node_buffer.Size() )
+        if( node_end >= NodeCapacity() )
         {
-            // TODO: Add a check whether this size can be stored in the integer type.
-            node_buffer.template Resize<true>(
-                Int(2) * Max(node_buffer.Size(),Int(1))
-            );
+            Reserve( Int(2) * Max(NodeCapacity(),Int(1)) );
         }
         node = node_end;
         ++node_end;
@@ -182,22 +178,21 @@ Int NewNodeId()
 
 Int CreateNode( cref<Data_T> data )
 {
-    const Int node = NewNodeId();
-    Node_T & N     = node_buffer[node];
-    N.child[Left ] = NIL;
-    N.child[Right] = NIL;
-    N.data         = data;
-    N.state        = State_T::Red;
+    const Int node         = NewNodeId();
+    Child(node,Left ) = NIL;
+    Child(node,Right) = NIL;
+    Data(node)        = data;
+    State(node)       = State_T::Red;
     return node;
 }
 
 Int CreateNode( Data_T && data )
 {
-    const Int node = NewNodeId();
-    Node_T & N     = node_buffer[node];
-    N.child[Left ] = NIL;
-    N.child[Right] = NIL;
-    N.data         = std::move(data);
-    N.state        = State_T::Red;
+    const Int node         = NewNodeId();
+    Child(node,Left ) = NIL;
+    Child(node,Right) = NIL;
+    Data(node)        = std::move(data);
+    State(node)       = State_T::Red;
+    
     return node;
 }

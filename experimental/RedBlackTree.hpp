@@ -2,7 +2,7 @@
 
 namespace Knoodle
 {
-    template<typename Data_T_, IntQ Int_>
+    template<typename Data_T_, IntQ Int_, bool bound_checksQ_ = false>
     class RedBlackTree
     {
     public:
@@ -10,7 +10,9 @@ namespace Knoodle
         using Data_T  = Data_T_;
         using Int     = Int_;
         using UInt    = ToUnsigned<Int>;
-
+        
+        static constexpr bool bound_checksQ = bound_checksQ_;
+        
         enum class State_T : UInt8
         {
             Inactive  = 0,
@@ -33,133 +35,94 @@ namespace Knoodle
         static constexpr UInt PNIL      = ~UInt{0};
         static constexpr UInt node_mask = (PNIL >> 1);
         static constexpr UInt side_mask = ~node_mask;
-        static constexpr Int NIL        = static_cast<Int>(node_mask);
-        static constexpr bool debug     = false;
+        static constexpr Int  NIL       = static_cast<Int>(node_mask);
         static constexpr bool Left      = 0;
         static constexpr bool Right     = 1;
         
-        static constexpr Int max_path_size = 64;
+        static constexpr bool debugQ        = false;
         
-        struct Node_T
-        {
-            Int child [2] = { NIL, NIL };
-            Data_T data;
-            State_T state = State_T::Inactive;
-            
-            mref<Int> operator[]( bool side )       { return child[side]; }
-            
-            cref<Int> operator[]( bool side ) const { return child[side]; }
-        };
+        static constexpr Int max_path_size = 128;
         
     private:
         
-        Tensor1<Node_T,Int> node_buffer;
-        Stack<Int,Int>      deleted_nodes;
-        Int node_count      = 0;
-        Int node_end        = 0;
+//        Stack<Int,Int>
+        std::vector<Int> deleted_nodes;
         
-        UInt path [max_path_size+2] = {PNIL};
-        Int  path_ptr = 2;
-        Int  root     = NIL;
-        Int  current  = NIL;
+        Int node_count = 0;
+        Int node_end   = 0;
         
-        Data_T dummy;
+        UInt path [max_path_size] = {PNIL};
+        Int  path_ptr  = 2;
+        Int  root      = NIL;
+        Int  current   = NIL;
+        
+        UInt    dummy_path  = PNIL;
+        Int     dummy_node  = NIL;
+        Data_T  dummy_data;
+        State_T dummy_state = State_T::Inactive;
         
     public:
         
-        RedBlackTree() { InitializePath(); }
+        RedBlackTree()
+        {
+            InitializePath();
+        }
         
         ~RedBlackTree() {}
+        
+
+//#include "RedBlackTree/Containers_SoA.hpp"
+#include "RedBlackTree/Containers_AoS.hpp"
+//#include "RedBlackTree/Containers_AoS2.hpp"
+#include "RedBlackTree/Path.hpp"
+#include "RedBlackTree/Rotate.hpp"
+#include "RedBlackTree/Insert.hpp"
+#include "RedBlackTree/Find.hpp"
+#include "RedBlackTree/Delete.hpp"
         
     public:
         
         Int NodeCount() const { return node_count; }
         
-        Int NodeCapacity() const { return node_buffer.Size(); }
-        
         Int Root() const { return root; }
         
         static constexpr Int Nil() { return NIL; }
+        
+        static constexpr Int PathNil() { return PNIL; }
         
         static constexpr State_T Red() { return State_T::Red; }
         
         static constexpr State_T Black() { return State_T::Black; }
         
+        bool NodeActiveQ( const Int node )
+        {
+            return (node == NIL) ? false : (node_state(node) != State_T::Inactive);
+        }
+        
         void Clear()
         {
-            deleted_nodes.Clear();
+            deleted_nodes.clear();
             root       = NIL;
             node_count = 0;
             node_end   = 0;
             ResetPath();
         }
         
-        void Reserve( const Int size )
+        bool InRangeQ( const Int node ) const
         {
-            // TODO: Add a check whether this size can be stored in the integer type.
-            
-            if( node_buffer.Size() < size )
+            if( (node < Int{0}) || (node >= node_end) )
             {
-                node_buffer.template Resize<true>(size);
+                eprint(this->MethodName("InRangeQ") + ": node = " + ToString(node)+ " is out of bounds.");
+                
+                return false;
             }
+            return true;
         }
         
-        Node_T & Node( const Int node )
+        bool RedQ( const Int node ) // const
         {
-            // This one is private because only the tree itself is allowed to change this.
-            return node_buffer[node];
+            return (node == NIL) ? false : (State(node) == State_T::Red);
         }
-
-        Int & Child( const Int node, const bool side )
-        {
-            // This one is private because only the tree itself is allowed to change this.
-            return node_buffer[node][side];
-        }
-        
-        Data_T & Data( const Int node )
-        {
-//            if( (node < Int{0}) || (node >= node_end) )
-//            {
-//                eprint(MethodName("Data") + ": node = " + ToString(node)+ " does not exist.");
-//                return dummy;
-//            }
-            
-            // This one is private because only the tree itself is allowed to change this.
-            return node_buffer[node].data;
-        }
-        
-        State_T & State( const Int node )
-        {
-            // This one is private because only the tree itself is allowed to change this.
-            return node_buffer[node].state;
-        }
-        
-    public:
-        
-        const Node_T & Node( const Int node ) const
-        {
-            return node_buffer[node];
-        }
-        
-        const Int & Child( const Int node, const bool side ) const
-        {
-            return node_buffer[node][side];
-        }
-        
-        const Data_T & Data( const Int node ) const
-        {
-            return node_buffer[node].data;
-        }
-        
-        const State_T & State( const Int node ) const
-        {
-            return node_buffer[node].state;
-        }
-        
-#include "RedBlackTree/Path.hpp"
-#include "RedBlackTree/Insert.hpp"
-#include "RedBlackTree/Find.hpp"
-#include "RedBlackTree/Rotate.hpp"
         
     public:
         
