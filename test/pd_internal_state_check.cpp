@@ -17,6 +17,7 @@
 // against a checked-in golden string.
 
 #include "../Knoodle.hpp"
+#include "diagram_sanity.hpp"
 
 #include <cstdio>
 #include <filesystem>
@@ -70,6 +71,10 @@ int main()
         check(!a.empty(),        "trefoil: WriteToOutString produced output");
         check(a == b,            "trefoil: text round trip is exact");
         check(pd2.CheckAll(),    "trefoil: rebuilt diagram passes CheckAll");
+        // A parser bug that builds a self-consistent-looking but wrong diagram
+        // is exactly what the thorough check exists for.
+        check(KnoodleTest::DiagramSanityQ(pd2),
+                                 "trefoil: rebuilt diagram passes DiagramSanityQ");
         check(pd2.CrossingCount() == pd.CrossingCount(),
                                  "trefoil: crossing count preserved");
         check(pd2.ArcCount()      == pd.ArcCount(),
@@ -139,6 +144,13 @@ int main()
         check(pd2.ArcCount() == Int(6),
               "inactive slots: active arc count is 6");
         check(pd2.CheckAll(), "inactive slots: CheckAll passes");
+        // The padded diagram exercises the sanity check's inactive-slot
+        // handling (inactive darcs must appear in NO face boundary) on both
+        // sides of the round trip.
+        check(KnoodleTest::DiagramSanityQ(pd),
+              "inactive slots: padded source passes DiagramSanityQ");
+        check(KnoodleTest::DiagramSanityQ(pd2),
+              "inactive slots: rebuilt diagram passes DiagramSanityQ");
         check(Serialize(pd2) == a,
               "inactive slots: re-serializes to the identical text");
     }
@@ -160,6 +172,8 @@ int main()
             PD_T pd2 = PD_T::FromFile(file);
 
             check(pd2.CheckAll(),  "file: rebuilt diagram passes CheckAll");
+            check(KnoodleTest::DiagramSanityQ(pd2),
+                                   "file: rebuilt diagram passes DiagramSanityQ");
             check(Serialize(pd2) == Serialize(pd),
                   "file: recovers the same state");
         }

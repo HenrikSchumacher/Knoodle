@@ -154,6 +154,11 @@ int main( int argc, char ** argv )
             args.local_opt_level = static_cast<Knoodle::UInt8>(level);
             pdc.Simplify(args);
 
+            // Local moves are exactly where a corrupted-but-locally-consistent
+            // diagram can appear; the invariant checks below would miss any
+            // corruption that preserves crossing count and unknottedness.
+            if (pdc.ValidQ()) { RequireComplexSanity(pdc, "Simplify (local_moves_check)"); }
+
             const PD_T out = pdc.ToSingleDiagram();
 
             {

@@ -16,6 +16,7 @@
 // became identifiable) -- in which case update the golden below.
 #include "../Knoodle.hpp"
 #include "../tools/klut_identify.hpp"
+#include "diagram_sanity.hpp"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -3411,10 +3412,19 @@ int main()
     std::vector<Int> code(PD, PD + (sizeof(PD) / sizeof(PD[0])));
     //    PD_T pd = PD_T::FromSignedPDCode(code.data(), n, false, true);
     //    PDC_T pdc; pdc.Push(std::move(pd));
-    
+
     // No need to use the UNSAFE `Push`. Simply use constructor.
-    PDC_T pdc { PD_T::FromSignedPDCode(code.data(), n, false, true) };
-    
+    PD_T input = PD_T::FromSignedPDCode(code.data(), n, false, true);
+    {
+        std::string why;
+        if (!KnoodleTest::DiagramSanityQ(input, &why))
+        {
+            std::cerr << "FATAL: the 2048-gon input diagram failed sanity:\n" << why;
+            return 1;
+        }
+    }
+    PDC_T pdc { std::move(input) };
+
     auto res = ki::Identify(klut, std::move(pdc), reapr);
 
     // Key by (crossing_count, id): FindID's id is an index WITHIN a crossing-number
@@ -3427,6 +3437,23 @@ int main()
         if      (s.kind == ki::Summand::Kind::Identified)   { ++ids[{s.crossings, s.id}]; }
         else if (s.kind == ki::Summand::Kind::Unidentified) { ++unident; }
         else                                                { ++err; }
+
+        // Output-side sanity: an Unidentified/Error summand carries the
+        // simplified remnant's PD code -- Identify's actual output diagram.
+        // A corrupted remnant would otherwise just read as "unidentified".
+        if (!s.pd_code.empty())
+        {
+            PD_T remnant = PD_T::FromSignedPDCode(
+                s.pd_code.data(), static_cast<Int>(s.pd_code.size() / 5),
+                false, true);
+            std::string why;
+            if (!KnoodleTest::DiagramSanityQ(remnant, &why))
+            {
+                std::cerr << "FATAL: an unidentified summand ("
+                          << s.crossings << " cx) failed sanity:\n" << why;
+                return 1;
+            }
+        }
     }
 
     std::cout << "Identify(random 2048-gon, " << n << " cx): " << res.summands.size()
