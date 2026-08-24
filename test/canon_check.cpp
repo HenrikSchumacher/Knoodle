@@ -6,9 +6,11 @@
 // If they match for every diagram, WriteMacLeodCode is canonical-by-construction
 // and skipping Canonicalize on the hot path is safe.
 #include "../Knoodle.hpp"
+#include "diagram_sanity.hpp"
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -22,6 +24,25 @@ using PD_T    = PDC_T::PD_T;
 using Reapr_T = Knoodle::Reapr<Real, Int, float>;
 using Klut    = Knoodle::Klut;
 using CodeInt = Klut::CodeInt;
+
+// Corruption is a hard failure, never a skipped sample: reduce()'s `false`
+// means "not a usable probe", and a corrupted diagram must not hide there.
+template<typename T>
+static void RequireSanity(T& obj, const char* where)
+{
+    std::string why;
+    const bool okQ = [&]{
+        if constexpr (std::is_same_v<T, PDC_T>)
+            { return KnoodleTest::ComplexSanityQ(obj, &why); }
+        else
+            { return KnoodleTest::DiagramSanityQ(obj, &why); }
+    }();
+    if (!okQ)
+    {
+        std::cerr << "FATAL: diagram sanity failure after " << where << ":\n" << why;
+        std::exit(1);
+    }
+}
 
 static std::uint64_t mix(std::uint64_t x)
 {
@@ -46,6 +67,7 @@ static bool reduce(const std::vector<Int>& code, bool canon, Klut& klut,
     a.permute_randomQ  = false;
     a.canonicalizeQ    = canon;
     pdc.Simplify(a);
+    if (pdc.ValidQ()) { RequireSanity(pdc, "pass-only Simplify (canon_check)"); }
     if (!pdc.ValidQ() || pdc.DiagramCount() != Int(1)) { return false; }
     PD_T s = pdc.Diagram(0);   // copy (probe only) so we can call non-const WriteMacLeodCode
     c = s.CrossingCount();
@@ -101,6 +123,7 @@ int main(int argc, char** argv)
             if (!P.ValidQ() || unlinks.Size() > Int(0)
                 || P.LinkComponentCount() > Int(1)
                 || P.DiagramComponentCount() > Int(1)) { continue; }
+            RequireSanity(P, "embed+reproject perturbation (canon_check)");
 
             auto pc = P.template PDCode<Int, {.signQ = true, .colorQ = false}>();
             const Int nP = P.CrossingCount();
