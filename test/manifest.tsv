@@ -49,6 +49,7 @@ cli_stdin_check	script	-	cli_stdin_check.py	-	-	-
 hooks_check	script	-	hooks_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 canon_check	test	umfpack	-	-	-	-
 component_check	test	plain	-	-	-	-
+diagram_sanity_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)
 embedding_check	test	homfly_umfpack	-	-	--coords=f64,f32,i32,i64 --rotations=8	passed [1-9][0-9]*, failed 0
 embedding_inflation_check	test	plain	-	-	-	-
 error_tap_check	test	plain	-	-	-	-
