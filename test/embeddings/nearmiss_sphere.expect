@@ -57,7 +57,7 @@ max_point_multiplicity == 2
 transversal            == 4512
 spatial                == 0
 
-xfail_cross     = 1 @f32       | f32 cannot resolve a 10^4 : 1 scale ratio; refuses with code 8, and with code 6 misdiagnoses it as a 3D self-intersection
-xfail_invariant = 1 @f32       | same, on the generic rotation this class is anchored to
-xfail_rotation  = 1 @f32       | same, on the anchoring projection
-xfail_rotation  = 2,3,4 @f32   | composing 24 rotations in f32 degrades the curve itself at this scale; the exact classes then correctly diagram the degraded curve. f64 unaffected
+xfail_cross     = 1 @f32,i32       | f32 cannot resolve a 10^4 : 1 scale ratio; refuses with code 8, and with code 6 misdiagnoses it as a 3D self-intersection
+xfail_invariant = 1 @f32,i32       | same, on the generic rotation this class is anchored to
+xfail_rotation  = 1 @f32,i32       | same, on the anchoring projection
+xfail_rotation  = 2,3,4 @f32,i32   | composing 24 rotations in f32 degrades the curve itself at this scale; the exact classes then correctly diagram the degraded curve. f64 unaffected

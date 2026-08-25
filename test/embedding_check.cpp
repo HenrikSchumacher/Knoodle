@@ -90,10 +90,10 @@ using Alexander_T = kt::LinkAlexander<std::complex<double>,std::int64_t>;
 //        Henrik speaking: This should resolved by now (2026-08-17).
 //
 //   i32  The 32-bit backend (`IReal_ = Int32`), which the class docs recommend
-//        pairing with `Real_ = float`. Prosector2 hits an ambiguous `Sign` call
-//        (src/Prosector2/Helpers.hpp:16); Prosector3 and Prosector4 hit
-//        "excess elements in array initializer" at src/WideInt.hpp:112.
-//        Enable with -DKNOODLE_TEST_INT32_BACKEND.
+//        pairing with `Real_ = float`. Did not compile until 2026-08 (upstream
+//        issue 4: ambiguous `Sign` in Prosector2, "excess elements in array
+//        initializer" in WideInt for Prosector3/4); in the default set as of
+//        2026-08-25. Its Real_ is float, so it inherits every @f32 marker.
 //        Henrik speaking: This should resolved by now (2026-08-17).
 //
 // The integral-coordinate *path* is nevertheless exercised by default:
@@ -114,12 +114,10 @@ using LE2_f32 = Knoodle::LinkEmbedding2<float,std::int64_t,std::int64_t>;
 using LE3_f32 = Knoodle::LinkEmbedding3<float,std::int64_t,std::int64_t>;
 using LE4_f32 = Knoodle::LinkEmbedding4<float,std::int64_t,std::int64_t>;
 
-#ifdef KNOODLE_TEST_INT32_BACKEND
 using LE1_i32 = Knoodle::LinkEmbedding <float,std::int64_t,float>;
 using LE2_i32 = Knoodle::LinkEmbedding2<float,std::int64_t,std::int32_t>;
 using LE3_i32 = Knoodle::LinkEmbedding3<float,std::int64_t,std::int32_t>;
 using LE4_i32 = Knoodle::LinkEmbedding4<float,std::int64_t,std::int32_t>;
-#endif
 
 // Integral `Real_`. Unbuildable until 4d2d0624 implemented it (finding C of
 // docs/embedding-check.md); no longer gated.
@@ -158,19 +156,6 @@ static bool SupportedQ( int cls, Coords c, std::string & why )
             return false;
         }
     }
-    if( c == Coords::i32 )
-    {
-#ifndef KNOODLE_TEST_INT32_BACKEND
-        if( cls != 1 )
-        {
-            why = "the 32-bit backend does not compile (Prosector2: ambiguous Sign at "
-                  "src/Prosector2/Helpers.hpp:16; Prosector3/4: excess elements in array "
-                  "initializer at src/WideInt.hpp:112); rebuild with "
-                  "-DKNOODLE_TEST_INT32_BACKEND once fixed";
-            return false;
-        }
-#endif
-    }
     (void)cls;
     return true;
 }
@@ -205,7 +190,6 @@ static bool WithClass( int cls, Coords c, Fn && fn )
             default: return false;
         }
     }
-#ifdef KNOODLE_TEST_INT32_BACKEND
     if( c == Coords::i32 )
     {
         switch( cls )
@@ -217,7 +201,6 @@ static bool WithClass( int cls, Coords c, Fn && fn )
             default: return false;
         }
     }
-#endif
     if( c == Coords::i64 )
     {
         switch( cls )

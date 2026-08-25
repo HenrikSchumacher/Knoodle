@@ -48,4 +48,4 @@ xcrash_symmetry  = 2,3,4   | assertion in LinesColinearTest: two distinct degene
 # finding B (a zero-length edge makes its two neighbours share a point of
 # 3-space), a different defect with a different outcome.
 xcrash_rotation  = 2,3,4 @i64     | assertion in LinesColinearTest: two distinct degenerate segments (upstream issue 11)
-xfail_rotation   = 2,3,4 @f64,f32 | zero-length edge makes its neighbours meet in 3D (finding B)
+xfail_rotation   = 2,3,4 @f64,f32,i32 | zero-length edge makes its neighbours meet in 3D (finding B)
