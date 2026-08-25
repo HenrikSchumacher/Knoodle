@@ -110,10 +110,12 @@ Two consequences, both in the code:
   re-aiming re-aims, knot type is constant, no upward trend — all still hold, and they
   are the ones that carry the claim.
 
-`i32` (the 32-bit backend) still does not build — finding
-[D](#d-the-32-bit-backend-does-not-compile) is half fixed — and stays behind
-`-DKNOODLE_TEST_INT32_BACKEND`. The binary prints which combinations it could not build;
-it does not skip them silently.
+`i32` (the 32-bit backend) is in the default set as of 2026-08-25: finding
+[D](#d-the-32-bit-backend-does-not-compile) is fixed upstream and the
+`-DKNOODLE_TEST_INT32_BACKEND` gate is gone. Its `Real_` is `float`, so every marker
+scoped `@f32` is also scoped `@i32` — the same precision limits apply, and the two
+`i32` fixtures that fail today (`nearmiss_sphere`, `deg_stacked_points`) fail for the
+f32 reasons already recorded, not for anything 32-bit.
 
 The integral-coordinate *path* is exercised regardless: `ReadVertexCoordinates` detects
 all-integral input and sets `scaling_exponent = 0`, so integer-valued doubles take the
@@ -423,7 +425,7 @@ harness. Severity is my read; the evidence is the part that matters.
 | A | `FromLinkEmbedding(LinkEmbedding2&)` treats success as error | **fixed** — `1d8761c7` + `34cd0fc3` |
 | B | zero-length edges rejected as 3D intersections | **open** |
 | C | integral `Real_` does not compile | **fixed** — `4d2d0624` |
-| D | the 32-bit backend does not compile | **half** — `Sign` resolved, `WideInt` remains |
+| D | the 32-bit backend does not compile | **fixed** — `7ca90e8a`; in the default set since 2026-08-25 |
 | E | `RequireIntersections` segfaults on a triple point | **fixed** — `d26c301f` |
 | F | `FromInString` has two inverted assertions | **fixed** — `8db4cdc4` |
 | G | `Transform` does not invalidate its caches | **fixed** — `8db4cdc4` |
@@ -575,23 +577,22 @@ currently promise something that does not build. Behind `-DKNOODLE_TEST_INTEGER_
 
 ### D. The 32-bit backend does not compile
 
-**HALF FIXED at `fb4c8f0e`.** The `Prosector2` ambiguity is gone; what remains is
-`src/WideInt.hpp:114`, *"excess elements in array initializer"*. Henrik is mid-flight
-here — the `__int128` commits of 2026-08-14 end in a `Rollback` — and notes in
-`4d2d0624` that `int32_t` as `IReal` is problematic anyway because two `WInt32` do not
-`long_mul` into a `WInt64`, *"and we want Int64 here anyways for performance reasons"*.
-So this may well close by narrowing the documentation rather than by making the pairing
-work, which would be a fine outcome; the defect is that the docs promise something that
-does not build.
+**FIXED.** The `Prosector2` `Sign` ambiguity went at `fb4c8f0e`; the `WideInt`
+*"excess elements in array initializer"* went with `7ca90e8a` ("Refined long_mul for
+built-in integral classes"). Verified 2026-08-25: all four classes build with
+`Real_ = float`, `IReal_ = int32_t`, and the `--coords=i32` tier runs. The
+`-DKNOODLE_TEST_INT32_BACKEND` gate is removed and `i32` is in the default set.
 
-**Severity: low, but the docs recommend this pairing.**
+What the tier shows is that `i32` is `f32` with an integer backend: every failure it
+has is one `f32` already has (`nearmiss_sphere` cannot be resolved at a 10^4 : 1 scale
+ratio in `float`; `deg_stacked_points` under a float rotation is finding B). The
+markers on those two fixtures are scoped `@f32,i32` accordingly. No 32-bit-specific
+defect was found.
 
-The docs suggest `Real_ = float` with `IReal_ = int32_t`. Neither works:
-
-- `Prosector2`: `call to 'Sign' is ambiguous`, `src/Prosector2/Helpers.hpp:16` (also 19, 21).
-- `Prosector3`, `Prosector4`: `excess elements in array initializer`, `src/WideInt.hpp:112`.
-
-Behind `-DKNOODLE_TEST_INT32_BACKEND`.
+Historical record: the docs recommended `Real_ = float` with `IReal_ = int32_t`, and
+for a while neither worked — `call to 'Sign' is ambiguous` at
+`src/Prosector2/Helpers.hpp:16` (also 19, 21), and `excess elements in array
+initializer` at `src/WideInt.hpp:112` for `Prosector3`/`Prosector4`.
 
 ### E. `LinkEmbedding::RequireIntersections` segfaults on a triple point
 

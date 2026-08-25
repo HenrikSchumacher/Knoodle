@@ -448,11 +448,11 @@ Detail: [embedding-check.md §5B](embedding-check.md#b-zero-length-edges-are-rej
 
 ## 4. `LinkEmbedding2/3/4` do not compile with the 32-bit backend
 
-**Status:** HALF FIXED at `fb4c8f0e`. The `Prosector2` `Sign` ambiguity is gone;
-`src/WideInt.hpp:114` "excess elements in array initializer" remains, and the
-`__int128` work of 2026-08-14 ends in a `Rollback`. May close by narrowing the
-docs instead: `4d2d0624` notes `int32_t` as `IReal` is problematic anyway, and
-"we want Int64 here anyways for performance reasons".
+**Status:** FIXED, verified 2026-08-25. The `Prosector2` `Sign` ambiguity went
+at `fb4c8f0e`, the `WideInt` initializer error with `7ca90e8a`. All four classes
+now build with `Real_ = float`, `IReal_ = int32_t`; `test/embedding_check` runs
+the `i32` tier by default (the `-DKNOODLE_TEST_INT32_BACKEND` gate is gone). Its
+only failures are the ones `f32` already has — no 32-bit-specific defect.
 Confirmed 2026-08-13. **Severity:** low, but the class docs
 recommend the `Real_ = float`, `IReal_ = int32_t` pairing.
 
