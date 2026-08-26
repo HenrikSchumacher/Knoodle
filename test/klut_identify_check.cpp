@@ -10,8 +10,10 @@
 //   (4) a multi-component link : two different-colored knots -> LinkOutOfScope.
 #include "../Knoodle.hpp"
 #include "../tools/klut_identify.hpp"
+#include "diagram_sanity.hpp"
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -26,6 +28,29 @@ using Reapr_T = Knoodle::Reapr<Real, Int, float>;
 using Klut    = Knoodle::Klut;
 using Key     = std::vector<Knoodle::UInt8>;
 namespace ki  = klut_identify;
+
+// Identify() consumes its input and returns only ids + PD codes, so the sanity
+// checks run at the test boundary: every diagram/complex we hand it must be
+// sane going in. Corruption is a hard failure, never a skipped sample.
+static void RequireSanity(const PD_T& pd, const char* where)
+{
+    std::string why;
+    if (!KnoodleTest::DiagramSanityQ(pd, &why))
+    {
+        std::cerr << "FATAL: diagram sanity failure at " << where << ":\n" << why;
+        std::exit(1);
+    }
+}
+
+static void RequireSanity(PDC_T& pdc, const char* where)
+{
+    std::string why;
+    if (!KnoodleTest::ComplexSanityQ(pdc, &why))
+    {
+        std::cerr << "FATAL: diagram sanity failure at " << where << ":\n" << why;
+        std::exit(1);
+    }
+}
 
 static std::uint64_t mix(std::uint64_t x)
 {
@@ -119,7 +144,8 @@ int main(int argc, char** argv)
                 auto [P, unlinks] = PD_T::FromLinkEmbedding(emb);
                 if (!P.ValidQ() || unlinks.Size() > Int(0)
                     || P.LinkComponentCount() > Int(1) || P.DiagramComponentCount() > Int(1)) { continue; }
-                
+                RequireSanity(P, "embed+reproject perturbation (case 1)");
+
                 // std::move, not `PDC_T pdc { P }`: an lvalue selects the
                 // `const PD_T &` overload, which delegates to a 2-argument
                 // constructor that only accepts `PD_T &&` and therefore cannot
@@ -171,6 +197,7 @@ int main(int argc, char** argv)
         csA.Unlock();
         for (const auto& key : keys) { csA.Push(FromKey(key, Int(0))); }
         csA.Lock();
+        RequireSanity(csA, "multi-diagram connect sum (case 2, form A)");
         bool aiA;
         auto idsA = SortedIds(ki::Identify(klut, std::move(csA), reapr), aiA);
 
@@ -183,6 +210,7 @@ int main(int argc, char** argv)
         csB.Unlock();
         csB.Push(tmp.ToSingleDiagram());
         csB.Lock();
+        RequireSanity(csB, "spliced single diagram (case 2, form B)");
         bool aiB;
         auto idsB = SortedIds(ki::Identify(klut, std::move(csB), reapr), aiB);
 
@@ -239,6 +267,7 @@ int main(int argc, char** argv)
             pdc.Push(FromKey(k3, Int(0)));
             pdc.Push(FromKey(k3, Int(1)));  // 2 colors = link
         }
+        RequireSanity(pdc, "two-color link complex (case 4)");
         auto r = ki::Identify(klut, std::move(pdc), reapr);
         const bool pass = (r.status == ki::IdentifyResult::Status::LinkOutOfScope);
         if (!pass) { ++fails; }

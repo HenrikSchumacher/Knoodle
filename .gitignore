@@ -84,6 +84,7 @@ test/inflate_fail_*.tsv
 # exactly this set.
 test/canon_check
 test/component_check
+test/diagram_sanity_check
 test/embedding_check
 test/embedding_inflation_check
 test/error_tap_check

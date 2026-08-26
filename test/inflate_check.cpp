@@ -24,6 +24,7 @@
  */
 
 #include "../Knoodle.hpp"   // KNOODLE_USE_UMFPACK supplied by the Makefile (-D)
+#include "diagram_sanity.hpp"
 
 extern "C" {
 #include "vendor/libhomfly/homfly.h"
@@ -267,6 +268,25 @@ bool RunTrial(PD_T start, const Config& cfg, const Alex_T& alex)
         }
         pd = std::move(pd_new);
 
+        // Structural tripwire, cheaper and earlier than the Alexander one
+        // below: the embed->reproject round must hand back a sane planar
+        // diagram. Linear cost, noise next to the embedding work above.
+        {
+            std::string why;
+            if (!KnoodleTest::DiagramSanityQ(pd, &why))
+            {
+                const std::string dump = "inflate_fail_seed" + std::to_string(cfg.seed)
+                                       + "_round" + std::to_string(round) + ".tsv";
+                DumpPD(prev, dump);
+                std::cout << "  FAIL: diagram sanity failed at round " << round
+                          << " (" << pd.CrossingCount() << " crossings):\n"
+                          << why
+                          << "  reproduce: load " << dump << ", Reapr seed "
+                          << seed_k << ", one embed+reproject.\n";
+                return false;
+            }
+        }
+
         // Tripwire: the Alexander value must not change.
         const AlexFingerprint alex_k = Alexander(alex, pd);
         if (!AlexEqual(alex_k, alex0))
@@ -312,6 +332,16 @@ bool RunTrial(PD_T start, const Config& cfg, const Alex_T& alex)
                      "non-trivial; it should not vanish).\n";
         DumpPD(pd, "inflate_fail_seed" + std::to_string(cfg.seed) + "_simplify.tsv");
         return false;
+    }
+    {
+        std::string why;
+        if (!KnoodleTest::ComplexSanityQ(pdc, &why))
+        {
+            std::cout << "  FAIL: simplified complex failed diagram sanity:\n"
+                      << why;
+            DumpPD(pd, "inflate_fail_seed" + std::to_string(cfg.seed) + "_simplify.tsv");
+            return false;
+        }
     }
     PD_T recovered = pdc.ToSingleDiagram();
     const Int rec_c = recovered.CrossingCount();
