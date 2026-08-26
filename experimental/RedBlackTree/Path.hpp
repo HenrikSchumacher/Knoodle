@@ -56,7 +56,7 @@ void PushPath( const bool side )
     
     if constexpr ( bound_checksQ )
     {
-        if ( !NodeActiveQ(current) )
+        if ( current == NIL )
         {
             wprint(MethodName("PushPath") + ": current == NIL.");
         }
@@ -77,7 +77,7 @@ void PushPath( const bool side )
     
     const Int parent = current;
     Path(++path_ptr) = ToPathNode(parent,side);
-    current = Child(parent,side);
+    current = GetChild(parent,side);
     
     if constexpr ( verboseQ )
     {
@@ -90,10 +90,10 @@ void PushPath( const bool side )
         {
             eprint(MethodName("PushPath") + ": parent == current = " + ToString(parent) + ".");
             
-            TOOLS_LOGDUMP(State(parent));
-            TOOLS_LOGDUMP(Child(parent,Left ));
-            TOOLS_LOGDUMP(Child(parent,Right));
-            TOOLS_LOGDUMP(Data(parent));
+            TOOLS_LOGDUMP(GetState(parent));
+            TOOLS_LOGDUMP(GetChild(parent,Left ));
+            TOOLS_LOGDUMP(GetChild(parent,Right));
+            TOOLS_LOGDUMP(GetData(parent));
         }
     }
 }
@@ -170,7 +170,7 @@ Int Sibling() // const
     const UInt P = Path(path_ptr);
     if(P == PNIL) return NIL;
     auto [N,side] = FromPathNode(P);
-    return Child(N, !side);
+    return GetChild(N, !side);
 }
 
 Int Uncle() // const
@@ -178,7 +178,7 @@ Int Uncle() // const
     const UInt P = Path(path_ptr-Int{1});
     if(P == PNIL) return NIL;
     auto [N,side] = FromPathNode(P);
-    return Child(N, !side);
+    return GetChild(N, !side);
 }
 
 Int GreatUncle() // const
@@ -186,7 +186,7 @@ Int GreatUncle() // const
     const UInt P = Path(path_ptr-Int{2});
     if(P == PNIL) return NIL;
     auto [N,side] = FromPathNode(P);
-    return Child(N, !side);
+    return GetChild(N, !side);
 }
 
 private:

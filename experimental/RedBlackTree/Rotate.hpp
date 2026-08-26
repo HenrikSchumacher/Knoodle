@@ -4,7 +4,7 @@ bool AdmissableEdgeQ( const Int p, const bool side, const Int x )
 {
     if( p==NIL ) { return (x == root); }
     
-    return (Child(p,side) == x);
+    return (GetChild(p,side) == x);
 }
 
 bool AssertAdmissableEdge( const Int p, const bool side, const Int x )
@@ -24,7 +24,7 @@ public: // TODO: Make this private after testing.
  *
  * @param p The parent node of `x`. It must be `NIL` if `x` is the root of the tree.
  *
- * @param side If `p` is not `NIL`, then we expect that `x == Child(p,side)`. Otherwise, it does not matter. This variable is to reduce branching in the code.
+ * @param side If `p` is not `NIL`, then we expect that `x == GetChild(p,side)`. Otherwise, it does not matter. This variable is to reduce branching in the code.
  *
  * @param x The node at which we rotate the tree.
  *
@@ -60,15 +60,15 @@ int RotateTree( const Int p, const bool side, const Int x, const bool dir )
      *  b     z                 z     a
      *
      */
-    Int y = Child(x,!dir);
-    Int z = Child(y, dir);
+    Int y = GetChild(x,!dir);
+    Int z = GetChild(y, dir);
 
-    Child(x,!dir) = z;
-    Child(y, dir) = x;
+    SetChild(x,!dir,z);
+    SetChild(y, dir,x);
     
     if( p != NIL )
     {
-        Child(p,side) = y;
+        SetChild(p,side,y);
     }
     else
     {

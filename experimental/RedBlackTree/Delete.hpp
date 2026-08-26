@@ -1,17 +1,12 @@
 public:
 
 
-template<
-    bool verboseQ = false, typename F = std::identity, typename C = std::less<>
->
-int Delete( const Data_T & data, F && f = F(), C && cmp = C() )
+template<bool verboseQ = false>
+int Delete( const Data_T & data )
 {
     if constexpr ( verboseQ ) { logprint(MethodName("Delete")); }
     
-    if( !Find(data, std::forward<F>(f), std::forward<C>(cmp)) )
-    {
-        return -1;
-    };
+    if( !Find(data) ) { return -1; };
 
     return DeleteCurrentNode();
 }
@@ -30,8 +25,8 @@ int DeleteCurrentNode()
         logvalprint("Node to delete",node);
     }
     
-    const bool leftQ  = (Child(node,Left ) != NIL);
-    const bool rightQ = (Child(node,Right) != NIL);
+    const bool leftQ  = (GetChild(node,Left ) != NIL);
+    const bool rightQ = (GetChild(node,Right) != NIL);
     
     int child_count = leftQ + rightQ;
     
@@ -52,7 +47,7 @@ int DeleteCurrentNode()
             // Swap data.
             // TODO: This moves data, which is a bit unpleasant.
             // TODO: It would be nicer if we could swap the nodes and leave the data where it is.
-            Data(node) = Data(descendant);
+            SetData(node, GetData(descendant));
 
             // Delete `descendant`.
             // Note that `descendant` is guaranteed to have either no children or a single  child to the _right_. So calling DeleteCurrentNode() takes us definitely to another branch and does not cycle indefinitely.
@@ -64,7 +59,7 @@ int DeleteCurrentNode()
             // Node must be black.
             // Single child must be red.
             
-            const Int child = Child(node,rightQ);
+            const Int child = GetChild(node,rightQ);
             
             // We could move data of `C` to `N` and delete `C` or replace `N` by `C` and paint it black.
             // We do the latter because we want to avoid copying.
@@ -84,10 +79,10 @@ int DeleteCurrentNode()
                     logprint("Deleting interior node with 1 child.");
                 }
                 auto [parent,parent_side] = ParentData();
-                Child(parent,parent_side) = child;
+                SetChild(parent, parent_side, child);
             }
             
-            State(child) = State_T::Black;
+            SetState(child, State_T::Black);
             DeactivateNode(node);
             return 0;
         }
@@ -106,14 +101,14 @@ int DeleteCurrentNode()
                 return 0;
             }
             
-            if( State(node) == State_T::Red )
+            if( GetState(node) == State_T::Red )
             {
                 if constexpr ( verboseQ )
                 {
                     logprint("Deleting red node with 0 children.");
                 }
                 auto [parent,parent_side] = ParentData();
-                Child(parent,parent_side) = NIL;
+                SetChild(parent, parent_side, NIL);
                 DeactivateNode(node);
                 return 0;
             }
@@ -124,7 +119,7 @@ int DeleteCurrentNode()
             }
             
             auto [parent,parent_side] = ParentData();
-            Child(parent,parent_side) = NIL;
+            SetChild(parent, parent_side, NIL);
             DeactivateNode(node);
             
             return RebalanceAfterDelete();
@@ -139,7 +134,7 @@ int RebalanceAfterDelete()
     
     if constexpr ( verboseQ )
     {
-        logprint(std::string("RebalanceAfterDelete: node to delete = ") + ToString(Current()) + ", data " + ToString(Data(Current())) + ".");
+        logprint(std::string("RebalanceAfterDelete: node to delete = ") + ToString(Current()) + ", data " + ToString(GetData(Current())) + ".");
     }
     
     Int  P;  // parent;
@@ -157,17 +152,17 @@ int RebalanceAfterDelete()
         std::tie(P,P_side) = ParentData();
         
         // N is black, so it must have a sibling.
-        S  = Child(P,!P_side);
-        DN = Child(S,!P_side);
-        CN = Child(S, P_side);
+        S  = GetChild(P,!P_side);
+        DN = GetChild(S,!P_side);
+        CN = GetChild(S, P_side);
         
-        if( State(S) == State_T::Red )
+        if( GetState(S) == State_T::Red )
         {
             if constexpr ( verboseQ ) { logprint("Case 3"); }
             
             RotateTree(G, G_side, P, P_side);
-            State(P) = State_T::Red;
-            State(S) = State_T::Black;
+            SetState(P, State_T::Red  );
+            SetState(S, State_T::Black);
             
             /*! For `P_side == Left`.
              *
@@ -188,7 +183,7 @@ int RebalanceAfterDelete()
             G      = S;
             G_side = P_side;
             S      = CN;
-            DN     = Child(S,!P_side);
+            DN     = GetChild(S,!P_side);
             
             if( RedQ(DN) )
             {
@@ -211,7 +206,7 @@ int RebalanceAfterDelete()
                 goto case_6;
             }
             
-            CN = Child(S, P_side);
+            CN = GetChild(S, P_side);
             if( RedQ(CN) )
             {
                 /*!            G(b) = old S(b)
@@ -251,12 +246,12 @@ int RebalanceAfterDelete()
              *          CN(b)  DN(b)
              */
             
-            State(P) = State_T::Black;
-            State(S) = State_T::Red;
+            SetState(P, State_T::Black);
+            SetState(S, State_T::Red  );
             if constexpr ( verboseQ ) { logprint("Exit from case 4a"); }
             return 0;
             
-        } // if( State(S) == State_T::Red )
+        } // if( GetState(S) == State_T::Red )
         
         // S must be black.
         
@@ -287,7 +282,7 @@ int RebalanceAfterDelete()
          *          CN(b)  DN(b)
          */
         
-        if( State(P) == State_T::Red )
+        if( GetState(P) == State_T::Red )
         {
             /*!        P(r) ==> P(b)
              *         / \
@@ -302,8 +297,8 @@ int RebalanceAfterDelete()
             
             if constexpr ( verboseQ ) { logprint("Case 4b"); }
             
-            State(S) = State_T::Red;
-            State(P) = State_T::Black;
+            SetState(S, State_T::Red  );
+            SetState(P, State_T::Black);
             if constexpr ( verboseQ ) { logprint("Exit from case 4b"); }
             return 0;
         }
@@ -320,7 +315,7 @@ int RebalanceAfterDelete()
          */
         if constexpr ( verboseQ ) { logprint("Case 2"); }
         
-        State(Sibling()) = State_T::Red;
+        SetState(Sibling(), State_T::Red);
         PopPath();
         
     } while ( Parent() != NIL );
@@ -335,20 +330,20 @@ case_5:
     {
         logprint("Case 5");
         
-        if( State(CN) != State_T::Red )
+        if( GetState(CN) != State_T::Red )
         {
-            wprint("State(CN) != State_T::Red");
+            wprint("GetState(CN) != State_T::Red");
         }
     }
     
-//    if( State(DN) != State_T::Black )
+//    if( GetState(DN) != State_T::Black )
 //    {
-//        wprint("State(DN) != State_T::Black");
+//        wprint("GetState(DN) != State_T::Black");
 //    }
     
     RotateTree( P, !P_side, S, !P_side);
-    State(S)  = State_T::Red;
-    State(CN) = State_T::Black;
+    SetState(S , State_T::Red  );
+    SetState(CN, State_T::Black);
 
     /*!            G(?)                         G(?)
      *              /                            /
@@ -381,16 +376,16 @@ case_6:
     {
         logprint("Case 6");
         
-        if( State(DN) != State_T::Red )
+        if( GetState(DN) != State_T::Red )
         {
-            wprint("State(DN) != State_T::Red");
+            wprint("GetState(DN) != State_T::Red");
         }
     }
     
     RotateTree( G, G_side, P, P_side);
-    State(S)  = State(P);
-    State(P)  = State_T::Black;
-    State(DN) = State_T::Black;
+    SetState(S , GetState(P)   );
+    SetState(P , State_T::Black);
+    SetState(DN, State_T::Black);
     
     /*!            G(?)                         G(?)
      *              /                            /
@@ -414,9 +409,8 @@ case_6:
 
 void DeactivateNode( Int node )
 {
-    if( (node == NIL) || (State(node) == State_T::Inactive) ) { return; }
+    if( node == NIL ) { return; }
     
-    State(node) = State_T::Inactive;
     deleted_nodes.push_back(node);
     
     if constexpr ( bound_checksQ )

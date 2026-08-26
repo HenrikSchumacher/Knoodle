@@ -3,7 +3,8 @@ public:
 struct Node_T
 {
     Int child [2] = { NIL, NIL };
-    State_T state = State_T::Inactive;
+    Data_T data;
+    State_T state = State_T::Red;
     
     mref<Int> operator[]( bool side )       { return child[side]; }
     
@@ -11,12 +12,10 @@ struct Node_T
 };
 
 using NodeContainer_T = Tensor1<Node_T,Int>;
-using DataContainer_T = Tensor1<Data_T,Int>;
 
 private:
 
 NodeContainer_T node_buffer;
-DataContainer_T node_data;
 
 public:
 
@@ -28,11 +27,13 @@ void Reserve( const Int size )
     if( NodeCapacity() < size )
     {
         node_buffer.template Resize<true>(size);
-        node_data  .template Resize<true>(size);
     }
 }
 
-Int & Child( const Int node, const bool side )
+
+// TODO: All these have to be private.
+
+Int GetChild( const Int node, const bool side ) const
 {
     if constexpr ( bound_checksQ )
     {
@@ -41,16 +42,16 @@ Int & Child( const Int node, const bool side )
     return node_buffer[node][side];
 }
 
-const Int & Child( const Int node, const bool side ) const
+void SetChild( const Int node, const bool side, const Int child )
 {
     if constexpr ( bound_checksQ )
     {
         if( !InRangeQ(node) ) { return dummy_node; }
     }
-    return node_buffer[node][side];
+    node_buffer[node][side] = child;
 }
 
-State_T & State( const Int node )
+State_T GetState( const Int node ) const
 {
     if constexpr ( bound_checksQ )
     {
@@ -59,29 +60,38 @@ State_T & State( const Int node )
     return node_buffer[node].state;
 }
 
-const State_T & State( const Int node ) const
+void SetState( const Int node, const State_T state )
 {
     if constexpr ( bound_checksQ )
     {
         if( !InRangeQ(node) ) { return dummy_state; }
     }
-    return node_buffer[node].state;
+    node_buffer[node].state = state;
 }
 
-Data_T & Data( const Int node )
+const Data_T & GetData( const Int node ) const
 {
     if constexpr ( bound_checksQ )
     {
         if( !InRangeQ(node) ) { return dummy_data; }
     }
-    return node_data[node];
+    return node_buffer[node].data;
 }
 
-const Data_T & Data( const Int node ) const
+void SetData( const Int node, cref<Data_T> data )
 {
     if constexpr ( bound_checksQ )
     {
         if( !InRangeQ(node) ) { return dummy_data; }
     }
-    return node_data[node];
+    node_buffer[node].data = data;
+}
+
+void SetData( const Int node, Data_T && data )
+{
+    if constexpr ( bound_checksQ )
+    {
+        if( !InRangeQ(node) ) { return dummy_data; }
+    }
+    node_buffer[node].data = std::move(data);
 }

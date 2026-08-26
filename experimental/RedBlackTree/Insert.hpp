@@ -4,16 +4,10 @@ public:
  *
  * CAUTION: There is currently no guarantee on the state of the internal path stack after the call to `Insert`: in particular, `Current()` need _not_ point to the inserted node and `Parent()` need not be its parent.
  *
- * @param f A function. It is assumed that the nodes `N` in the tree are sorted by `f(N.data)`
- *
- * @param cmp A user-defined comparison function for the type returned by `f`. `cmp(a,b)` should return true if `a` is considered less than `b`.
- *
  * @return `0` if the insertion was successful and if the internal path stack traces the path to the inserted node. `1` if the insertion was successful, but the path to the inserted node is not traced. `-1` if a node with that data field already existed.
  */
-template<
-    bool verboseQ = false, typename F = std::identity, typename C = std::less<>
->
-int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
+template<bool verboseQ = false>
+int Insert( const Data_T & data, const bool overwriteQ = false )
 {
     if constexpr ( verboseQ )
     {
@@ -23,8 +17,9 @@ int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
     // First we do a standard BST insertion.
     
     // The call to Find is necessary to initialize that path stack correctly.
-    if( Find(data, std::forward<F>(f), std::forward<C>(cmp)) )
+    if( Find(data) )
     {
+        if( overwriteQ ) { SetData(Current(),data); }
         return -1;
     };
     
@@ -33,11 +28,11 @@ int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
     if( Parent() == NIL )
     {
         root = new_node;
-        State(root) = State_T::Black;
+        SetState(root, State_T::Black);
         return 0;
     }
     
-    Child(Parent(),ParentSide()) = new_node;
+    SetChild(Parent(), ParentSide(), new_node);
     // `Current()` is still a `NIL`. We inserted `node` there, so we have to tell the path about it, too.
     current = new_node;
 
@@ -45,7 +40,7 @@ int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
     do
     {
         auto [P,P_side] = ParentData();
-        if( State(P) == State_T::Black )
+        if( GetState(P) == State_T::Black )
         {
 //            logprint("Case 1");
             return 0;
@@ -57,14 +52,14 @@ int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
         if( G == NIL )
         {
 //            logprint("Case 4");
-            State(P) = State_T::Black;
+            SetState(P, State_T::Black);
             return 0;
         }
         
-        Int U = Child(G, !G_side);
+        Int U = GetChild(G, !G_side);
         
         // CAUTION: The path will be invalidated by this. But there is a guaranteed `return` in this if-branch, so messing around with the path does not harm the do loop.
-        if( (U == NIL) || (State(U) == State_T::Black) )
+        if( (U == NIL) || (GetState(U) == State_T::Black) )
         {
             // parent is red but uncle is black.
 //            logprint("Case 5 or 6");
@@ -124,8 +119,8 @@ int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
              * X(b)  Y(b)                                  A(r) B(r)
              */
 
-            State(P) = State_T::Black;
-            State(G) = State_T::Red;
+            SetState(P, State_T::Black);
+            SetState(G, State_T::Red  );
             
             auto [GG,GG_side] = GreatGrandParentData();
             RotateTree( GG, GG_side, G, !G_side );
@@ -137,9 +132,9 @@ int Insert( const Data_T & data, F && f = F(), C && cmp = C() )
 //        logprint("Case 2");
         // Case 2: parent and uncle are both red.
         // We make both black, and turn the grandparent red.
-        State(P) = State_T::Black;
-        State(U) = State_T::Black;
-        State(G) = State_T::Red;
+        SetState(P, State_T::Black);
+        SetState(U, State_T::Black);
+        SetState(G, State_T::Red  );
         // This may cause a red violation at the grandparent, so we walk two steps up and check again.
         PopPath();
         PopPath();
@@ -178,21 +173,21 @@ Int NewNodeId()
 
 Int CreateNode( cref<Data_T> data )
 {
-    const Int node         = NewNodeId();
-    Child(node,Left ) = NIL;
-    Child(node,Right) = NIL;
-    Data(node)        = data;
-    State(node)       = State_T::Red;
+    const Int node    = NewNodeId();
+    SetChild(node, Left , NIL);
+    SetChild(node, Right, NIL);
+    SetData (node, data);
+    SetState(node, State_T::Red);
     return node;
 }
 
 Int CreateNode( Data_T && data )
 {
-    const Int node         = NewNodeId();
-    Child(node,Left ) = NIL;
-    Child(node,Right) = NIL;
-    Data(node)        = std::move(data);
-    State(node)       = State_T::Red;
+    const Int node = NewNodeId();
+    SetChild(node, Left , NIL);
+    SetChild(node, Right, NIL);
+    SetData (node, std::move(data));
+    SetState(node, State_T::Red);
     
     return node;
 }
