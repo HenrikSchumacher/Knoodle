@@ -4,14 +4,14 @@ public:
 std::string FaceString( const Int f ) const
 {
     cptr<Int> F_dA_ptr = FaceDarcs().Pointers().data();
-    cptr<Int> F_dA_idx = FaceDarcs().Indices().data();
+    cptr<Int> F_dA_idx = FaceDarcs().Elements().data();
     
     const Int i_begin = F_dA_ptr[f  ];
     const Int i_end   = F_dA_ptr[f+1];
     
     const Int f_size = i_end - i_begin;
     
-    return "face " + ToString(f) + " = " + OutString::FromVector( &F_dA_idx[i_begin], f_size );
+    return "face " + ToString(f) + " = " + std::string(OutString::FromVector( &F_dA_idx[i_begin], f_size ));
     
 }
 

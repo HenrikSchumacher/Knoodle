@@ -137,6 +137,25 @@ int main()
                && KnoodleTest::DiagramSanityQ(trefoil),
            "trefoil with warm cache still passes (stale-cache arm agrees)" );
 
+    // `FaceString` is a debugging accessor nobody calls, so a typo in it never
+    // fails to compile (it called `RaggedList::Indices()`, which does not
+    // exist, for a long time). Instantiate it on every face and check that it
+    // lists exactly the darcs FaceDarcs() does, so it cannot rot again.
+    {
+        const auto & F_dA = trefoil.FaceDarcs();
+        bool okQ = true;
+        for( Int f = 0; f < trefoil.FaceCount(); ++f )
+        {
+            const Int i_begin = F_dA.Pointers()[f  ];
+            const Int i_end   = F_dA.Pointers()[f+1];
+            std::string want = "face " + std::to_string((long long)f) + " = "
+                             + std::string(Tools::OutString::FromVector(
+                                   &F_dA.Elements()[i_begin], i_end - i_begin ));
+            okQ = okQ && ( trefoil.FaceString(f) == want );
+        }
+        check( okQ, "FaceString(f) compiles and lists FaceDarcs() for every face" );
+    }
+
     // An invalid diagram is corrupt by definition here.
     {
         PD_T invalid = PD_T::InvalidDiagram();
