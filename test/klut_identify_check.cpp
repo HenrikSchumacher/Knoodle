@@ -209,6 +209,7 @@ int main(int argc, char** argv)
         tmp.Unlock();
         for (const auto& key : keys) { tmp.Push(FromKey(key, Int(0))); }
         tmp.Lock();
+        
         PDC_T csB;
         csB.Unlock();
         csB.Push(tmp.ToSingleDiagram());
