@@ -14,7 +14,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( mref<KnotEmbedding<Re
     Tensor1<Int,Int> comp_color(Int(1),Int(0));
     
     const int err = K.RequireIntersections();
-
+    
     if( err != 0 )
     {
         eprint(MethodName("FromKnotEmbedding") + "("+Knot_T::ClassName()+"): RequireIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
@@ -48,7 +48,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinates( cptr<Real> x, const Ext
 
     L.ReadVertexCoordinates(x);
 
-    int err = L.template FindIntersections<true>();
+    const int err = L.template FindIntersections<true>();
 
     if( err != 0 )
     {
@@ -83,7 +83,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding<Re
     
     TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding")+"("+Link_T::ClassName()+")");
 
-    int err = L.template RequireIntersections<true>();
+    const int err = L.template RequireIntersections<true>();
 
     if( err != 0 )
     {
@@ -112,7 +112,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding_In
     
     TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding")+"("+Link_T::ClassName()+")");
 
-    int err = L.template RequireIntersections<true>();
+    const int err = L.template RequireIntersections<true>();
 
     if( err != 0 )
     {
@@ -160,7 +160,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinatesAndEdges(
 
     L.ReadVertexCoordinates(x);
 
-    int err = L.template FindIntersections<true>();
+    const int err = L.template FindIntersections<true>();
 
     if( err != 0 )
     {

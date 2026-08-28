@@ -15,8 +15,10 @@ klut_bench_boost
 canon_check
 component_check
 error_tap_check
+embedding_check
 embedding_inflation_check
 intersection_flag_reset_check
+intersection3d_check
 klut_identify_check
 klut_identify_random_check
 plantri_check

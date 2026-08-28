@@ -115,7 +115,9 @@ int main(int argc, char** argv)
     }
 
     Klut klut{ std::filesystem::path(g_dir), static_cast<Knoodle::Size_T>(c_max) };
-    klut.RequireSubtables();
+    
+    klut.RequireSubtables();   // LoadSubtables is deprecated for this spelling
+    
     Reapr_T reapr{};
     auto idOf = [&](const Key& key)
     {   auto [c, id] = klut.FindID(FromKey(key));
@@ -197,6 +199,7 @@ int main(int argc, char** argv)
         csA.Unlock();
         for (const auto& key : keys) { csA.Push(FromKey(key, Int(0))); }
         csA.Lock();
+
         RequireSanity(csA, "multi-diagram connect sum (case 2, form A)");
         bool aiA;
         auto idsA = SortedIds(ki::Identify(klut, std::move(csA), reapr), aiA);
@@ -210,6 +213,7 @@ int main(int argc, char** argv)
         csB.Unlock();
         csB.Push(tmp.ToSingleDiagram());
         csB.Lock();
+
         RequireSanity(csB, "spliced single diagram (case 2, form B)");
         bool aiB;
         auto idsB = SortedIds(ki::Identify(klut, std::move(csB), reapr), aiB);
@@ -263,7 +267,6 @@ int main(int argc, char** argv)
             // `ScopedUnlock` has a little bit more overhead, but its destructor runs a small sanity check. No issue if the bracketed code passages is as short as here. But for longer code it certainly helps to reduce complexity.
             // Plus, it is good to have a test case for it.
             Knoodle::ScopedUnlock unlocker (pdc);
-            
             pdc.Push(FromKey(k3, Int(0)));
             pdc.Push(FromKey(k3, Int(1)));  // 2 colors = link
         }

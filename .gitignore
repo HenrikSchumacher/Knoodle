@@ -51,6 +51,7 @@ devel/PolyFold_Kyoto/Polyfold
 devel/PolyFold_Kyoto/PolyFold
 devel/PolyFold_Kyoto/polyfold
 devel/Dev_OrthoDraw/TestOrthoDraw
+<<<<<<< HEAD
 
 examples/Example_Knoodle/Knoodle
 examples/Example_Knoodle/Diagram_Reapr.txt
@@ -59,7 +60,16 @@ examples/Example_Knoodle/Diagram_Simplify4.txt
 examples/Example_Knoodle/Diagram_Simplify5.txt
 examples/Example_Knoodle/Diagram_unsimplified.txt
 
+=======
+>>>>>>> 6cf0330a28996eb81851e69465a4a08986604ccd
 devel/Dev_ClisbyTree2/Example_ClisbyTree2
+
+examples/Example_Knoodle/Knoodle
+examples/Example_Knoodle/Diagram_Reapr.txt
+examples/Example_Knoodle/Diagram_Simplify3.txt
+examples/Example_Knoodle/Diagram_Simplify4.txt
+examples/Example_Knoodle/Diagram_Simplify5.txt
+examples/Example_Knoodle/Diagram_unsimplified.txt
 
 tools/ExampleKnot_simplified.tsv
 tools/knoodlesimplify

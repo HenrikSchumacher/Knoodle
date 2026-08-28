@@ -142,7 +142,7 @@ void Analyze( const LInt i )
         
         T_intersection.Tic<V2Q>();
         
-        int err = L.template FindIntersections<true>();
+        const int err = L.template FindIntersections<true>();
         
         T_intersection.Toc<V2Q>();
         
