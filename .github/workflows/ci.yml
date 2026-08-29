@@ -128,7 +128,9 @@ jobs:
             experimental: true
           - name: debian:bookworm (clang-19 apt.llvm.org, libc++)
             container: "debian:bookworm"
-            cxx: "clang++-19 -stdlib=libc++ -DTOOLS_NO_RESTRICT"
+            # Bookworm's Boost 1.74 container_hash still uses std::unary_function,
+            # which libc++ 17+ removes; the _LIBCPP_ENABLE_* macro re-enables it.
+            cxx: "clang++-19 -stdlib=libc++ -D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION -DTOOLS_NO_RESTRICT"
             no_boost: "1"
             llvm: "19"
     container:
