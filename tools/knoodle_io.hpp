@@ -1068,11 +1068,11 @@ PD_T CreateDiagramFrom3D(const std::vector<Real>& vertices,
     }
 
     // Create PlanarDiagram from 3D coordinates using static factory
-    auto [pd, unlinks] = PD_T::FromKnotEmbedding(coords.data(), vertex_count);
+    auto [pd, unlinks] = PD_T::FromCoordinates(coords.data(), vertex_count);
 
     if (!pd.ValidQ())
     {
-        // FromKnotEmbedding returns an invalid pd alongside a populated
+        // FromCoordinates returns an invalid pd alongside a populated
         // `unlinks` color list precisely when every component turned out to
         // have zero self-intersections (see PlanarDiagramComplex's own
         // pair-consuming constructor, which treats this combination as "all
@@ -1084,7 +1084,7 @@ PD_T CreateDiagramFrom3D(const std::vector<Real>& vertices,
             return PD_T::Unknot(unlinks[0]);
         }
 
-        LogError("FromKnotEmbedding failed to create a valid diagram");
+        LogError("FromCoordinates failed to create a valid diagram");
         return PD_T();
     }
 

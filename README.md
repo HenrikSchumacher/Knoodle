@@ -7,7 +7,7 @@ A collection of tools for computational knot theory. _Knoodle_ includes, `Planar
 
 To use the Knoodle classes in your own programs, clone this repository. To make sure that all submodules are cloned, too, please clone by running the following in the command line:
 
-    git clone --depth 1 --recurse-submodules --shallow-submodules git@github.com:HenrikSchumacher/Knoodle.git
+    git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/HenrikSchumacher/Knoodle.git
 
 Knoodle's command line tools _polyfold_, _knoodlesimplify_, _knoodledraw_, and _knoodleidentify_ (but *not* the Knoodle headers themselves) can be installed via _homebrew_ on a wide variety of systems. The native platform is MacOS/Apple Clang. Installation is continuously tested via GitHub Actions on the `ubuntu-latest` and `macos-26` runners, and WSL2 uses the same Linuxbrew path as native Linux. It should install on a wide variety of linux systems with the following commands: 
 
