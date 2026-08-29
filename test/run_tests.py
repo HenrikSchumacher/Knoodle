@@ -1117,7 +1117,7 @@ def test_embedding_homfly_preserved(name: str,
 def run_tier1d(suite: TestSuite, args):
     """Tier 1d: Children's game knots — 3D embeddings, HOMFLY invariance.
 
-    homfly_check reads the 3-column embedding directly (via FromKnotEmbedding),
+    homfly_check reads the 3-column embedding directly (via FromCoordinates),
     projects it, simplifies, and compares HOMFLY before/after.
     """
     suite.section("Tier 1d: Children's Game Knots")
