@@ -112,30 +112,8 @@ jobs:
             # Rocky 9's Boost is 1.75 (< 1.81, no unordered_flat_map), so build the
             # tools without the boost flat-map define -- as the Sapelo2 cluster does.
             no_boost: "1"
-          # Debian stable (bookworm). Its stock toolchain (clang 14 / gcc 12,
-          # libstdc++ 12) cannot build the tools: no std::format and no C++20
-          # implicit-typename (P0634, clang >= 16). Two legs, added 2026-08-28 after
-          # a user's from-source install on bookworm broke:
-          #   * stock clang -- informational tripwire (expected fail, goes green if
-          #     upstream ever gains fallbacks);
-          #   * clang-19 from apt.llvm.org + libc++ -- the recipe we tell bookworm
-          #     users; this one is a real gate.
-          # Boost 1.74 < 1.81 (no unordered_flat_map) => no_boost, like Rocky.
-          - name: debian:bookworm (stock clang 14, tripwire, expected fail)
-            container: "debian:bookworm"
-            cxx: "clang++ -DTOOLS_NO_RESTRICT"
-            no_boost: "1"
-            experimental: true
-          - name: debian:bookworm (clang-19 apt.llvm.org, libc++)
-            container: "debian:bookworm"
-            # Bookworm's Boost 1.74 container_hash still uses std::unary_function,
-            # which libc++ 17+ removes; the _LIBCPP_ENABLE_* macro re-enables it.
-            cxx: "clang++-19 -stdlib=libc++ -D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION -DTOOLS_NO_RESTRICT"
-            no_boost: "1"
-            llvm: "19"
     container:
       image: ${{ matrix.container }}
-    continue-on-error: ${{ matrix.experimental == true }}
     env:
       HOMEBREW_PREFIX: /usr
       CI_CXX: ${{ matrix.cxx }}
@@ -159,8 +137,55 @@ jobs:
           dnf -y install clang make git boost-devel suitesparse-devel \
                          python3 findutils
 
-      - name: Install toolchain + deps (Debian)
-        if: startsWith(matrix.container, 'debian')
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Fetch submodules (ssh->https, no LFS)
+        run: |
+          git config --global --add safe.directory '*'
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git submodule update --init --recursive
+
+      - name: Build tools + run light-tier tests
+        run: bash scripts/ci-build-and-test.sh
+
+  # Debian stable (bookworm), MANUAL ONLY for now (Actions -> ci -> "Run workflow",
+  # or `gh workflow run ci.yml --ref <branch>`): not on push/PR/cron until the
+  # initial slew of bookworm problems is fixed, then fold into the always-on
+  # matrix. Added 2026-08-28 after a user's from-source install on bookworm broke.
+  #
+  # Bookworm's stock toolchain (clang 14 / gcc 12, libstdc++ 12) cannot build the
+  # tools: no std::format and no C++20 implicit-typename (P0634, clang >= 16); its
+  # gcc 13/14 would hit HenrikSchumacher/Knoodle#15. Two legs:
+  #   * stock clang -- informational tripwire (expected fail; goes green if
+  #     upstream ever gains fallbacks);
+  #   * clang-19 from apt.llvm.org + libc++ -- the recipe we tell bookworm users.
+  # Boost 1.74 < 1.81 (no unordered_flat_map) => no_boost, like Rocky.
+  debian:
+    name: ${{ matrix.name }}
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: debian:bookworm (stock clang 14, tripwire, expected fail)
+            cxx: "clang++ -DTOOLS_NO_RESTRICT"
+            experimental: true
+          - name: debian:bookworm (clang-19 apt.llvm.org, libc++)
+            # Bookworm's Boost 1.74 container_hash still uses std::unary_function,
+            # which libc++ 17+ removes; the _LIBCPP_ENABLE_* macro re-enables it.
+            cxx: "clang++-19 -stdlib=libc++ -D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION -DTOOLS_NO_RESTRICT"
+            llvm: "19"
+    container:
+      image: debian:bookworm
+    continue-on-error: ${{ matrix.experimental == true }}
+    env:
+      HOMEBREW_PREFIX: /usr
+      CI_CXX: ${{ matrix.cxx }}
+      CI_NO_BOOST: "1"
+    steps:
+      - name: Install toolchain + deps
         # Bare debian image: git + ca-certificates are needed by actions/checkout.
         # With matrix.llvm set, add apt.llvm.org and install that clang + libc++.
         run: |
@@ -178,6 +203,7 @@ jobs:
             apt-get install -y --no-install-recommends \
               clang-$V libc++-$V-dev libc++abi-$V-dev
           fi
+
       - name: Check out
         uses: actions/checkout@v4
 
