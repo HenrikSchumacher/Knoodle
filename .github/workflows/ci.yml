@@ -91,9 +91,9 @@ jobs:
           HOMEBREW_PREFIX: ${{ matrix.homebrew_prefix }}
         run: bash scripts/ci-build-and-test.sh
 
-  # RHEL-family coverage (no native Fedora/RHEL runner exists), as containers on
-  # ubuntu-latest -- fedora:latest for recent gcc, rockylinux:9 as the Sapelo2
-  # cluster proxy. Skipped on pull_request to keep PR CI fast (each does a full dnf
+  # RHEL-family + Debian coverage (no native Fedora/RHEL/Debian runner exists), as
+  # containers on ubuntu-latest -- fedora:latest for recent gcc, rockylinux:9 as
+  # the Sapelo2 cluster proxy, debian:bookworm for Debian-stable user installs. Skipped on pull_request to keep PR CI fast (each does a full dnf
   # toolchain install); push/cron/dispatch coverage is enough since we bump on main.
   rpm:
     name: ${{ matrix.name }}
@@ -111,6 +111,14 @@ jobs:
             cxx: "clang++ -DTOOLS_NO_RESTRICT"
             # Rocky 9's Boost is 1.75 (< 1.81, no unordered_flat_map), so build the
             # tools without the boost flat-map define -- as the Sapelo2 cluster does.
+            no_boost: "1"
+          # Debian stable (bookworm: clang 14, gcc 12, Boost 1.74). Added 2026-08-28
+          # after a user's from-source install on bookworm broke. Boost 1.74 < 1.81
+          # (no unordered_flat_map) => no_boost, like Rocky; Debian's gcc 12/13 would
+          # hit HenrikSchumacher/Knoodle#15, so build with distro clang.
+          - name: debian:bookworm (clang)
+            container: "debian:bookworm"
+            cxx: "clang++ -DTOOLS_NO_RESTRICT"
             no_boost: "1"
     container:
       image: ${{ matrix.container }}
@@ -137,6 +145,14 @@ jobs:
           dnf -y install clang make git boost-devel suitesparse-devel \
                          python3 findutils
 
+      - name: Install toolchain + deps (Debian)
+        if: startsWith(matrix.container, 'debian')
+        # Bare debian image: git + ca-certificates are needed by actions/checkout.
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            clang make git ca-certificates libboost-dev libsuitesparse-dev \
+            python3
       - name: Check out
         uses: actions/checkout@v4
 
