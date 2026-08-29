@@ -53,8 +53,8 @@ void LoadKnotInfo(
         {
             name_stream >> name;
             names.push_back(name);
-            //        s.TakeMatrixFunction(pd_code.WriteAccess(),crossing_count,Int(4),"{",",","}","{",",","}");
-            s.TakeMatrixFunction(pd_code.WriteAccess(),crossing_count,Int(4), "","\n","\n", ""," ","");
+
+            s.TakeMatrix(pd_code.WriteAccess(),crossing_count,Int(4), "","\n","\n", ""," ","");
             
             if( s.FailedQ() )
             {

@@ -48,7 +48,7 @@ void LoadPlantriPDCodes(
 //        tic("Reading inputs");
         while( !s.EmptyQ() && !s.FailedQ() )
         {
-            s.TakeMatrixFunction(pd_code.WriteAccess(),crossing_count,Int(4), "","\n","\n", ""," ","");
+            s.TakeMatrix(pd_code.WriteAccess(),crossing_count,Int(4), "","\n","\n", ""," ","");
             if( s.FailedQ() )
             {
                 wprint(tag() + ": Reading pd code no. " + ToString(input_count) + " failed.");
