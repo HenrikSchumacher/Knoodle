@@ -54,7 +54,7 @@ namespace Knoodle
         
         using Intersection_T = Intersection<Real,Int>;
         
-        using Intersector_T  = PlanarLineSegmentIntersector<Real,Int>;
+        using Intersector_T  = Prosector_Float<Real,Int>;
         using IntersectionFlagCounts_T = Tiny::Vector<9,Size_T,Int>;
         
         
@@ -217,11 +217,7 @@ namespace Knoodle
         {
             return
                   T.AllocatedByteCount()
-//                + Base_T::edges.AllocatedByteCount()
-//                + Base_T::next_edge.AllocatedByteCount()
                 + edge_ptr.AllocatedByteCount()
-//                + Base_T::component_ptr.AllocatedByteCount()
-//                + Base_T::component_lookup.AllocatedByteCount();
                 + edge_ctr.AllocatedByteCount()
                 + vertex_coords.AllocatedByteCount()
                 + box_coords.AllocatedByteCount()
@@ -235,17 +231,17 @@ namespace Knoodle
             return sizeof(KnotEmbedding) + AllocatedByteCount();
         }
         
-        template<int t0>
+        template<int t0 = 0>
         std::string AllocatedByteCountDetails() const
         {
             constexpr int t1 = t0 + 1;
             return
                 std::string("<|")
-                + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(vertex_coords)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
+                + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ptr)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ctr)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(vertex_coords)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_intersections)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_times)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_state)

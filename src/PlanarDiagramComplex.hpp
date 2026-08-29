@@ -773,18 +773,34 @@ namespace Knoodle
         
     public:
         
-        /*!@brief Return a string that identifies a class method specified by `tag`. Mostly used for logging and in error messages.*/
-        static constexpr std::string MethodName( const std::string & tag )
+//        template<Stringy S>
+//        static constexpr auto MethodName( const S & tag  )
+//        {
+//            return (ClassName() + "::") + tag;
+//        }
+//        
+//        /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.*/
+//        static consteval auto ClassName()
+//        {
+//            return ct_string("PlanarDiagramComplex<") + TypeName<Int> + ">";
+//        }
+        
+        template<Stringy S>
+        static constexpr std::string MethodName( const S & tag  )
         {
-            return ClassName() + "::" + tag;
+            std::string s { ClassName() };
+            s += "::";
+            s += std::string_view(tag);
+            return s;
         }
         
         /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.*/
         static constexpr std::string ClassName()
         {
-            return std::string("PlanarDiagramComplex")
-                + "<" + TypeName<Int>
-                + ">";
+            std::string s { "PlanarDiagramComplex<" };
+            s += std::string_view(TypeName<Int>);
+            s += ">";
+            return s;
         }
     };
 

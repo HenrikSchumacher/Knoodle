@@ -17,7 +17,7 @@ namespace Knoodle
      *
      *  @tparam precompute_rangesQ_ If you make frequent use of `NodeBegin` and `NodeEnd`, then you might want to activate this to accelerate execution.
      *
-     *  @tparam change_rounding_modeQ It only makes a difference when `Real_` is `double` and `BReal_` is float. If set to `true`, then the program alters the rounding mode of the CPU to accelerate computations. Since messing around with CPU flags is dangerous, we also provide as slightly an alternative; it is a bit slower, though.
+     *  @tparam change_rounding_modeQ_ It only makes a difference when `Real_` is `double` and `BReal_` is float. If set to `true`, then the program alters the rounding mode of the CPU to accelerate computations. Since messing around with CPU flags is dangerous, we also provide as slightly an alternative; it is a bit slower, though.
      */
     
     template<
@@ -25,8 +25,8 @@ namespace Knoodle
         typename Real_,
         IntQ     Int_,
         typename BReal_ = Real_,
-        bool     precompute_rangesQ_   = true,
-        bool     change_rounding_modeQ = true
+        bool     precompute_rangesQ_    = true,
+        bool     change_rounding_modeQ_ = true
     >
     class alignas( ObjectAlignment ) AABBTree : public CompleteBinaryTree<Int_,precompute_rangesQ_>
     {
@@ -42,7 +42,9 @@ namespace Knoodle
         using BReal = BReal_;
         using Int   = Int_;
         
-        static constexpr bool precompute_rangesQ = precompute_rangesQ_;
+        static constexpr bool precompute_rangesQ    = precompute_rangesQ_;
+        static constexpr bool rounding_neededQ      = SameQ<Real,double> && SameQ<BReal,float>;
+        static constexpr bool change_rounding_modeQ = rounding_neededQ && precompute_rangesQ_;
         
         using Base_T = CompleteBinaryTree<Int,precompute_rangesQ>;
         using Base_T::max_depth;
@@ -131,8 +133,6 @@ namespace Knoodle
             static_assert(dimP >= AmbDim,"");
             
             constexpr Int d = AmbDim;
-            
-            constexpr bool rounding_neededQ = SameQ<Real,double> && SameQ<BReal,float>;
             // If Real and BReal are integral, then no rounding is needed.
             // If both Real and BReal are floating-point types, then each of them is either float or double.
             // Rounding is needed only if we convert from the higher precision (double) to the lower (float).

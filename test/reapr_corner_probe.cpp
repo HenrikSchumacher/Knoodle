@@ -17,7 +17,7 @@
  * and returns an invalid diagram.
  *
  * The hypothesis this probe tests: CornerCorner (flag 4) is a *planar* test —
- * per PlanarLineSegmentIntersector.hpp it fires when two edges' tails coincide
+ * per Prosector_Float.hpp it fires when two edges' tails coincide
  * in the PROJECTION. Rattle's recovery is to re-randomize the rotation up to
  * max_projection_iter = 10 times. That recovery works only if the coincidence
  * is an artifact of the projection direction. If the two tails coincide in 3D,

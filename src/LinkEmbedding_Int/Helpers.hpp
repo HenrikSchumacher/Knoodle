@@ -88,9 +88,11 @@ cref<Tree2_T> Tree() const
 /*!@brief Deallocate all data that is not stricly needed after the intersections have been found. This includes not only the tree, but also the containers for edge coordinates, bounding boxes, and intersection times. Use this in very memory constrained scenarios before handing this class over to `PlanarDiagram` or `PlanarDiagramComplex`.*/
 void DeleteTree()
 {
-    T           = Tree2_T();
-    edge_coords = EContainer_T();
-    box_coords  = BContainer_T();
+    T             = Tree2_T();
+    vertex_coords = VContainer_T();
+    edge_coords   = EContainer_T();
+    box_coords    = BContainer_T();
+    vertex_coords_loadedQ    = false;
     edge_coords_computedQ    = false;
     bounding_boxes_computedQ = false;
     

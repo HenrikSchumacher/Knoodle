@@ -267,7 +267,7 @@ namespace Knoodle
             }
         }
         
-        [[nodiscard]] friend OutString ToString(
+        [[nodiscard]] friend std::string ToString(
             cref<ClangMatrix> B,
             std::string line_prefix = std::string("")
         )

@@ -33,14 +33,12 @@
 
 #pragma once
 
-// This is required, otherwise LinkEmbedding2 won't be available.
-#define KNOODLE_USE_BOOST_MULTIPRECISION
-
 #include "../Knoodle.hpp"
 
-//// Knoodle.hpp pulls in LinkEmbedding and LinkEmbedding2 but not 3 and 4.
-//#include "../src/LinkEmbedding3.hpp"
-//#include "../src/LinkEmbedding4.hpp"
+//// Knoodle.hpp pulls in LinkEmbedding4 but not 2 and 3.
+
+#include "../experimental/LinkEmbedding_Boost.hpp"
+#include "../experimental/LinkEmbedding3.hpp"
 
 // Henrik: LinkEmbedding2/3/4 are now type aliases of LinkEmbedding_Int, which is a wrapper class that can be instantiated with different Prosector types. LinkEmbedding_Int is now loaded by Knoodle.hpp.
 

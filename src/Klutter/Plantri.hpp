@@ -43,12 +43,17 @@ void LoadPlantriPDCodes(
         // s.LineCount() upper bound on (number of inputs) * crossing_count;
         input = Tensor3<Int,Int>( s.LineCount() / crossing_count, crossing_count, Int(4) );
 
-        Tensor2<Int,Int> pd_code ( crossing_count, Int(4) );
+        Tensor2<Int,Int> pd_code ( crossing_count, Int{4} );
         
 //        tic("Reading inputs");
         while( !s.EmptyQ() && !s.FailedQ() )
         {
-            s.TakeMatrixFunction(pd_code.WriteAccess(),crossing_count,Int(4), "","\n","\n", ""," ","");
+            s.TakeArray(
+                pd_code.WriteAccess(),
+                pd_code.Dim(0), "", "\n", "\n",
+                pd_code.Dim(1), "",  " ", ""
+            );
+            
             if( s.FailedQ() )
             {
                 wprint(tag() + ": Reading pd code no. " + ToString(input_count) + " failed.");

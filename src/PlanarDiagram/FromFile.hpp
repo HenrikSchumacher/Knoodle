@@ -24,7 +24,7 @@ static PD_T FromInString( mref<Tools::InString> s )
 {
     // needs to know all member variables
     
-    // Using 1-byte separators that are compatible with Mathematica and that minimize string size..
+    // Using 1-byte separators that are compatible with Mathematica and that minimize string size.
     constexpr char prefix [2] = "{";
     constexpr char infix  [2] = ",";
     constexpr char suffix [2] = "}";
@@ -71,8 +71,8 @@ static PD_T FromInString( mref<Tools::InString> s )
     s.SkipChars("\nC_arcs = ");
     s.TakeArray(pd.C_arcs.WriteAccess(),
         n     , prefix, infix, suffix,
-        Int(2), prefix, infix, suffix,
-        Int(2), prefix, infix, suffix
+        Int{2}, prefix, infix, suffix,
+        Int{2}, prefix, infix, suffix
     );
     s.SkipChars("\nC_state = ");
     s.TakeArray(pd.C_state.WriteAccess(), n, prefix, infix, suffix);
@@ -80,7 +80,7 @@ static PD_T FromInString( mref<Tools::InString> s )
     s.SkipChars("\nA_cross = ");
     s.TakeArray(pd.A_cross.WriteAccess(),
         m     , prefix, infix, suffix,
-        Int(2), prefix, infix, suffix
+        Int{2}, prefix, infix, suffix
     );
     s.SkipChars("\nA_state = ");
     s.TakeArray(pd.A_state.WriteAccess(), m, prefix, infix, suffix);

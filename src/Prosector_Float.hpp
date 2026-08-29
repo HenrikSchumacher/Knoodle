@@ -2,7 +2,7 @@
 
 namespace Knoodle
 {
-    enum class LineSegmentsIntersectionFlag : int
+    enum class ProsectorFlag : int
     {
         Empty        = 0, // Empty intersection.
         Transversal  = 1, // Exactly one intersec. point X and X != x_1 and X != y_1.
@@ -14,19 +14,19 @@ namespace Knoodle
         OOBounds     = 7,   // The intersection times are out of bounds, indicating that rounding errors occurred.
     };
     
-    inline bool IntersectingQ( LineSegmentsIntersectionFlag f )
+    inline bool IntersectingQ( ProsectorFlag f )
     {
-        return ToUnderlying(f) >= Underlying_T<LineSegmentsIntersectionFlag>(1);
+        return ToUnderlying(f) >= Underlying_T<ProsectorFlag>(1);
     }
     
-    inline bool DegenerateQ( LineSegmentsIntersectionFlag f )
+    inline bool DegenerateQ( ProsectorFlag f )
     {
-        return ToUnderlying(f) >= Underlying_T<LineSegmentsIntersectionFlag>(2);
+        return ToUnderlying(f) >= Underlying_T<ProsectorFlag>(2);
     }
     
     /*!@brief **INEXACT.** */
     template<FloatQ Real_,IntQ Int_>
-    class PlanarLineSegmentIntersector final
+    class Prosector_Float final
     {
     public:
         
@@ -35,50 +35,23 @@ namespace Knoodle
         
         using Sign_T    = typename Intersection<Real,Int>::Sign_T; // Solely for signs.
         
-        using F_T       = LineSegmentsIntersectionFlag;
+        using F_T       = ProsectorFlag;
         
         using Vector2_T = Tiny::Vector<2,Real,Int>;
         
         // Default constructor
-        PlanarLineSegmentIntersector() = default;
+        Prosector_Float() = default;
         // Destructor (virtual because of inheritance)
-        ~PlanarLineSegmentIntersector()
-        {
-//            Size_T k = intersection_counts[2] + intersection_counts[3];
-//
-//
-//            if( k > 0 )
-//            {
-//                wprint(ClassName()+"::FindIntersectingEdges_DFS found " + ToString(k) + " edge-corner intersections."
-//                );
-//            }
-//
-//            if( intersection_counts[4] > 0 )
-//            {
-//                wprint(ClassName()+"::FindIntersectingEdges_DFS found " + ToString(intersection_counts[4]) + " corner-corner intersections."
-//                );
-//            }
-//
-//            if( intersection_counts[5] > 0 )
-//            {
-//                eprint(ClassName()+"::FindIntersectingEdges_DFS found " + ToString(intersection_counts[5]) + " interval edge-edge intersections."
-//                );
-//            }
-//
-//            if( intersection_counts[7] > 0 )
-//            {
-//                eprint(ClassName()+"::FindIntersectingEdges_DFS found " + ToString(intersection_counts[7]) + " invalid 3D intersections."
-//                );
-//            }
-        }
+        ~Prosector_Float() = default;
+        
         // Copy constructor
-        PlanarLineSegmentIntersector( const PlanarLineSegmentIntersector & other ) = default;
+        Prosector_Float( const Prosector_Float & other ) = default;
         // Copy assignment operator
-        PlanarLineSegmentIntersector & operator=( const PlanarLineSegmentIntersector & other ) = default;
+        Prosector_Float & operator=( const Prosector_Float & other ) = default;
         // Move constructor
-        PlanarLineSegmentIntersector( PlanarLineSegmentIntersector && other ) = default;
+        Prosector_Float( Prosector_Float && other ) = default;
         // Move assignment operator
-        PlanarLineSegmentIntersector & operator=( PlanarLineSegmentIntersector && other ) = default;
+        Prosector_Float & operator=( Prosector_Float && other ) = default;
         
     protected:
         
@@ -104,8 +77,7 @@ namespace Knoodle
     public:
         
         
-        /**
-         * @brief Classify whether and how two planar, oriented line segments in the place intersect.
+        /*!@brief Classify whether and how two planar, oriented line segments in the place intersect.
          *
          * @param x_0 Start point of the first line segment.
          *
@@ -115,19 +87,19 @@ namespace Knoodle
          *
          * @param y_1 end point of the second line segment.
          *
-         * @return `LineSegmentsIntersectionFlag f`, specified by the following:
+         * @return `ProsectorFlag f`, specified by the following:
          *
-         *  `f = LineSegmentsIntersectionFlag::Empty` if and only if the line segments do not intersect at all _or if there is a unique intersection point and if it falls together with `x_1` or `y_1`_.
+         *  `f = ProsectorFlag::Empty` if and only if the line segments do not intersect at all _or if there is a unique intersection point and if it falls together with `x_1` or `y_1`_.
          *
-         *  `f = LineSegmentsIntersectionFlag::Transversal` if and only if  the line segments have exactly one point in common _and if this point does not falls together with `x_1` or `y_1`_.
+         *  `f = ProsectorFlag::Transversal` if and only if  the line segments have exactly one point in common _and if this point does not falls together with `x_1` or `y_1`_.
          *
-         * `f = LineSegmentsIntersectionFlag::AtCorner0` if and only if the line segments have only the point `x_0` in common _and if `x_0 != y_0`_.
+         * `f = ProsectorFlag::AtCorner0` if and only if the line segments have only the point `x_0` in common _and if `x_0 != y_0`_.
          *
-         * `f = LineSegmentsIntersectionFlag::AtCorner1` if and only if the line segments have only the point `y_0` in common _and if `x_0 != y_0`_.
+         * `f = ProsectorFlag::AtCorner1` if and only if the line segments have only the point `y_0` in common _and if `x_0 != y_0`_.
          *
-         * `f = LineSegmentsIntersectionFlag::CornerCorner` if and only if the line segments have only a single pointin common and it is `x_0 = y_0`.
+         * `f = ProsectorFlag::CornerCorner` if and only if the line segments have only a single pointin common and it is `x_0 = y_0`.
          *
-         * `f = LineSegmentsIntersectionFlag::Interval` if the line segments have two or more points in common.
+         * `f = ProsectorFlag::Interval` if the line segments have two or more points in common.
          *
          * The reason for this slightly odd definition is that we want make this work on links that are given by orthogonal link diagrams. There, all crossings look like this:
          *
@@ -139,7 +111,7 @@ namespace Knoodle
          *          | c
          *          |
          *
-         * That is, four line segments have a point in common. Here we assume that b is the successor of a and that d is the successor of c. Since intesection detection between direct neighbors in the link should be avoided, only the following pairs can ever be checked (a,c), (b,c), (a,d), (b,d) will be tested. We made it so that the only successfully detected intersections is (b,d); the flag `LineSegmentsIntersectionFlag::CornerCorner` will be issued in this case.
+         * That is, four line segments have a point in common. Here we assume that b is the successor of a and that d is the successor of c. Since intesection detection between direct neighbors in the link should be avoided, only the following pairs can ever be checked (a,c), (b,c), (a,d), (b,d) will be tested. We made it so that the only successfully detected intersections is (b,d); the flag `ProsectorFlag::CornerCorner` will be issued in this case.
          *
          *
          * Note that the same picture would be obtained if we projected a 3D link to the plane in which b is the successor of c and d is the successor of a.
@@ -154,7 +126,7 @@ namespace Knoodle
          *      c /   \ b
          *       /     v
          *
-         * If b is the successor of c and if d is the successor of a, then this here would require either no crossings or two crossings with opposite handedness, because by moving c, b slightly to the bottom right would resolve this by a Reidemeister II move. However, we would detect a single crossing here, namely a `LineSegmentsIntersectionFlag::CornerCorner` crossing formed by directed edges b and d since their tails coincide.
+         * If b is the successor of c and if d is the successor of a, then this here would require either no crossings or two crossings with opposite handedness, because by moving c, b slightly to the bottom right would resolve this by a Reidemeister II move. However, we would detect a single crossing here, namely a `ProsectorFlag::CornerCorner` crossing formed by directed edges b and d since their tails coincide.
          *
          * We also assume that each of the line segments `x_0 x_1` and `y_0 y_1` has nonzero length.
          */
@@ -162,7 +134,7 @@ namespace Knoodle
     public:
             
         template<bool verboseQ = false>
-        LineSegmentsIntersectionFlag IntersectionType(
+        ProsectorFlag IntersectionType(
             cptr<Real> x_0, cptr<Real> x_1, cptr<Real> y_0, cptr<Real> y_1
         )
         {
@@ -480,12 +452,12 @@ namespace Knoodle
         
         static constexpr std::string ClassName()
         {
-            return std::string("PlanarLineSegmentIntersector")
+            return std::string("Prosector_Float")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + ">";
         }
         
-    }; // class PlanarLineSegmentIntersector
+    }; // class Prosector_Float
     
 } // namespace Knoodle

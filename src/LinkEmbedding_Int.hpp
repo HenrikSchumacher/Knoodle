@@ -1,14 +1,5 @@
 #pragma  once
 
-#ifdef KNOODLE_USE_BOOST_MULTIPRECISION
-    #include "Prosector2.hpp"
-#endif
-
-#include "Prosector3.hpp"
-#include "Prosector4.hpp"
-#include "Prosector4a.hpp"
-
-
 namespace Knoodle
 {
     
@@ -98,15 +89,13 @@ namespace Knoodle
         
     protected:
         
-        Tensor1<Int,Int> edge_ctr;
-        
-        //Containers and data whose sizes stay constant under ReadVertexCoordinates.
-        
         Tree2_T T;
         
         Vector3_T global_lo { Scalar::Max<Real> };
         Vector3_T global_hi { Scalar::Min<Real> };
         Matrix3x3_T R { { {1,0,0}, {0,1,0}, {0,0,1} } }; // a rotation matrix (later to be randomized)
+        
+        //Containers and data whose sizes stay constant under ReadVertexCoordinates.
         
         VContainer_T vertex_coords;
         EContainer_T edge_coords;    
@@ -131,11 +120,11 @@ namespace Knoodle
         
         int    scaling_exponent         = 0;
         
-        bool vertex_coords_loadedQ    = false;
-        bool edge_coords_computedQ    = false;
-        bool bounding_boxes_computedQ = false;
-        bool intersections_computedQ  = false;
-        bool input_integralQ          = IntQ<Real>;
+        bool   vertex_coords_loadedQ    = false;
+        bool   edge_coords_computedQ    = false;
+        bool   bounding_boxes_computedQ = false;
+        bool   intersections_computedQ  = false;
+        bool   input_integralQ          = IntQ<Real>;
         
     public:
         
@@ -160,9 +149,9 @@ namespace Knoodle
         ,   vertex_coords { edge_count                 }
         {}
         
-        LinkEmbedding_Int( Tensor1<Int,Int> && component_ptr_, Tensor1<Int,Int> && component_color_ )
-        :   Base_T        { std::move(component_ptr_), std::move(component_color_)  }
-        ,   vertex_coords { edge_count                                              }
+        LinkEmbedding_Int( Tensor1<Int,Int> && comp_ptr_, Tensor1<Int,Int> && comp_color_ )
+        :   Base_T { std::move(comp_ptr_), std::move(comp_color_)  }
+        ,   vertex_coords { edge_count }
         {}
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
@@ -170,8 +159,8 @@ namespace Knoodle
         LinkEmbedding_Int(
             cptr<I_0> edges_, cptr<I_0> edges_colors_, const I_1 edge_count_
         )
-        :   Base_T        { edges_, edges_colors_, int_cast<Int>(edge_count_) }
-        ,   vertex_coords { edge_count                                        }
+        :   Base_T { edges_, edges_colors_, int_cast<Int>(edge_count_) }
+        ,   vertex_coords { edge_count }
         {}
         
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
@@ -179,8 +168,8 @@ namespace Knoodle
         LinkEmbedding_Int(
             cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, cptr<I_0> edges_colors_, const I_1 edge_count_
         )
-        :   Base_T        { edge_tails_, edge_tips_, edges_colors_, edge_count_ }
-        ,   vertex_coords { edge_count                                          }
+        :   Base_T { edge_tails_, edge_tips_, edges_colors_, edge_count_ }
+        ,   vertex_coords { edge_count }
         {}
 
 #include "LinkEmbedding_Int/Helpers.hpp"
@@ -197,14 +186,12 @@ namespace Knoodle
         {
             return
                   T.AllocatedByteCount()
-                + edge_coords.AllocatedByteCount()
-                + box_coords.AllocatedByteCount()
                 + Base_T::edges.AllocatedByteCount()
                 + Base_T::next_edge.AllocatedByteCount()
                 + Base_T::edge_ptr.AllocatedByteCount()
                 + Base_T::component_ptr.AllocatedByteCount()
                 + Base_T::component_color.AllocatedByteCount()
-                + edge_ctr.AllocatedByteCount()
+                + vertex_coords.AllocatedByteCount()
                 + edge_coords.AllocatedByteCount()
                 + box_coords.AllocatedByteCount()
                 + edge_intersections.AllocatedByteCount()
@@ -217,19 +204,21 @@ namespace Knoodle
             return sizeof(LinkEmbedding_Int) + AllocatedByteCount();
         }
         
-        template<int t0>
+        template<int t0 = 0>
         std::string AllocatedByteCountDetails() const
         {
             constexpr int t1 = t0 + 1;
             return
-                ct_string("<|")
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
+                std::string("<|")
+                + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::edges)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::next_edge)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::edge_ptr)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_ptr)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_color)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ctr)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(vertex_coords)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_coords)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_intersections)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_times)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_state)
@@ -238,63 +227,17 @@ namespace Knoodle
         
         static constexpr std::string MethodName( const std::string & tag )
         {
-            return ClassName() + "::" + tag;
+            return ClassName().append("::").append(tag);
         }
         
         static constexpr std::string ClassName()
         {
             return std::string("LinkEmbedding_Int")
-                + "<" + TypeName<Real>
-                + "," + Prosector_T::ClassName()
-                + ">";
+                .append("<").append(TypeName<Real>)
+                .append(",").append(Prosector_T::ClassName())
+                .append(">");
         }
         
     }; // LinkEmbedding_Int
-    
-#ifdef KNOODLE_USE_BOOST_MULTIPRECISION
-    /*!@brief **EXPERIMENTAL** Type alias of `LinkEmbedding_Int` with backend that uses wide integers classes `boost::multiprecision::int128_t` and `boost::multiprecision::int256_t`. This is only available if the preprocessor macro `KNOODLE_USE_BOOST_MULTIPRECISION` is defined.
-     *
-     * This is not a very efficient implementation, in particular when scalar type `IReal = std::int32_t` is used. But it should lead to correct results. We use it for test purposed. */
-    template<
-        typename   Real  = Real64,
-        IntQ       Int   = Int64,
-        SignedIntQ IReal = std::conditional_t<SameQ<Real,Real64>, Int64,
-                                std::conditional_t<SameQ<Real,Real32>, Int32, Real>
-                           >
-    >
-    using LinkEmbedding2 = LinkEmbedding_Int<Real, Prosector2<IReal,Int>>;
-#endif // KNOODLE_USE_BOOST_MULTIPRECISION
 
-    
-    /*!@brief Type alias of `LinkEmbedding_Int` with backend that uses wide integers classes `WideInt`, our implementation of wide integers. This is obtimized towards useing native integer classes or the compiler extension`__int128` as long as possible. Only starting with 192-bit integers, `WideInt` is used.*/
-    template<
-        typename   Real  = Real64,
-        IntQ       Int   = Int64,
-        SignedIntQ IReal = std::conditional_t<SameQ<Real,Real64>, Int64,
-                                std::conditional_t<SameQ<Real,Real32>, Int32, Real>
-                           >
-    >
-    using LinkEmbedding3 = LinkEmbedding_Int<Real, Prosector3<IReal,Int>>;
-    
-    
-    /*!@brief **EXPERIMENTAL** Type alias of `LinkEmbedding_Int` with backend that uses wide integers classes `WideInt`, our implementation of wide integers. This is obtimized towards using native integer classes or the compiler extension`__int128` as long as possible. Only starting with 192-bit integers, `WideInt` is used.*/
-    template<
-        typename   Real  = Real64,
-        IntQ       Int   = Int64,
-        SignedIntQ IReal = std::conditional_t<SameQ<Real,Real64>, Int64,
-                                std::conditional_t<SameQ<Real,Real32>, Int32, Real>
-                           >
-    >
-    using LinkEmbedding4 = LinkEmbedding_Int<Real, Prosector4<IReal,Int>>;
-    
-    /*!@brief **EXPERIMENTAL** **INEXACT** Mostly like `LinkEmbedding4`, but it deliberately uses inexact double arithmetic for the sorting the intersections. This is only for benchmarking; it allows us to get a lower bound on the time for sorting.*/
-    template<
-        typename   Real  = Real64,
-        IntQ       Int   = Int64,
-        SignedIntQ IReal = std::conditional_t<SameQ<Real,Real64>, Int64,
-                                std::conditional_t<SameQ<Real,Real32>, Int32, Real>
-                           >
-    >
-    using LinkEmbedding4a = LinkEmbedding_Int<Real, Prosector4a<IReal,Int>>;
-    
 } // namespace Knoodle

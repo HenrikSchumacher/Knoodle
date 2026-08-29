@@ -140,8 +140,7 @@ public:
             TOOLS_PTIMER(sort_timer, tag() + ": coarse sorting.");
             
             // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
-            edge_ctr.template RequireSize<false>( edge_ptr.Size() );
-            edge_ctr.Read( edge_ptr.data() );
+            Tensor1<Int,Int> edge_ctr { edge_ptr };
             
             if( edge_intersections.Size() != edge_ptr.Last() )
             {
@@ -538,7 +537,7 @@ protected:
             TOOLS_LOGDUMP(ToString(y));
         }
         
-        LineSegmentsIntersectionFlag flag
+        ProsectorFlag flag
             = S.template IntersectionType<verboseQ>( x[0], x[1], y[0], y[1] );
         
         if constexpr ( verboseQ )
@@ -553,7 +552,7 @@ protected:
             
             if( (t[0]<Real(0)) || (t[0]>=Real(1)) || (t[1]<Real(0)) || (t[1]>=Real(1)) )
             {
-                flag = LineSegmentsIntersectionFlag::OOBounds;
+                flag = ProsectorFlag::OOBounds;
             }
             
             // Compute heights at the intersection.
@@ -629,7 +628,7 @@ protected:
             }
             else
             {
-                flag = LineSegmentsIntersectionFlag::Spatial;
+                flag = ProsectorFlag::Spatial;
             }
             
         } // if( IntersectingQ(flag) )
@@ -638,42 +637,42 @@ protected:
         
         switch(flag)
         {
-            case LineSegmentsIntersectionFlag::AtCorner0:
+            case ProsectorFlag::AtCorner0:
             {
                 wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(k) + ".");
 //                logvalprint("edge " + ToString(k), x);
 //                logvalprint("edge " + ToString(l), y);
                 break;
             }
-            case LineSegmentsIntersectionFlag::AtCorner1:
+            case ProsectorFlag::AtCorner1:
             {
                 wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(l) + ".");
 //                logvalprint("edge " + ToString(k), x);
 //                logvalprint("edge " + ToString(l), y);
                 break;
             }
-            case LineSegmentsIntersectionFlag::CornerCorner:
+            case ProsectorFlag::CornerCorner:
             {
                 wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " have common first corners.");
 //                logvalprint("edge " + ToString(k), x);
 //                logvalprint("edge " + ToString(l), y);
                 break;
             }
-            case LineSegmentsIntersectionFlag::Interval:
+            case ProsectorFlag::Interval:
             {
                 wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in an interval.");
 //                logvalprint("edge " + ToString(k), x);
 //                logvalprint("edge " + ToString(l), y);
                 break;
             }
-            case LineSegmentsIntersectionFlag::Spatial:
+            case ProsectorFlag::Spatial:
             {
                 wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
                 logvalprint("edge " + ToString(k), x);
                 logvalprint("edge " + ToString(l), y);
                 break;
             }
-            case LineSegmentsIntersectionFlag::OOBounds:
+            case ProsectorFlag::OOBounds:
             {
                 wprint(ClassName()+"::ComputeEdgeIntersection: Intersection times of intersection between edges " + ToString(k) + " and " + ToString(l) + " are out of bounds.");
 //                logvalprint("edge " + ToString(k), x);

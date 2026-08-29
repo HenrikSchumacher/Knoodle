@@ -1,38 +1,54 @@
 #pragma once
 
+#include "../src/WideInt/Boost_cpp_int.hpp"
+
 namespace Knoodle
 {
-    // https://math.stackexchange.com/a/4498570/447001
-    
-    // "Geometry and the imagination" pp 14-15, Hilbert, David, 1862-1943, author; Cohn-Vossen, S. (Stephan), 1902-1936, author; Nemenyi, P., translator
-    //
-    // "Thus three skew straight lines always define a hyperboloid of one sheet, except in the case where they are all parallel to one plane (but not to each other). In this case they determine a new type of second-order surface, called the hyperbolic paraboloid, which does not include any surface of revolution as a special case."
-    
-    
-    /*!@brief **EXPERIMENTAL.** **INEXACT.** Mostly like `Prosector4`, but it deliberately uses inexact double arithmetic for the sorting the intersections. This is only for benchmarking; it allows us to get a lower bound on the time for sorting.*/
+    /*!@brief **EXPERIMENTAL.** A class for computing intersections of 3D line segments after projecting them to the plane.
+     *
+     * This class is part of the pipeline to convert closed polygonal curves in 3-space to a planar diagrams. Users of `Knoodle` will typically not use it directly. This documentation is targeted at developers.
+     *
+     * This class uses integer arithmetic to allow for exact computations. A symbolic perturbation is employed to handle all degeneracies except line segments that intersect already in 3-space; these are beyond repair, of course.
+     *
+     * Instead of parallel projecting along the vector `{0,0,1}` to the x-y-plane, the projection is done parallel to the x-y-plane along the perturbed vector `{eps,eps * eps * eps,1}`, i.e., a point `{x[0],x[1],x[2]}` is mapped to `{x[0] - eps * x[3], x[1] - eps * eps * eps * x[3]}`.
+     * Since `{eps,eps * eps * eps,1}` is cubic in the symbolic parameter `eps`, there are only finitely many values of `eps` for which this projection results into degeneracies. Thus, it suffices to analyze the topoligical information in the limit eps -> 0+ (i.e., limit from the right). This handles the following degenerate cases consistently, as long as the line segments in 3-space are disjoint and have positive length:
+     *
+     *  - The projection of the two line segments have a line segment in common.
+     *
+     *  - An end point of a projected line segment lies on the other.
+     *
+     *  - A line segment is projected to a single point.
+     *
+     * The usage of the class is as follows: First one calls `ComputeLineSegments`. The returned flag tells us whether a valid intersection has been found or whether there were any issues. If the return value is `Flag_T::Intersection`, then one can call `GetIntersection` to get an instance of `struct` `Intersection` that contains the relevant information.
+     *
+     * This class uses `boost::multiprecision` as backend for wide integers.
+     *
+     * @tparam Int_ Signed integral type used for coordinates of points.
+     *
+     * @tparam Idx_ Integral type used for indices.
+     *
+     * @tparam verboseQ Whether to log events more granulary. Only meant for debugging.
+     */
     template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false>
-    class Prosector4a final
+    class Prosector_Boost final
     {
     public:
         
         static_assert(SameQ<Int_,Int32> || SameQ<Int_,Int64>,"");
-        
+
         /*!@brief Integral type used for coordinates.*/
         using Int    = Int_;
         /*!@brief Longer integral type used for internal computations.*/
-        using LInt   = decltype(long_mul(Int{1},Int{1}));
+        using LInt   = std::conditional_t<SameQ< Int,Int32>,Int64,BoostInt128>;
         /*!@brief Even longer integral type used for internal computations.*/
-        using LLInt  = decltype(long_mul(LInt{1},LInt{1}));
-    
-        static_assert(SameQ<LInt,decltype(long_fma(Int{1},Int{1},Int{1}))> ,"");
-        static_assert(SameQ<LInt,decltype(long_det(Int{1},Int{0},Int{0},Int{1}))> ,"");
+        using LLInt  = std::conditional_t<SameQ<LInt,Int64>,BoostInt128,BoostInt256>;
         
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
         
-        using Prosector_T = Prosector4a<Int,Idx,verboseQ>;
-        using Vector3_T   = std::array<Int,3>;
-        using LVector3_T  = std::array<LInt,3>;
+        using Prosector_T = Prosector_Boost<Int,Idx,verboseQ>;
+        using Vector3_T   = Tiny::Vector<3,Int ,Idx>;
+        using LVector3_T  = Tiny::Vector<3,LInt,Idx>;
         
         /*!@brief Flag that indicates whether an intersection was found or whether an error occurred.*/
         enum class Flag_T : int
@@ -55,45 +71,39 @@ namespace Knoodle
             }
         }
         
-#include "Prosector/DepressedCubic.hpp"
-#include "Prosector/Helpers.hpp"
-#include "Prosector/DegeneracyChecks.hpp"
+#include "../src/Prosector/DepressedCubic.hpp"
+#include "../src/Prosector/Helpers.hpp"
+#include "../src/Prosector/DegeneracyChecks.hpp"
         
-//#include "Prosector/IntersectionTime.hpp"
-//        using Time_T = IntersectionTime;
+#include "../src/Prosector/IntersectionTime_cpp_int.hpp"
+        using Time_T = IntersectionTime;
         
-#include "Prosector/IntersectionTime_Double.hpp"
-        using Time_T = IntersectionTime_Double;
-        
-//#include "Prosector/IntersectionTime_Hybrid.hpp"
-//        using Time_T = IntersectionTime_Hybrid;
+#include "../src/Prosector/Intersection.hpp"
 
-#include "Prosector/Intersection.hpp"
-        
     public:
         
 //        // Default constructor
-//        Prosector4a() = default;
+//        Prosector_Boost() = default;
         
-        Prosector4a()
+        Prosector_Boost()
         {
 //            PrintInfo();
         }
         
         // Default destructor
-        ~Prosector4a() = default;
+        ~Prosector_Boost() = default;
         
         // Copy constructor
-        Prosector4a( const Prosector4a & other ) = default;
+        Prosector_Boost( const Prosector_Boost & other ) = default;
         // Copy assignment operator
-        Prosector4a & operator=( const Prosector4a & other ) = default;
+        Prosector_Boost & operator=( const Prosector_Boost & other ) = default;
         // Move constructor
-        Prosector4a( Prosector4a && other ) = default;
+        Prosector_Boost( Prosector_Boost && other ) = default;
         // Move assignment operator
-        Prosector4a & operator=( Prosector4a && other ) = default;
+        Prosector_Boost & operator=( Prosector_Boost && other ) = default;
         
     private:
-        
+
         Intersection isec;
         
         Vector3_T x_0;
@@ -101,13 +111,16 @@ namespace Knoodle
         Vector3_T y_0;
         Vector3_T y_1;
         
-        Vector3_T u;
-        Vector3_T v;
-        Vector3_T p;
-        Vector3_T q;
+        LVector3_T uxv;
+        LVector3_T uxp;
+        LVector3_T uxq;
+        LVector3_T vxp;
+        LVector3_T vxq;
         
-        DepressedCubic P_0;
-        DepressedCubic P_1;
+        Sign_T sign_uxp;
+        Sign_T sign_uxq;
+        Sign_T sign_vxp;
+        Sign_T sign_vxq;
         
     public:
         
@@ -167,9 +180,10 @@ namespace Knoodle
         {
             return isec.flag;
         }
-
+        
     private:
-
+        
+        
         /*!@brief Load two line segments.
          *
          * @param k Index of the first line segment (in a upstream data structure).
@@ -189,6 +203,8 @@ namespace Knoodle
             const Idx k, cptr<Int> x0, cptr<Int> x1, const Idx l, cptr<Int> y0, cptr<Int> y1
         )
         {
+            [[maybe_unused]] auto tag = [](){ return MethodName("LoadLineSegments"); };
+            
             isec.edges[0]   = k;
             isec.edges[1]   = l;
             isec.handedness = 0;
@@ -210,6 +226,26 @@ namespace Knoodle
             //      |/     \|
             //      X------>X
             //  x_0     d     y_0
+//
+            LVector3_T u { x_1[0] - x_0[0], x_1[1] - x_0[1], x_1[2] - x_0[2] };
+            LVector3_T v { y_1[0] - y_0[0], y_1[1] - y_0[1], y_1[2] - y_0[2] };
+            LVector3_T p { y_1[0] - x_0[0], y_1[1] - x_0[1], y_1[2] - x_0[2] };
+            LVector3_T q { x_1[0] - y_0[0], x_1[1] - y_0[1], x_1[2] - y_0[2] };
+            
+            // TODO: It should be possible to compute this with only 3 cross products.
+            uxv = Cross(u,v);   // Does not overflow.
+            
+            uxp = Cross(u,p);   // Does not overflow.
+//            uxq = Cross(u,q);   // Does not overflow.
+            //   q ==   v -   p +   u
+            // uxq == uxv - uxp + uxu
+            uxq = uxv - uxp;
+
+            vxp = Cross(v,p);   // Does not overflow.
+//            vxq = Cross(v,q);   // Does not overflow.
+            //   q ==   v -   p +   u
+            // vxq == vxv - vxp + vxu
+            vxq = -vxp - uxv;
             
             if constexpr ( verboseQ )
             {
@@ -220,43 +256,13 @@ namespace Knoodle
             }
         }
 
-        /*!@brief Classify whether and how two oriented line segments in 3-space intersect when they are projected to the x-y-plane.
-         *
-         * - `f = Flag_T::Empty` if and only if the planar projections of the line segments do not intersect after sufficiently small perturbation.
-         *
-         * - `f = Flag_T::Intersection` if and only if  the line segments have exactly one point in common after sufficiently small perturbation.
-         *
-         * - `f = Flag_T::Error` if and only if the line segments have a point in common in 3-space or at least one of them has length 0.
-         */
-
         void Compute()
         {
             [[maybe_unused]] auto tag = [](){ return MethodName("Compute"); };
+
+            sign_uxp = Sign_Perturbed(uxp);
+            sign_uxq = Sign_Perturbed(uxq);
             
-            if constexpr ( verboseQ )
-            {
-                logprint(tag() + " in verbose mode.");
-            }
-            
-            u[0] = x_1[0] - x_0[0];
-            u[1] = x_1[1] - x_0[1];
-            u[2] = x_1[2] - x_0[2];
-            
-            p[0] = y_1[0] - x_0[0];
-            p[1] = y_1[1] - x_0[1];
-            p[2] = y_1[2] - x_0[2];
-            
-            q[0] = x_1[0] - y_0[0];
-            q[1] = x_1[1] - y_0[1];
-            q[2] = x_1[2] - y_0[2];
-            
-            auto sign_uxp = Sign_Perturbed(u,p);
-//            auto sign_uxp = Sign_Perturbed_Kahan(u,p);
-            auto [sign_uxq, uxq_2] = Sign_Det_Perturbed(u,q);
-            // P_1 = Det_Perturbed(u,q);
-            P_1.c_0 = uxq_2;
-            // It is measurably slower to compute P_1 in full here.
-                        
             if constexpr ( verboseQ )
             {
                 TOOLS_LOGDUMP(sign_uxp);
@@ -312,16 +318,8 @@ namespace Knoodle
                 return;
             }
             
-            v[0] = y_1[0] - y_0[0];
-            v[1] = y_1[1] - y_0[1];
-            v[2] = y_1[2] - y_0[2];
-            
-            auto [sign_vxp,vxp_2] = Sign_Det_Perturbed(v,p);
-            auto sign_vxq         = Sign_Perturbed(v,q);
-//            auto sign_vxq         = Sign_Perturbed_Kahan(v,q);
-            // P_0 = Det_Perturbed(p,v);
-            P_0.c_0 = -vxp_2;
-            // It is measurably slower to compute P_0 in full here.
+            sign_vxp = Sign_Perturbed(vxp);
+            sign_vxq = Sign_Perturbed(vxq);
             
             if constexpr ( verboseQ )
             {
@@ -376,23 +374,19 @@ namespace Knoodle
                 return;
             }
             
-            // At this point we know that the projected line segments intersect in the x-y-plane. We also have to check whether the line segments themselfes intersect in 3-space.
+            // At this point we know that the projected line segments intersect in the x-y-plane. We also have to check whether the line segments themselves intersect in 3-space.
             
             // This post https://math.stackexchange.com/a/1008869/447001
             // taught me how to determine which edge "goes over".
-
-            const DepressedCubic Q = Det_Perturbed(u,v);
             
-            if constexpr ( verboseQ ) { TOOLS_LOGDUMP(Q); }
-
-            // Result has _three_ times as many limbs as Int, not four.
-            // We only have to make sure that we have two extra bits here.
-            const auto det_3 = long_mul( p[0], Q.c_1 )
-                             + long_mul( p[1], Q.c_3 )
-                             + long_mul( p[2], Q.c_0 );
+            if constexpr ( verboseQ ) { TOOLS_LOGDUMP(uxv); }
             
-            const Sign_T sign_3 = Sign<Sign_T>(det_3);
+            LLInt det_3   = LLInt{y_1[0]-x_0[0]} * LLInt{uxv[0]}
+                          + LLInt{y_1[1]-x_0[1]} * LLInt{uxv[1]}
+                          + LLInt{y_1[2]-x_0[2]} * LLInt{uxv[2]};
             
+            Sign_T sign_3 = Sign<Sign_T>(det_3);
+             
             if( sign_3 == Sign_T(0) )
             {
                 // We know that we have an intersection in the x-y-plane.
@@ -404,8 +398,9 @@ namespace Knoodle
                 isec.flag = Flag_T::Error;;
                 return;
             }
-            
-            const Sign_T sign_2 = Sign<Sign_T>(Q);
+                        
+            DepressedCubic Q { uxv[2], uxv[0], uxv[1] };
+            Sign_T sign_2 = Sign<Sign_T>(Q);
             
             if( sign_2 == Sign_T(0) )
             {
@@ -413,33 +408,19 @@ namespace Knoodle
                 eprint(MethodName("ComputeIntersection") + ": The projections of the line segments " + ToString(isec.edges[0]) + " and " + ToString(isec.edges[1]) + " are parallel. No handedness assignable. But this case should have been caught before, so we should not have gotton here.");
             }
             
-            // Det_Perturbed(d,v) == Det_Perturbed(p - v,v) == Det_Perturbed(p,v)
-            // Det_Perturbed(d,u) == Det_Perturbed(u - q,u) == Det_Perturbed(u,q)
-            
-            // At this point, we have computed P_0.c_0 and P_1.c_0 already. So we can save 33% of the integer operations in the next two lines. Very likely, the other entries have not yet been computed; so saving more is unlikely.
-            
-//            P_0 = Det_Perturbed(p,v);
-//            P_1 = Det_Perturbed(u,q);
-            
-//            P_0.c_1 = long_det(p[1],p[2],v[1],v[2]);
-//            P_0.c_3 = long_det(p[2],p[0],v[2],v[0]);
-//
-//            P_1.c_1 = long_det(u[1],u[2],q[1],q[2]);
-//            P_1.c_3 = long_det(u[2],u[0],q[2],q[0]);
-
             bool x_under_y_Q = (sign_3 == sign_2);
             
             // Det_Perturbed(d,v) == Det_Perturbed(p - v,v) == Det_Perturbed(p,v)
             // Det_Perturbed(d,u) == Det_Perturbed(u - q,u) == Det_Perturbed(u,q)
 
-            isec.times[ x_under_y_Q] = Time_T{ P_0, Q }; // t_0
-            isec.times[!x_under_y_Q] = Time_T{ P_1, Q }; // t_1
+            isec.times[ x_under_y_Q] = { DepressedCubic{-vxp[2],-vxp[0],-vxp[1]}, Q };
+            isec.times[!x_under_y_Q] = { DepressedCubic{ uxq[2], uxq[0], uxq[1]}, Q };
             
             // First edge must go over.
             if( x_under_y_Q )
             {
                 std::swap(isec.edges[0],isec.edges[1]);
-                isec.handedness = -sign_2;
+                isec.handedness = static_cast<Sign_T>(-sign_2);
             }
             else
             {
@@ -457,13 +438,13 @@ namespace Knoodle
         
         static constexpr std::string ClassName()
         {
-            return std::string("Prosector4a")
+            return std::string("Prosector_Boost")
                 + "<" + TypeName<Int>
                 + "," + TypeName<Idx>
                 + "," + ToString(verboseQ)
                 + ">";
         }
         
-    }; // class Prosector4a
+    }; // class Prosector_Boost
     
 } // namespace Knoodle

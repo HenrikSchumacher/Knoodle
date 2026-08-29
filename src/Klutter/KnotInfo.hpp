@@ -45,7 +45,7 @@ void LoadKnotInfo(
             return;
         }
         
-        Tensor2<Int,Int> pd_code ( crossing_count, Int(4) );
+        Tensor2<Int,Int> pd_code ( crossing_count, Int{4} );
         Name_T  name;
         
 //        tic("Reading inputs");
@@ -53,8 +53,12 @@ void LoadKnotInfo(
         {
             name_stream >> name;
             names.push_back(name);
-            //        s.TakeMatrixFunction(pd_code.WriteAccess(),crossing_count,Int(4),"{",",","}","{",",","}");
-            s.TakeMatrixFunction(pd_code.WriteAccess(),crossing_count,Int(4), "","\n","\n", ""," ","");
+
+            s.TakeArray(
+                pd_code.WriteAccess(),
+                pd_code.Dim(0), "", "\n", "\n",
+                pd_code.Dim(1), "",  " ", ""
+            );
             
             if( s.FailedQ() )
             {
@@ -216,7 +220,7 @@ int Generate2(
                 // TODO: Make sure that pdc does not contain any spurious invalid diagrams.
                 
                 // We only collect diagrams that can be prime knots with crossing_count crossings.
-                if ( (pdc.DiagramCount() > Int(1)) || (pdc[0].CrossingCount() < crossing_count) )
+                if ( (pdc.DiagramCount() > Int{1}) || (pdc[0].CrossingCount() < crossing_count) )
                 {
                     // All the key in this bucket belong to diagrams that we don't want.
                     return 2;
@@ -329,7 +333,7 @@ ID_T Generate(
                 // TODO: Make sure that pdc does not contain any spurious invalid diagrams.
                 
                 // We only collect diagrams that can be prime knots with crossing_count crossings.
-                if ( (pdc.DiagramCount() > Int(1)) || (pdc[0].CrossingCount() < crossing_count) )
+                if ( (pdc.DiagramCount() > Int{1}) || (pdc[0].CrossingCount() < crossing_count) )
                 {
                     // All the key in this bucket belong to diagrams that we don't want.
                     // So, we instruct DeleteBucket to remove their entries from lut.

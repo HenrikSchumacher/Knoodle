@@ -77,11 +77,11 @@ namespace Knoodle
             }
         }
         
-#include "Prosector/DepressedCubic.hpp"
-#include "Prosector/Helpers.hpp"
-#include "Prosector/DegeneracyChecks.hpp"
+#include "../src/Prosector/DepressedCubic.hpp"
+#include "../src/Prosector/Helpers.hpp"
+#include "../src/Prosector/DegeneracyChecks.hpp"
         
-#include "Prosector/IntersectionTime.hpp"
+#include "../src/Prosector/IntersectionTime.hpp"
         using Time_T = IntersectionTime;
         
 //#include "Prosector/IntersectionTime_Double.hpp"
@@ -90,7 +90,7 @@ namespace Knoodle
 //#include "Prosector/IntersectionTime_Hybrid.hpp"
 //        using Time_T = IntersectionTime_Hybrid;
 
-#include "Prosector/Intersection.hpp"
+#include "../src/Prosector/Intersection.hpp"
         
     public:
         

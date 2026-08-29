@@ -76,11 +76,11 @@ namespace Knoodle
         :   edge_count      { int_cast<Int>(edge_count_) }
         ,   edges           { edge_count            }
         ,   next_edge       { edge_count            }
-        ,   edge_ptr        { edge_count + Int(1)   }
+        ,   edge_ptr        { edge_count + Int{1}   }
         
-        ,   component_count { Int(1)                }
-        ,   component_ptr   { Int(2)                }
-        ,   component_color { Int(1), Int(0)        }
+        ,   component_count { Int{1}                }
+        ,   component_ptr   { Int{2}                }
+        ,   component_color { Int{1}, Int{0}        }
         ,   cyclicQ         { true                  }
         ,   preorderedQ     { true                  }
         {
@@ -112,17 +112,17 @@ namespace Knoodle
         
         Link( Tensor1<Int,Int> && component_ptr_, Tensor1<Int,Int> && component_color_ )
         :   Link{
-                (component_ptr_.Size() < Int(2)) ? 0 : component_ptr_.Last(),
+                (component_ptr_.Size() < Int{2}) ? 0 : component_ptr_.Last(),
                 false // Just allocate buffers. We fill them manually.
             }
         {            
             component_ptr   = std::move(component_ptr_);
             component_color = std::move(component_color_);
             
-            if( component_ptr.Size() < Int(2) ) { return; }
+            if( component_ptr.Size() < Int{2} ) { return; }
             
-            component_count = component_ptr.Size() - Int(1);
-            cyclicQ         = (component_count == Int(1));
+            component_count = component_ptr.Size() - Int{1};
+            cyclicQ         = (component_count == Int{1});
             preorderedQ     = true;
             
             if( component_color.Size() < component_count )
@@ -133,7 +133,7 @@ namespace Knoodle
             for( Int comp = 0; comp < component_count; ++comp )
             {
                 const Int e_begin = component_ptr[comp         ];
-                const Int e_end   = component_ptr[comp + Int(1)];
+                const Int e_end   = component_ptr[comp + Int{1}];
                 
                 const Int comp_size = e_end - e_begin;
                 
@@ -204,13 +204,13 @@ namespace Knoodle
 
             for( Int e = 0; e < edge_count; ++e )
             {
-                const ExtInt tail = edges_[Int(2) * e];
+                const ExtInt tail = edges_[Int{2} * e];
 
                 if( !std::in_range<Int>(tail) )
                 {
                     error(tag()+": index tail is out of range for type " + TypeName<Int> + " (tail = " + ToString(tail) + ").");
                 }
-                if( std::cmp_less(tail, ExtInt(0)) )
+                if( std::cmp_less(tail, ExtInt{0}) )
                 {
                     error(tag()+": tail < 0 (tail = " + ToString(tail) + ").");
                 }
@@ -225,13 +225,13 @@ namespace Knoodle
 
             for( Int e = 0; e < edge_count; ++e )
             {
-                const ExtInt head = edges_[Int(2) * e + Int(1)];
+                const ExtInt head = edges_[Int{2} * e + Int{1}];
                 
                 if( !std::in_range<Int>(head) )
                 {
                     error(tag()+": index head is out of range for type " + TypeName<Int> + " (head = " + ToString(head) + ").");
                 }
-                if( std::cmp_less(head, ExtInt(0)) )
+                if( std::cmp_less(head, ExtInt{0}) )
                 {
                     error(tag()+": head < 0 (head = " + ToString(head) + ").");
                 }
@@ -251,7 +251,7 @@ namespace Knoodle
             // Reordering edges.
             for( Int e = 0; e < edge_count; ++e )
             {
-                const Int from = Int(2) * perm[e];
+                const Int from = Int{2} * perm[e];
 
                 edges(e,0) = edges_[from  ];
                 edges(e,1) = edges_[from+1];
@@ -271,7 +271,7 @@ namespace Knoodle
             // using edge_ptr temporarily as scratch space.
             mptr<Int> perm = edge_ptr.data();
             
-            Aggregator<Int,Int> agg ( Int(2) );
+            Aggregator<Int,Int> agg ( Int{2} );
             agg.Push(0);
 
             Int visited_edge_counter = 0;
@@ -300,9 +300,9 @@ namespace Knoodle
 
             component_ptr = agg.Disband();
 
-            component_count = component_ptr.Size() > Int(0)
-                            ? component_ptr.Size() - Int(1)
-                            : Int(0);
+            component_count = component_ptr.Size() > Int{0}
+                            ? component_ptr.Size() - Int{1}
+                            : Int{0};
         }
         
         template<IntQ ExtInt>
@@ -310,7 +310,7 @@ namespace Knoodle
         {
             TOOLS_PTIMER(timer,MethodName("FinishPreparations"));
             
-            cyclicQ = (component_count == Int(1));
+            cyclicQ = (component_count == Int{1});
             
             component_color = Tensor1<Int,Int>(component_count);
             
@@ -387,7 +387,7 @@ namespace Knoodle
 ////        
 //        Int EdgeComponent( const Int e ) const
 //        {
-//            return (cyclicQ) ? Int(0) : edge_component[e];
+//            return (cyclicQ) ? Int{0} : edge_component[e];
 //        }
         
         /*!@brief Return the first vertex in component `c`. */
@@ -468,7 +468,7 @@ namespace Knoodle
 //        {
 //            TOOLS_PTIMER(timer,MethodName("ExportEdges"));
 //            
-//            EdgeContainer_T e ( edge_count, Int(2) );
+//            EdgeContainer_T e ( edge_count, Int{2} );
 //
 //            for( Int i = 0; i < edge_count; ++i )
 //            {
@@ -519,18 +519,18 @@ namespace Knoodle
             mptr<Int> e_ptr, const Int first_edge, const Int n
         )
         {
-            if( n <= Int(0) ) { return; }
+            if( n <= Int{0} ) { return; }
             
-            const Int last_edge = first_edge + n - Int(1);
+            const Int last_edge = first_edge + n - Int{1};
             
-            for( Int i = 0; i < n - Int(1); ++i )
+            for( Int i = 0; i < n - Int{1}; ++i )
             {
-                e_ptr[Int(2) * i + Int(0)] = first_edge + i         ;
-                e_ptr[Int(2) * i + Int(1)] = first_edge + i + Int(1);
+                e_ptr[Int{2} * i + Int{0}] = first_edge + i         ;
+                e_ptr[Int{2} * i + Int{1}] = first_edge + i + Int{1};
             }
             
-            e_ptr[Int(2) * n - Int(2)] = last_edge;
-            e_ptr[Int(2) * n - Int(1)] = first_edge;
+            e_ptr[Int{2} * n - Int{2}] = last_edge;
+            e_ptr[Int{2} * n - Int{1}] = first_edge;
         }
         
         
@@ -539,7 +539,7 @@ namespace Knoodle
 //        {
 //            EdgeContainer_T edges ( n );
 //            
-//            WriteCircleEdges(edges.data(),Int(0),n);
+//            WriteCircleEdges(edges.data(),Int{0},n);
 //            
 //            return edges;
 //        }

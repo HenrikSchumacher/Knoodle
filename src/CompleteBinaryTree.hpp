@@ -2,7 +2,6 @@
 
 namespace Knoodle
 {
-    // TODO: Enable unsigned integers because they should be about 15% faster in tasks heavy bit manipulations.
     // TODO: Unify the compile-size stacks for pairs of indices. They work only with signed integers at the moment. Moreover, they are quite annoying to maintain.
     
     template<
@@ -48,18 +47,18 @@ namespace Knoodle
         
         explicit CompleteBinaryTree( const Int leaf_node_count_  )
         :         leaf_node_count { int_cast<Int>(leaf_node_count_)                                   }
-        ,              node_count { int_cast<Int>(Int(2) * leaf_node_count - Int(1))                  }
+        ,              node_count { int_cast<Int>(Int{2} * leaf_node_count - Int{1})                  }
         ,          int_node_count { int_cast<Int>(node_count - leaf_node_count)                       }
-        ,          last_row_begin { int_cast<Int>((Int(1) << Depth(int_cast<Int>(node_count-Int(1)))) - Int(1)) }
+        ,          last_row_begin { int_cast<Int>((Int{1} << Depth(int_cast<Int>(node_count-Int{1}))) - Int{1}) }
         ,                  offset { int_cast<Int>(node_count - int_node_count - last_row_begin)       }
-        ,            actual_depth { int_cast<Int>(Depth(int_cast<Int>(node_count-Int(1))))            }
-        , regular_leaf_node_count { int_cast<Int>(Int(1) << actual_depth)                             }
-        ,          last_row_count { int_cast<Int>(Int(2) * leaf_node_count - regular_leaf_node_count) }
+        ,            actual_depth { int_cast<Int>(Depth(int_cast<Int>(node_count-Int{1})))            }
+        , regular_leaf_node_count { int_cast<Int>(Int{1} << actual_depth)                             }
+        ,          last_row_count { int_cast<Int>(Int{2} * leaf_node_count - regular_leaf_node_count) }
         {
-            if( std::cmp_greater(leaf_node_count_, Scalar::Max<Int> / Int(2)) )
+            if( std::cmp_greater(leaf_node_count_, Scalar::Max<Int> / Int{2}) )
             {
                 eprint(ClassName()+" leaf node count " + Tools::ToString(leaf_node_count_) + " is too big for type " + TypeName<Int> + ". Aborting.");
-                *this = CompleteBinaryTree(Int(0));
+                *this = CompleteBinaryTree(Int{0});
                 return;
             }
 
@@ -73,17 +72,17 @@ namespace Knoodle
                 for( Int N = last_row_begin; N < node_count; ++N )
                 {
                     N_ranges(N,0) = N - last_row_begin         ;
-                    N_ranges(N,1) = N - last_row_begin + Int(1);
+                    N_ranges(N,1) = N - last_row_begin + Int{1};
                 }
                 
                 // Compute range of leaf nodes in penultimate row.
                 for( Int N = int_node_count; N < last_row_begin; ++N )
                 {
                     N_ranges(N,0) = N + offset;
-                    N_ranges(N,1) = N + offset + Int(1);
+                    N_ranges(N,1) = N + offset + Int{1};
                 }
                 
-                for( Int N = int_node_count; N --> Int(0); )
+                for( Int N = int_node_count; N --> Int{0}; )
                 {
                     const auto [L,R] = Children(N);
                     
@@ -138,9 +137,9 @@ namespace Knoodle
             Int m = node.begin; // TODO: Correct this!
             
             return Node(
-                2 * node.idx + 1,
-                node.depth + 1,
-                2 * node.column,
+                Int{2} * node.idx + Int{1},
+                node.depth + Int{1},
+                Int{2} * node.column,
                 node.begin,
                 m
             );
@@ -151,9 +150,9 @@ namespace Knoodle
             Int m = node.end; // TODO: Correct this!
             
             return Node(
-                2 * node.idx + 2,
-                node.depth + 1,
-                2 * node.column + 1,
+                Int{2} * node.idx + Int{2},
+                node.depth + Int{1},
+                Int{2} * node.column + Int{1},
                 m,
                 node.end
             );
@@ -186,7 +185,7 @@ namespace Knoodle
 //        {
 //            // TODO: Correct this!
 //            
-//            const bool evenQ = node.idx | Int(1);
+//            const bool evenQ = node.idx | Int{1};
 //            
 //            Int m = evenQ ? node.end : node.begin;
 //
@@ -219,22 +218,22 @@ namespace Knoodle
         
         inline static constexpr Int LeftChild( const Int i )
         {
-            return Int(2) * i + Int(1);
+            return Int{2} * i + Int{1};
         }
         
         inline static constexpr Int RightChild( const Int i )
         {
-            return Int(2) * i + Int(2);
+            return Int{2} * i + Int{2};
         }
         
         inline static constexpr std::pair<Int,Int> Children( const Int i )
         {
-            return { Int(2) * i + Int(1), Int(2) * i + Int(2) };
+            return { Int{2} * i + Int{1}, Int{2} * i + Int{2} };
         }
         
         inline static constexpr Int Parent( const Int i )
         {
-            return (i > Int(0)) ? (i - Int(1)) / Int(2) : Uninitialized;
+            return (i > Int{0}) ? (i - Int{1}) / Int{2} : Uninitialized;
         }
         
         inline static constexpr Int Ancestor( const Int i, const Int generations )
@@ -252,7 +251,7 @@ namespace Knoodle
         inline static constexpr Int Level( const Int i )
         {
             // Level equals the position of the most significant bit of i+1.
-            return static_cast<Int>( MSB( static_cast<UInt>(static_cast<UInt>(i) + UInt(1)) ) ) - Int(1);
+            return static_cast<Int>( MSB( static_cast<UInt>(static_cast<UInt>(i) + UInt{1}) ) ) - Int{1};
         }
         
         inline static constexpr Int Depth( const Int i )
@@ -264,9 +263,9 @@ namespace Knoodle
         {
             // The start of each column is the number with all bits < Depth() being set.
             
-            const UInt k = static_cast<UInt>(i) + UInt(1);
+            const UInt k = static_cast<UInt>(i) + UInt{1};
 
-            return i - static_cast<Int>(PrevPow(k) - UInt(1));
+            return i - static_cast<Int>(PrevPow(k) - UInt{1});
         }
         
         inline Int ActualDepth() const
@@ -276,12 +275,12 @@ namespace Knoodle
         
         inline Int LevelCount() const
         {
-            return actual_depth + Int(1);
+            return actual_depth + Int{1};
         }
         
         inline Int LevelPointer( const Int level ) const
         {
-            return (Int(1) << level) - Int(1);
+            return (Int{1} << level) - Int{1};
         }
         inline Int LevelBegin( const Int level ) const
         {
@@ -290,14 +289,14 @@ namespace Knoodle
         
         inline Int LevelEnd( const Int level ) const
         {
-            return LevelPointer( level + Int(1) );
+            return LevelPointer( level + Int{1} );
         }
         
         inline std::pair<Int,Int> LevelRange( const Int level ) const
         {
             const Int begin = LevelPointer(level);
             
-            return { begin, (begin << Int(1)) + Int(1) };
+            return { begin, (begin << Int{1}) + Int{1} };
         }
         
         inline  Int RegularLeafNodeCount( const Int i ) const
@@ -312,12 +311,13 @@ namespace Knoodle
         inline Int nodeBoundaryCorrection( const Int r ) const
         {
             return r >= last_row_count
-            ? r - ((r - last_row_count) >> Int(1))
+            ? r - ((r - last_row_count) >> Int{1})
             : r;
         }
         
     public:
         
+        /*!@brief Returns the index of the first primitive of node `i`.*/
         inline Int NodeBegin( const Int i ) const
         {
             if constexpr ( precompute_rangesQ )
@@ -333,6 +333,7 @@ namespace Knoodle
             }
         }
         
+        /*!@brief Returns the index after the lase primitive of node `i`.*/
         inline Int NodeEnd( const Int i ) const
         {
             if constexpr ( precompute_rangesQ )
@@ -342,7 +343,7 @@ namespace Knoodle
             else
             {
                 // This would be the end of the node's primitives if the node were a _full_ complete binary tree.
-                const Int reg_end = RegularLeafNodeCount(i) * (Column(i) + Int(1));
+                const Int reg_end = RegularLeafNodeCount(i) * (Column(i) + Int{1});
                 
                 return nodeBoundaryCorrection(reg_end);
             }
@@ -375,8 +376,8 @@ namespace Knoodle
         inline std::pair<Int,Int> ComputeNodeRange( const Int depth, const Int column ) const
         {
             const Int reg_leaf_count = regular_leaf_node_count >> depth;
-            const Int reg_begin      = reg_leaf_count * (column + Int(0));
-            const Int reg_end        = reg_leaf_count * (column + Int(1));
+            const Int reg_begin      = reg_leaf_count * (column + Int{0});
+            const Int reg_end        = reg_leaf_count * (column + Int{1});
             
             return {
                 nodeBoundaryCorrection(reg_begin),
@@ -467,7 +468,7 @@ namespace Knoodle
         {
             TOOLS_PTIMER(timer,MethodName("BreadthFirstSearch"));
             
-            for( Int node = Int(0); node < int_node_count; ++node )
+            for( Int node = Int{0}; node < int_node_count; ++node )
             {
                 std::invoke( int_visit, node );
             }
@@ -529,7 +530,7 @@ namespace Knoodle
                 leaf_visit(node);
             }
             
-            for( Int node = int_node_count; node --> Int(0);  )
+            for( Int node = int_node_count; node --> Int{0};  )
             {
                 int_visit(node);
             }
@@ -627,7 +628,7 @@ namespace Knoodle
                     std::forward<IntPre_T>(int_pre_visit),
                     std::forward<IntPost_T>(int_post_visit),
                     std::forward<Leaf_T>(leaf_visit),
-                    (start_node < Int(0)) ? Root() : start_node
+                    (start_node < Int{0}) ? Root() : start_node
                 );
             }
             else
@@ -636,7 +637,7 @@ namespace Knoodle
                     std::forward<IntPre_T>(int_pre_visit),
                     std::forward<IntPost_T>(int_post_visit),
                     std::forward<Leaf_T>(leaf_visit),
-                    (start_node < Int(0)) ? Root() : start_node
+                    (start_node < Int{0}) ? Root() : start_node
                 );
             }
         }
@@ -723,21 +724,21 @@ namespace Knoodle
             const Int start_node = Uninitialized
         )
         {
-            constexpr Int stack_max_size = Int(2) * max_depth + Int(1);
-            constexpr Int stack_limit    = stack_max_size - Int(2);
+            constexpr Int stack_max_size = Int{2} * max_depth + Int{1};
+            constexpr Int stack_limit    = stack_max_size - Int{2};
             
             Int stack [stack_max_size];
             Int stack_ptr = 0;
             stack[stack_ptr] = 0; // Dummy node.
             
-            stack[++stack_ptr] = (start_node < Int(0)) ? Root() : start_node;
+            stack[++stack_ptr] = (start_node < Int{0}) ? Root() : start_node;
             
-            while( (Int(0) < stack_ptr) && (stack_ptr < stack_limit) )
+            while( (Int{0} < stack_ptr) && (stack_ptr < stack_limit) )
             {
                 const Int code = stack[stack_ptr];
                 const Int node = (code >> 1);
                 
-                const bool visitedQ = (code & Int(1));
+                const bool visitedQ = (code & Int{1});
                 
                 if( !visitedQ  )
                 {
@@ -745,7 +746,7 @@ namespace Knoodle
                     if( InternalNodeQ(node) )
                     {
                         // Mark node as visited.
-                        stack[stack_ptr] = (code | Int(1)) ;
+                        stack[stack_ptr] = (code | Int{1}) ;
 
                         auto [L,R] = Children(node);
                         
@@ -800,11 +801,6 @@ namespace Knoodle
             }
         }
         
-        
-//###############################################################################
-//##        PreOrdering
-//###############################################################################
-        
         template< class Internal_T, class Leaf_T >
         void PreOrderScan(
             Internal_T  && int_visit,
@@ -841,10 +837,6 @@ namespace Knoodle
             
             return GetCache<Tensor1<Int,Int>>(tag);
         }
-        
-//###############################################################################
-//##        PostOrdering
-//###############################################################################
         
         template< class Internal_T, class Leaf_T >
         void PostOrderScan(

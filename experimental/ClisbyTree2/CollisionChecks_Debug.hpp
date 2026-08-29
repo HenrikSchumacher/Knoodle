@@ -18,8 +18,8 @@ std::tuple<bool,WitnessVector_T> CollisionQ_Debug() const
     {
         Vector_T x_i ( x.data(i) );
         
-        const Int j_begin = i + Int(2);
-        const Int j_end   = (i == Int(0) ? n - Int(1) : n);
+        const Int j_begin = i + Int{2};
+        const Int j_end   = (i == Int{0} ? n - Int{1} : n);
         
         for( Int j = j_begin; j < j_end; ++j )
         {

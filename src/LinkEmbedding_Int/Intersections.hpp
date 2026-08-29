@@ -175,9 +175,7 @@ void ComputeIntersections()
     {
         TOOLS_PTIMER(sort_timer, tag() + ": coarse sorting.");
         
-        // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
-        edge_ctr.template RequireSize<false>( edge_ptr.Size() );
-        edge_ctr.Read( edge_ptr.data() );
+        Tensor1<Int,Int> edge_ctr = edge_ptr;
         
         if( edge_intersections.Size() != edge_ptr.Last() )
         {
@@ -207,7 +205,7 @@ void ComputeIntersections()
         // We don't need this anymore.
         intersections = std::vector<Intersection_T>();
     }
-    
+
     {
         TOOLS_PTIMER(sort_timer, tag() + ": fine sorting.");
 

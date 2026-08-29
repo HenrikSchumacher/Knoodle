@@ -801,17 +801,16 @@ namespace Knoodle
         }
         
         /*!@brief Return a string that identifies a class method specified by `tag`. Mostly used for logging and in error messages.*/
-        static constexpr std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( std::string_view tag )
         {
-            return ClassName() + "::" + tag;
+            return ClassName().append("::").append(tag);
         }
         
         /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.*/
         static constexpr std::string ClassName()
         {
-            return std::string("PlanarDiagram")
-                + "<" + TypeName<Int>
-                + ">";
+            return std::string("PlanarDiagram<").append(TypeName<Int>)
+                .append(">");
         }
     };
 
