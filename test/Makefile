@@ -42,7 +42,7 @@ endif
 # but not src/, so on 2026-08-15 local_moves_check twice reported a pre-fix
 # result after Henrik's fix had already been merged. -MP adds phony targets so
 # a deleted or renamed header does not wedge the build.
-CXXFLAGS = -Wall -Wextra -std=c++20 -O3 $(ARCHFLAGS) -pthread -MMD -MP
+CXXFLAGS = -Wall -Wextra -Wno-ignored-qualifiers -std=c++20 -O3 $(ARCHFLAGS) -pthread -MMD -MP
 
 # Knoodle core include paths (mirror tools/Makefile). The Homebrew include dir
 # is only added when HOMEBREW_PREFIX is set (macOS); on Linux/cluster the
