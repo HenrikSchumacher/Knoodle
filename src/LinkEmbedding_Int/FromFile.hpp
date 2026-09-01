@@ -23,12 +23,12 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s )
 {
     std::vector<std::array<Real,3>> v_coords;
     std::vector<Size_T> component_ptr_agg;
-    component_ptr_agg.push_back(Size_T(0));
+    component_ptr_agg.push_back(Size_T{0});
     std::vector<Int> color_agg;
     
     auto lc = [&component_ptr_agg]()
     {
-        return static_cast<Int>(component_ptr_agg.size() - Size_T(1));
+        return static_cast<Int>(component_ptr_agg.size() - Size_T{1});
     };
     
     bool color_declaredQ    = false; // Whether some #color attribute has beend found before.
@@ -79,14 +79,14 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s )
                     return LinkEmbedding_T();
                 }
                 
-                s.Skip(Size_T(6)); // Skip the chars of string `"#color"`.
+                s.Skip(Size_T{6}); // Skip the chars of string `"#color"`.
                 // Deliberately skip only spaces and tabs, not using SkipWhiteSpace(): that
                 // also eats newlines, which would silently swallow the component separator
                 // if a '#color' line ever lacked its value.
                 while( !s.EmptyQ()
                       && ((s.CurrentChar() ==' ') || (s.CurrentChar() == '\t')) )
                 {
-                    s.Skip(Size_T(1));
+                    s.Skip(Size_T{1});
                 }
 
                 Int color = InvalidColor;

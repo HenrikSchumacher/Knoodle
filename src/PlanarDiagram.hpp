@@ -172,9 +172,9 @@ namespace Knoodle
         // Copy assignment operator
         PlanarDiagram & operator=( const PlanarDiagram & other ) = default;
         // Move constructor
-        PlanarDiagram( PlanarDiagram && other ) = default;
+        PlanarDiagram( PlanarDiagram && other ) noexcept = default;
         // Move assignment operator
-        PlanarDiagram & operator=( PlanarDiagram && other ) = default;
+        PlanarDiagram & operator=( PlanarDiagram && other ) noexcept  = default;
  
     private:
         

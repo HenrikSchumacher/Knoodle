@@ -14,7 +14,7 @@ namespace Knoodle
         using LInt            = Prosector_T::LInt;
         using LLInt           = Prosector_T::LLInt;
         
-        using Intersection_T  = Prosector_T::Intersection;
+        using Intersection_T  = Prosector_T::Intersection_T;
         using Time_T          = Prosector_T::Time_T;
         
         
@@ -221,7 +221,7 @@ namespace Knoodle
 
             // If we arrive here, then flag == Flag_T::Intersection.
             
-            // Create `Intersection` object and record it (increment edge_ptr, push to `intersections`).
+            // Create `Intersection_T` object and record it (increment edge_ptr, push to `intersections`).
             
             ++L.edge_ptr[i + Idx(1)];
             ++L.edge_ptr[j + Idx(1)];

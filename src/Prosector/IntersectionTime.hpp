@@ -133,6 +133,9 @@ public:
         if( !ZeroQ(delta)    ) { return std::strong_ordering::greater; }
         
         wprint("IntersectionTime::operator<=>: We should never get here.");
+        
+        TOOLS_LOGDUMP(S);
+        TOOLS_LOGDUMP(T);
 
         return std::strong_ordering::equal;
     }

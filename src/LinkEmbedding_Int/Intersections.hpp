@@ -28,7 +28,7 @@ template<bool verboseQ = true> // whether to print errors and warnings
         return 2;
     }
     
-    if( intersection_count_3D > Size_T(0) )
+    if( intersection_count_3D > Size_T{0} )
     {
         wprint(tag() + ": Detected at least "  + ToString(intersection_count_3D)+ " self-intersections in 3-space after perturbation. Link is not an embedding." );
         return 3;
@@ -129,19 +129,13 @@ void ComputeIntersections()
     TOOLS_PTIMER(timer,tag());
     
     intersections_computedQ  = false;
-    intersections.clear();
+    intersections.Clear();
     intersection_count       = 0;
     intersection_count_3D    = 0;
     
     edge_ptr.Fill(0);
     
-    {
-        const Size_T size_estimate = Size_T(2) * ToSize_T(EdgeCount());
-        if( intersections.capacity() < size_estimate )
-        {
-            intersections.reserve( size_estimate );
-        }
-    }
+    intersections.RequireCapacity( Int{2} * EdgeCount() );
     
     // Potentially to be replaced by `FindIntersectingEdges_SweepLine()`.
     {
@@ -155,9 +149,9 @@ void ComputeIntersections()
         FindIntersectingEdges_DFS();
     }
     
-    if( !std::in_range<Int>( Size_T(8) * intersections.size()) )
+    if( !std::in_range<Int>( Size_T{8} * ToSize_T(intersections.Size())) )
     {
-        eprint(tag() + ": More intersections found (intersections.size() = " + ToString(intersections.size()) + ") than can be handled by integer type Int = " + TypeName<Int> + " = " + std::string(PrettyTypeName<Int>()) + ". Please try again with a wider integer type." );
+        eprint(tag() + ": More intersections found (intersections.size() = " + ToString(intersections.Size()) + ") than can be handled by integer type Int = " + TypeName<Int> + " = " + std::string(PrettyTypeName<Int>()) + ". Please try again with a wider integer type." );
         
         intersections_computedQ = true;
         return;
@@ -167,11 +161,8 @@ void ComputeIntersections()
         
     edge_ptr.Accumulate();
     
-    intersection_count = int_cast<Int>(intersections.size());
-    
-//    Int64 sort_edge_count = 0;
-//    Int64 sort_intersection_count = 0;
-//    Int64 not_sort_intersection_count = 0;
+    intersection_count = intersections.Size();
+
     {
         TOOLS_PTIMER(sort_timer, tag() + ": coarse sorting.");
         
@@ -184,26 +175,26 @@ void ComputeIntersections()
             edge_state         = Tensor1<Int8  ,Int>( edge_ptr.Last() );
         }
 
-        for( Int k = intersection_count; k --> Int(0);  )
+        for( Int k = intersection_count; k --> Int{0};  )
         {
-            Intersection_T & inter = intersections[static_cast<Size_T>(k)];
+            const Intersection_T & isec = intersections[k];
             
             // We have to write BEFORE the positions specified by edge_ctr (and decrease it for the next write;
             
-            const Int pos_0 = --edge_ctr[inter.edges[0]+Int(1)];
-            const Int pos_1 = --edge_ctr[inter.edges[1]+Int(1)];
+            const Int pos_0 = --edge_ctr[isec.edges[0]+Int{1}];
+            const Int pos_1 = --edge_ctr[isec.edges[1]+Int{1}];
             
             edge_intersections[pos_0] = k;
-            edge_times        [pos_0] = inter.times[0];
-            edge_state        [pos_0] = static_cast<Int8>(inter.handedness << 1) | 1;
+            edge_times        [pos_0] = isec.times[0];
+            edge_state        [pos_0] = static_cast<Int8>(isec.handedness << 1) | 1;
             
             edge_intersections[pos_1] = k;
-            edge_times        [pos_1] = inter.times[1];
-            edge_state        [pos_1] = static_cast<Int8>(inter.handedness << 1) | 0;
+            edge_times        [pos_1] = isec.times[1];
+            edge_state        [pos_1] = static_cast<Int8>(isec.handedness << 1) | 0;
         }
         
         // We don't need this anymore.
-        intersections = std::vector<Intersection_T>();
+        intersections = Aggregator<Intersection_T,Int>();
     }
 
     {
@@ -211,43 +202,16 @@ void ComputeIntersections()
 
         // Sort intersections edgewise w.r.t. edge_times.
         ThreeArraySort<Time_T,Int,Int8,Int> sort ( intersection_count );
-
-//        TOOLS_LOGDUMP(edge_count);
-//        TOOLS_LOGDUMP(intersection_count);
-//        TOOLS_LOGDUMP(edge_intersections.Size());
-//        TOOLS_LOGDUMP(edge_times.Size());
-//        TOOLS_LOGDUMP(edge_state.Size());
-//        TOOLS_LOGDUMP(edge_ptr.Max());
-//        
+        
         for( Int i = 0; i < edge_count; ++i )
         {
             // This is the range of data in edge_intersections/edge_times that belongs to edge i.
             const Int k_begin = edge_ptr[i  ];
             const Int k_end   = edge_ptr[i+1];
-            
-//            TOOLS_LOGDUMP(i);
-//            
-//            if( (i >= Int(15593-4)) && ((i <= Int(15593+4))) )
-//            {
-//                TOOLS_LOGDUMP(k_begin);
-//                TOOLS_LOGDUMP(k_end);
-//                TOOLS_LOGDUMP(edge_times.Size());
-//                
-//                for( Int k = k_begin; k < k_end; ++k )
-//                {
-//                    TOOLS_LOGDUMP(k);
-//                    TOOLS_LOGDUMP(edge_times[k]);
-//                    TOOLS_LOGDUMP(edge_intersections[k]);
-//                    TOOLS_LOGDUMP(edge_state[k]);
-//                }
-//            }
 
             // We need to sort only if there are at least two intersections on that edge.
-            if( k_begin + Int(1) < k_end )
+            if( k_begin + Int{1} < k_end )
             {
-//                // DEBUGGING
-//                ++sort_edge_count;
-//                sort_intersection_count += (k_end - k_begin);
                 sort(
                     &edge_times[k_begin],
                     &edge_intersections[k_begin],
@@ -255,23 +219,9 @@ void ComputeIntersections()
                     k_end - k_begin
                 );
             }
-//            else
-//            {
-//                not_sort_intersection_count += (k_end - k_begin);
-//            }
         }
-        
-//        // DEBUGGING
-//        TOOLS_DUMP(sort_edge_count);
-//        TOOLS_DUMP(intersection_count);
-//        TOOLS_DUMP(sort_intersection_count);
-//        TOOLS_DUMP(not_sort_intersection_count);
-//        TOOLS_DUMP(Frac<double>(sort_intersection_count,sort_edge_count));
     }
     
     // From now on we can safely cycle around each component and generate vertices, edges, crossings, etc. in their order.
     intersections_computedQ = true;
 }
-
-#include "FindIntersections_DFS.hpp"
-//#include "FindIntersections_SweepLine.hpp"

@@ -104,9 +104,9 @@ namespace Knoodle
         // Copy assignment operator
         PlanarDiagramComplex & operator=( const PlanarDiagramComplex & other ) = default;
         // Move constructor
-        PlanarDiagramComplex( PlanarDiagramComplex && other ) = default;
+        PlanarDiagramComplex( PlanarDiagramComplex && other ) noexcept = default;
         // Move assignment operator
-        PlanarDiagramComplex & operator=( PlanarDiagramComplex && other ) = default;
+        PlanarDiagramComplex & operator=( PlanarDiagramComplex && other ) noexcept = default;
  
         /*!@brief Initialize from a `PlanarDiagram` and a list of unlink colors, taking ownership.*/
         PlanarDiagramComplex( PD_T && pd, Tensor1<Int,Int> && unlink_colors )
@@ -220,7 +220,7 @@ namespace Knoodle
         /*!@brief Expose the `i`-th diagram in the internal list of `PlanarDiagram`s. Read-only.*/
         cref<PD_T> Diagram( Int i ) const
         {
-            if( i < Int(0) )
+            if( i < Int{0} )
             {
                 eprint(MethodName("Diagram") + ": Index  i < 0. Returning invalid diagram.");
                 
@@ -234,7 +234,7 @@ namespace Knoodle
                 return invalid_diagram;
             }
             
-            return pd_list[Size_T(i)];
+            return pd_list[ToSize_T(i)];
         }
         
         /*!@brief Expose the `i`-th diagram in the internal list of `PlanarDiagram`s. Read-only.*/
@@ -359,7 +359,7 @@ namespace Knoodle
                 return invalid_diagram;
             }
             
-            return pd_list[Size_T(i)];
+            return pd_list[ToSize_T(i)];
         }
         
     public:
@@ -689,7 +689,7 @@ namespace Knoodle
                 }
             );
             
-            if( total_counter > Size_T(0) ) { this->ClearCache(); }
+            if( total_counter > Size_T{0} ) { this->ClearCache(); }
             
             return total_counter;
         }

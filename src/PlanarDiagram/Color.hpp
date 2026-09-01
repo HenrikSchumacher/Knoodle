@@ -143,12 +143,12 @@ bool CheckArcColors() const
         }
     }
     
-    if( violation_count > Size_T(0) )
+    if( violation_count > Size_T{0} )
     {
         eprint(MethodName("CheckArcColors") + ": Found = " + ToString(violation_count) + " color mismatches." );
     }
     
-    return (violation_count == Size_T(0));
+    return (violation_count == Size_T{0});
 }
 
 static Tensor2<Int,Int> ColorCountsToTensor2( cref<ColorCounts_T> counts )

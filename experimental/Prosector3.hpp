@@ -24,7 +24,7 @@ namespace Knoodle
      *
      *  - A line segment is projected to a single point.
      *
-     * The usage of the class is as follows: First one calls `ComputeLineSegments`. The returned flag tells us whether a valid intersection has been found or whether there were any issues. If the return value is `Flag_T::Intersection`, then one can call `GetIntersection` to get an instance of `struct` `Intersection` that contains the relevant information.
+     * The usage of the class is as follows: First one calls `ComputeLineSegments`. The returned flag tells us whether a valid intersection has been found or whether there were any issues. If the return value is `Flag_T::Intersection`, then one can call `GetIntersection` to get an instance of `struct` `Intersection_T` that contains the relevant information.
      *
      * @tparam Int_ Signed integral type used for coordinates of points.
      *
@@ -116,7 +116,7 @@ namespace Knoodle
         
     private:
         
-        Intersection isec;
+        Intersection_T isec;
         
         Vector3_T x_0;
         Vector3_T x_1;
@@ -177,9 +177,9 @@ namespace Knoodle
         
         /*!@brief Return the previously computed intersection. Use this only if `Flag()` is `Flag_T::Intersection`
          *
-         * @return Instance of type `Intersection`, indicating which line segments intersect (by their index), which line segment is on top, time of intersection, and handedness of the resulting crossing.
+         * @return Instance of type `Intersection_T`, indicating which line segments intersect (by their index), which line segment is on top, time of intersection, and handedness of the resulting crossing.
          */
-        cref<Intersection> GetIntersection()
+        cref<Intersection_T> GetIntersection()
         {
             return isec;
         }

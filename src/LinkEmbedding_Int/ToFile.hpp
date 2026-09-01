@@ -19,7 +19,7 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) c
         return false;
     }
     
-    if( component_ptr.Dim(0) <= Int(1) )
+    if( component_ptr.Dim(0) <= Int{1} )
     {
         eprint(MethodName("WriteToFile") + ": Diagram is invalid. Aborting.");
         return false;
@@ -51,8 +51,8 @@ bool WriteToOutString( mref<OutString> s, const bool colorQ = true ) const
 {
     for( Int lc = 0; lc < component_count; ++lc )
     {
-        const Int i_begin = component_ptr[lc    ];
-        const Int i_end   = component_ptr[lc + 1];
+        const Int i_begin = component_ptr[lc         ];
+        const Int i_end   = component_ptr[lc + Int{1}];
         
         if( i_end <= i_begin ) { continue; }
         
@@ -68,13 +68,13 @@ bool WriteToOutString( mref<OutString> s, const bool colorQ = true ) const
         const Int n = 3;
 
         s.PutArray(
-            [this,i_begin]( const Int i, const Int j ) { return edge_coords(i_begin + i,Int(0),j); },
+            [this,i_begin]( const Int i, const Int j ) { return vertex_coords(i_begin + i,j); },
             true,
             m, "", "\n", "",
             n, "", " ", ""
         );
         
-        if( (lc + Int(1)) != component_count )
+        if( (lc + Int{1}) != component_count )
         {
             s.PutChars("\n\n");
         }

@@ -26,7 +26,7 @@ namespace Knoodle
 
         EdgeContainer_T  edges;
         Tensor1<Int,Int> next_edge;
-        Tensor1<Int,Int> edge_ptr;
+        mutable Tensor1<Int,Int> edge_ptr;
 
         Int component_count = 0;
         

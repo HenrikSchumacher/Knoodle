@@ -169,7 +169,7 @@ namespace Knoodle
         {
             const std::string tag = MethodName("Iteration");
             
-            if( !pd.InCacheQ(tag) ) { SetIteration(pd,Size_T(0));
+            if( !pd.InCacheQ(tag) ) { SetIteration(pd,Size_T{0});
             }
             return pd.GetCache(tag);
         }

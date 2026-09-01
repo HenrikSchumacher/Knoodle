@@ -298,9 +298,9 @@ namespace Knoodle
         // Copy assignment operator
         OrthoDraw & operator=( const OrthoDraw & other ) = delete;  // Because of random_engine.
         // Move constructor
-        OrthoDraw( OrthoDraw && other ) = default;
+        OrthoDraw( OrthoDraw && other ) noexcept = default;
         // Move assignment operator
-        OrthoDraw & operator=( OrthoDraw && other ) = default;
+        OrthoDraw & operator=( OrthoDraw && other ) noexcept = default;
         
     private:
         

@@ -59,7 +59,7 @@ Size_T SimplifyLocal2( const bool compressQ )
             if( !pd.CheckAll() ) { pd_eprint(tag() + ":pd.CheckAll() failed after simplification."); };
         }
         
-        if( pd.CrossingCount() <= Int(1) )
+        if( pd.CrossingCount() <= Int{1} )
         {
             CreateUnlink(pd.last_color_deactivated);
             continue;
@@ -82,7 +82,7 @@ Size_T SimplifyLocal2( const bool compressQ )
     
     swap( pd_list, pd_done );
     
-    if( total_change_count > Size_T(0) )
+    if( total_change_count > Size_T{0} )
     {
         SortByCrossingCount();
         // SortByCrossingCount clears the cache already.

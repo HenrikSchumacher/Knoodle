@@ -74,7 +74,7 @@ bool CheckLeftDarc()
         }
     }
     
-    if( duds.size() > Size_T(0) )
+    if( duds.size() > Size_T{0} )
     {
         std::sort(duds.begin(),duds.end());
         

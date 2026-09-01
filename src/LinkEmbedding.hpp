@@ -39,8 +39,8 @@ namespace Knoodle
         
         using E_T             = Tiny::Matrix<2,3,Real,Int>;
         
-        using EContainer_T    = typename Tree3_T::EContainer_T;
-        using BContainer_T    = typename Tree2_T::BContainer_T;
+        using EContainer_T    = Tree3_T::EContainer_T;
+        using BContainer_T    = Tree2_T::BContainer_T;
          
         using Intersection_T  = Intersection<Real,Int>;
         

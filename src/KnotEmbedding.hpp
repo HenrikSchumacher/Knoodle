@@ -87,7 +87,6 @@ namespace Knoodle
         Tensor1<Int ,Int> edge_intersections;
         Tensor1<Real,Int> edge_times;
         Tensor1<Int8,Int> edge_state;
-        Tensor1<Int,Int>  edge_ctr;
         
         Vector3_T Sterbenz_shift {0};
         
@@ -218,7 +217,6 @@ namespace Knoodle
             return
                   T.AllocatedByteCount()
                 + edge_ptr.AllocatedByteCount()
-                + edge_ctr.AllocatedByteCount()
                 + vertex_coords.AllocatedByteCount()
                 + box_coords.AllocatedByteCount()
                 + edge_intersections.AllocatedByteCount()
@@ -239,7 +237,6 @@ namespace Knoodle
                 std::string("<|")
                 + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ptr)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ctr)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(vertex_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_intersections)

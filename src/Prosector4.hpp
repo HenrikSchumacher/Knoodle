@@ -91,7 +91,7 @@ namespace Knoodle
         using Time_T = IntersectionTime_Hybrid;
 
 #include "Prosector/Intersection.hpp"
-        
+
     public:
         
 //        // Default constructor
@@ -116,7 +116,7 @@ namespace Knoodle
         
     private:
         
-        Intersection isec;
+        Intersection_T isec;
         
         Vector3_T x_0;
         Vector3_T x_1;
@@ -177,9 +177,9 @@ namespace Knoodle
         
         /*!@brief Return the previously computed intersection. Use this only if `Flag()` is `Flag_T::Intersection`
          *
-         * @return Instance of type `Intersection`, indicating which line segments intersect (by their index), which line segment is on top, time of intersection, and handedness of the resulting crossing.
+         * @return Instance of type `Intersection_T`, indicating which line segments intersect (by their index), which line segment is on top, time of intersection, and handedness of the resulting crossing.
          */
-        cref<Intersection> GetIntersection()
+        cref<Intersection_T> GetIntersection()
         {
             return isec;
         }

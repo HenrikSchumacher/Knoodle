@@ -8,9 +8,11 @@ namespace Knoodle
     template<
         typename   Real  = Real64,
         IntQ       Int   = Int64,
-        SignedIntQ IReal = std::conditional_t<SameQ<Real,Real64>, Int64,
-                                std::conditional_t<SameQ<Real,Real32>, Int32, Real>
-                           >
+        SignedIntQ IReal = std::conditional_t<
+            SameQ<Real,Real64>,
+            Int64,
+            std::conditional_t<SameQ<Real,Real32>, Int32, Real>
+        >
     >
     using LinkEmbedding4 = LinkEmbedding_Int<Real, Prosector4<IReal,Int>>;
     

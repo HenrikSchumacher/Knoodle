@@ -142,6 +142,9 @@ public:
         
         wprint("IntersectionTime_Hybrid::operator<=>: We should never get here.");
         
+        TOOLS_LOGDUMP(S);
+        TOOLS_LOGDUMP(T);
+        
         return std::strong_ordering::equal;
     }
     

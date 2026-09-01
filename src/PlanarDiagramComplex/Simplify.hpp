@@ -84,7 +84,7 @@ Size_T Simplify( mref<Reapr_T> reapr, cref<Simplify_Args_T> args = Simplify_Args
 {
     TOOLS_PTIMER(timer,MethodName("Simplify"));
     
-    if( DiagramCount() == Int(0) ) { return 0; }
+    if( DiagramCount() == Int{0} ) { return 0; }
 
     switch ( args.local_opt_level )
     {
@@ -256,7 +256,7 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
         if( pd.InvalidQ() ) { continue; }
 
         // If the StrandSimplifier did not find anything, then Disconnect produces a reduced diagram.
-        const bool proven_reducedQ = args.disconnectQ && (pass_change_count == Size_T(0));
+        const bool proven_reducedQ = args.disconnectQ && (pass_change_count == Size_T{0});
         
         
         if constexpr (debugQ)
@@ -270,7 +270,7 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
         // Split the diagrams into diagram components and push them to pd_todo for further simplification.
 
         // Caution: Split is allowed to push minimal diagrams to pd_done.
-        if( (pass_change_count > Size_T(0)) || (disconnect_count > Size_T(0)) )
+        if( (pass_change_count > Size_T{0}) || (disconnect_count > Size_T{0}) )
         {
             // If anything upstream changed, then we should better continue working on the split diagrams.
             if( args.splitQ )
@@ -289,7 +289,7 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
         }
         
         // No changes were found so far. We can try reapr or we have to stop here.
-        if( args.rerouteQ && (args.embedding_trials > Size_T(0)) && (args.rotation_trials > Size_T(0)) )
+        if( args.rerouteQ && (args.embedding_trials > Size_T{0}) && (args.rotation_trials > Size_T{0}) )
         {
             if( args.splitQ )
             {
@@ -316,7 +316,7 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
             }
             else
             {
-                if( pd.DiagramComponentCount() <= Int(1) )
+                if( pd.DiagramComponentCount() <= Int{1} )
                 {
                     change_count += this->template Rattle<debugQ,targs>( S, reapr, std::move(pd), args );
                 }
@@ -481,15 +481,15 @@ Size_T Rattle(
         logprint(tag());
         if( pd.InvalidQ() ) { pd_eprint(tag() + ": pd.InvalidQ()."); }
         if( pd.ProvenMinimalQ() ) { wprint(tag() + ": pd.ProvenMinimalQ()."); }
-        if( pd.CrossingCount() <= Int(1) ) { pd_eprint(tag() + ": pd.CrossingCount() <= Int(1)."); }
-        if( pd.DiagramComponentCount() != Int(1) ) { pd_eprint(tag() + ": pd.DiagramComponentCount() != Int(1)."); }
+        if( pd.CrossingCount() <= Int{1} ) { pd_eprint(tag() + ": pd.CrossingCount() <= Int{1}."); }
+        if( pd.DiagramComponentCount() != Int{1} ) { pd_eprint(tag() + ": pd.DiagramComponentCount() != Int{1}."); }
         if( !pd.CheckAll() ) { pd_eprint(tag() + ": !pd.CheckAll()."); }
     }
     
     if( pd.InvalidQ() ) { return 0; }
 
     // We are paranoid here. Rattle should actually not be called if we do not want any reapr trials at all.
-    if( (args.embedding_trials == Size_T(0)) || (args.rotation_trials == Size_T(0)) )
+    if( (args.embedding_trials == Size_T{0}) || (args.rotation_trials == Size_T{0}) )
     {
         PushDiagramDone( std::move(pd) );
         return 0;
@@ -504,7 +504,7 @@ Size_T Rattle(
     Size_T disconnect_count  = 0;
     
     constexpr Size_T max_projection_iter = 10;
-    const bool rotateQ = args.rotation_trials > Size_T(0);
+    const bool rotateQ = args.rotation_trials > Size_T{0};
     bool progressQ = false;
     
     Tensor2<typename LinkEmbedding_T::Real,Int> x;
@@ -521,7 +521,7 @@ Size_T Rattle(
         if( rotateQ )
         {
             // We deliberately make a copy here because successive rotations and Sterbenz shifts have the potential to lose a lot of precision.
-            x.template RequireSize<false>(emb.EdgeCount(), Int(3));
+            x.template RequireSize<false>(emb.EdgeCount(), Int{3});
             emb.WriteVertexCoordinates(x.data());
         }
         
@@ -547,7 +547,7 @@ Size_T Rattle(
 
                 // Although we did not succeed in simplifying this, we need to push it to the list of diagrams that are "done"; otherwise we would lose it.
                 PushDiagramDone( std::move(pd) );
-                return Size_T(0);
+                return Size_T{0};
             }
             
             PDC_T pdc_new ( emb );
@@ -582,9 +582,9 @@ Size_T Rattle(
             // TODO: E.g., we could call it a success, if pd_1 is reduced and alternating.
             progressQ = ( pd_1.CrossingCount() < pd.CrossingCount() )
                         ||
-                        (disconnect_count > Size_T(0))
+                        (disconnect_count > Size_T{0})
                         ||
-                        (pd_1.DiagramComponentCount() > Int(1));
+                        (pd_1.DiagramComponentCount() > Int{1});
             
             // Caution: We must stop entirely as soon we made any progress, as pd_done might have been altered.
             if( progressQ ) { break; }
@@ -608,7 +608,7 @@ Size_T Rattle(
     if( progressQ )
     {
         // If the StrandSimplifier did not find anything, then Disconnect produces a reduced diagram.
-        const bool proven_reducedQ = args.disconnectQ && (pass_change_count == Size_T(0));
+        const bool proven_reducedQ = args.disconnectQ && (pass_change_count == Size_T{0});
         
         if constexpr (debugQ)
         {
@@ -650,7 +650,7 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
     
     TOOLS_PTIMER(timer,tag());
     
-    if( pd.InvalidQ() ) { return {Size_T(0),Size_T(0)}; }
+    if( pd.InvalidQ() ) { return {Size_T{0},Size_T{0}}; }
     
     if(  pd.proven_minimalQ )
     {
@@ -669,7 +669,7 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
         }
         
         pd = PD_T::InvalidDiagram();
-        return {Size_T(0),Size_T(0)};
+        return {Size_T{0},Size_T{0}};
     }
     
     if constexpr (debugQ)
@@ -732,10 +732,10 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
                 }
             }
         }
-        while( pass_change_count > Size_T(0) );
+        while( pass_change_count > Size_T{0} );
     }
 
-    if( pd.InvalidQ() ) { return {pass_change_count,Size_T(0)}; }
+    if( pd.InvalidQ() ) { return {pass_change_count,Size_T{0}}; }
     
     Size_T disconnect_count = 0;
     
@@ -751,10 +751,10 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
             local_disconnect_count = Disconnect(pd);
             disconnect_count += local_disconnect_count;
         }
-        while( local_disconnect_count > Size_T(0) );
+        while( local_disconnect_count > Size_T{0} );
 //        
 //#ifdef PD_DEBUG
-//        if( disconnect_iter > Size_T(2) )
+//        if( disconnect_iter > Size_T{2} )
 //        {
 //            PD_PRINT(tag() + ": Needed " + ToString(disconnect_iter-1) + " rounds of disconnect. (disconnect_count = " + ToString(disconnect_count)+ ", crossing_count = " + ToString(pd.CrossingCount()) + ").");
 //        }

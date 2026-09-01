@@ -98,5 +98,6 @@ void DeleteTree()
     
     // Strictly speaking, this is not part of the tree, but it is not necessary anymore, once the intersections are computed (and sorted).
     
-    edge_times = Tensor1<Time_T,Int>();
+//    edge_times = Tensor1<Time_T,Int>();
+    intersections = Aggregator<Intersection_T,Int>();
 }

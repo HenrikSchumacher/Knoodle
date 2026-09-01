@@ -18,32 +18,32 @@ friend std::string ToString( cref<SimplifyLocal_Args_T> args )
 
 Size_T SimplifyLocal( cref<SimplifyLocal_Args_T> args )
 {
-    if( DiagramCount() == Int(0) )
+    if( DiagramCount() == Int{0} )
     {
         return 0;
     }
     
-    const UInt8 level = Clamp(args.opt_level, UInt8(0), UInt8(4));
+    const UInt8 level = Clamp(args.opt_level, UInt8{0}, UInt8{4});
     
     switch ( level )
     {
-        case UInt8(0):
+        case UInt8{0}:
         {
             return 0;
         }
-        case UInt8(1):
+        case UInt8{1}:
         {
             return SimplifyLocal_impl<1,true>(args);
         }
-        case UInt8(2):
+        case UInt8{2}:
         {
             return SimplifyLocal_impl<2,true>(args);
         }
-        case UInt8(3):
+        case UInt8{3}:
         {
             return SimplifyLocal_impl<3,true>(args);
         }
-        case UInt8(4):
+        case UInt8{4}:
         {
             return SimplifyLocal_impl<4,true>(args);
         }
@@ -88,7 +88,7 @@ Size_T SimplifyLocal_impl( cref<SimplifyLocal_Args_T> args )
             
             counter += changes;
             
-            if( changes > Size_T(0) ) { pd.ClearCache(); }
+            if( changes > Size_T{0} ) { pd.ClearCache(); }
             
             PushDiagramDone( std::move(pd) );
         }
@@ -96,14 +96,14 @@ Size_T SimplifyLocal_impl( cref<SimplifyLocal_Args_T> args )
         swap( pd_list, pd_todo );
         pd_todo = PD_List_T();
     }
-    while( pd_list.size() != Size_T(0) );
+    while( pd_list.size() != Size_T{0} );
     
     PD_ASSERT( pd_list.empty() );
     PD_ASSERT( pd_todo.empty() );
 
     swap( pd_list, pd_done );
     
-    if( counter > Size_T(0) )
+    if( counter > Size_T{0} )
     {
         SortByCrossingCount();
         this->ClearCache();

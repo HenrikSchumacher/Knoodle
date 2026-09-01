@@ -19,11 +19,10 @@ cref<EContainer_T> EdgeCoordinates() const
     return edge_coords;
 }
 
-cptr<IReal> EdgeData( const IntQ auto k, const IntQ auto l ) const
+cptr<IReal> EdgeData( const Int k, const bool l ) const
 {
-    return edge_coords.data(k,l);
+    return l ? edge_coords.data(NextEdge(k)) : edge_coords.data(k);
 }
-
 
 private:
     
@@ -87,9 +86,7 @@ private:
         Vector3_T x;
         Vector3_T y;
         Vector3_T err {0};
-        
-        IRealVector3_T z;
-        
+
         rounding_error = 0;
         
         // We may omit scaling in the floating-point case only if the inputs are integer values and not too big.
@@ -97,11 +94,10 @@ private:
         
         // This should work also if `Real` is an integral type.
         
-        auto read = [&x,&y,&z,&err,scaleQ,this](
-            const Int j, mptr<IReal> target_i, mptr<IReal> target_j
-        )
+        
+        for( Int i = 0; i < edge_count; ++i )
         {
-            x.Read(vertex_coords.data(j));
+            x.Read(vertex_coords.data(i));
             
             if constexpr ( FloatQ<Real> )
             {
@@ -115,48 +111,22 @@ private:
                     err[1] = Max( err[1], Abs(std::fma(-scaling_factor,x[1],y[1])) );
                     err[2] = Max( err[2], Abs(std::fma(-scaling_factor,x[2],y[2])) );
                     
-                    z.Read(y.data()); // static_cast<IReal> will be called automaticaly
+                    y.Write(edge_coords.data(i)); // static_cast<IReal> will be called automaticaly
                 }
                 else
                 {
+                    (void)y;
                     // We know that all entries of `x` have exact integer values; so we can simply cast to `IReal`. No rounding error occurs.
-                    z.Read(x.data()); // static_cast<IReal> will be called automaticaly
+                    x.Write(edge_coords.data(i)); // static_cast<IReal> will be called automatically
                 }
             }
             else
             {
                 (void)y;
-                (void)err;
-                (void)scaleQ;
-                z.Read(x.data());   // static_cast<IReal> will be called automaticaly
+                x.Write(edge_coords.data(i));   // static_cast<IReal> will be called automatically
             }
             
-            z.Write(target_i);
-            z.Write(target_j);
-        };
-        
-        for( Int c = 0; c < component_count; ++c )
-        {
-            const Int i_begin = component_ptr[c  ];
-            const Int i_end   = component_ptr[c+1];
-                                
-            {
-                const Int i = i_end-1;
-                const Int j = i_begin;
-                mptr<IReal> target_i = edge_coords.data(i,1);
-                mptr<IReal> target_j = edge_coords.data(j,0);
-                read( j, target_i, target_j );
-            }
-            
-            for( Int i = i_begin; i < i_end-1; ++i )
-            {
-                const Int j = i+1;
-                mptr<IReal> target_i = edge_coords.data(i,1);
-                mptr<IReal> target_j = &target_i[3];  // = edge_coords.data(j,0)
-                read( j, target_i, target_j );
-            }
-            
-        } // for( Int c = 0; c < component_count; ++c )
+        } // for( Int i = 0; i < edge_count; ++i )
         
         rounding_error = err.Max();
         

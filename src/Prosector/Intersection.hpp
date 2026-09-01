@@ -1,7 +1,7 @@
 public:
 
 /*!@brief Struct for storing intersection computed by `Prosector`.*/
-struct Intersection
+struct Intersection_T
 {
     Idx    edges [2] = {Idx(-2)}; /**< First edge goes over, second edge goes under. */
     Time_T times [2]; /**< The times of intersection relative to the two line segments (left end point is at time 0, right end point is at time 1). The values here are rational functions with integer coeffients. */
@@ -10,10 +10,10 @@ struct Intersection
     
     Flag_T flag { Flag_T::Uninitialized }; /**< The flag that was raised when computing this intersection. */
     
-    Intersection() = default;
+    Intersection_T() = default;
     
     template<SignedIntQ ExtInt>
-    Intersection(
+    Intersection_T(
         const Idx    over_edge_,
         const Idx    under_edge_,
         cref<Time_T> over_edge_time_,
@@ -27,13 +27,13 @@ struct Intersection
     ,   flag        { flag_                             }
     {}
 
-    /*!@brief Return an invalid instance of `Intersection` with `flag` set to `flag_` */
-    static Intersection InvalidIntersection( const Flag_T flag_)
+    /*!@brief Return an invalid instance of `Intersection_T` with `flag` set to `flag_` */
+    static Intersection_T InvalidIntersection( const Flag_T flag_)
     {
-        Intersection intersection;
+        Intersection_T intersection;
         intersection.flag = flag_;
         return intersection;
     }
     
-}; // struct Intersection
+}; // struct Intersection_T
 

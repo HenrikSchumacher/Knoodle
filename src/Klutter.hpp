@@ -296,7 +296,7 @@ namespace Knoodle
             
             for( const auto & bucket : buckets )
             {
-                if( bucket.size()  > Size_T(0) ) { ++bucket_count; }
+                if( bucket.size()  > Size_T{0} ) { ++bucket_count; }
             }
             return bucket_count;
         }
@@ -345,7 +345,7 @@ namespace Knoodle
         
         bool SucceededQ() const
         {
-            return !failedQ && knot_info_loadedQ && plantri_loadedQ && (UnidentifiedKeyCount() == Size_T(0));
+            return !failedQ && knot_info_loadedQ && plantri_loadedQ && (UnidentifiedKeyCount() == Size_T{0});
         }
         
     private:

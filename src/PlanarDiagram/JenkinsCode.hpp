@@ -52,7 +52,7 @@ void WriteJenkinsCode( mptr<T> jenkins_code ) const
             (void)c_1_visitedQ;
             
             {
-                jenkins_code[idx + Size_T(0)] = c_0_pos;
+                jenkins_code[idx + Size_T{0}] = c_0_pos;
                 jenkins_code[idx + Size_T(1)] = ArcOverQ(a,Tail) ? T(1) : T(-1);
                 idx += Int(2);
             }
@@ -60,7 +60,7 @@ void WriteJenkinsCode( mptr<T> jenkins_code ) const
             if( !c_0_visitedQ )
             {
                 const Size_T pos  = c_start + Size_T(2) * static_cast<Size_T>(c_0_pos);
-                jenkins_code[pos + Size_T(0)] = c_0_pos;
+                jenkins_code[pos + Size_T{0}] = c_0_pos;
                 jenkins_code[pos + Size_T(1)] = CrossingRightHandedQ(c_0) ? T(1) : T(-1);
             }
         },

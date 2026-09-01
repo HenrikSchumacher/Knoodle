@@ -40,7 +40,7 @@ struct CodeLess
         cptr<Size_T> v_ = reinterpret_cast< const Size_T *>(&v[0]);
         cptr<Size_T> w_ = reinterpret_cast< const Size_T *>(&w[0]);
         
-        for( Size_T i = n; i --> Size_T(0); )
+        for( Size_T i = n; i --> Size_T{0}; )
         {
             if( v_[i] < w_[i] )
             {

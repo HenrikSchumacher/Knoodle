@@ -62,7 +62,7 @@ public:
         // Check for bad intersections.
         {
             const Size_T count = intersection_flag_counts[7];
-            if( count > Size_T(0) )
+            if( count > Size_T{0} )
             {
                 if constexpr ( verboseQ )
                 {
@@ -74,7 +74,7 @@ public:
 
         {
             const Size_T count = intersection_flag_counts[6];
-            if( count > Size_T(0) )
+            if( count > Size_T{0} )
             {
                 if constexpr ( verboseQ )
                 {
@@ -86,7 +86,7 @@ public:
         
         {
             const Size_T count = intersection_flag_counts[5];
-            if( count > Size_T(0) )
+            if( count > Size_T{0} )
             {
                 if constexpr ( verboseQ )
                 {
@@ -99,7 +99,7 @@ public:
         {
             const Size_T count = intersection_flag_counts[4];
             
-            if( count > Size_T(0) )
+            if( count > Size_T{0} )
             {
                 if constexpr ( verboseQ )
                 {
@@ -114,7 +114,7 @@ public:
                   intersection_flag_counts[2]
                 + intersection_flag_counts[3];
             
-            if( count > Size_T(0) )
+            if( count > Size_T{0} )
             {
                 if constexpr ( verboseQ )
                 {

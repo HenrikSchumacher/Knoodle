@@ -1,11 +1,11 @@
 private:
 
-void FindIntersectingEdges_DFS()
+void FindIntersectingEdges_DFS() const
 {
     TOOLS_PTIMER(timer,MethodName("FindIntersectingEdges_DFS"));
     
-    constexpr Int stack_max_size = Int(4) * max_depth + Int(1);
-    constexpr Int stack_limit    = Int(4) * max_depth - Int(4);
+    constexpr Int stack_max_size = Int{4} * max_depth + Int{1};
+    constexpr Int stack_limit    = Int{4} * max_depth - Int{4};
     
     Int stack [stack_max_size][2];
     Int stack_ptr = 0;
@@ -38,7 +38,7 @@ void FindIntersectingEdges_DFS()
     {
         const bool overflowQ = (stack_ptr >= stack_limit);
         
-        if( (Int(0) < stack_ptr) && (!overflowQ) ) [[likely]]
+        if( (Int{0} < stack_ptr) && (!overflowQ) ) [[likely]]
         {
             return true;
         }
@@ -52,12 +52,10 @@ void FindIntersectingEdges_DFS()
         }
     };
     
-    push(Int(0),Int(0));
+    push(Int{0},Int{0});
     
     while( continueQ() )
     {
-        // Pop from stack.
-        
         auto [i,j] = pop();
         
         const bool i_internalQ = T.InternalNodeQ(i);
@@ -116,7 +114,7 @@ void FindIntersectingEdges_DFS()
     
 } // FindIntersectingEdges_DFS
 
-void ComputeEdgeEdgeIntersection( const Int k, const Int l )
+void ComputeEdgeEdgeIntersection( const Int k, const Int l ) const
 {
     if( (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) )
     {
@@ -127,7 +125,7 @@ void ComputeEdgeEdgeIntersection( const Int k, const Int l )
 }
 
 template<bool verboseQ>
-void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
+void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l ) const
 {
     [[maybe_unused]] auto tag = [](){ return MethodName("ComputeEdgeEdgeIntersection"); };
     
@@ -142,10 +140,10 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
     using Flag_T = Prosector_T::Flag_T;
 
     // We abstracted the call `EdgeData` to make this work also for less explicit data layouts such as it would be in a potential KnotEmbedding_Int class.
-    
+
     Flag_T flag = S.ComputeIntersection(
-        k, EdgeData(k,Int(0)), EdgeData(k,Int(1)),
-        l, EdgeData(l,Int(0)), EdgeData(l,Int(1))
+        k, EdgeData(k,0), EdgeData(k,1),
+        l, EdgeData(l,0), EdgeData(l,1)
     );
 
     if constexpr ( verboseQ ) { TOOLS_LOGDUMP(flag); }
@@ -160,8 +158,8 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
             // Prevent overflow by min - function.
             intersection_count_3D = std::min(
                  intersection_count_3D,
-                 std::numeric_limits<Size_T>::max() - Size_T(1)
-             ) + Size_T(1);
+                 std::numeric_limits<Size_T>::max() - Size_T{1}
+            ) + Size_T{1};
             return;
         }
         default:
@@ -173,8 +171,8 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
 
     // If we arrive here, then flag == Flag_T::Intersection.
 
-    ++edge_ptr[k + Int(1)];
-    ++edge_ptr[l + Int(1)];
+    ++edge_ptr[k + Int{1}];
+    ++edge_ptr[l + Int{1}];
 
-    intersections.push_back( S.GetIntersection() );
+    intersections.Push( S.GetIntersection() );
 }

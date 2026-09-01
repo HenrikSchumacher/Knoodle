@@ -124,13 +124,23 @@ namespace Knoodle
          *
          * @param B Represents the container for the boxes. It is assumed to be an 3D array of dimensions `prim_count x 2 x AmbDim`. Each box is stored in the format `{ { lo[0],...,lo[d-1]}, { hi[0],...,hi[d-1]} }`.
          */
-        
         template<Int point_count, Int dimP, Int inc = point_count * dimP>
         void ComputeBoundingBoxes( cptr<Real> P, mptr<BReal> B ) const
         {
-            TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
             
             static_assert(dimP >= AmbDim,"");
+            
+            ComputeBoundingBoxes<point_count>(
+                [P]( Int i, Int j ) { return &P[inc * i + dimP * j]; },
+                B
+            );
+        }
+        
+        template<Int point_count, typename F>
+        void ComputeBoundingBoxes( F && get_primitive, mptr<BReal> B ) const
+        {
+            TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
+
             
             constexpr Int d = AmbDim;
             // If Real and BReal are integral, then no rounding is needed.
@@ -144,16 +154,19 @@ namespace Knoodle
             {
                 ScopedRoundingMode mode (FE_UPWARD);
                 
-                auto primitive_to_box = []( cptr<Real> p, mptr<BReal> b )
+                auto primitive_to_box = [get_primitive]( Int i, mptr<BReal> b )
                 {
-                    Vector_T lo(p);
-                    Vector_T hi(p);
+                    cptr<Real> prim_0 = get_primitive(i,Int{0});
+                    Vector_T lo (prim_0);
+                    Vector_T hi (prim_0);
                     
-                    for( Int i = 1; i < point_count; ++i )
+                    for( Int j = 1; j < point_count; ++j )
                     {
-                        lo.ElementwiseMin(&p[dimP * i]);
-                        hi.ElementwiseMax(&p[dimP * i]);
+                        cptr<Real> prim_i = get_primitive(i,j);
+                        lo.ElementwiseMin(prim_i);
+                        hi.ElementwiseMax(prim_i);
                     }
+                    
                 
                     // This is where the rounding happens.
                     for( Int k = 0; k < AmbDim; ++k )
@@ -168,7 +181,7 @@ namespace Knoodle
                 {
                     const Int i = N - last_row_begin;
                     // Here is where the rounding takes place.
-                    primitive_to_box( &P[inc * i], &B[BoxDim * N] );
+                    primitive_to_box(i, &B[BoxDim * N]);
                 }
                 
                 // Compute bounding boxes of leave nodes (penultimate row of tree).
@@ -176,7 +189,7 @@ namespace Knoodle
                 {
                     const Int i = N + offset;
                     // Here is where the rounding takes place.
-                    primitive_to_box( &P[inc * i], &B[BoxDim * N] );
+                    primitive_to_box(i, &B[BoxDim * N]);
                 }
             }
             else
@@ -186,15 +199,17 @@ namespace Knoodle
                 constexpr BReal down = std::numeric_limits<BReal>::lowest();
                 constexpr BReal up   = std::numeric_limits<BReal>::max();
                 
-                auto primitive_to_box = []( cptr<Real> p, mptr<BReal> b )
+                auto primitive_to_box = [get_primitive]( Int i, mptr<BReal> b )
                 {
-                    Vector_T lo(p);
-                    Vector_T hi(p);
+                    cptr<Real> prim_0 = get_primitive(i,Int{0});
+                    Vector_T lo (prim_0);
+                    Vector_T hi (prim_0);
                     
-                    for( Int i = 1; i < point_count; ++i )
+                    for( Int j = 1; j < point_count; ++j )
                     {
-                        lo.ElementwiseMin(&p[dimP * i]);
-                        hi.ElementwiseMax(&p[dimP * i]);
+                        cptr<Real> prim_i = get_primitive(i,j);
+                        lo.ElementwiseMin(prim_i);
+                        hi.ElementwiseMax(prim_i);
                     }
                     
                     if constexpr ( rounding_neededQ )
@@ -221,7 +236,7 @@ namespace Knoodle
                 {
                     const Int i = N - last_row_begin;
                     // Here is where the rounding takes place.
-                    primitive_to_box( &P[inc * i], &B[BoxDim * N] );
+                    primitive_to_box(i, &B[BoxDim * N]);
                 }
 
                 // Compute bounding boxes of leave nodes (penultimate row of tree).
@@ -229,7 +244,7 @@ namespace Knoodle
                 {
                     const Int i = N + offset;
                     // Here is where the rounding takes place.
-                    primitive_to_box( &P[inc * i], &B[BoxDim * N] );
+                    primitive_to_box(i, &B[BoxDim * N]);
                 }
             }
             

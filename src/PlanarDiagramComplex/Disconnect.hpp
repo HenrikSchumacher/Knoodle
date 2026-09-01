@@ -53,12 +53,12 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
     // We make copy so that we can manipulate it.
     ArcContainer_T dA_F_buffer = pd.ArcFaces();
     mptr<Int> dA_F       = dA_F_buffer.data();
-    const Int dA_count   = Int(2) * pd.MaxArcCount();
-          Int F_count    = pd.FaceCount();   // Might be increased during this routine.
+    const Int dA_count   = Int{2} * pd.MaxArcCount();
+    Int F_count    = pd.FaceCount();   // Might be increased during this routine.
     
 #ifdef PD_ALLOCATE_SCRATCH
     // Using A_scratch for face flags. The array should be large anough for additional faces.
-    static_assert( sizeof(Int) >= Size_T(2) * sizeof(bool) );
+    static_assert( sizeof(Int) >= Size_T{2} * sizeof(bool) );
     mptr<bool> F_state = reinterpret_cast<bool *>(pd.A_scratch.data());
 #else
     Tensor1<bool,Int> F_state_buffer( dA_count );
@@ -142,7 +142,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
             
             if constexpr (debugQ)
             {
-                if( da_0_loop_count > Size_T(0) )
+                if( da_0_loop_count > Size_T{0} )
                 {
                     nprint(tag() + ":remove_loop(da_0) removed " + ToString(da_0_loop_count) + " loop.");
                 }
@@ -152,7 +152,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                 }
             }
             
-            if( da_0_loop_count > Size_T(0) ) { continue; }
+            if( da_0_loop_count > Size_T{0} ) { continue; }
         }
         
         // da_0 cannot be a loop arc.
@@ -204,7 +204,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                     
                     TOOLS_LOGDUMP(pd.ArcFaces());
                     TOOLS_LOGDUMP(F_count);
-                    logvalprint("F_state",OutString::FromVector(F_state, Int(2) * pd.MaxArcCount() ));
+                    logvalprint("F_state",OutString::FromVector(F_state, Int{2} * pd.MaxArcCount() ));
                     
                     pd_eprint(MethodName("Disconnect") + ": End of error.");
                 }
@@ -237,7 +237,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
             
             if( !pd.CheckAll() ) { pd_eprint("!CheckAll()"); }
             
-            if( f_dA.size() <= Size_T(1) ) { pd_eprint("f_dA.size() <= Size_T(1)"); }
+            if( f_dA.size() <= Size_T{1} ) { pd_eprint("f_dA.size() <= 1"); }
         }
         
         // Cycle once more around the face and do the surgery.
@@ -258,9 +258,9 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
             
             if( !pd.ArcActiveQ(b) || (dA_F[db] != f) ) { continue; }
             
-            if( f_counts[g] <= I(1) )
+            if( f_counts[g] <= I{1} )
             {
-                if constexpr( debugQ ) { logprint("f_counts[g] <= Int(1)"); }
+                if constexpr( debugQ ) { logprint("f_counts[g] <= Int{1}"); }
                 continue;
             }
         
@@ -462,7 +462,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                 
                 if constexpr (debugQ)
                 {
-                    if( da_loop_count > Size_T(0) )
+                    if( da_loop_count > Size_T{0} )
                     {
                         nprint("remove_loop(da) removed " + ToString(da_loop_count) + " loop.");
                     }
@@ -476,7 +476,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                 
                 if constexpr (debugQ)
                 {
-                    if( db_loop_count > Size_T(0) )
+                    if( db_loop_count > Size_T{0} )
                     {
                         nprint("remove_loop(db) removed " + ToString(db_loop_count) + " loop.");
                     }
@@ -537,7 +537,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
         }
     }
     
-    if( change_counter > Size_T(0) ) { pd.ClearCache(); }
+    if( change_counter > Size_T{0} ) { pd.ClearCache(); }
     
     if constexpr ( debugQ )
     {

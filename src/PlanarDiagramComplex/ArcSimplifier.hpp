@@ -153,7 +153,7 @@ namespace Knoodle
             
             if( pd.ProvenMinimalQ() ) { return 0; }
             
-            if( pd.crossing_count <= Int(1) )
+            if( pd.crossing_count <= Int{1} )
             {
                 pdc.CreateUnlink(pd.last_color_deactivated);
                 pd = PD_T::InvalidDiagram();
@@ -179,12 +179,12 @@ namespace Knoodle
                    
                     for( Int arc = 0; arc < max_arc_count; ++arc )
                     {
-                        if( pd.arc_count <= Int(0) ) { break; }
+                        if( pd.arc_count <= Int{0} ) { break; }
                         
                         counter += ProcessArc(arc);
                     }
                     
-                    if( pd.ArcCount() <= Int(0) ) { break; }
+                    if( pd.ArcCount() <= Int{0} ) { break; }
         
                     // We could recompress also here...
                     if( settings.compressQ ) { pd.ConditionalCompress( settings.compression_threshold ); }
@@ -194,14 +194,14 @@ namespace Knoodle
             
             if( pd.InvalidQ() ) { return counter; }
             
-            if( counter > Size_T(0) )
+            if( counter > Size_T{0} )
             {
                 if( settings.compressQ ) { pd.ConditionalCompress( settings.compression_threshold ); }
                 
                 pd.ClearCache();
             }
                 
-            if( pd.ValidQ() && (pd.CrossingCount() == Int(0)) )
+            if( pd.ValidQ() && (pd.CrossingCount() == Int{0}) )
             {
                 pd.proven_minimalQ = true;
             }
