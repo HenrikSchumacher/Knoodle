@@ -574,14 +574,13 @@ namespace Knoodle
         
         friend std::ostream & operator << (std::ostream &s, const This_T & c )
         {
-            s << ClassName() << OutString::FromVector(&c.limbs[0],limb_count);
-            return s;
+            return s << ClassName() << OutString::FromVector(&c.limbs[0],limb_count);
         }
         
         template<typename CharT,typename Traits>
         std::stringstream & operator<<( mref<std::basic_ostream<CharT,Traits>&> s ) const
         {
-            s << ToString(*this);
+            return s << ToString(*this);
         }
         
     public:
