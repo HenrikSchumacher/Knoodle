@@ -47,19 +47,19 @@ int main()
 //    TOOLS_DUMP(err);
 //    print("");
     
-    Link3_T L3 = Link3_T::FromFile(file);
-    tic(L3.ClassName());
-    err = L3.RequireIntersections();
-    toc(L3.ClassName());
-    TOOLS_DUMP(err);
-    print("");
-    
-    Link4_T L4 = Link4_T::FromFile(file);
-    tic(L4.ClassName());
-    err = L4.RequireIntersections();
-    toc(L4.ClassName());
-    TOOLS_DUMP(err);
-    print("");
+//    Link3_T L3 = Link3_T::FromFile(file);
+//    tic(L3.ClassName());
+//    err = L3.RequireIntersections();
+//    toc(L3.ClassName());
+//    TOOLS_DUMP(err);
+//    print("");
+//    
+//    Link4_T L4 = Link4_T::FromFile(file);
+//    tic(L4.ClassName());
+//    err = L4.RequireIntersections();
+//    toc(L4.ClassName());
+//    TOOLS_DUMP(err);
+//    print("");
     
     Link5_T L5 = Link5_T::FromFile(file);
     tic(L5.ClassName());
@@ -68,28 +68,18 @@ int main()
     TOOLS_DUMP(err);
     print("");
     
-    TOOLS_DUMP(L1.AllocatedByteCount());
+//    TOOLS_DUMP(L1.AllocatedByteCount());
 //    TOOLS_DUMP(L2.AllocatedByteCount());
-    TOOLS_DUMP(L3.AllocatedByteCount());
-    TOOLS_DUMP(L4.AllocatedByteCount());
+//    TOOLS_DUMP(L3.AllocatedByteCount());
+//    TOOLS_DUMP(L4.AllocatedByteCount());
     TOOLS_DUMP(L5.AllocatedByteCount());
     
     print("");
     
     
 //    TOOLS_DUMP(L2.EdgeCrossings() == L1.EdgeCrossings());
-    TOOLS_DUMP(L3.EdgeCrossings() == L1.EdgeCrossings());
-    TOOLS_DUMP(L4.EdgeCrossings() == L1.EdgeCrossings());
+//    TOOLS_DUMP(L3.EdgeCrossings() == L1.EdgeCrossings());
+//    TOOLS_DUMP(L4.EdgeCrossings() == L1.EdgeCrossings());
     TOOLS_DUMP(L5.EdgeCrossings() == L1.EdgeCrossings());
     
-//    PlanarDiagramComplex<Int> pdc1 (L1);
-//    PlanarDiagramComplex<Int> pdc5 (L5);
-//
-//    pdc1.Simplify();
-//    pdc5.Simplify();
-//    
-//    TOOLS_DUMP(pdc1.CrossingCount());
-//    TOOLS_DUMP(pdc5.CrossingCount());
-//    
-
 }

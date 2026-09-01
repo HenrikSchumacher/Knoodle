@@ -14,6 +14,6 @@ namespace Knoodle
             std::conditional_t<SameQ<Real,Real32>, Int32, Real>
         >
     >
-    using LinkEmbedding4 = LinkEmbedding_Int<Real, Prosector4<IReal,Int>>;
+    using LinkEmbedding4 = LinkEmbedding_Int<Real,Prosector4<IReal,Int>,true>;
     
 } // namespace Knoodle

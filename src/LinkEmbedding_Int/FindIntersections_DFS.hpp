@@ -108,7 +108,17 @@ void FindIntersectingEdges_DFS() const
         }
         else
         {
-            ComputeEdgeEdgeIntersection( T.NodeBegin(i), T.NodeBegin(j) );
+            if constexpr ( mortonQ )
+            {
+                ComputeEdgeEdgeIntersection(
+                    p[T.NodeBegin(i)],
+                    p[T.NodeBegin(j)]
+                );
+            }
+            else
+            {
+                ComputeEdgeEdgeIntersection(T.NodeBegin(i), T.NodeBegin(j));
+            }
         }
     }
     

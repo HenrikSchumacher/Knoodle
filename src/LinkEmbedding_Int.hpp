@@ -5,6 +5,24 @@
 namespace Knoodle
 {
     
+    template<int AmbDim, UnsignedIntQ UInt>
+    TOOLS_FORCE_INLINE bool less_Morton( cptr<UInt> u, cptr<UInt> v )
+    {
+        // From Timothy M. Chan - Closest-Point Problems on the RAM
+        int  i = 0;
+        UInt x = u[i] ^ v[i];
+        for( int j = 1; j < AmbDim; ++j )
+        {
+            UInt y = u[j] ^ v[j];
+            if( (x <= y) && (x < (x ^ y)) )
+            {
+                i = j;
+                x = y;
+            }
+        }
+        return u[i] < v[i];
+    }
+    
     /*!@brief **EXPERIMENTAL.** This class is mostly intended for reading in 3D vertex coordinates, applying a planar projection, and computing the crossings. Then it can be handed over to class `PlanarDiagram` or `PlanarDiagramComplex`.
      *
      *  This class's main routines are `ReadVertexCoordinates` and `RequireIntersections`.
@@ -29,7 +47,8 @@ namespace Knoodle
     
     template<
         typename Real_,
-        typename Prosector_T_
+        typename Prosector_T_,
+        bool     mortonQ_ = false
     >
     class alignas( ObjectAlignment ) LinkEmbedding_Int : public Link<typename Prosector_T_::Idx>
     {
@@ -42,13 +61,15 @@ namespace Knoodle
         
         using Int             = Prosector_T::Idx;
         using IReal           = Prosector_T::Int;
+        using UInt            = ToUnsigned<Int>;
         
         using Intersection_T  = Prosector_T::Intersection_T;
         using Time_T          = Prosector_T::Time_T;
         using EdgeCrossing_T  = EdgeCrossing<Int>;
         
-        static constexpr Int AmbDim = 3;
-        static constexpr Int InvalidColor = PlanarDiagram<Int>::InvalidColor;
+        static constexpr Int  AmbDim = 3;
+        static constexpr Int  InvalidColor = PlanarDiagram<Int>::InvalidColor;
+        static constexpr bool mortonQ = mortonQ_;
         
         using Base_T          = Link<Int>;
         using LinkEmbedding_T = LinkEmbedding_Int;
@@ -61,7 +82,7 @@ namespace Knoodle
 
         using Vector3_T       = Tiny::Vector<3,  Real ,Int>;
         using Matrix3x3_T     = Tiny::Matrix<3,3,Real ,Int>;
-        using IRealVector3_T  = Tiny::Vector<3,  IReal,Int>;
+        using IVector3_T      = Tiny::Vector<3,  IReal,Int>;
         
         using VContainer_T    = Tiny::VectorList_AoS<3, Real,Int>;
         using EContainer_T    = Tiny::VectorList_AoS<3,IReal,Int>;
@@ -101,6 +122,8 @@ namespace Knoodle
         mutable Vector3_T global_lo { Scalar::Max<Real> };
         mutable Vector3_T global_hi { Scalar::Min<Real> };
         Matrix3x3_T R { { {1,0,0}, {0,1,0}, {0,0,1} } }; // a rotation matrix (later to be randomized)
+        
+        mutable Tensor1<Int,Int> p;
         
         //Containers and data whose sizes stay constant under ReadVertexCoordinates.
         
@@ -242,6 +265,7 @@ namespace Knoodle
             return std::string("LinkEmbedding_Int")
                 .append("<").append(TypeName<Real>)
                 .append(",").append(Prosector_T::ClassName())
+                .append(",").append(ToString(mortonQ))
                 .append(">");
         }
         

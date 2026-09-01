@@ -90,7 +90,7 @@ cref<Tensor1<EdgeCrossing_T,Int>> EdgeCrossings() const
  *
  * Calls `RequireIntersections()`.
  */
-[[deprecated("Use EdgeCrossings instead.")]]
+//[[deprecated("Use EdgeCrossings instead.")]]
 Tensor1<Int,Int> EdgeIntersections() const
 {
     if( RequireIntersections() ) { return Tensor1<Int,Int>(); }
@@ -112,7 +112,7 @@ Tensor1<Int,Int> EdgeIntersections() const
  *
  * Calls `RequireIntersections()`.
  */
-[[deprecated("Use EdgeCrossings instead.")]]
+//[[deprecated("Use EdgeCrossings instead.")]]
 Tensor1<Int8,Int> EdgeStates() const
 {
     if( RequireIntersections() ) { return Tensor1<Int8,Int>(); }

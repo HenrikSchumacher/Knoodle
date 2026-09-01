@@ -15,13 +15,18 @@ void RequireEdgeCoordinates() const
 cref<EContainer_T> EdgeCoordinates() const
 {
     RequireEdgeCoordinates();
-    
     return edge_coords;
 }
 
 cptr<IReal> EdgeData( const Int k, const bool l ) const
 {
     return l ? edge_coords.data(NextEdge(k)) : edge_coords.data(k);
+}
+
+cref<Tensor1<Int,Int>> MortonOrdering() const
+{
+    RequireEdgeCoordinates();
+    return p;
 }
 
 private:
@@ -92,8 +97,29 @@ private:
         // We may omit scaling in the floating-point case only if the inputs are integer values and not too big.
         bool scaleQ = !(input_integralQ && (scaling_exponent >= 0));
         
-        // This should work also if `Real` is an integral type.
+        [[maybe_unused]] IVector3_T int_lo;
         
+        if constexpr ( mortonQ )
+        {
+            if constexpr ( FloatQ<Real> )
+            {
+                if( scaleQ )
+                {
+                    int_lo[0] = static_cast<Int>(std::nearbyint(global_lo[0] * scaling_factor));
+                    int_lo[1] = static_cast<Int>(std::nearbyint(global_lo[1] * scaling_factor));
+                    int_lo[2] = static_cast<Int>(std::nearbyint(global_lo[2] * scaling_factor));
+                }
+                else
+                {
+                    // We know that all entries of `lo_global` have exact integer values; so we can simply cast to `IReal`.
+                    global_lo.Write( &int_lo[0] );
+                }
+            }
+            else
+            {
+                global_lo.Write( &int_lo[0] );
+            }
+        }
         
         for( Int i = 0; i < edge_count; ++i )
         {
@@ -103,7 +129,7 @@ private:
             {
                 if( scaleQ )
                 {
-                    y[0] = std::nearbyint(x[0] * scaling_factor) ;
+                    y[0] = std::nearbyint(x[0] * scaling_factor);
                     y[1] = std::nearbyint(x[1] * scaling_factor);
                     y[2] = std::nearbyint(x[2] * scaling_factor);
                     
@@ -129,6 +155,33 @@ private:
         } // for( Int i = 0; i < edge_count; ++i )
         
         rounding_error = err.Max();
+        
+        if constexpr ( mortonQ )
+        {
+            tic("Morton ordering");
+            p.template RequireSize<false>(edge_count);
+//            p.iota();
+            
+            IVector3_T z;
+            for( Int i = 0; i < edge_count; ++i )
+            {
+                p[i] = i;
+                z.Read(edge_coords.data(i));
+                z -= int_lo;
+                z.Write(edge_coords.data(i));
+            }
+            
+            std::sort( &p[0], &p[edge_count],
+                [this]( Int i, Int j ) {
+                    return less_Morton<2>(
+                        reinterpret_cast<UInt * >(edge_coords.data(i)),
+                        reinterpret_cast<UInt * >(edge_coords.data(j))
+                    );
+                }
+            );
+            
+            toc("Morton ordering");
+        }
         
         edge_coords_computedQ = true;
     }
