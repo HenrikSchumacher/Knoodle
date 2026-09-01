@@ -111,6 +111,17 @@ exit 0
 ''')
         os.chmod(git, 0o755)
 
+        # The RPM CI containers (fedora, rocky) install git but not git-lfs,
+        # and the hook's first act is `command -v git-lfs || exit 2` -- which
+        # exits before stdin is ever read, failing this test for the wrong
+        # reason. The fixture already fakes `git`; fake `git-lfs` too (the
+        # real `git lfs pre-push` call routes through the fake git anyway),
+        # so the stdin plumbing is exercised on hosts without git-lfs.
+        lfs_stub = os.path.join(tmp, "git-lfs")
+        with open(lfs_stub, "w") as f:
+            f.write("#!/bin/sh\nexit 0\n")
+        os.chmod(lfs_stub, 0o755)
+
         # A policy stand-in that records its own stdin, so this test is about
         # the plumbing and not about the policy's decisions.
         policy = os.path.join(HOOKS, "knoodle-push-policy")
