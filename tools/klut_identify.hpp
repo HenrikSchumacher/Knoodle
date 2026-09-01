@@ -127,7 +127,7 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
     R.summands.clear();                            // keep the vector's capacity
     R.status          = IdentifyResult::Status::Knot;
     R.component_error = false;
-    R.reapr_calls     = Size_T(0);
+    R.reapr_calls     = Size_T{0};
 
     // Push()/Pop()/Clear() are lock-guarded: on a locked complex they do nothing
     // and warn, because they cannot verify that arc colors stay consistent
@@ -156,7 +156,7 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
     // Seed: pass-only decomposition, canonicalize OFF (hot path).
     {
         PDC_T::Simplify_Args_T a{};
-        a.embedding_trials = Size_T(0);
+        a.embedding_trials = Size_T{0};
         a.canonicalizeQ    = false;
         a.local_opt_level  = static_cast<Knoodle::UInt8>(q.seed_local_opt);  // default 0: no-op
         a.rerouteQ         = q.seed_reroute;                                 // default true: no-op

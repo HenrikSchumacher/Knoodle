@@ -1,13 +1,14 @@
 //#define TOOLS_NO_RESTRICT
 
-#define TOOLS_NO_INT128
-
-//#define KNOODLE_USE_BOOST_MULTIPRECISION
+//#define TOOLS_ENABLE_PROFILER
+//#define TOOLS_NO_INT128
+#define TOOLS_AGGRESSIVE_INLINING
+#define KNOODLE_USE_BOOST_MULTIPRECISION
 
 
 #include "../../Knoodle.hpp"
 //#include "../../experimental/LinkEmbedding_Boost.hpp"
-#include "../../experimental/LinkEmbedding3.hpp"
+#include "../../experimental/LinkEmbedding5.hpp"
 
 using namespace Knoodle;
 using namespace Tools;
@@ -16,10 +17,10 @@ using Real  = Real64;
 using Int   = Int64;
 using IReal = Int64;
 
-
 //using Link2_T         = LinkEmbedding_Boost<Real,Int>;
-using Link3_T         = LinkEmbedding3<Real,Int,IReal>;
+using Link1_T         = LinkEmbedding<Real,Int>;
 using Link4_T         = LinkEmbedding4<Real,Int,IReal>;
+using Link5_T         = LinkEmbedding5<Real,Int,IReal>;
 
 //using Prosector_T    = Link_T::Prosector_T;
 //using Vector3_T      = Prosector_T::Vector3_T;
@@ -29,137 +30,43 @@ using Link4_T         = LinkEmbedding4<Real,Int,IReal>;
 using PDC_T          = PlanarDiagramComplex<Int>;
 
 
-
-std::string_view f( std::string_view view )
-{
-    return view;
-}
-
-template<typename A_T, typename B_T>
-void fun( A_T a, B_T b )
-{
-    auto c = long_mul(a,b);
-    print(std::string(TypeName<decltype(a)>) + " * " + TypeName<decltype(b)> + " -> " + TypeName<decltype(c)>);
-    print("a = " + ToString(a) + ", b = " + ToString(b) + ", c = " + ToString(c));
-}
-
 int main()
 {
     Profiler::Clear();
-    Link4_T L = Link4_T::FromFile( HomeDirectory() / "a.txt");
-    TOOLS_DUMP(L.EdgeCount());
-    auto err = L.RequireIntersections();
+    int err;
+
+    Link1_T L1 = Link1_T::FromFile( HomeDirectory() / "a.txt");
+    tic("Link1");
+    err = L1.RequireIntersections();
+    toc("Link1");
     TOOLS_DUMP(err);
     
-    PDC_T pdc (L);
+    std::ofstream a_L1 ( HomeDirectory() / "a_L1.txt");
+    a_L1 << L1.EdgeIntersections();
     
-    print(PDC_T::ClassName());
-    print(PDC_T::MethodName(std::string("aaaa")));
-    print(PDC_T::MethodName("bbbb"));
-    print(PDC_T::MethodName(ct_string{"cccc"}));
+    Link4_T L4 = Link4_T::FromFile( HomeDirectory() / "a.txt");
+    tic("Link4");
+    err = L4.RequireIntersections();
+    toc("Link4");
+    TOOLS_DUMP(err);
     
-//    OutString s;
-//    
-//    s << L.EdgePointers();
-//    s << "\n\n";
-//    s << L.EdgeCoordinates();
-//    s << "\n\n";
-//    s << L.BoundingBoxes();
-//    
-//    print(s);
-//    
-    {
-        Tensor1<Real,Int> a ( 4 );
-        a.Randomize();
-        TOOLS_DUMP(a);
-        
-        OutString s_out;
-        
-        s_out << a;
-        
-        valprint("s_out",s_out);
-        
-        InString s_in { s_out.View() };
-        
-        Tensor1<Real,Int> b ( 4 );
-        
-        s_in >> b;
-        
-        TOOLS_DUMP(b);
-    }
+    std::ofstream a_L4 ( HomeDirectory() / "a_L4.txt");
+    a_L4 << L4.EdgeIntersections();
     
-    {
-        Tensor2<Real,Int> a ( 4, 4 );
-        a.Randomize();
-        TOOLS_DUMP(a);
-        
-        OutString s_out;
-        
-        s_out << a;
-        
-        valprint("s_out",s_out);
-        
-        InString s_in { s_out.View() };
-        
-        Tensor2<Real,Int> b ( 4, 4 );
-        
-        s_in >> b;
-        
-        TOOLS_DUMP(b);
-    }
+    Link5_T L5 = Link5_T::FromFile( HomeDirectory() / "a.txt");
+    tic("Link5");
+    err = L5.RequireIntersections();
+    toc("Link5");
+    TOOLS_DUMP(L5.EdgeCount());
+    TOOLS_DUMP(err);
     
-    {
-        Tensor3<Real,Int> a ( 2, 2, 2 );
-        a.Randomize();
-        TOOLS_DUMP(a);
-        
-        OutString s_out;
-        
-        s_out << a;
-        
-        valprint("s_out",s_out);
-        
-        InString s_in { s_out.View() };
-        
-        Tensor3<Real,Int> b ( 2, 2, 2 );
-        
-        s_in >> b;
-        
-        TOOLS_DUMP(b);
-    }
+    std::ofstream a_L5 ( HomeDirectory() / "a_L5.txt");
+    a_L5 << L5.EdgeIntersections();
     
-//    TOOLS_DUMP(CharCount("a","bb"));
-//    
-//    constexpr auto cts = ct_string("a");
-//    
-//    constexpr auto cts_1 = "c" + cts + "b" + to_ct_string(1);
-//    
-//    print(cts);
-//    print(cts_1);
-//    print("ccc");
-
+    print(L1.AllocatedByteCountDetails());
+    print(L5.AllocatedByteCountDetails());
     
-    constexpr ct_string<8> s;
-    
-    std::cout << "|" << s << "|" << std::endl;
-    
-    TOOLS_DUMP(s[0]);
-    TOOLS_DUMP(s[1]);
-    TOOLS_DUMP(s[2]);
-    
-    TOOLS_DUMP(s.size());
-
-    constexpr auto a = "\"" + s + "\"";
-    valprint("a",std::string_view(a));
-    TOOLS_DUMP(a.size());
-//    
-//    print(IntegerInfo());
-//    
-//    print(FullTypeName<std::pair<Int,Real>>);
-    
-//    constexpr auto a = ct_string("abc");
-//    TOOLS_DUMP(a.size());
-//    TOOLS_DUMP(a.capacity());
-    
-    print(IntegerInfo());
+//    TOOLS_DUMP(L1.AllocatedByteCount());
+//    TOOLS_DUMP(L4.AllocatedByteCount());
+//    TOOLS_DUMP(L5.AllocatedByteCount());
 }
