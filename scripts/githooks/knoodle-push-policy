@@ -85,7 +85,7 @@ elif [ -z "$dirty" ] && [ -f "$STAMPS/light-$head_sha" ]; then
     printf '\npre-push: light tier already verified at %s\n' "$(echo "$head_sha" | cut -c1-12)"
     tier_rc=0
 else
-    printf '\npre-push: running the light tier (about 15s)...\n\n'
+    printf '\npre-push: running the light tier (~15s of runs; a header bump adds a parallel rebuild)...\n\n'
     ( cd "$TEST_DIR" && make --no-print-directory check >/tmp/knoodle-prepush.$$ 2>&1 )
     tier_rc=$?
     if [ "$tier_rc" != 0 ]; then
