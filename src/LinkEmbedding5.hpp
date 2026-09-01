@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Prosector5.hpp"
-#include "LinkEmbedding_Deferred.hpp"
+#include "Prosector_Int.hpp"
+#include "LinkEmbedding_Int.hpp"
 
 namespace Knoodle
 {
@@ -15,6 +15,6 @@ namespace Knoodle
         Int64,
         std::conditional_t<SameQ<Real,Real32>, Int32, Real>>
     >
-    using LinkEmbedding5 = LinkEmbedding_Deferred<Real, Prosector5<IReal,Int>>;
+    using LinkEmbedding5 = LinkEmbedding_Int<Real, Prosector_Int<IReal,Int>>;
     
 } // namespace Knoodle

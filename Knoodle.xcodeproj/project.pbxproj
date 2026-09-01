@@ -2268,25 +2268,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		AF1359792F0E96BC000B5009 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
 		AF2D42502E3118C7004C6CE0 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
-		AF3B5BD62E36499C00A14D16 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -2304,25 +2286,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
-		AF5FF6AB2DD27DCA0076AB0E /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
 		AF7FD1D32D87464900D802C0 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
-		AFAC10602F0293FA0029A41C /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -2365,12 +2329,8 @@
 		AF0DCEA23025045E00D2B90D /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF14D2093031D97D0067927F /* Example_Knoodle */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Example_Knoodle; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF14D20A3031D97D0067927F /* PolyFold */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PolyFold; sourceTree = BUILT_PRODUCTS_DIR; };
-		AF14D20B3031D97D0067927F /* Dev_CLP */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_CLP; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF14D20C3031D97D0067927F /* Dev_OrthoDraw */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_OrthoDraw; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF14D20D3031D97D0067927F /* Dev_ClisbyTree */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_ClisbyTree; sourceTree = BUILT_PRODUCTS_DIR; };
-		AF14D20E3031D97D0067927F /* Dev_PlanarityChecker */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_PlanarityChecker; sourceTree = BUILT_PRODUCTS_DIR; };
-		AF14D20F3031D97D0067927F /* Dev_ClisbyTree2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_ClisbyTree2; sourceTree = BUILT_PRODUCTS_DIR; };
-		AF14D2103031D97D0067927F /* Dev_PlanarDiagram2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_PlanarDiagram2; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF14D5633031D97D0067927F /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF1911152F9F344300685967 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF1AD6BD3012195000B64478 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
@@ -2458,21 +2418,7 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		AF1359782F0E96BC000B5009 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		AF2D424F2E3118C7004C6CE0 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		AF3B5BD52E36499C00A14D16 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -2486,21 +2432,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		AF5FF6AA2DD27DCA0076AB0E /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		AF7FD1D22D87464900D802C0 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		AFAC105F2F0293FA0029A41C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -2774,12 +2706,8 @@
 				AF5F524C30308E5300490F83 /* Dev_Prosector */,
 				AF14D2093031D97D0067927F /* Example_Knoodle */,
 				AF14D20A3031D97D0067927F /* PolyFold */,
-				AF14D20B3031D97D0067927F /* Dev_CLP */,
 				AF14D20C3031D97D0067927F /* Dev_OrthoDraw */,
 				AF14D20D3031D97D0067927F /* Dev_ClisbyTree */,
-				AF14D20E3031D97D0067927F /* Dev_PlanarityChecker */,
-				AF14D20F3031D97D0067927F /* Dev_ClisbyTree2 */,
-				AF14D2103031D97D0067927F /* Dev_PlanarDiagram2 */,
 				AFD2D3203036F0A40019850A /* Perf_Simplify */,
 			);
 			name = Products;
@@ -3222,25 +3150,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		AF13597A2F0E96BC000B5009 /* Dev_PlanarDiagram2 */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = AF1359812F0E96BD000B5009 /* Build configuration list for PBXNativeTarget "Dev_PlanarDiagram2" */;
-			buildPhases = (
-				AF1359772F0E96BC000B5009 /* Sources */,
-				AF1359782F0E96BC000B5009 /* Frameworks */,
-				AF1359792F0E96BC000B5009 /* CopyFiles */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = Dev_PlanarDiagram2;
-			packageProductDependencies = (
-			);
-			productName = Dev_PlanarDiagram2;
-			productReference = AF14D2103031D97D0067927F /* Dev_PlanarDiagram2 */;
-			productType = "com.apple.product-type.tool";
-		};
 		AF2D42512E3118C7004C6CE0 /* Dev_ClisbyTree */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AF2D42562E3118C7004C6CE0 /* Build configuration list for PBXNativeTarget "Dev_ClisbyTree" */;
@@ -3258,25 +3167,6 @@
 			);
 			productName = Dev_ClisbyTree;
 			productReference = AF14D20D3031D97D0067927F /* Dev_ClisbyTree */;
-			productType = "com.apple.product-type.tool";
-		};
-		AF3B5BD72E36499C00A14D16 /* Dev_PlanarityChecker */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = AF3B5BDE2E36499C00A14D16 /* Build configuration list for PBXNativeTarget "Dev_PlanarityChecker" */;
-			buildPhases = (
-				AF3B5BD42E36499C00A14D16 /* Sources */,
-				AF3B5BD52E36499C00A14D16 /* Frameworks */,
-				AF3B5BD62E36499C00A14D16 /* CopyFiles */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = Dev_PlanarityChecker;
-			packageProductDependencies = (
-			);
-			productName = DevPlanarityChecker;
-			productReference = AF14D20E3031D97D0067927F /* Dev_PlanarityChecker */;
 			productType = "com.apple.product-type.tool";
 		};
 		AF5F524B30308E5300490F83 /* Dev_Prosector */ = {
@@ -3298,25 +3188,6 @@
 			productReference = AF5F524C30308E5300490F83 /* Dev_Prosector */;
 			productType = "com.apple.product-type.tool";
 		};
-		AF5FF6AC2DD27DCA0076AB0E /* Dev_CLP */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = AF5FF6B32DD27DCA0076AB0E /* Build configuration list for PBXNativeTarget "Dev_CLP" */;
-			buildPhases = (
-				AF5FF6A92DD27DCA0076AB0E /* Sources */,
-				AF5FF6AA2DD27DCA0076AB0E /* Frameworks */,
-				AF5FF6AB2DD27DCA0076AB0E /* CopyFiles */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = Dev_CLP;
-			packageProductDependencies = (
-			);
-			productName = DevCLP;
-			productReference = AF14D20B3031D97D0067927F /* Dev_CLP */;
-			productType = "com.apple.product-type.tool";
-		};
 		AF7FD1D42D87464900D802C0 /* PolyFold */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AF7FD1D92D87464900D802C0 /* Build configuration list for PBXNativeTarget "PolyFold" */;
@@ -3334,25 +3205,6 @@
 			);
 			productName = PolyFold;
 			productReference = AF14D20A3031D97D0067927F /* PolyFold */;
-			productType = "com.apple.product-type.tool";
-		};
-		AFAC10612F0293FA0029A41C /* Dev_ClisbyTree2 */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = AFAC10682F0293FA0029A41C /* Build configuration list for PBXNativeTarget "Dev_ClisbyTree2" */;
-			buildPhases = (
-				AFAC105E2F0293FA0029A41C /* Sources */,
-				AFAC105F2F0293FA0029A41C /* Frameworks */,
-				AFAC10602F0293FA0029A41C /* CopyFiles */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = Dev_ClisbyTree2;
-			packageProductDependencies = (
-			);
-			productName = Dev_ClisbyTree2;
-			productReference = AF14D20F3031D97D0067927F /* Dev_ClisbyTree2 */;
 			productType = "com.apple.product-type.tool";
 		};
 		AFBB9A992EF54467000CA528 /* Example_Knoodle */ = {
@@ -3421,26 +3273,14 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
-					AF13597A2F0E96BC000B5009 = {
-						CreatedOnToolsVersion = 26.2;
-					};
 					AF2D42512E3118C7004C6CE0 = {
-						CreatedOnToolsVersion = 16.4;
-					};
-					AF3B5BD72E36499C00A14D16 = {
 						CreatedOnToolsVersion = 16.4;
 					};
 					AF5F524B30308E5300490F83 = {
 						CreatedOnToolsVersion = 26.6;
 					};
-					AF5FF6AC2DD27DCA0076AB0E = {
-						CreatedOnToolsVersion = 16.3;
-					};
 					AF7FD1D42D87464900D802C0 = {
 						CreatedOnToolsVersion = 16.2;
-					};
-					AFAC10612F0293FA0029A41C = {
-						CreatedOnToolsVersion = 26.2;
 					};
 					AFBB9A992EF54467000CA528 = {
 						CreatedOnToolsVersion = 26.2;
@@ -3653,13 +3493,9 @@
 			projectRoot = "";
 			targets = (
 				AF7FD1D42D87464900D802C0 /* PolyFold */,
-				AF5FF6AC2DD27DCA0076AB0E /* Dev_CLP */,
 				AFBDADA62DECE2D9004BCA41 /* Dev_OrthoDraw */,
 				AF2D42512E3118C7004C6CE0 /* Dev_ClisbyTree */,
-				AF3B5BD72E36499C00A14D16 /* Dev_PlanarityChecker */,
 				AFBB9A992EF54467000CA528 /* Example_Knoodle */,
-				AFAC10612F0293FA0029A41C /* Dev_ClisbyTree2 */,
-				AF13597A2F0E96BC000B5009 /* Dev_PlanarDiagram2 */,
 				AF5F524B30308E5300490F83 /* Dev_Prosector */,
 				AFD2D31F3036F0A40019850A /* Perf_Simplify */,
 			);
@@ -5924,21 +5760,7 @@
 /* End PBXReferenceProxy section */
 
 /* Begin PBXSourcesBuildPhase section */
-		AF1359772F0E96BC000B5009 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		AF2D424E2E3118C7004C6CE0 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		AF3B5BD42E36499C00A14D16 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -5952,21 +5774,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		AF5FF6A92DD27DCA0076AB0E /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		AF7FD1D12D87464900D802C0 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		AFAC105E2F0293FA0029A41C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -5997,32 +5805,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		AF13597F2F0E96BD000B5009 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = Y6DQ749ZRT;
-				ENABLE_HARDENED_RUNTIME = NO;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Debug;
-		};
-		AF1359802F0E96BD000B5009 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = Y6DQ749ZRT;
-				ENABLE_HARDENED_RUNTIME = NO;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Release;
-		};
 		AF2D42572E3118C7004C6CE0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -6040,34 +5822,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CODE_SIGN_STYLE = Automatic;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = Y6DQ749ZRT;
-				ENABLE_HARDENED_RUNTIME = NO;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Release;
-		};
-		AF3B5BDC2E36499C00A14D16 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CODE_SIGN_STYLE = Automatic;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = Y6DQ749ZRT;
-				ENABLE_HARDENED_RUNTIME = NO;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Debug;
-		};
-		AF3B5BDD2E36499C00A14D16 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
@@ -6309,48 +6063,6 @@
 			};
 			name = Release;
 		};
-		AF5FF6B12DD27DCA0076AB0E /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_WARN_FLOAT_CONVERSION = NO;
-				CLANG_WARN_IMPLICIT_FALLTHROUGH = NO;
-				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = NO;
-				CODE_SIGN_STYLE = Automatic;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = Y6DQ749ZRT;
-				ENABLE_HARDENED_RUNTIME = NO;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				OTHER_LDFLAGS = (
-					"-lCoinUtils",
-					"-lamd",
-					"-lClp",
-				);
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Debug;
-		};
-		AF5FF6B22DD27DCA0076AB0E /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_WARN_FLOAT_CONVERSION = NO;
-				CLANG_WARN_IMPLICIT_FALLTHROUGH = NO;
-				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = NO;
-				CODE_SIGN_STYLE = Automatic;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = Y6DQ749ZRT;
-				ENABLE_HARDENED_RUNTIME = NO;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				OTHER_LDFLAGS = (
-					"-lCoinUtils",
-					"-lamd",
-					"-lClp",
-				);
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Release;
-		};
 		AF7FD1DA2D87464900D802C0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -6409,32 +6121,6 @@
 					"-lamd",
 					"-lboost_program_options",
 				);
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Release;
-		};
-		AFAC10662F0293FA0029A41C /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = Y6DQ749ZRT;
-				ENABLE_HARDENED_RUNTIME = NO;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-			};
-			name = Debug;
-		};
-		AFAC10672F0293FA0029A41C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = Y6DQ749ZRT;
-				ENABLE_HARDENED_RUNTIME = NO;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -6552,29 +6238,11 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		AF1359812F0E96BD000B5009 /* Build configuration list for PBXNativeTarget "Dev_PlanarDiagram2" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				AF13597F2F0E96BD000B5009 /* Debug */,
-				AF1359802F0E96BD000B5009 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		AF2D42562E3118C7004C6CE0 /* Build configuration list for PBXNativeTarget "Dev_ClisbyTree" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AF2D42572E3118C7004C6CE0 /* Debug */,
 				AF2D42582E3118C7004C6CE0 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		AF3B5BDE2E36499C00A14D16 /* Build configuration list for PBXNativeTarget "Dev_PlanarityChecker" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				AF3B5BDC2E36499C00A14D16 /* Debug */,
-				AF3B5BDD2E36499C00A14D16 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -6597,29 +6265,11 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AF5FF6B32DD27DCA0076AB0E /* Build configuration list for PBXNativeTarget "Dev_CLP" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				AF5FF6B12DD27DCA0076AB0E /* Debug */,
-				AF5FF6B22DD27DCA0076AB0E /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		AF7FD1D92D87464900D802C0 /* Build configuration list for PBXNativeTarget "PolyFold" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AF7FD1DA2D87464900D802C0 /* Debug */,
 				AF7FD1DB2D87464900D802C0 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		AFAC10682F0293FA0029A41C /* Build configuration list for PBXNativeTarget "Dev_ClisbyTree2" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				AFAC10662F0293FA0029A41C /* Debug */,
-				AFAC10672F0293FA0029A41C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

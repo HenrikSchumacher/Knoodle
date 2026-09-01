@@ -39,6 +39,7 @@
 
 #include "../experimental/LinkEmbedding_Boost.hpp"
 #include "../experimental/LinkEmbedding3.hpp"
+#include "../experimental/LinkEmbedding4.hpp"
 
 // Henrik: LinkEmbedding2/3/4 are now type aliases of LinkEmbedding_Int, which is a wrapper class that can be instantiated with different Prosector types. LinkEmbedding_Int is now loaded by Knoodle.hpp.
 
@@ -501,8 +502,10 @@ Fingerprint TakeFingerprint( LE_T & L )
 
     const Int ec   = Int(L.EdgeCount());
     auto      cptr = L.EdgePointers().data();
-    auto      ci   = L.EdgeIntersections().data();
-    auto      cs   = L.EdgeStates().data();
+//    auto      ci   = L.EdgeIntersections().data();
+//    auto      cs   = L.EdgeStates().data();
+    auto      ci   = L.EdgeCrossings().data();
+
 
     std::vector<std::pair<Int,Int>> owner (
         static_cast<std::size_t>(f.crossing_count), std::pair<Int,Int>{-1,-1} );
@@ -511,7 +514,8 @@ Fingerprint TakeFingerprint( LE_T & L )
     {
         for( Int k = Int(cptr[e]); k < Int(cptr[e+1]); ++k )
         {
-            auto & o = owner[static_cast<std::size_t>(ci[k])];
+            const auto & ci_k = ci[k]; // type EdgeCrossing<<something>>
+            auto & o = owner[static_cast<std::size_t>(ci_k.Index())];
             if( o.first < Int(0) ) { o.first = e; } else { o.second = e; }
         }
     }
@@ -522,14 +526,14 @@ Fingerprint TakeFingerprint( LE_T & L )
     {
         for( Int k = Int(cptr[e]); k < Int(cptr[e+1]); ++k )
         {
-            const auto & o = owner[static_cast<std::size_t>(ci[k])];
-            const int state = int(cs[k]);
+            const auto & ci_k = ci[k]; // type EdgeCrossing<<something>>
+            const auto & o = owner[static_cast<std::size_t>(ci_k.Index())];
 
             Slot s;
             s.edge       = e;
             s.partner    = (o.first == e) ? o.second : o.first;
-            s.overQ      = state & 1;
-            s.handedness = state >> 1;
+            s.overQ      = ci_k.OverQ();
+            s.handedness = ci_k.template Handedness<int>();
             f.slots.push_back(s);
         }
     }
@@ -656,26 +660,6 @@ struct RunResult
     Int         unlink_count   = 0;
 };
 
-/// The one adapter that covers all four classes.
-///
-/// `PD_T::FromLinkEmbedding` only has overloads for `LinkEmbedding` and
-/// `LinkEmbedding2`, but every class in the family exposes the same seven
-/// accessors, and `FromLinkEmbedding_Raw` is public precisely so tests can
-/// reach it ("Testing makes it necessary to make this public").
-template<class LE_T>
-std::pair<PD_T,Knoodle::Tensor1<Int,Int>> PDFromEmbedding( LE_T & L )
-{
-    return PD_T::FromLinkEmbedding_Raw(
-        L.ComponentCount(),
-        L.ComponentPointers().data(),
-        L.ComponentColors().data(),
-        L.IntersectionCount(),
-        L.EdgePointers().data(),
-        L.EdgeIntersections().data(),
-        L.EdgeStates().data()
-    );
-}
-
 /// Project `c` with class `LE_T` and report what came out.
 ///
 /// Failures are captured, never fatal: `LinkEmbedding4` currently *throws* where
@@ -726,7 +710,7 @@ RunResult RunEmbedding( const Curve & c, bool want_pd = false )
 
         if( want_pd )
         {
-            auto [pd,unlinks] = PDFromEmbedding(L);
+            auto [pd,unlinks] = PD_T::FromLinkEmbedding(L);
             r.pd           = std::move(pd);
             r.unlink_count = Int(unlinks.Size());
             r.pd_built     = true;

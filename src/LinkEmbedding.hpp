@@ -41,13 +41,14 @@ namespace Knoodle
         
         using EContainer_T    = Tree3_T::EContainer_T;
         using BContainer_T    = Tree2_T::BContainer_T;
-         
-        using Intersection_T  = Intersection<Real,Int>;
         
-        using Intersector_T   = Prosector_Float<Real,Int>;
-        using IntersectionFlagCounts_T = Tiny::Vector<9,Size_T,Int>;
+        using Prosector_T     = Prosector_Float<Real,Int>;
+        using Intersection_T  = Prosector_T::Intersection_T;
+        using EdgeCrossing_T  = EdgeCrossing<Int>;
 
-        
+
+        using ProsectorFlagCounts_T = Tiny::Vector<9,Size_T,        Underlying_T<ProsectorFlag>>;
+
         static constexpr Int AmbDim = 3;
         static constexpr Int InvalidColor = PlanarDiagram<Int>::InvalidColor;
         
@@ -91,15 +92,14 @@ namespace Knoodle
         BContainer_T box_coords;
         
         // Containers that might have to be reallocated after calls to ReadVertexCoordinates.
-        std::vector<Intersection_T> intersections;
-        Tensor1<Int ,Int> edge_intersections;
+        Aggregator<Intersection_T,Int> intersections;
+        Tensor1<EdgeCrossing_T,Int> edge_cross;
         Tensor1<Real,Int> edge_times;
-        Tensor1<Int8,Int> edge_state;
         
         Vector3_T Sterbenz_shift {0};
         
-        Intersector_T S;
-        IntersectionFlagCounts_T intersection_flag_counts = {};
+        Prosector_T S;
+        ProsectorFlagCounts_T prosector_flag_counts = {};
 
         Size_T intersection_count_3D  = 0;
         Size_T box_box_counter        = 0;
@@ -236,9 +236,8 @@ namespace Knoodle
                 + Base_T::component_color.AllocatedByteCount()
                 + edge_coords.AllocatedByteCount()
                 + box_coords.AllocatedByteCount()
-                + edge_intersections.AllocatedByteCount()
-                + edge_times.AllocatedByteCount()
-                + edge_state.AllocatedByteCount();
+                + edge_cross.AllocatedByteCount()
+                + edge_times.AllocatedByteCount();
         }
         
         Size_T ByteCount() const
@@ -260,9 +259,8 @@ namespace Knoodle
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_color)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_intersections)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_cross)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_times)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_state)
                 + ( "\n" + ct_tabs<t0> + "|>");
         }
         

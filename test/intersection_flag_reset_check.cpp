@@ -3,7 +3,7 @@
  * @brief Regression test: LinkEmbedding's intersection flag counters must
  *        describe ONE projection, not the lifetime of the embedding.
  *
- * The bug this pins: intersection_flag_counts was initialised once at
+ * The bug this pins: prosector_flag_counts was initialised once at
  * declaration and incremented by ComputeEdgeIntersection, but never cleared at
  * the start of FindIntersections. The status checks at the top of
  * FindIntersections read those counters to decide the return code, so once any

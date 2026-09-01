@@ -946,7 +946,7 @@ static void RotationCheckOne( const Fixture & f, const std::string & label, int 
 
             if( k+1 == steps )
             {
-                auto [pd,unlinks] = kt::PDFromEmbedding(L);
+                auto [pd,unlinks] = kt::PD_T::FromLinkEmbedding(L);
                 tr.last = Classify(pd, Int(unlinks.Size()), start.ComponentCount(), homfly_cap);
             }
         }

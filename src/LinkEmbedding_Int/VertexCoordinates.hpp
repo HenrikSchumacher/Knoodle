@@ -98,9 +98,6 @@ void ReadVertexCoordinates( cptr<Real> v )
         }
     }
     
-    max_modulus = Max( Abs(global_lo.Max()), Abs(global_hi.Max()) );
-    input_integralQ = IntQ<Real> || int_checkQ;
-    
     vertex_coords_loadedQ = true;
 }
 
@@ -144,8 +141,6 @@ void Transform( cref<Matrix3x3_T> A )
         global_hi.ElementwiseMax(y);
         y.Write( vertex_coords.data(i) );
     }
-    
-    max_modulus = Max( Abs(global_lo.Max()), Abs(global_hi.Max()) );
     
     // Transform also the transformation matrix so that we can reconstruct the original state (up to rounding errors).
     SetTransformationMatrix(Dot(A,R));

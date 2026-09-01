@@ -1,13 +1,13 @@
 public:
 
-cref<BContainer_T> BoundingBoxes()
+cref<BContainer_T> BoundingBoxes() const
 {
     RequireBoundingBoxes();
     
     return box_coords;
 }
 
-void RequireBoundingBoxes()
+void RequireBoundingBoxes() const
 {
     if( bounding_boxes_computedQ ) { return; }
     
@@ -22,7 +22,7 @@ bool BoundingBoxesComputedQ() const
 private:
 
 
-void ComputeBoundingBoxes()
+void ComputeBoundingBoxes() const
 {
     [[maybe_unused]] auto tag = [](){ return MethodName("ComputeBoundingBoxes"); };
     
@@ -53,7 +53,11 @@ void ComputeBoundingBoxes()
     // to a T which is a Tree2_T.
     // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the entries only via data(i,j), so this is safe!
     
-    T.template ComputeBoundingBoxes<2,3>( edge_coords.data(), box_coords.data() );
+//    T.template ComputeBoundingBoxes<2,3>( edge_coords.data(), box_coords.data() );
+    T.template ComputeBoundingBoxes<2>(
+        [this]( Int i, Int j ) { return this->EdgeData(i,j); },
+        box_coords.data()
+    );
     
     bounding_boxes_computedQ = true;
 }

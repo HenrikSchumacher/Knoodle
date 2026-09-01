@@ -47,12 +47,13 @@ namespace Knoodle
 #include "src/Intersection.hpp"
 
 #include "src/Prosector_Float.hpp"
+#include "src/LinkEmbedding_Int/EdgeCrossing.hpp"
 #include "src/LinkEmbedding.hpp"
 #include "src/KnotEmbedding.hpp" // Like LinkEmbedding, only for knots. A bit more efficient this way.
 
 #include "src/WideInt.hpp"   // Used in Prosector classes.
 #include "src/LinkEmbedding_Int.hpp"
-#include "src/LinkEmbedding4.hpp"
+#include "src/LinkEmbedding5.hpp"
 
 #include "src/MultiGraphBase.hpp"
 #include "src/MultiGraph.hpp"

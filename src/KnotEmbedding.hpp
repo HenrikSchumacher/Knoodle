@@ -52,10 +52,11 @@ namespace Knoodle
         using VContainer_T   = Tiny::VectorList_AoS<AmbDim,Real,Int>;
         using BContainer_T   = typename Tree2_T::BContainer_T;
         
-        using Intersection_T = Intersection<Real,Int>;
+        using Prosector_T     = Prosector_Float<Real,Int>;
+        using Intersection_T  = Prosector_T::Intersection_T;
+        using EdgeCrossing_T  = EdgeCrossing<Int>;
         
-        using Intersector_T  = Prosector_Float<Real,Int>;
-        using IntersectionFlagCounts_T = Tiny::Vector<9,Size_T,Int>;
+        using ProsectorFlagCounts_T = Tiny::Vector<9,Size_T,        Underlying_T<ProsectorFlag>>;
         
         
         static constexpr bool countersQ = false;
@@ -83,15 +84,14 @@ namespace Knoodle
         BContainer_T box_coords;
         
         // Containers that might have to be reallocated after calls to ReadVertexCoordinates.
-        std::vector<Intersection_T> intersections;
-        Tensor1<Int ,Int> edge_intersections;
+        Aggregator<Intersection_T,Int> intersections;
+        Tensor1<EdgeCrossing_T,Int> edge_cross;
         Tensor1<Real,Int> edge_times;
-        Tensor1<Int8,Int> edge_state;
         
         Vector3_T Sterbenz_shift {0};
         
-        Intersector_T S;
-        IntersectionFlagCounts_T intersection_flag_counts = {};
+        Prosector_T S;
+        ProsectorFlagCounts_T prosector_flag_counts = {};
         
         Int    intersection_count     = 0;
         Size_T intersection_count_3D  = 0;
@@ -219,9 +219,8 @@ namespace Knoodle
                 + edge_ptr.AllocatedByteCount()
                 + vertex_coords.AllocatedByteCount()
                 + box_coords.AllocatedByteCount()
-                + edge_intersections.AllocatedByteCount()
-                + edge_times.AllocatedByteCount()
-                + edge_state.AllocatedByteCount();
+                + edge_cross.AllocatedByteCount()
+                + edge_times.AllocatedByteCount();
         }
         
         Size_T ByteCount() const
@@ -239,9 +238,8 @@ namespace Knoodle
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ptr)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(vertex_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_intersections)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_cross)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_times)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_state)
                 + ( "\n" + ct_tabs<t0> + "|>");
         }
         

@@ -5,11 +5,11 @@ namespace Knoodle
     enum class ProsectorFlag : int
     {
         Empty        = 0, // Empty intersection.
-        Transversal  = 1, // Exactly one intersec. point X and X != x_1 and X != y_1.
-        AtCorner0    = 2, // Exactly one intersec. point X and X == x_0 and X != y_0.
-        AtCorner1    = 3, // Exactly one intersec. point X and X != x_0 and X == y_0.
-        CornerCorner = 4, // Exactly one intersec. point X == x_0 == y_0.
-        Interval     = 5,   // The intersection between the two lines consists of more than two points.
+        Transversal  = 1, // Exactly one intersection point X and X != x_1 and X != y_1.
+        AtCorner0    = 2, // Exactly one intersection point X and X == x_0 and X != y_0.
+        AtCorner1    = 3, // Exactly one intersection point X and X != x_0 and X == y_0.
+        CornerCorner = 4, // Exactly one intersection point X == x_0 == y_0.
+        Interval     = 5,   // The intersection between the two lines consists of more than one point.
         Spatial      = 6,   // The intersection between the two lines is tranversal in 2D, but also exists in 3D.
         OOBounds     = 7,   // The intersection times are out of bounds, indicating that rounding errors occurred.
     };
@@ -33,11 +33,39 @@ namespace Knoodle
         using Real      = Real_;
         using Int       = Int_;
         
-        using Sign_T    = typename Intersection<Real,Int>::Sign_T; // Solely for signs.
-        
         using F_T       = ProsectorFlag;
         
         using Vector2_T = Tiny::Vector<2,Real,Int>;
+        
+        struct Intersection_T
+        {
+            using Real   = Real_;
+            using Int    = Int_;
+            using Sign_T = FastInt8; // used to store handedness.
+            
+            Int  edges [2] = {-2}; // First edge goes over, second edge goes under.
+            Real times [2] = {-2};
+            
+            // +1 means right-handed, -1 means left-handed, 0 means degenerate.
+            Sign_T handedness;
+            
+            Intersection_T(
+                const Int    over_edge_,
+                const Int    under_edge_,
+                const Real   over_edge_time_,
+                const Real   under_edge_time_,
+                const Sign_T handedness_
+            )
+            :   edges       { over_edge_,      under_edge_      }
+            ,   times       { over_edge_time_, under_edge_time_ }
+            ,   handedness  { handedness_                       }
+            {}
+
+        }; // struct Intersection_T
+
+        using Sign_T = Intersection_T::Sign_T; // Solely for signs.
+        
+    public:
         
         // Default constructor
         Prosector_Float() = default;
@@ -69,11 +97,11 @@ namespace Knoodle
         Sign_T pxv_vxq;
         Sign_T qxu_uxp;
         
-//        IntersectionFlagCounts_T intersection_counts = {};
+//        ProsectorFlagCounts_T intersection_counts = {};
         
         F_T flag;
         
-        
+
     public:
         
         
@@ -440,7 +468,7 @@ namespace Knoodle
         
     public:
         
-//        cref<IntersectionFlagCounts_T> IntersectionCounts()
+//        cref<ProsectorFlagCounts_T> IntersectionCounts()
 //        {
 //            return intersection_counts;
 //        }

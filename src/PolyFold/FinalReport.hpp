@@ -48,7 +48,7 @@ void FinalReport()
     {
 //        kv<t1>("Accumulated Intersection Flag Counts", acc_intersec_counts );
         
-        using F_T = Link_T::Intersector_T::F_T;
+        using F_T = Link_T::Prosector_T::F_T;
         
         auto get = [this]( F_T flag )
         {

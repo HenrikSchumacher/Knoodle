@@ -7,7 +7,7 @@ void ReadVertexCoordinates( cptr<Real> v )
 
     intersections_computedQ  = false;
     bounding_boxes_computedQ = false;
-    intersections.clear();
+    intersections.Clear();
     
     [[maybe_unused]] Vector3_T lo { Scalar::Max<Real> };
     [[maybe_unused]] Vector3_T hi { Scalar::Min<Real> };
@@ -177,7 +177,7 @@ void Transform( cref<Matrix3x3_T> A )
 
     intersections_computedQ  = false;
     bounding_boxes_computedQ = false;
-    intersections.clear();
+    intersections.Clear();
     
     // Store new transformation matrix.
     SetTransformationMatrix(Dot(A,R));

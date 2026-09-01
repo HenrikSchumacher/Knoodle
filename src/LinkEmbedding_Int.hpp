@@ -1,5 +1,7 @@
 #pragma  once
 
+#include "Prosector_Int.hpp"
+
 namespace Knoodle
 {
     
@@ -43,6 +45,7 @@ namespace Knoodle
         
         using Intersection_T  = Prosector_T::Intersection_T;
         using Time_T          = Prosector_T::Time_T;
+        using EdgeCrossing_T  = EdgeCrossing<Int>;
         
         static constexpr Int AmbDim = 3;
         static constexpr Int InvalidColor = PlanarDiagram<Int>::InvalidColor;
@@ -52,15 +55,19 @@ namespace Knoodle
 
         using Tree2_T         = AABBTree<2,IReal,Int,IReal,false>;
         using Tree3_T         = AABBTree<3,IReal,Int,IReal,false>;
+        
+//        using Tree2_T         = AABBTree<2,IReal,Int,float,false>;
+//        using Tree3_T         = AABBTree<3,IReal,Int,float,false>;
 
         using Vector3_T       = Tiny::Vector<3,  Real ,Int>;
         using Matrix3x3_T     = Tiny::Matrix<3,3,Real ,Int>;
         using IRealVector3_T  = Tiny::Vector<3,  IReal,Int>;
         
-        using VContainer_T    = Tiny::VectorList_AoS<3,Real,Int>;
-        using EContainer_T    = Tree3_T::EContainer_T;
+        using VContainer_T    = Tiny::VectorList_AoS<3, Real,Int>;
+        using EContainer_T    = Tiny::VectorList_AoS<3,IReal,Int>;
+//        using EContainer_T    = Tree3_T::EContainer_T;
         using BContainer_T    = Tree2_T::BContainer_T;
-        
+
     protected:
         
         static_assert(std::in_range<Int>(4 * 64 + 1),"");
@@ -103,10 +110,7 @@ namespace Knoodle
         
         // Containers that might have to be reallocated after calls to ReadVertexCoordinates.
         mutable Aggregator<Intersection_T,Int> intersections;
-        
-        mutable Tensor1<Int   ,Int> edge_intersections;
-        mutable Tensor1<Time_T,Int> edge_times;
-        mutable Tensor1<Int8  ,Int> edge_state;
+        mutable Tensor1<EdgeCrossing_T,Int> edge_cross;
 
         // Other data.
         
@@ -114,7 +118,6 @@ namespace Knoodle
         
         mutable Real   scaling_factor           = 1;
         mutable Real   rounding_error           = 0;
-        mutable Real   max_modulus              = 0;
         mutable Size_T intersection_count_3D    = 0;
         mutable Int    intersection_count       = 0;
         
@@ -157,7 +160,9 @@ namespace Knoodle
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         template<IntQ I_0, IntQ I_1>
         LinkEmbedding_Int(
-            cptr<I_0> edges_, cptr<I_0> edges_colors_, const I_1 edge_count_
+            cptr<I_0> edges_,
+            cptr<I_0> edges_colors_,
+            const I_1 edge_count_
         )
         :   Base_T { edges_, edges_colors_, int_cast<Int>(edge_count_) }
         ,   vertex_coords { edge_count }
@@ -166,7 +171,10 @@ namespace Knoodle
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
         template<IntQ I_0, IntQ I_1>
         LinkEmbedding_Int(
-            cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, cptr<I_0> edges_colors_, const I_1 edge_count_
+            cptr<I_0> edge_tails_,
+            cptr<I_0> edge_tips_,
+            cptr<I_0> edges_colors_,
+            const I_1 edge_count_
         )
         :   Base_T { edge_tails_, edge_tips_, edges_colors_, edge_count_ }
         ,   vertex_coords { edge_count }
@@ -179,7 +187,6 @@ namespace Knoodle
 #include "LinkEmbedding_Int/EdgeCoordinates.hpp"
 #include "LinkEmbedding_Int/BoundingBoxes.hpp"
 #include "LinkEmbedding_Int/FindIntersections_DFS.hpp"
-//#include "FindIntersections_SweepLine.hpp"
 #include "LinkEmbedding_Int/Intersections.hpp"
 
     public:
@@ -196,9 +203,8 @@ namespace Knoodle
                 + vertex_coords.AllocatedByteCount()
                 + edge_coords.AllocatedByteCount()
                 + box_coords.AllocatedByteCount()
-                + edge_intersections.AllocatedByteCount()
-                + edge_times.AllocatedByteCount()
-                + edge_state.AllocatedByteCount();
+                + intersections.AllocatedByteCount()
+                + edge_cross.AllocatedByteCount();
         }
         
         Size_T ByteCount() const
@@ -221,9 +227,8 @@ namespace Knoodle
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(vertex_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_intersections)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_times)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_state)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(intersections)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_cross)
                 + ( "\n" + ct_tabs<t0> + "|>");
         }
         
@@ -243,3 +248,4 @@ namespace Knoodle
     }; // LinkEmbedding_Int
 
 } // namespace Knoodle
+

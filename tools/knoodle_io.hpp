@@ -55,8 +55,8 @@ using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T        = PDC_T::PD_T;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Energy_T    = PDC_T::Energy_T;
-using LinkEmb_T   = Knoodle::LinkEmbedding<Real, Int, float>;
 using Reapr_T     = Knoodle::Reapr<Real, Int, float>;  // only used for RandomRotation()
+using LinkEmb_T   = Reapr_T::LinkEmbedding_T;
 
 // The timing aliases live in a named namespace rather than at global scope.
 // Apple's <MacTypes.h> (pulled in transitively by <Accelerate/Accelerate.h>,

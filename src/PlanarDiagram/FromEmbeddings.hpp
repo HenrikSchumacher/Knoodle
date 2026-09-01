@@ -11,7 +11,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( mref<KnotEmbedding<Re
     
     TOOLS_PTIMER(timer,MethodName("FromKnotEmbedding")+"("+Knot_T::ClassName()+")");
 
-    Tensor1<Int,Int> comp_color(Int(1),Int(0));
+    Tensor1<Int,Int> comp_color(Int{1},Int{0});
     
     const int err = K.RequireIntersections();
     
@@ -27,8 +27,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( mref<KnotEmbedding<Re
         comp_color.data(),
         K.IntersectionCount(),
         K.EdgePointers().data(),
-        K.EdgeIntersections().data(),
-        K.EdgeStates().data()
+        K.EdgeCrossings().data()
     );
 }
 
@@ -59,7 +58,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinates( cptr<Real> x, const Ext
     // Deallocate tree-related data in L to make room for the PD_T.
     L.DeleteTree();
     
-    Tensor1<Int,Int> comp_color(Int(1),Int(0));
+    Tensor1<Int,Int> comp_color(Int{1},Int{0});
 
     // We delay the allocation until substantial parts of L have been deallocated.
     return FromLinkEmbedding_Raw(
@@ -68,8 +67,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinates( cptr<Real> x, const Ext
         comp_color.data(),
         L.IntersectionCount(),
         L.EdgePointers().data(),
-        L.EdgeIntersections().data(),
-        L.EdgeStates().data()
+        L.EdgeCrossings().data()
     );
 }
 
@@ -97,14 +95,12 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding<Re
         L.ComponentColors().data(),
         L.IntersectionCount(),
         L.EdgePointers().data(),
-        L.EdgeIntersections().data(),
-        L.EdgeStates().data()
+        L.EdgeCrossings().data()
     );
 }
 
 /*!@brief Construction from `FromLinkEmbedding_Int` object. Returns a planar diagram and the number of unlinks found in the input.
  */
-
 template<typename Real, typename Prosector_T>
 static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding_Int<Real,Prosector_T>> L )
 {
@@ -126,10 +122,11 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding_In
         L.ComponentColors().data(),
         L.IntersectionCount(),
         L.EdgePointers().data(),
-        L.EdgeIntersections().data(),
-        L.EdgeStates().data()
+        L.EdgeCrossings().data()
     );
 }
+
+
 
 /*!@brief Construction from the coordinates of a polygonal curve in 3-space.
  *
@@ -178,8 +175,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinatesAndEdges(
         L.ComponentColors().data(),
         L.IntersectionCount(),
         L.EdgePointers().data(),
-        L.EdgeIntersections().data(),
-        L.EdgeStates().data()
+        L.EdgeCrossings().data()
     );
 }
 
@@ -199,29 +195,27 @@ public:
     
 /*!@brief For internal use only. Users should not call this. Testing makes it necessary to make this public.
  */
-
-template<IntQ ExtInt,IntQ ExtInt2>
+template<IntQ ExtInt>
 static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_Raw(
-    const ExtInt  component_count_,
-    cptr<ExtInt>  component_ptr,
-    cptr<ExtInt>  component_color,
-    const ExtInt  crossing_count_,
-    cptr<ExtInt>  edge_ptr,
-    cptr<ExtInt>  edge_intersections,
-    cptr<ExtInt2> edge_state
+    const ExtInt component_count_,
+    cptr<ExtInt> component_ptr,
+    cptr<ExtInt> component_color,
+    const ExtInt crossing_count_,
+    cptr<ExtInt> edge_ptr,
+    cptr<EdgeCrossing<ExtInt>> edge_cross
 )
 {
     TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding_Raw"));
     // needs to know all member variables
     
-    using Sign_T = Int8;
+    using EdgeCrossing_T = EdgeCrossing<ExtInt>;
     
-    if( component_count_ <= ExtInt(0) )
+    if( component_count_ <= ExtInt{0} )
     {
         return { InvalidDiagram(), Tensor1<Int,Int>() };
     }
     
-    if( (crossing_count_ <= ExtInt(0)) && (component_count_ >= ExtInt(1)) )
+    if( (crossing_count_ <= ExtInt{0}) && (component_count_ >= ExtInt{1}) )
     {
         return { InvalidDiagram(), Tensor1<Int,Int>(component_color,component_count_) };
     }
@@ -232,7 +226,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_Raw(
     PD_T pd ( crossing_count, true );
     
     pd.crossing_count = crossing_count;
-    pd.arc_count      = Int(2) * pd.crossing_count;
+    pd.arc_count      = Int{2} * pd.crossing_count;
     
 #ifdef PD_ALLOCATE_SCRATCH
     pd.C_scratch.Fill(Uninitialized);
@@ -270,28 +264,24 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_Raw(
         }
 
         // If we arrive here, then there is definitely a crossing in the first edge.
-        for( Int b = b_begin, a = b_end-Int(1); b < b_end; a = (b++) )
+        for( Int b = b_begin, a = b_end-Int{1}; b < b_end; a = (b++) )
         {
-            const Int c_pos = static_cast<Int>(edge_intersections[b]);
+            EdgeCrossing_T ec = edge_cross[b];
+            
+            const Int c_pos = static_cast<Int>(ec.Index());
             
             if( !ValidIndexQ(C_label[c_pos]) )
             {
                 C_label[c_pos] = C_counter++;
             }
             
-            const Int c = C_label[c_pos];
-            
-            const int  state      = static_cast<int>(edge_state[b]);
-            const bool overQ      = state & 1;
-            Sign_T     handedness = static_cast<Sign_T>(state >> 1);
+            const Int  c            = C_label[c_pos];
+            const bool overQ        = ec.OverQ();
+            const bool righthandedQ = ec.RightHandedQ();
             
             pd.A_cross(a,Head) = c; // c is head of a
             pd.A_cross(b,Tail) = c; // c is tail of b
-            
-            PD_ASSERT( (handedness > Sign_T(0)) || (handedness < Sign_T(0)) );
-            
-            bool righthandedQ = handedness > Sign_T(0);
-            
+
             /*
              *
              *    negative         positive
@@ -345,14 +335,29 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_Raw(
         color_arc_counts[color] = b_end - b_begin;
     }
     
-    // TODO: Extract LinkComponentArcs, ArcLinkComponents from here (only if needed)?
-    // Not so easy to do as we have to ignore the unlinks.
-    
     pd.template SetCache<false>("LinkComponentCount",component_count - anello_colors.Size());
     
     pd.template SetCache<false>("ColorArcCounts",std::move(color_arc_counts));
     
-    // TODO: Check whether this is really neccessary.
-    
     return { pd, anello_colors.Disband() };
+}
+
+template<IntQ ExtInt>
+static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_Raw(
+    const ExtInt component_count_,
+    cptr<ExtInt> component_ptr,
+    cptr<ExtInt> component_color,
+    const ExtInt crossing_count_,
+    cptr<ExtInt> edge_ptr,
+    cptr<ExtInt> edge_cross
+)
+{
+    return FromLinkEmbedding_Raw(
+        component_count_,
+        component_ptr,
+        component_color,
+        crossing_count_,
+        edge_ptr,
+        reinterpret_cast<const EdgeCrossing<ExtInt> *>(edge_cross)
+    );
 }

@@ -25,15 +25,20 @@ cref<Tensor1<Real,Int>> EdgeIntersectionTimes() const
     return edge_times;
 }
 
-cref<Tensor1<Int,Int>> EdgeIntersections() const
+cref<Tensor1<EdgeCrossing_T,Int>> EdgeCrossings() const
 {
-    return edge_intersections;
+    return edge_cross;
 }
 
-cref<Tensor1<Int8,Int>> EdgeStates() const
-{
-    return edge_state;
-}
+//cref<Tensor1<Int,Int>> EdgeIntersections() const
+//{
+//    return edge_intersections;
+//}
+//
+//cref<Tensor1<Int8,Int>> EdgeStates() const
+//{
+//    return edge_state;
+//}
 
 cref<std::vector<Intersection_T>> Intersections() const
 {
@@ -50,9 +55,9 @@ cref<Vector3_T> SterbenzShift() const
     return Sterbenz_shift;
 }
 
-cref<IntersectionFlagCounts_T> IntersectionFlagCounts() const
+cref<ProsectorFlagCounts_T> IntersectionFlagCounts() const
 {
-    return intersection_flag_counts;
+    return prosector_flag_counts;
 }
 
 bool BoundingBoxesComputedQ()

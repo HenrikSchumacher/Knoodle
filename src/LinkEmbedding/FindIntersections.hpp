@@ -40,11 +40,8 @@ public:
             return 9;
         }
 
-        intersections.clear();
-        if( intersections.capacity() < ToSize_T(2 * EdgeCount()) )
-        {
-            intersections.reserve( ToSize_T(2 * EdgeCount()) );
-        }
+        intersections.Clear();
+        intersections.RequireCapacity( Int{2} * EdgeCount() );
 
         FindIntersectingEdges_DFS();
         
@@ -61,7 +58,7 @@ public:
         
         // Check for bad intersections.
         {
-            const Size_T count = intersection_flag_counts[7];
+            const Size_T count = prosector_flag_counts[7];
             if( count > Size_T{0} )
             {
                 if constexpr ( verboseQ )
@@ -73,7 +70,7 @@ public:
         }
 
         {
-            const Size_T count = intersection_flag_counts[6];
+            const Size_T count = prosector_flag_counts[6];
             if( count > Size_T{0} )
             {
                 if constexpr ( verboseQ )
@@ -85,7 +82,7 @@ public:
         }
         
         {
-            const Size_T count = intersection_flag_counts[5];
+            const Size_T count = prosector_flag_counts[5];
             if( count > Size_T{0} )
             {
                 if constexpr ( verboseQ )
@@ -97,7 +94,7 @@ public:
         }
         
         {
-            const Size_T count = intersection_flag_counts[4];
+            const Size_T count = prosector_flag_counts[4];
             
             if( count > Size_T{0} )
             {
@@ -111,8 +108,8 @@ public:
         
         {
             const Size_T count =
-                  intersection_flag_counts[2]
-                + intersection_flag_counts[3];
+                  prosector_flag_counts[2]
+                + prosector_flag_counts[3];
             
             if( count > Size_T{0} )
             {
@@ -126,7 +123,7 @@ public:
         
         // Check for integer overflow.
         if( std::cmp_greater(
-                Size_T(4) * intersections.size(),
+                Int(4) * ToSize_T(intersections.Size()),
                 std::numeric_limits<Int>::max()
             )
         )
@@ -134,7 +131,7 @@ public:
             eprint(tag() + ": More intersections found than can be handled by integer type " + TypeName<Int> + "." );
         }
         
-        intersection_count = int_cast<Int>(intersections.size());
+        intersection_count = intersections.Size();
         
         {
             TOOLS_PTIMER(sort_timer, tag() + ": coarse sorting.");
@@ -142,34 +139,31 @@ public:
             // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
             Tensor1<Int,Int> edge_ctr { edge_ptr };
             
-            if( edge_intersections.Size() != edge_ptr.Last() )
-            {
-                edge_intersections = Tensor1<Int, Size_T>( edge_ptr.Last() );
-                edge_times         = Tensor1<Real,Size_T>( edge_ptr.Last() );
-                edge_state         = Tensor1<Int8,Size_T>( edge_ptr.Last() );
-            }
+            edge_cross.template Resize<false>(edge_ptr.Last());
+            edge_times.template Resize<false>(edge_ptr.Last());
             
-            // We are going to fill edge_intersections so that data of the i-th edge lies in edge_intersections[edge_ptr[i]],..,edge_intersections[edge_ptr[i+1]].
+            // We are going to fill edge_cross so that data of the i-th edge lies in edge_cross[edge_ptr[i]],..,edge_cross[edge_ptr[i+1]].
             // To this end, we use (and modify!) edge_ctr so that edge_ctr[i] points AFTER the position to insert.
             
             if( intersection_count <= Int(0) ) { return 0; }
             
-            for( Int k = intersection_count; k --> Int(0);  )
+            for( Int idx = intersection_count; idx --> Int(0);  )
             {
-                Intersection_T & inter = intersections[static_cast<Size_T>(k)];
+                Intersection_T & isec = intersections[idx];
                 
                 // We have to write BEFORE the positions specified by edge_ctr (and decrease it for the next write;
                 
-                const Int pos_0 = --edge_ctr[inter.edges[0]+1];
-                const Int pos_1 = --edge_ctr[inter.edges[1]+1];
+                const Int pos_0 = --edge_ctr[isec.edges[0]+1];
+                const Int pos_1 = --edge_ctr[isec.edges[1]+1];
                 
-                edge_intersections[pos_0] = k;
-                edge_times        [pos_0] = inter.times[0];
-                edge_state        [pos_0] = static_cast<Int8>(inter.handedness << 1) | 1;
+                const bool right_handedQ = PositiveQ(isec.handedness);
                 
-                edge_intersections[pos_1] = k;
-                edge_times        [pos_1] = inter.times[1];
-                edge_state        [pos_1] = static_cast<Int8>(inter.handedness << 1) | 0;
+                edge_cross[pos_0] = EdgeCrossing_T(idx,right_handedQ,true );
+                edge_times        [pos_0] = isec.times[0];
+                
+                edge_cross[pos_1] = EdgeCrossing_T(idx,right_handedQ,false);
+                edge_times        [pos_1] = isec.times[1];
+               
             }
         }
         
@@ -179,11 +173,11 @@ public:
             TOOLS_PTIMER(sort_timer, tag() + ": fine sorting.");
             
             // Sort intersections edgewise w.r.t. edge_times.
-            ThreeArraySort<Real,Int,Int8,Int> sort ( intersection_count );
+            TwoArraySort<Real,EdgeCrossing_T,Int> sort (intersection_count);
             
             for( Int i = 0; i < edge_count; ++i )
             {
-                // This is the range of data in edge_intersections/edge_times that belongs to edge i.
+                // This is the range of data in edge_cross that belongs to edge i.
                 const Int k_begin = edge_ptr[i  ];
                 const Int k_end   = edge_ptr[i+1];
                      
@@ -192,8 +186,7 @@ public:
                 {
                     sort(
                         &edge_times[k_begin],
-                        &edge_intersections[k_begin],
-                        &edge_state[k_begin],
+                        &edge_cross[k_begin],
                         k_end - k_begin
                     );
 
@@ -212,18 +205,16 @@ public:
                             
     //                        if constexpr ( verboseQ )
     //                        {
-                                auto inter_0 = intersections[
-                                    static_cast<Size_T>(edge_intersections[l-1])
-                                ];
-                                auto inter_1 = intersections[
-                                    static_cast<Size_T>(edge_intersections[l  ])
-                                ];
+                                auto ec_0   = edge_cross[l-1];
+                                auto isec_0 = intersections[ec_0.Index()];
+                                auto ec_1   = edge_cross[l  ];
+                                auto isec_1 = intersections[ec_1.Index()];
                                 
-                                const Int j_0 = (inter_0.edges[0] == i) ? inter_0.edges[1] : inter_0.edges[0];
+                                const Int j_0 = (isec_0.edges[0] == i) ? isec_0.edges[1] : isec_0.edges[0];
                                 
-                                const Int j_1 = (inter_1.edges[0] == i) ? inter_1.edges[1] : inter_1.edges[0];
-                                
-                                wprint(tag() + ": Detected tiny difference of intersection times = " + ToString(delta) + " < " + ToString(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + ((edge_state[l-1] & 1) ? "over" : "under") + ") and " + ToString(j_1) + " (" + ((edge_state[l] & 1) ? "over" : "under") + ")." );
+                                const Int j_1 = (isec_1.edges[0] == i) ? isec_1.edges[1] : isec_1.edges[0];
+                            
+                                wprint(tag() + ": Detected tiny difference of intersection times = " + ToString(delta) + " < " + ToString(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + (ec_0.OverQ() ? "over" : "under") + ") and " + ToString(j_1) + " (" + (ec_1.OverQ() ? "over" : "under") + ")." );
     //                        }
                         }
                     }
@@ -232,11 +223,11 @@ public:
         }
         
         // We don't need this anymore.
-        intersections = std::vector<Intersection_T>();
+        intersections = Aggregator<Intersection_T,Int>();
         
-        intersection_flag_counts[8] = close_counter;
+        prosector_flag_counts[8] = close_counter;
         
-        if( intersection_flag_counts[8] )
+        if( prosector_flag_counts[8] )
         {
             // TODO: For the moment we _want_ to see this warning.
             // TODO: On the long run we need a more precise detector for the ordering of the intersection times.
@@ -260,7 +251,7 @@ private:
         
         intersection_count_3D = 0;
         edge_ptr.SetZero();
-        intersection_flag_counts.SetZero();
+        prosector_flag_counts.SetZero();
         
         // Last time I checked the _ManualStack version was 5% faster.
         FindIntersectingEdges_DFS_ManualStack();
@@ -569,7 +560,7 @@ protected:
             {
                 // edge k goes UNDER edge l
                 
-                intersections.push_back(  Intersection_T(l,k,t[1],t[0],static_cast<Sign_T>(-sign)) );
+                intersections.Push(Intersection_T(l,k,t[1],t[0],static_cast<Sign_T>(-sign)));
                 
                 /*      If det > 0, then this looks like this (left-handed crossing):
                  *
@@ -598,7 +589,7 @@ protected:
             }
             else if ( h[0] > h[1] )
             {
-                intersections.push_back( Intersection_T(k,l,t[0],t[1],sign) );
+                intersections.Push( Intersection_T(k,l,t[0],t[1],sign) );
                 // edge k goes OVER l
                 
                 /*      If det > 0, then this looks like this (positive crossing):
@@ -633,7 +624,7 @@ protected:
             
         } // if( IntersectingQ(flag) )
         
-        ++intersection_flag_counts[ ToUnderlying(flag) ];
+        ++prosector_flag_counts[ ToUnderlying(flag) ];
         
         switch(flag)
         {

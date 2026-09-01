@@ -61,7 +61,7 @@ namespace Knoodle
         
         using PDC_T                     = PlanarDiagramComplex<Int>;
         using PD_T                      = PDC_T::PD_T;
-        using IntersectionFlagCounts_T  = Link_T::IntersectionFlagCounts_T;
+        using ProsectorFlagCounts_T  = Link_T::ProsectorFlagCounts_T;
         using FoldFlagCounts_T          = Clisby_T::FoldFlagCounts_T;
         using PRNG_T                    = Clisby_T::PRNG_T;
         
@@ -127,7 +127,7 @@ namespace Knoodle
         
         std::pair<Real,Real> e_dev;
 
-        IntersectionFlagCounts_T acc_intersec_counts;
+        ProsectorFlagCounts_T acc_intersec_counts;
         
         TimeInterval T_run;
         

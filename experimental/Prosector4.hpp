@@ -24,7 +24,7 @@ namespace Knoodle
      *
      *  - A line segment is projected to a single point.
      *
-     * The usage of the class is as follows: First one calls `ComputeLineSegments`. The returned flag tells us whether a valid intersection has been found or whether there were any issues. If the return value is `Flag_T::Intersection`, then one can call `GetIntersection` to get an instance of `struct` `Intersection` that contains the relevant information.
+     * The usage of the class is as follows: First one calls `ComputeLineSegments`. The returned flag tells us whether a valid intersection has been found or whether there were any issues. If the return value is `Flag_T::Intersection`, then one can call `GetIntersection` to get an instance of `struct` `Intersection_T` that contains the relevant information.
      *
      * @tparam Int_ Signed integral type used for coordinates of points.
      *
@@ -53,8 +53,8 @@ namespace Knoodle
         using Sign_T = FastInt8; // Solely for signs.
         
         using Prosector_T = Prosector4<Int,Idx,verboseQ>;
-        using Vector3_T   = std::array<Int,3>;
-        using LVector3_T  = std::array<LInt,3>;
+        using Vector3_T   = Tiny::Vector<3,Int,Int>;
+        using LVector3_T  = Tiny::Vector<3,LInt,Int>;
         
         /*!@brief Flag that indicates whether an intersection was found or whether an error occurred.*/
         enum class Flag_T : int
@@ -77,34 +77,27 @@ namespace Knoodle
             }
         }
         
-#include "Prosector/DepressedCubic.hpp"
-#include "Prosector/Helpers.hpp"
-#include "Prosector/DegeneracyChecks.hpp"
+#include "../src/Prosector/DepressedCubic.hpp"
+#include "../src/Prosector/Helpers.hpp"
+#include "../src/Prosector/DegeneracyChecks.hpp"
         
-//#include "Prosector/IntersectionTime.hpp"
+//#include "../src/Prosector/IntersectionTime.hpp"
 //        using Time_T = IntersectionTime;
         
-//#include "Prosector/IntersectionTime_Double.hpp"
+//#include "../src/Prosector/IntersectionTime_Double.hpp"
 //        using Time_T = IntersectionTime_Double;
         
-#include "Prosector/IntersectionTime_Hybrid.hpp"
+#include "../src/Prosector/IntersectionTime_Hybrid.hpp"
         using Time_T = IntersectionTime_Hybrid;
 
-#include "Prosector/Intersection.hpp"
-
+#include "../src/Prosector/Intersection.hpp"
+        
     public:
         
-//        // Default constructor
-//        Prosector4() = default;
-        
-        Prosector4()
-        {
-//            PrintInfo();
-        }
-        
+        // Default constructor
+        Prosector4() = default;
         // Default destructor
         ~Prosector4() = default;
-        
         // Copy constructor
         Prosector4( const Prosector4 & other ) = default;
         // Copy assignment operator
@@ -116,8 +109,6 @@ namespace Knoodle
         
     private:
         
-        Intersection_T isec;
-        
         Vector3_T x_0;
         Vector3_T x_1;
         Vector3_T y_0;
@@ -127,9 +118,11 @@ namespace Knoodle
         Vector3_T v;
         Vector3_T p;
         Vector3_T q;
-        
-        DepressedCubic P_0;
-        DepressedCubic P_1;
+
+        Idx k_;
+        Idx l_;
+        Flag_T flag;
+        Intersection_T isec;
         
     public:
         
@@ -187,7 +180,7 @@ namespace Knoodle
         /*!@brief Return the current value of the internal state flag.*/
         Flag_T Flag() const
         {
-            return isec.flag;
+            return flag;
         }
 
     private:
@@ -208,18 +201,17 @@ namespace Knoodle
          */
         
         void LoadLineSegments(
-            const Idx k, cptr<Int> x0, cptr<Int> x1, const Idx l, cptr<Int> y0, cptr<Int> y1
+            const Idx k, cptr<Int> x0, cptr<Int> x1,
+            const Idx l, cptr<Int> y0, cptr<Int> y1
         )
         {
-            isec.edges[0]   = k;
-            isec.edges[1]   = l;
-            isec.handedness = 0;
-            isec.flag       = Flag_T::Uninitialized;
-            
-            copy_buffer<3>( x0, &x_0[0] );
-            copy_buffer<3>( x1, &x_1[0] );
-            copy_buffer<3>( y0, &y_0[0] );
-            copy_buffer<3>( y1, &y_1[0] );
+            k_ = k;
+            l_ = l;
+            flag = Flag_T::Uninitialized;
+            x_0.Read(x0);
+            x_1.Read(x1);
+            y_0.Read(y0);
+            y_1.Read(y1);
             
             //  x_1     e     y_1
             //      X------>X
@@ -260,24 +252,13 @@ namespace Knoodle
                 logprint(tag() + " in verbose mode.");
             }
             
-            u[0] = x_1[0] - x_0[0];
-            u[1] = x_1[1] - x_0[1];
-            u[2] = x_1[2] - x_0[2];
-            
-            p[0] = y_1[0] - x_0[0];
-            p[1] = y_1[1] - x_0[1];
-            p[2] = y_1[2] - x_0[2];
-            
-            q[0] = x_1[0] - y_0[0];
-            q[1] = x_1[1] - y_0[1];
-            q[2] = x_1[2] - y_0[2];
+            u = x_1 - x_0;
+            p = y_1 - x_0;
+            q = x_1 - y_0;
             
             auto sign_uxp = Sign_Perturbed(u,p);
 //            auto sign_uxp = Sign_Perturbed_Kahan(u,p);
             auto [sign_uxq, uxq_2] = Sign_Det_Perturbed(u,q);
-            // P_1 = Det_Perturbed(u,q);
-            P_1.c_0 = uxq_2;
-            // It is measurably slower to compute P_1 in full here.
                         
             if constexpr ( verboseQ )
             {
@@ -285,43 +266,43 @@ namespace Knoodle
                 TOOLS_LOGDUMP(sign_uxq);
             }
         
-            if( sign_uxp != Sign_T(0) )
+            if( !ZeroQ(sign_uxp) )
             {
-                if( sign_uxq != Sign_T(0) )
+                if( !ZeroQ(sign_uxq) )
                 {
                     if constexpr ( verboseQ )
                     {
                         logprint("Case A.1.1: The \"generic\" case. Nothing to do here.");
                     }
                 }
-                else // if( sign_uxq == Sign_T(0) )
+                else // if( ZeroQ(sign_uxq) )
                 {
                     if constexpr ( verboseQ )
                     {
                         logprint("A.1.2: y_0 lies on line(x_0,x_1), but y_1 does not.");
                     }
-                    isec.flag = PointOnLineTest(y_0, x_0, x_1) ? Flag_T::Error : Flag_T::Empty;
+                    flag = PointOnLineTest(y_0, x_0, x_1) ? Flag_T::Error : Flag_T::Empty;
                     return;
                 }
             }
-            else // if( sign_uxp == Sign_T(0) )
+            else // if( ZeroQ(sign_uxp) )
             {
-                if( sign_uxq != Sign_T(0) )
+                if( !ZeroQ(sign_uxq) )
                 {
                     if constexpr ( verboseQ )
                     {
                         logprint("Case A.2.1: y_1 lies on line(x_0,x_1), but y_0 does not.");
                     }
-                    isec.flag = PointOnLineTest(y_1, x_0, x_1) ? Flag_T::Error : Flag_T::Empty;
+                    flag = PointOnLineTest(y_1, x_0, x_1) ? Flag_T::Error : Flag_T::Empty;
                     return;
                 }
-                else // if( sign_uxq == Sign_T(0) )
+                else // if( ZeroQ(sign_uxq) )
                 {
                     if constexpr ( verboseQ )
                     {
                         logprint("Case A.2.2: The line segments are colinear. Do interval check.");
                     }
-                    isec.flag = LinesColinearTest() ? Flag_T::Error : Flag_T::Empty;
+                    flag = LinesColinearTest() ? Flag_T::Error : Flag_T::Empty;
                     return;
                 }
             }
@@ -330,20 +311,14 @@ namespace Knoodle
             if( sign_uxp != sign_uxq )
             {
                 // The points {y_0[0],y_0[1]} and {y_1[0],y_1[1]} lie on the same side of the line through {x_0[0],x_0[1]} and {x_1[0],x_1[1]} (after perturbation).
-                isec.flag = Flag_T::Empty;
+                flag = Flag_T::Empty;
                 return;
             }
             
-            v[0] = y_1[0] - y_0[0];
-            v[1] = y_1[1] - y_0[1];
-            v[2] = y_1[2] - y_0[2];
+            v = y_1 - y_0;
             
             auto [sign_vxp,vxp_2] = Sign_Det_Perturbed(v,p);
             auto sign_vxq         = Sign_Perturbed(v,q);
-//            auto sign_vxq         = Sign_Perturbed_Kahan(v,q);
-            // P_0 = Det_Perturbed(p,v);
-            P_0.c_0 = -vxp_2;
-            // It is measurably slower to compute P_0 in full here.
             
             if constexpr ( verboseQ )
             {
@@ -351,37 +326,37 @@ namespace Knoodle
                 TOOLS_LOGDUMP(sign_vxq);
             }
         
-            if( sign_vxp != Sign_T(0) )
+            if( !ZeroQ(sign_vxp) )
             {
-                if( sign_vxq != Sign_T(0) )
+                if( !ZeroQ(sign_vxq) )
                 {
                     if constexpr ( verboseQ )
                     {
                         logprint("Case B.1.1: The \"generic\" case; nothing to do here.");
                     }
                 }
-                else // if( sign_vxq == Sign_T(0) )
+                else // if( ZeroQ(sign_vxq) )
                 {
                     if constexpr ( verboseQ )
                     {
                         logprint("Case B.1.2: x_1 lies on line(y_0,y_1), but x_0 does not.");
                     }
-                    isec.flag = PointOnLineTest(x_1, y_0, y_1) ? Flag_T::Error : Flag_T::Empty;
+                    flag = PointOnLineTest(x_1, y_0, y_1) ? Flag_T::Error : Flag_T::Empty;
                     return;
                 }
             }
-            else // if( sign_vxp == Sign_T(0) )
+            else // if( ZeroQ(sign_vxp) )
             {
-                if( sign_vxq != Sign_T(0) )
+                if( !ZeroQ(sign_vxq) )
                 {
                     if constexpr ( verboseQ )
                     {
                         logprint("Case B.2.1: x_0 lies on line(y_0,y_1), but x_1 does not.");
                     }
-                    isec.flag = PointOnLineTest(x_0, y_0, y_1) ? Flag_T::Error : Flag_T::Empty;
+                    flag = PointOnLineTest(x_0, y_0, y_1) ? Flag_T::Error : Flag_T::Empty;
                     return;
                 }
-                else // if( sign_vxq == Sign_T(0) )
+                else // if( ZeroQ(sign_vxq) )
                 {
                     if constexpr ( verboseQ )
                     {
@@ -394,11 +369,11 @@ namespace Knoodle
             if( sign_vxp != sign_vxq )
             {
                 // The points {x_0[0],x_0[1]} and {x_1[0],x_1[1]} lie on the same side of the line through {y_0[0],y_0[1]} and {y_1[0],y_1[1]} (after perturbation).
-                isec.flag = Flag_T::Empty;
+                flag = Flag_T::Empty;
                 return;
             }
             
-            // At this point we know that the projected line segments intersect in the x-y-plane. We also have to check whether the line segments themselfes intersect in 3-space.
+            // At this point we know that the projected line segments intersect in the x-y-plane. We also have to check whether the line segments themselves intersect in 3-space.
             
             // This post https://math.stackexchange.com/a/1008869/447001
             // taught me how to determine which edge "goes over".
@@ -415,59 +390,65 @@ namespace Knoodle
             
             const Sign_T sign_3 = Sign<Sign_T>(det_3);
             
-            if( sign_3 == Sign_T(0) )
+            if( ZeroQ(sign_3) )
             {
                 // We know that we have an intersection in the x-y-plane.
                 // If the line segments are coplanar in 3D, then there must be an intersection, too.
                 if constexpr ( verboseQ )
                 {
-                    logprint(MethodName("ComputeIntersection") + ": The line segments " + ToString(isec.edges[0]) + " and " + ToString(isec.edges[1]) + " are coplanar.");
+                    logprint(MethodName("ComputeIntersection") + ": The line segments " + ToString(k_) + " and " + ToString(l_) + " are coplanar.");
                 }
-                isec.flag = Flag_T::Error;;
+                flag = Flag_T::Error;
                 return;
             }
             
             const Sign_T sign_2 = Sign<Sign_T>(Q);
             
-            if( sign_2 == Sign_T(0) )
+            if( ZeroQ(sign_2) )
             {
                 // We should not get here
-                eprint(MethodName("ComputeIntersection") + ": The projections of the line segments " + ToString(isec.edges[0]) + " and " + ToString(isec.edges[1]) + " are parallel. No handedness assignable. But this case should have been caught before, so we should not have gotton here.");
+                eprint(MethodName("ComputeIntersection") + ": The projections of the line segments " + ToString(k_) + " and " + ToString(l_) + " are parallel. No handedness assignable. But this case should have been caught before, so we should not have gotton here.");
             }
             
-            // Det_Perturbed(d,v) == Det_Perturbed(p - v,v) == Det_Perturbed(p,v)
-            // Det_Perturbed(d,u) == Det_Perturbed(u - q,u) == Det_Perturbed(u,q)
+            bool x_over_y_Q = (sign_3 != sign_2);
             
-            // At this point, we have computed P_0.c_0 and P_1.c_0 already. So we can save 33% of the integer operations in the next two lines. Very likely, the other entries have not yet been computed; so saving more is unlikely.
-            
-//            P_0 = Det_Perturbed(p,v);
-//            P_1 = Det_Perturbed(u,q);
-            
-            P_0.c_1 = long_det(p[1],p[2],v[1],v[2]);
-            P_0.c_3 = long_det(p[2],p[0],v[2],v[0]);
-
-            P_1.c_1 = long_det(u[1],u[2],q[1],q[2]);
-            P_1.c_3 = long_det(u[2],u[0],q[2],q[0]);
-
-            bool x_under_y_Q = (sign_3 == sign_2);
-            
-            // Det_Perturbed(d,v) == Det_Perturbed(p - v,v) == Det_Perturbed(p,v)
-            // Det_Perturbed(d,u) == Det_Perturbed(u - q,u) == Det_Perturbed(u,q)
-
-            isec.times[ x_under_y_Q] = Time_T{ P_0, Q }; // t_0
-            isec.times[!x_under_y_Q] = Time_T{ P_1, Q }; // t_1
+            using Tools::NegativeQ;
             
             // First edge must go over.
-            if( x_under_y_Q )
+            if( x_over_y_Q )
             {
-                std::swap(isec.edges[0],isec.edges[1]);
-                isec.handedness = static_cast<Sign_T>(-sign_2);
+                isec = Intersection_T(k_,l_,!NegativeQ(sign_2));
             }
             else
             {
-                isec.handedness = sign_2;
+                isec = Intersection_T(l_,k_, NegativeQ(sign_2));
             }
-            isec.flag = Flag_T::Intersection;
+            
+            flag = Flag_T::Intersection;
+            return;
+        }
+        
+    public:
+        
+        void LoadFirstLineSegment(
+            const Idx k, cptr<Int> x0, cptr<Int> x1
+        )
+        {
+            k_ = k;
+            x_0.Read(x0);
+            x_1.Read(x1);
+            u = x_1 - x_0;
+        }
+
+        Time_T ComputeIntersectionTime( const Idx l, cptr<Int> y0, cptr<Int> y1 )
+        {
+            l_ = l;
+            y_0.Read(y0);
+            y_1.Read(y1);
+            p = y_1 - x_0;
+            v = y_1 - y_0;
+            // Quite expensive.
+            return Time_T{ Det_Perturbed(p,v), Det_Perturbed(u,v) };
         }
         
     public:

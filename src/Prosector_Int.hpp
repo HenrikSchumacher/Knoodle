@@ -33,7 +33,7 @@ namespace Knoodle
      * @tparam verboseQ Whether to log events more granulary. Only meant for debugging.
      */
     template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false>
-    class Prosector5 final
+    class Prosector_Int final
     {
     public:
         
@@ -52,9 +52,9 @@ namespace Knoodle
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
         
-        using Prosector_T = Prosector5<Int,Idx,verboseQ>;
-        using Vector3_T   = std::array<Int,3>;
-        using LVector3_T  = std::array<LInt,3>;
+        using Prosector_T = Prosector_Int<Int,Idx,verboseQ>;
+        using Vector3_T   = Tiny::Vector<3,Int,Int>;
+        using LVector3_T  = Tiny::Vector<3,LInt,Int>;
         
         /*!@brief Flag that indicates whether an intersection was found or whether an error occurred.*/
         enum class Flag_T : int
@@ -81,31 +81,31 @@ namespace Knoodle
 #include "../src/Prosector/Helpers.hpp"
 #include "../src/Prosector/DegeneracyChecks.hpp"
         
-//#include "Prosector/IntersectionTime.hpp"
+//#include "../src/Prosector/IntersectionTime.hpp"
 //        using Time_T = IntersectionTime;
         
-//#include "Prosector/IntersectionTime_Double.hpp"
+//#include "../src/Prosector/IntersectionTime_Double.hpp"
 //        using Time_T = IntersectionTime_Double;
         
 #include "../src/Prosector/IntersectionTime_Hybrid.hpp"
         using Time_T = IntersectionTime_Hybrid;
 
-#include "../src/Prosector/Intersection_Compressed.hpp"
+#include "../src/Prosector/Intersection.hpp"
         
     public:
         
         // Default constructor
-        Prosector5() = default;
+        Prosector_Int() = default;
         // Default destructor
-        ~Prosector5() = default;
+        ~Prosector_Int() = default;
         // Copy constructor
-        Prosector5( const Prosector5 & other ) = default;
+        Prosector_Int( const Prosector_Int & other ) = default;
         // Copy assignment operator
-        Prosector5 & operator=( const Prosector5 & other ) = default;
+        Prosector_Int & operator=( const Prosector_Int & other ) = default;
         // Move constructor
-        Prosector5( Prosector5 && other ) = default;
+        Prosector_Int( Prosector_Int && other ) = default;
         // Move assignment operator
-        Prosector5 & operator=( Prosector5 && other ) = default;
+        Prosector_Int & operator=( Prosector_Int && other ) = default;
         
     private:
         
@@ -208,11 +208,10 @@ namespace Knoodle
             k_ = k;
             l_ = l;
             flag = Flag_T::Uninitialized;
-            
-            copy_buffer<3>( x0, &x_0[0] );
-            copy_buffer<3>( x1, &x_1[0] );
-            copy_buffer<3>( y0, &y_0[0] );
-            copy_buffer<3>( y1, &y_1[0] );
+            x_0.Read(x0);
+            x_1.Read(x1);
+            y_0.Read(y0);
+            y_1.Read(y1);
             
             //  x_1     e     y_1
             //      X------>X
@@ -253,17 +252,9 @@ namespace Knoodle
                 logprint(tag() + " in verbose mode.");
             }
             
-            u[0] = x_1[0] - x_0[0];
-            u[1] = x_1[1] - x_0[1];
-            u[2] = x_1[2] - x_0[2];
-            
-            p[0] = y_1[0] - x_0[0];
-            p[1] = y_1[1] - x_0[1];
-            p[2] = y_1[2] - x_0[2];
-            
-            q[0] = x_1[0] - y_0[0];
-            q[1] = x_1[1] - y_0[1];
-            q[2] = x_1[2] - y_0[2];
+            u = x_1 - x_0;
+            p = y_1 - x_0;
+            q = x_1 - y_0;
             
             auto sign_uxp = Sign_Perturbed(u,p);
 //            auto sign_uxp = Sign_Perturbed_Kahan(u,p);
@@ -275,16 +266,16 @@ namespace Knoodle
                 TOOLS_LOGDUMP(sign_uxq);
             }
         
-            if( sign_uxp != Sign_T(0) )
+            if( !ZeroQ(sign_uxp) )
             {
-                if( sign_uxq != Sign_T(0) )
+                if( !ZeroQ(sign_uxq) )
                 {
                     if constexpr ( verboseQ )
                     {
                         logprint("Case A.1.1: The \"generic\" case. Nothing to do here.");
                     }
                 }
-                else // if( sign_uxq == Sign_T(0) )
+                else // if( ZeroQ(sign_uxq) )
                 {
                     if constexpr ( verboseQ )
                     {
@@ -294,9 +285,9 @@ namespace Knoodle
                     return;
                 }
             }
-            else // if( sign_uxp == Sign_T(0) )
+            else // if( ZeroQ(sign_uxp) )
             {
-                if( sign_uxq != Sign_T(0) )
+                if( !ZeroQ(sign_uxq) )
                 {
                     if constexpr ( verboseQ )
                     {
@@ -305,7 +296,7 @@ namespace Knoodle
                     flag = PointOnLineTest(y_1, x_0, x_1) ? Flag_T::Error : Flag_T::Empty;
                     return;
                 }
-                else // if( sign_uxq == Sign_T(0) )
+                else // if( ZeroQ(sign_uxq) )
                 {
                     if constexpr ( verboseQ )
                     {
@@ -324,9 +315,7 @@ namespace Knoodle
                 return;
             }
             
-            v[0] = y_1[0] - y_0[0];
-            v[1] = y_1[1] - y_0[1];
-            v[2] = y_1[2] - y_0[2];
+            v = y_1 - y_0;
             
             auto [sign_vxp,vxp_2] = Sign_Det_Perturbed(v,p);
             auto sign_vxq         = Sign_Perturbed(v,q);
@@ -337,16 +326,16 @@ namespace Knoodle
                 TOOLS_LOGDUMP(sign_vxq);
             }
         
-            if( sign_vxp != Sign_T(0) )
+            if( !ZeroQ(sign_vxp) )
             {
-                if( sign_vxq != Sign_T(0) )
+                if( !ZeroQ(sign_vxq) )
                 {
                     if constexpr ( verboseQ )
                     {
                         logprint("Case B.1.1: The \"generic\" case; nothing to do here.");
                     }
                 }
-                else // if( sign_vxq == Sign_T(0) )
+                else // if( ZeroQ(sign_vxq) )
                 {
                     if constexpr ( verboseQ )
                     {
@@ -356,9 +345,9 @@ namespace Knoodle
                     return;
                 }
             }
-            else // if( sign_vxp == Sign_T(0) )
+            else // if( ZeroQ(sign_vxp) )
             {
-                if( sign_vxq != Sign_T(0) )
+                if( !ZeroQ(sign_vxq) )
                 {
                     if constexpr ( verboseQ )
                     {
@@ -367,7 +356,7 @@ namespace Knoodle
                     flag = PointOnLineTest(x_0, y_0, y_1) ? Flag_T::Error : Flag_T::Empty;
                     return;
                 }
-                else // if( sign_vxq == Sign_T(0) )
+                else // if( ZeroQ(sign_vxq) )
                 {
                     if constexpr ( verboseQ )
                     {
@@ -446,29 +435,18 @@ namespace Knoodle
         )
         {
             k_ = k;
-            copy_buffer<3>( x0, &x_0[0] );
-            copy_buffer<3>( x1, &x_1[0] );
-            
-            u[0] = x_1[0] - x_0[0];
-            u[1] = x_1[1] - x_0[1];
-            u[2] = x_1[2] - x_0[2];
+            x_0.Read(x0);
+            x_1.Read(x1);
+            u = x_1 - x_0;
         }
 
         Time_T ComputeIntersectionTime( const Idx l, cptr<Int> y0, cptr<Int> y1 )
         {
             l_ = l;
-            
-            copy_buffer<3>( y0, &y_0[0] );
-            copy_buffer<3>( y1, &y_1[0] );
-            
-            p[0] = y_1[0] - x_0[0];
-            p[1] = y_1[1] - x_0[1];
-            p[2] = y_1[2] - x_0[2];
-            
-            v[0] = y_1[0] - y_0[0];
-            v[1] = y_1[1] - y_0[1];
-            v[2] = y_1[2] - y_0[2];
-
+            y_0.Read(y0);
+            y_1.Read(y1);
+            p = y_1 - x_0;
+            v = y_1 - y_0;
             // Quite expensive.
             return Time_T{ Det_Perturbed(p,v), Det_Perturbed(u,v) };
         }
@@ -482,13 +460,13 @@ namespace Knoodle
         
         static constexpr std::string ClassName()
         {
-            return std::string("Prosector5")
+            return std::string("Prosector_Int")
                 + "<" + TypeName<Int>
                 + "," + TypeName<Idx>
                 + "," + ToString(verboseQ)
                 + ">";
         }
         
-    }; // class Prosector5
+    }; // class Prosector_Int
     
 } // namespace Knoodle

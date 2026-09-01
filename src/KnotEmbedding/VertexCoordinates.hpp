@@ -7,7 +7,7 @@ void ReadVertexCoordinates( cptr<Real> v )
 
     intersections_computedQ  = false;
     bounding_boxes_computedQ = false;
-    intersections.clear();
+    intersections.Clear();
     
     Vector3_T lo;
     Vector3_T hi;

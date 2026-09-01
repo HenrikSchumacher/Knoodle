@@ -5,7 +5,7 @@
 
 namespace Knoodle
 {
-    /*!@brief **EXPERIMENTAL** Type alias of `LinkEmbedding_Int` with backend that uses wide integers classes `boost::multiprecision::int128_t` and `boost::multiprecision::int256_t`. This is only available if the preprocessor macro `KNOODLE_USE_BOOST_MULTIPRECISION` is defined.
+    /*!@brief **EXPERIMENTAL** Type alias of `LinkEmbedding_Int` with backend that uses wide integers classes `boost::multiprecision::int128_t` and `boost::multiprecision::int256_t`.
      *
      * This is not a very efficient implementation, in particular when scalar type `IReal = std::int32_t` is used. But it should lead to correct results. We use it for test purposed. */
     template<
