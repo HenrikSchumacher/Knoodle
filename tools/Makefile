@@ -3,6 +3,21 @@ CXX ?= g++
 
 # Detect OS and set appropriate flags
 UNAME_S := $(shell uname -s)
+
+# ---------------------------------------------------------------------------
+# Parallel builds by default. Knoodle/Tensors/Tools are header-only, so a
+# Tools or Tensors bump cannot be absorbed by relinking: every tool below
+# recompiles the whole stack from scratch. Those compiles are independent,
+# which made the serial build embarrassingly slow (the three tools compile in
+# parallel now). NPROC=n is the override knob (NPROC=1 for a serial
+# build): under Apple's make 3.81 a command-line -jN never shows up in
+# MAKEFLAGS during parsing, so the guard below cannot see it and this
+# assignment would silently win. Submakes see the -j as "forced" and print a
+# one-line jobserver warning; harmless.
+NPROC ?= $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
+ifeq ($(filter -j%,$(MAKEFLAGS)),)
+    MAKEFLAGS += -j$(NPROC)
+endif
 ifeq ($(UNAME_S),Darwin)
     # macOS - use clang with matrix extensions
     CXX = clang++
