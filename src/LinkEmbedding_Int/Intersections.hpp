@@ -90,9 +90,10 @@ cref<Tensor1<EdgeCrossing_T,Int>> EdgeCrossings() const
  *
  * Calls `RequireIntersections()`.
  */
+[[deprecated("Use EdgeCrossings instead.")]]
 Tensor1<Int,Int> EdgeIntersections() const
 {
-    (void)RequireIntersections();
+    if( RequireIntersections() ) { return Tensor1<Int,Int>(); }
     
     Tensor1<Int,Int> edge_intersections (edge_cross.Size());
     
@@ -111,9 +112,10 @@ Tensor1<Int,Int> EdgeIntersections() const
  *
  * Calls `RequireIntersections()`.
  */
+[[deprecated("Use EdgeCrossings instead.")]]
 Tensor1<Int8,Int> EdgeStates() const
 {
-    (void)RequireIntersections();
+    if( RequireIntersections() ) { return Tensor1<Int8,Int>(); }
     
     Tensor1<Int8,Int> edge_state (edge_cross.Size());
     
@@ -138,7 +140,7 @@ Tensor1<double,Int> EdgeIntersectionTimesAsDouble() const
 {
     using Tools::ToDouble;
     
-    (void)RequireIntersections();
+    if( RequireIntersections() ) { return Tensor1<double,Int>(); }
     
     Tensor1<double,Int> result ( edge_cross.Size() );
     
@@ -151,19 +153,18 @@ Tensor1<double,Int> EdgeIntersectionTimesAsDouble() const
         
         if( n <= Int{0} ) { continue; }
         
-        S.LoadFirstLineSegment(
-           i, EdgeData(i,0), EdgeData(i,1)
-        );
+        S.LoadFirstLineSegment(i, EdgeData(i,0), EdgeData(i,1));
         
         for( Int a = begin; a < end; ++a )
         {
             const EdgeCrossing_T & ec   = edge_cross[a];
             const Intersection_T & isec = intersections[ec.Index()];
-            const Int j = (i == isec.OverEdge()) ? isec.UnderEdge() : i;
+            const Int over_edge = isec.OverEdge();
+            const Int j = (i == over_edge) ? isec.UnderEdge() : over_edge;
 
-            result[a] = ToDouble(S.ComputeIntersectionTime(
-               j, EdgeData(j,0), EdgeData(j,1)
-            ));
+            result[a] = ToDouble(
+                S.ComputeIntersectionTime(j, EdgeData(j,0), EdgeData(j,1))
+            );
         }
     }
         
