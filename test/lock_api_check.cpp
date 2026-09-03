@@ -16,10 +16,28 @@
 // Build: `make lock_api_check` in test/.
 #include "../Knoodle.hpp"
 #include <cstdio>
+#include <ostream>
+#include <sstream>
+#include <type_traits>
 
 using Int   = std::int64_t;
 using PD_T  = Knoodle::PlanarDiagram<Int>;
 using PDC_T = Knoodle::PlanarDiagramComplex<Int>;
+
+// Detect the RETURN TYPE of `w << os` without odr-using the operator, so that
+// a body which cannot compile is never instantiated. See the WideInt section
+// in main() for why this has to be done at arm's length.
+template<typename W, typename OS, typename = void>
+struct member_shift : std::false_type { using type = void; };
+
+template<typename W, typename OS>
+struct member_shift<
+    W, OS,
+    std::void_t<decltype( std::declval<const W &>() << std::declval<OS &>() )>
+> : std::true_type
+{
+    using type = decltype( std::declval<const W &>() << std::declval<OS &>() );
+};
 
 static int checks = 0;
 static int fails  = 0;
@@ -77,6 +95,53 @@ int main()
         check(!pd.LockedQ(), "PlanarDiagram unlocks");
         pd.Lock();
         check(pd.LockedQ(), "and locks again");
+    }
+
+    // ---- WideInt's member operator<< must be instantiable ------------------
+    //
+    // The same failure mode as the PDC constructor above, one header over: a
+    // member template with no user, ill-formed on instantiation, compiling
+    // only because nothing selects it.
+    //
+    //     template<typename CharT,typename Traits>
+    //     std::stringstream & operator<<( mref<std::basic_ostream<CharT,Traits>&> s ) const
+    //     { return s << ToString(*this); }
+    //
+    // `s << ToString(*this)` yields std::basic_ostream<CharT,Traits>&, and
+    // binding that to the declared std::stringstream& return type is a
+    // base-to-derived conversion, which never succeeds. No specialization is
+    // valid, so the template is ill-formed NDR and the first caller gets a
+    // hard error rather than a diagnostic anyone sees today.
+    //
+    // THIS TEST CANNOT BE THAT CALLER. Writing `w << std::cout` here would
+    // instantiate the body and break the BUILD -- a broken tier, not a failing
+    // test, and `make all` would stop before any driver ran. So the check
+    // reads the declaration instead: decltype forms the call's type without
+    // odr-using the function, so the body is never instantiated, and we ask
+    // whether the declared return type is one the body's own expression could
+    // actually initialize.
+    //
+    // It goes green under either repair -- removing the function (nothing left
+    // to detect) or retyping the return to basic_ostream<CharT,Traits>&
+    // (reachable from the body). It is red only while the defect is present.
+    {
+        using W  = Knoodle::WideInt<
+            2,Knoodle::DefaultLimb_T,Knoodle::DefaultComp_T,false
+        >;
+        using OS = std::ostream;
+        using D  = member_shift<W,OS>;
+
+        if constexpr( !D::value )
+        {
+            check(true, "WideInt has no member operator<< (nothing to instantiate)");
+        }
+        else
+        {
+            // The body can only ever produce `OS &`; the declared return type
+            // has to be initializable from that or no call can compile.
+            check(std::is_convertible_v<OS &, typename D::type>,
+                  "WideInt member operator<< return type is reachable from its body");
+        }
     }
 
     // The count is what manifest.tsv's work pattern matches: a run that
