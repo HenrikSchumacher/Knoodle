@@ -114,4 +114,7 @@ int main()
 //    }
     
     logprint(1,",",2,",",3);
+    
+    print(PrettyTypeName<Link_T>());
+    print(Link_T::ClassName());
 }
