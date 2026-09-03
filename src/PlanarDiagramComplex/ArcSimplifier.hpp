@@ -160,7 +160,7 @@ namespace Knoodle
                 return 0;
             }
             
-            TOOLS_PTIMER(timer,ClassName() + "(" + ToString(settings) + ")");
+            TOOLS_PTIMER(timer,MethodName("operator()") + "(" + ToString(settings) + ")");
             
             Size_T old_counter = 0;
             Size_T counter = 0;

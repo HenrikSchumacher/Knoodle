@@ -8,7 +8,7 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool leading_kQ = true
 
     if( !stream )
     {
-        eprint(MethodName("WriteToFile") + ": Could not open file " + file.string() + ". Aborting.");
+        Msgr::eprint("WriteToFile", "Could not open file " + file.string() + ". Aborting.");
         return false;
     }
     

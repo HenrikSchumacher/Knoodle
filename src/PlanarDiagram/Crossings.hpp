@@ -84,13 +84,20 @@ bool CrossingActiveQ( const Int c ) const
 
 std::string CrossingString( const Int c ) const
 {
-    return "crossing " + Tools::ToString(c) +" = { { "
-        + Tools::ToString(C_arcs(c,Out,Left )) + ", "
-        + Tools::ToString(C_arcs(c,Out,Right)) + " }, { "
-        + Tools::ToString(C_arcs(c,In ,Left )) + ", "
-        + Tools::ToString(C_arcs(c,In ,Right)) + " } } ("
-        + ToString(C_state[c])      +")";
+    return OutString::FromMisc("crossing ", c, " = { { "
+        , C_arcs(c,Out,Left ), ", " , C_arcs(c,Out,Right)
+        , " }, { "
+        , C_arcs(c,In ,Left ), ", " , C_arcs(c,In ,Right)
+        , " } } (", ToString(C_state[c]) +")" );
+    
+//    return "crossing " + Tools::ToString(c) +" = { { "
+//        + Tools::ToString(C_arcs(c,Out,Left )) + ", "
+//        + Tools::ToString(C_arcs(c,Out,Right)) + " }, { "
+//        + Tools::ToString(C_arcs(c,In ,Left )) + ", "
+//        + Tools::ToString(C_arcs(c,In ,Right)) + " } } ("
+//        + ToString(C_state[c])      +")";
 }
+
 
 
 bool CrossingRightHandedQ( const Int c ) const
@@ -143,7 +150,7 @@ void DeactivateCrossing( const Int c )
 #ifdef PD_DEBUG
         if constexpr ( assertsQ )
         {
-            wprint(ClassName()+"::Attempted to deactivate already inactive " + CrossingString(c) + ".");
+            Msgr::wprint("DeactivateCrossing", "Attempted to deactivate already inactive " + CrossingString(c), ".");
         }
 #endif // PD_DEBUG
     }
@@ -162,7 +169,7 @@ void DeactivateCrossing( const Int c )
                 
                 if( ArcActiveQ(a) && (A_cross(a,io) == c) )
                 {
-                    pd_eprint(ClassName()+"::DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + CrossingString(c) + ".");
+                    pd_eprint(MethodName("DeactivateCrossing"), ": active ", ArcString(a), " is still attached to deactivated ", CrossingString(c), ".");
                 }
             }
         }
@@ -190,82 +197,79 @@ Int NextCrossing( const Int c, bool io, bool side ) const
 }
 
 
-private:
-
-// It is in the caller's responsibility to correctly connect the arcs to these crossings.
-void RotateCrossing( const Int c, const bool dir )
-{
-    PD_WPRINT( MethodName("RotateCrossing") +": This routine has not been tested, yet." );
-    
-    const C_Arcs_T C = CopyCrossing(c); // We need a copy here.
-    
-/* Before:
- *
- *   C[Out][Left ] O       O C[Out][Right]
- *                  ^     ^
- *                   \   /
- *                    \ /
- *                     X
- *                    / \
- *                   /   \
- *                  /     \
- *   C[In ][Left ] O       O C[In ][Right]
- */
-    
-    if( dir == Right )
-    {
-/* After:
- *
- *   C[Out][Left ] O       O C[Out][Right]
- *                  \     ^
- *                   \   /
- *                    \ /
- *                     X
- *                    / \
- *                   /   \
- *                  /     v
- *   C[In ][Left ] O       O C[In ][Right]
- */
-//        C_arcs(c,Out,Left ) = C[Out][Right];
-//        C_arcs(c,Out,Right) = C[In ][Right];
-//        C_arcs(c,In ,Right) = C[In ][Left ];
-//        C_arcs(c,In ,Left ) = C[Out][Left ];
-
-        const Int buffer = C_arcs(c,Out,Left );
-        
-        C_arcs(c,Out,Left ) = C_arcs(c,Out,Right);
-        C_arcs(c,Out,Right) = C_arcs(c,In ,Right);
-        C_arcs(c,In ,Right) = C_arcs(c,In ,Left );
-        C_arcs(c,In ,Left ) = buffer;
-    }
-    else
-    {
-/* After:
- *
- *   C[Out][Left ] O       O C[Out][Right]
- *                  ^     /
- *                   \   /
- *                    \ /
- *                     X
- *                    / \
- *                   /   \
- *                  v     \
- *   C[In ][Left ] O       O C[In ][Right]
- */
-   
-//        C_arcs(c,Out,Left ) = C[In ][Left ];
-//        C_arcs(c,In ,Left ) = C[In ][Right];
-//        C_arcs(c,In ,Right) = C[Out][Right];
-//        C_arcs(c,Out,Right) = C[Out][Left ];
-        
-        const Int buffer = C_arcs(c,Out,Left );
-        
-        C_arcs(c,Out,Left ) = C_arcs(c,In ,Left );
-        C_arcs(c,In ,Left ) = C_arcs(c,In ,Right);
-        C_arcs(c,In ,Right) = C_arcs(c,Out,Right);
-        C_arcs(c,Out,Right) = buffer;
-    }
-}
-
-
-
+//private:
+//
+//// It is in the caller's responsibility to correctly connect the arcs to these crossings.
+//void RotateCrossing( const Int c, const bool dir )
+//{
+//    PD_WPRINT( MethodName("RotateCrossing") + ": This routine has not been tested, yet." );
+//    
+//    const C_Arcs_T C = CopyCrossing(c); // We need a copy here.
+//    
+///* Before:
+// *
+// *   C[Out][Left ] O       O C[Out][Right]
+// *                  ^     ^
+// *                   \   /
+// *                    \ /
+// *                     X
+// *                    / \
+// *                   /   \
+// *                  /     \
+// *   C[In ][Left ] O       O C[In ][Right]
+// */
+//    
+//    if( dir == Right )
+//    {
+///* After:
+// *
+// *   C[Out][Left ] O       O C[Out][Right]
+// *                  \     ^
+// *                   \   /
+// *                    \ /
+// *                     X
+// *                    / \
+// *                   /   \
+// *                  /     v
+// *   C[In ][Left ] O       O C[In ][Right]
+// */
+////        C_arcs(c,Out,Left ) = C[Out][Right];
+////        C_arcs(c,Out,Right) = C[In ][Right];
+////        C_arcs(c,In ,Right) = C[In ][Left ];
+////        C_arcs(c,In ,Left ) = C[Out][Left ];
+//
+//        const Int buffer = C_arcs(c,Out,Left );
+//        
+//        C_arcs(c,Out,Left ) = C_arcs(c,Out,Right);
+//        C_arcs(c,Out,Right) = C_arcs(c,In ,Right);
+//        C_arcs(c,In ,Right) = C_arcs(c,In ,Left );
+//        C_arcs(c,In ,Left ) = buffer;
+//    }
+//    else
+//    {
+///* After:
+// *
+// *   C[Out][Left ] O       O C[Out][Right]
+// *                  ^     /
+// *                   \   /
+// *                    \ /
+// *                     X
+// *                    / \
+// *                   /   \
+// *                  v     \
+// *   C[In ][Left ] O       O C[In ][Right]
+// */
+//   
+////        C_arcs(c,Out,Left ) = C[In ][Left ];
+////        C_arcs(c,In ,Left ) = C[In ][Right];
+////        C_arcs(c,In ,Right) = C[Out][Right];
+////        C_arcs(c,Out,Right) = C[Out][Left ];
+//        
+//        const Int buffer = C_arcs(c,Out,Left );
+//        
+//        C_arcs(c,Out,Left ) = C_arcs(c,In ,Left );
+//        C_arcs(c,In ,Left ) = C_arcs(c,In ,Right);
+//        C_arcs(c,In ,Right) = C_arcs(c,Out,Right);
+//        C_arcs(c,Out,Right) = buffer;
+//    }
+//}

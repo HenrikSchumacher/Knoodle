@@ -15,13 +15,14 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) c
 
     if( !stream )
     {
-        eprint(MethodName("WriteToFile") + ": Could not open file " + file.string() + ". Aborting.");
+        
+        Msgr::eprint("WriteToFile","Could not open file ", file.string(), ". Aborting.");
         return false;
     }
     
     if( component_ptr.Dim(0) <= Int{1} )
     {
-        eprint(MethodName("WriteToFile") + ": Diagram is invalid. Aborting.");
+        Msgr::eprint("WriteToFile","Diagram is invalid. Aborting.");
         return false;
     };
 
@@ -31,7 +32,7 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) c
     
     if( !stream )
     {
-        eprint(MethodName("WriteToFile") + ": Failed to write to file. Aborting.");
+        Msgr::eprint("WriteToFile","Failed to write to file. Aborting.");
         return false;
     }
     

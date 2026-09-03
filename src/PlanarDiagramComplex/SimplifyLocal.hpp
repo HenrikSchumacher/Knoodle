@@ -9,10 +9,10 @@ struct SimplifyLocal_Args_T
 friend std::string ToString( cref<SimplifyLocal_Args_T> args )
 {
     return std::string("{ ")
-            +   "max_iter = " + ToString(args.max_iter)
-            + ", compression_threshold = " + ToString(args.compression_threshold)
-            + ", compressQ = " + ToString(args.compressQ)
-            + ", opt_level = " + ToString(args.opt_level)
+            +   "max_iter = " + std::string(args.max_iter)
+            + ", compression_threshold = " + std::string(args.compression_threshold)
+            + ", compressQ = " + std::string(args.compressQ)
+            + ", opt_level = " + std::string(args.opt_level)
     + " }";
 }
 
@@ -49,7 +49,7 @@ Size_T SimplifyLocal( cref<SimplifyLocal_Args_T> args )
         }
         default:
         {
-            eprint( MethodName("SimplifyLocal")+": Value " + ToString(level) + " is invalid" );
+            Msgr::eprint("SimplifyLocal", ": Value ", level, " is invalid" );
             return 0;
         }
     }
@@ -62,7 +62,7 @@ private:
 template<UInt8 opt_level, bool multi_compQ>
 Size_T SimplifyLocal_impl( cref<SimplifyLocal_Args_T> args )
 {
-    TOOLS_PTIMER(timer,MethodName("SimplifyLocal_impl")+"<" + ToString(opt_level) + "," + ToString(multi_compQ) + ">");
+    TOOLS_PTIMER(timer,MethodName("SimplifyLocal_impl")+"<" + to_ct_string(opt_level) + "," + to_ct_string(multi_compQ) + ">");
     
     using ArcSimplifier_T = ArcSimplifier<Int,opt_level,multi_compQ>;
     

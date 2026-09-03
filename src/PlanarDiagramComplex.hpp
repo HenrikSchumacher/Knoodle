@@ -29,11 +29,11 @@ namespace Knoodle
         using UInt                  = ToUnsigned<Int>;
         
         using Base_T                = CachedObject<1,0,0,0>;
-        using Class_T               = PlanarDiagramComplex<Int>;
+        using Class_T               = PlanarDiagramComplex;
         /*!@brief Alias for `PlanarDiagram`.*/
         using PD_T                  = PlanarDiagram<Int>;
         /*!@brief Alias for `PlanarDiagramComplex`.*/
-        using PDC_T                 = PlanarDiagramComplex<Int>;
+        using PDC_T                 = PlanarDiagramComplex;
         using PD_List_T             = std::vector<PD_T>;
         
         using C_Arcs_T              = PD_T::C_Arcs_T;
@@ -191,8 +191,8 @@ namespace Knoodle
 #include "PlanarDiagramComplex/Disconnect.hpp"
 #include "PlanarDiagramComplex/Canonicalize.hpp"
 #include "PlanarDiagramComplex/Simplify.hpp"
-#include "PlanarDiagramComplex/Rerouting_Experimental.hpp"
-//#include "PlanarDiagramComplex/SimplifyLocal2.hpp" // Only for development and debugging.
+//#include "PlanarDiagramComplex/Rerouting_Experimental.hpp"
+
 #include "PlanarDiagramComplex/LinkingNumber.hpp"
 #include "PlanarDiagramComplex/ModifyDiagramList.hpp"
 #include "PlanarDiagramComplex/ModifyDiagram.hpp"
@@ -222,14 +222,14 @@ namespace Knoodle
         {
             if( i < Int{0} )
             {
-                eprint(MethodName("Diagram") + ": Index  i < 0. Returning invalid diagram.");
+                Msgr::eprint("Diagram", "Index  i < 0. Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
             
             if( i >= DiagramCount() )
             {
-                eprint(MethodName("Diagram") + ": Index  i = " +ToString(i) + " is greater equal DiagramCount() = " + ToString(DiagramCount()) + " . Returning invalid diagram.");
+                Msgr::eprint("Diagram", "Index  i = ", i, " is greater equal DiagramCount() = ", DiagramCount(), " . Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
@@ -252,7 +252,7 @@ namespace Knoodle
             }
             else
             {
-                eprint(MethodName("LastDiagram") + ": List of diagrams is empty. Returning invalid diagram.");
+                Msgr::eprint("LastDiagram", "List of diagrams is empty. Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
@@ -322,7 +322,7 @@ namespace Knoodle
             
             if( PDC.DiagramCount() > Int(1) )
             {
-                eprint(MethodName("ToSingleDiagram") + ": Merged complex contains more than one diagram. Something must have gone wrong. Returning invalid complex.");
+                Msgr::eprint("ToSingleDiagram", "Merged complex contains more than one diagram. Something must have gone wrong. Returning invalid complex.");
                 
                 return PD_T();
             }
@@ -347,14 +347,14 @@ namespace Knoodle
         {
             if( i < Int(0) )
             {
-                eprint(MethodName("Diagram") + ": Index  i < 0. Returning invalid diagram.");
+                Msgr::eprint("Diagram", "Index  i < 0. Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
             
             if( i >= DiagramCount() )
             {
-                eprint(MethodName("Diagram") + ": Index i = " +ToString(i) + " is greater equal DiagramCount() = " + ToString(DiagramCount()) + ". Returning invalid diagram.");
+                Msgr::eprint("Diagram", "Index i = ", i, " is greater equal DiagramCount() = ", DiagramCount(), ". Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
@@ -766,41 +766,25 @@ namespace Knoodle
             lockedQ = true;
         }
         
-        void LockMessage( const std::string & tag ) const
+        
+        void LockMessage( std::string_view tag ) const
         {
-            wprint(MethodName(tag) + ": This method is considered **UNSAFE**, and the diagram is currently locked to prevent break of topological invariance. If you want to perform this operation anyways, call `Unlock()` first. (Don't forget to `Lock()` it again.)");
+            Msgr::wprint(tag, ": This method is considered **UNSAFE**, and the diagram is currently locked to prevent break of topological invariance. If you want to perform this operation anyways, call `Unlock()` first. (Don't forget to `Lock()` it again.)");
         }
         
     public:
         
-//        template<Stringy S>
-//        static constexpr auto MethodName( const S & tag  )
-//        {
-//            return (ClassName() + "::") + tag;
-//        }
-//        
-//        /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.*/
-//        static consteval auto ClassName()
-//        {
-//            return ct_string("PlanarDiagramComplex<") + TypeName<Int> + ">";
-//        }
-        
-        template<Stringy S>
-        static constexpr std::string MethodName( const S & tag  )
+        using Msgr = Tools::Messenger<Class_T>;
+
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            std::string s { ClassName() };
-            s += "::";
-            s += std::string_view(tag);
-            return s;
+            return Msgr::MethodName(tag);
         }
         
-        /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.*/
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            std::string s { "PlanarDiagramComplex<" };
-            s += std::string_view(TypeName<Int>);
-            s += ">";
-            return s;
+            return ct_string("PlanarDiagramComplex<") + TypeName<Int> + ">";
         }
     };
 

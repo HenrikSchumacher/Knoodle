@@ -20,26 +20,26 @@ constexpr static auto PrintDiscover = []( cref<DarcNode> A )
 {
     auto [a,d] = FromDarc(A.da);
     
-    print("Discovering crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
+    print("Discovering crossing ", A.head, " from crossing ", A.tail, " along arc ", a, " in ", (d == Head ? std::string("forward") : std::string("backward")), " direction." );
 };
 constexpr static auto PrintRediscover = []( cref<DarcNode> A )
 {
     auto [a,d] = FromDarc(A.da);
 
-    print("Rediscovering crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
+    print("Rediscovering crossing ", A.head, " from crossing ", A.tail, " along arc ", a, " in ", (d == Head ? std::string("forward") : std::string("backward")), " direction." );
 };
 constexpr static auto PrintPreVisit = []( cref<DarcNode> A )
 {
     auto [a,d] = FromDarc(A.da);
     
-    print("Pre-visiting crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
+    print("Pre-visiting crossing ", A.head, " from crossing ",A.tail, " along arc ", a, " in ", (d == Head ? std::string("forward") : std::string("backward")), " direction." );
 };
 
 constexpr static auto PrintPostVisit = []( cref<DarcNode> A )
 {
     auto [a,d] = FromDarc(A.da);
     
-    print("Post-visiting crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
+    print("Post-visiting crossing ", A.head, " from crossing ", A.tail, " along arc ", a, " in ", (d == Head ? std::string("forward") : std::string("backward")), " direction." );
 };
 
 //###############################################
@@ -107,7 +107,7 @@ void DepthFirstSearch(
         // da.a may be virtual, but b may not.
         if( !this->ValidIndexQ(db) )
         {
-            eprint(MethodName("DepthFirstSearch")+": Virtual arc on stack.");
+            Msgr::eprint("DepthFirstSearch", "Virtual arc on stack.");
             return;
         }
         
@@ -123,7 +123,7 @@ void DepthFirstSearch(
             DarcNode B {A.head,db,head};
             if constexpr ( verboseQ )
             {
-                logprint("Discovering " + CrossingString(head) + " from " + DarcString(db) + "."
+                logprint("Discovering ", CrossingString(head), " from ", DarcString(db), "."
                 );
             }
             std::invoke( discover, B );
@@ -137,8 +137,7 @@ void DepthFirstSearch(
                 A_visitedQ[b] = true;
                 if constexpr ( verboseQ )
                 {
-                    logprint("Rediscovering " + CrossingString(head) + " from " + DarcString(db) + "."
-                    );
+                    logprint("Rediscovering ", CrossingString(head), " from " , DarcString(db), ".");
                 }
                 std::invoke( rediscover, DarcNode{A.head,db,head} );
             }
@@ -146,8 +145,7 @@ void DepthFirstSearch(
             {
                 if constexpr ( verboseQ )
                 {
-                    logprint("Skipping rediscovering " + CrossingString(head) + " from " + DarcString(db) + "."
-                    );
+                    logprint("Skipping rediscovering ", CrossingString(head), " from ", DarcString(db), ".");
                 }
             }
         }
@@ -167,7 +165,7 @@ void DepthFirstSearch(
             DarcNode A {Uninitialized, Uninitialized, c_0};
             if constexpr ( verboseQ )
             {
-                logprint("Discovering " + CrossingString(c_0) + ", starting new spanning tree.");
+                logprint("Discovering ", CrossingString(c_0), ", starting new spanning tree.");
             }
             std::invoke( discover, A );
             stack.Push( std::move(A) );
@@ -184,7 +182,7 @@ void DepthFirstSearch(
             {
                 if constexpr ( verboseQ )
                 {
-                    eprint(MethodName("DepthFirstSearch")+": Undiscovered crossing " + CrossingString(c) + " on stack!");
+                    Msgr::eprint("DepthFirstSearch", ": Undiscovered crossing ", CrossingString(c), " on stack!");
                 }
                 (void)stack.Pop();
             }
@@ -194,7 +192,7 @@ void DepthFirstSearch(
                 C_flag[c] = UInt8(2);
                 if constexpr ( verboseQ )
                 {
-                    logprint("Pre-visiting " + CrossingString(c) + " along " + DarcString(A.da) + ".");
+                    logprint("Pre-visiting ", CrossingString(c), " along ", DarcString(A.da), ".");
                 }
                 std::invoke( pre_visit, A );
 
@@ -210,7 +208,7 @@ void DepthFirstSearch(
                 C_flag[c] = UInt8(3);
                 if constexpr ( verboseQ )
                 {
-                    logprint("Post-visiting " + CrossingString(c) + " along  " + DarcString(A.da) + ".");
+                    logprint("Post-visiting ", CrossingString(c), " along  ", DarcString(A.da), ".");
                 }
                 std::invoke( post_visit, A );
                 (void)stack.Pop();

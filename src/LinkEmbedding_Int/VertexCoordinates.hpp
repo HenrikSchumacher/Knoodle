@@ -21,8 +21,7 @@ cref<VContainer_T> VertexCoordinates() const
 template<bool transformQ = false>
 void ReadVertexCoordinates( cptr<Real> v )
 {
-    TOOLS_PTIMER(timer,MethodName("ReadVertexCoordinates")+"<" + ToString(transformQ) + ">(AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
-    
+    TOOLS_PTIMER(timer,Msgr::MethodName("ReadVertexCoordinates") + "<" + to_ct_string(transformQ) + ">(AoS, " + to_ct_string(preorderedQ) + ")");
 
     vertex_coords_loadedQ    = false;
     edge_coords_computedQ    = false;
@@ -107,13 +106,13 @@ void ReadVertexCoordinates( cptr<Real> v )
  */
 void Transform( cref<Matrix3x3_T> A )
 {
-    [[maybe_unused]] auto tag = [](){ return MethodName("Transform"); };
+    [[maybe_unused]] constexpr auto tag = Msgr::MethodName("Transform");
     
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,tag);
     
     if( !vertex_coords_loadedQ )
     {
-        eprint(tag() + ": No vertex coordinates loaded, yet. Call ReadVertexCoordinates first.");
+        Msgr::eprint("Transform","No vertex coordinates loaded, yet. Call ReadVertexCoordinates first.");
     }
     
     edge_coords_computedQ    = false;

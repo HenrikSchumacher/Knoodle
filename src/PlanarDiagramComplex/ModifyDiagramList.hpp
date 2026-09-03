@@ -37,7 +37,7 @@ bool Replace( const Int diagram_idx, PD_T && pd )
     
     if( (diagram_idx < 0) || (diagram_idx >= DiagramCount() ) )
     {
-        wprint(MethodName("Replace") + ": Diagram index = " + ToString(diagram_idx) + " is out of bounds. Doing nothing.");
+        Msgr::wprint("Replace", "Diagram index = ", diagram_idx, " is out of bounds. Doing nothing.");
         return false;
     }
         

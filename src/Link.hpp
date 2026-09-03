@@ -15,7 +15,8 @@ namespace Knoodle
     public:
         
         using Int = Int_;
-        
+
+        using Class_T         = Link;
         using EdgeContainer_T = Tiny::VectorList_AoS<2,Int,Int>;
         
     protected:
@@ -190,9 +191,9 @@ namespace Knoodle
         template<IntQ ExtInt>
         void ReadEdges( cptr<ExtInt> edges_, cptr<ExtInt> edge_colors_ )
         {
-            [[maybe_unused]] auto tag = [](){ return MethodName("ReadEdges");};
+            constexpr auto tag = ct_string("ReadEdges");
             
-            TOOLS_PTIMER(timer,tag());
+            TOOLS_PTIMER(timer,tag);
         
             // Finding for each e its next e.
             // Caution: Assuming here that link is correctly oriented and that it has no boundaries.
@@ -208,15 +209,15 @@ namespace Knoodle
 
                 if( !std::in_range<Int>(tail) )
                 {
-                    error(tag()+": index tail is out of range for type " + TypeName<Int> + " (tail = " + ToString(tail) + ").");
+                    Msgr::error(tag, "Index tail is out of range for type ", TypeName<Int>, " (tail = ", tail, ").");
                 }
                 if( std::cmp_less(tail, ExtInt{0}) )
                 {
-                    error(tag()+": tail < 0 (tail = " + ToString(tail) + ").");
+                    Msgr::error(tag, "tail < 0 (tail = ", tail, ").");
                 }
                 if( std::cmp_greater_equal(tail,edge_count) )
                 {
-                    error(tag()+": tail >= edge_count (tail = " + ToString(tail) + ", edge_count = " + ToString(edge_count) + ").");
+                    Msgr::error(tag, "tail >= edge_count (tail = ",tail, ", edge_count = ", edge_count, ").");
                 }
                 
 //                edges(tail,0) = static_cast<Int>(tail);
@@ -229,15 +230,15 @@ namespace Knoodle
                 
                 if( !std::in_range<Int>(head) )
                 {
-                    error(tag()+": index head is out of range for type " + TypeName<Int> + " (head = " + ToString(head) + ").");
+                    Msgr::error(tag, "index head is out of range for type ", TypeName<Int>, " (head = ", head,  ").");
                 }
                 if( std::cmp_less(head, ExtInt{0}) )
                 {
-                    error(tag()+": head < 0 (head = " + ToString(head) + ").");
+                    Msgr::error(tag, "head < 0 (head = ", head, ").");
                 }
                 if( std::cmp_greater_equal(head,edge_count) )
                 {
-                    error(tag()+": head >= edge_count (head = " + ToString(head) + ", edge_count = " + ToString(edge_count) + ").");
+                    Msgr::error(tag, "head >= edge_count (head = ",head, ", edge_count = ", edge_count, ").");
                 }
                 
                 next_edge[e] = tail_to_edge[static_cast<Int>(head)];
@@ -547,16 +548,19 @@ namespace Knoodle
     public:
         
         
-        static constexpr std::string MethodName( const std::string & tag )
+        using Msgr = Tools::Messenger<Class_T>;
+
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
-        
-        /*!@brief Return the name of the class, including template parameters. Used for logging, profiling, and error handling.
-         */
-        static constexpr std::string ClassName()
+
+        static consteval auto ClassName()
         {
-            return std::string("Link") + "<" + TypeName<Int> + ">";
+            return ct_string("Link")
+                + "<" + TypeName<Int>
+                + ">";
         }
     };
     

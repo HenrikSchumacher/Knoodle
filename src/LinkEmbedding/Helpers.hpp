@@ -112,7 +112,7 @@ Int DegenerateEdgeCount() const
         
         if( degenerateQ )
         {
-            wprint(ClassName()+"::DegenerateEdges: Detected degenerate edge " + ToString(edge) +".");
+            Msgr::wprint("DegenerateEdges","Detected degenerate edge ", edge, ".");
             logvalprint("x", x);
             logvalprint("y", y);
             logvalprint("edge data", EdgeData(edge));

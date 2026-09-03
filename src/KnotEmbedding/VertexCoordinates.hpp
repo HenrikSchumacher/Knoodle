@@ -3,7 +3,7 @@ public:
 template<bool transformQ = false,bool shiftQ = true>
 void ReadVertexCoordinates( cptr<Real> v )
 {
-    TOOLS_PTIMER(timer,MethodName("ReadVertexCoordinates")+"<" + ToString(transformQ) + "," + ToString(shiftQ) + ">");
+    TOOLS_PTIMER(timer,Msgr::MethodName("ReadVertexCoordinates") + "<" + to_ct_string(transformQ) + "," + to_ct_string(shiftQ) + ">");
 
     intersections_computedQ  = false;
     bounding_boxes_computedQ = false;
@@ -54,7 +54,7 @@ void ReadVertexCoordinates( cptr<Real> v )
 template<bool undo_transformQ = false, bool undo_shiftQ = false>
 void WriteVertexCoordinates( mptr<Real> v ) const
 {
-    TOOLS_PTIMER(timer,MethodName("WriteVertexCoordinates")+"<" + ToString(undo_transformQ) + "," + ToString(undo_shiftQ) + ">");
+    TOOLS_PTIMER(timer,Msgr::MethodName("WriteVertexCoordinates")+"<" + to_ct_string(undo_transformQ) + "," + to_ct_string(undo_shiftQ) + ">");
     
     [[maybe_unused]] Matrix3x3_T R_inv;
     
@@ -99,7 +99,7 @@ void WriteVertexCoordinates( mptr<Real> v ) const
 template<bool shiftQ = true>
 void Transform( cref<Matrix3x3_T> A )
 {
-    TOOLS_PTIMER(timer,MethodName("Transform"));
+    TOOLS_PTIMER(timer,Msgr::MethodName("Transform"));
 
     // Store new transformation matrix.
     SetTransformationMatrix(Dot(A,R));

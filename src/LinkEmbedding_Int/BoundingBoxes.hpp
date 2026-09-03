@@ -24,9 +24,7 @@ private:
 
 void ComputeBoundingBoxes() const
 {
-    [[maybe_unused]] auto tag = [](){ return MethodName("ComputeBoundingBoxes"); };
-    
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
     
     bounding_boxes_computedQ = false;
     intersections_computedQ  = false;
@@ -38,7 +36,7 @@ void ComputeBoundingBoxes() const
     
     if( !edge_coords_computedQ )
     {
-        wprint(tag() + ": Edge coordinates not computed, yet. Aborting.");
+        Msgr::wprint("ComputeBoundingBoxes", "Edge coordinates not computed, yet. Aborting.");
         return;
     }
     

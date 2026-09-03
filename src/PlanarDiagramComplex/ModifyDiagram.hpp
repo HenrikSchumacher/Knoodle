@@ -6,8 +6,7 @@ bool SwitchCrossing( const Int diagram_idx, const Int c )
 {
     if( LockedQ() ) { LockMessage("SwitchCrossing"); return false; }
     
-    auto tag = []()-> std::string { return MethodName("SwitchCrossing"); };
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,MethodName("SwitchCrossing"));
     
     PD_T & pd = Diagram_Private(diagram_idx);
     
@@ -15,7 +14,7 @@ bool SwitchCrossing( const Int diagram_idx, const Int c )
     {
         if constexpr (!silentQ)
         {
-            wprint(tag()+": Diagram("+ToString(diagram_idx)+") is invalid. Doing nothing.");
+            Msgr::wprint("SwitchCrossing", "Diagram(",diagram_idx,") is invalid. Doing nothing.");
         }
         return Uninitialized;
     }
@@ -29,8 +28,7 @@ bool SwitchCrossing( const Int diagram_idx, const Int c )
 template<bool silentQ = false>
 void RequireCrossingCount( const Int diagram_idx, const Int min_crossing_count )
 {
-    auto tag = []()-> std::string { return MethodName("RequireCrossingCount"); };
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,MethodName("RequireCrossingCount"));
     
     PD_T & pd = Diagram_Private(diagram_idx);
     
@@ -38,7 +36,7 @@ void RequireCrossingCount( const Int diagram_idx, const Int min_crossing_count )
     {
         if constexpr (!silentQ)
         {
-            wprint(tag()+": Diagram("+ToString(diagram_idx)+") is invalid. Doing nothing.");
+            Msgr::wprint("RequireCrossingCount", "Diagram(",diagram_idx,") is invalid. Doing nothing.");
         }
         return;
     }
@@ -53,8 +51,7 @@ Int CreateLoop(
     const Int a, const bool side, CrossingState_T handedness
 )
 {
-    auto tag = []()-> std::string { return MethodName("CreateLoop"); };
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,MethodName("CreateLoop"));
 
     PD_T & pd = Diagram_Private(diagram_idx);
     
@@ -62,7 +59,7 @@ Int CreateLoop(
     {
         if constexpr (!silentQ)
         {
-            wprint(tag()+": Diagram("+ToString(diagram_idx)+") is invalid. Doing nothing.");
+            Msgr::wprint("CreateLoop","Diagram(",diagram_idx,") is invalid. Doing nothing.");
         }
         return Uninitialized;
     }
@@ -77,8 +74,7 @@ Int CreateLoop(
 template<bool silentQ = false, bool assertsQ = true>
 bool Connect( const Int diagram_idx, const Int a, const Int b )
 {
-    auto tag = []()-> std::string { return MethodName("Connect"); };
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,MethodName("Connect"));
 
     PD_T & pd = Diagram_Private(diagram_idx);
     
@@ -86,7 +82,7 @@ bool Connect( const Int diagram_idx, const Int a, const Int b )
     {
         if constexpr (!silentQ)
         {
-            wprint(tag()+": Diagram("+ToString(diagram_idx)+") is invalid. Doing nothing.");
+            Msgr::wprint("Connect", "Diagram(",diagram_idx,") is invalid. Doing nothing.");
         }
         return false;
     }

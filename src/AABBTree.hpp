@@ -46,12 +46,14 @@ namespace Knoodle
         static constexpr bool rounding_neededQ      = SameQ<Real,double> && SameQ<BReal,float>;
         static constexpr bool change_rounding_modeQ = rounding_neededQ && precompute_rangesQ_;
         
-        using Base_T = CompleteBinaryTree<Int,precompute_rangesQ>;
+        using Base_T  = CompleteBinaryTree<Int,precompute_rangesQ>;
+        using Class_T = AABBTree;
+        
         using Base_T::max_depth;
 
         
         static constexpr Int AmbDim = AmbDim_;
-        static constexpr Int BoxDim = 2 * AmbDim;
+        static constexpr Int BoxDim = Int{2} * AmbDim;
         
         using Vector_T     = Tiny::Vector<AmbDim_,Real,Int>;
         
@@ -140,7 +142,6 @@ namespace Knoodle
         void ComputeBoundingBoxes( F && get_primitive, mptr<BReal> B ) const
         {
             TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
-
             
             constexpr Int d = AmbDim;
             // If Real and BReal are integral, then no rounding is needed.
@@ -361,19 +362,22 @@ namespace Knoodle
         
     public:
         
-        static constexpr std::string MethodName( const std::string & tag )
+        using Msgr = Tools::Messenger<Class_T>;
+        
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("AABBTree")
-            + "<" + Tools::ToString(AmbDim)
+            return ct_string("AABBTree")
+            + "<" + to_ct_string(AmbDim)
             + "," + TypeName<Real>
             + "," + TypeName<Int>
             + "," + TypeName<BReal>
-            + "," + Tools::ToString(precompute_rangesQ)
+            + "," + to_ct_string(precompute_rangesQ)
             + ">";
         }
 

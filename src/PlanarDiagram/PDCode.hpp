@@ -8,12 +8,12 @@ struct PDCode_TArgs_T
     bool farfalleQ = false; /**< Whether anelli shall be converted to farfalla.*/
 };
 
-friend std::string ToString( cref<PDCode_TArgs_T> args )
+consteval friend auto to_ct_string( cref<PDCode_TArgs_T> args )
 {
-    return std::string("{ ")
-        + "signQ = " + ToString(args.signQ)
-        + ", colorQ = " + ToString(args.colorQ)
-        + ", farfalleQ = " + ToString(args.farfalleQ)
+    return ct_string("{ ")
+        + "signQ = " + to_ct_string(args.signQ)
+        + ", colorQ = " + to_ct_string(args.colorQ)
+        + ", farfalleQ = " + to_ct_string(args.farfalleQ)
         + " }";
 }
 
@@ -68,18 +68,9 @@ static constexpr Size_T PDCodeWidth( bool signQ, bool colorQ )
 template<IntQ T = Int, PDCode_TArgs_T targs = PDCode_TArgs_T()>
 Tensor2<T,Int> PDCode() const
 {
-    [[maybe_unused]] auto tag = []()
-    {
-        std::string s = MethodName("PDCode");
-        s += "<";
-        s += TypeName<T>;
-        s += ",";
-        s += ToString(targs);
-        s += ">";
-        return s;
-    };
+    [[maybe_unused]] constexpr auto tag = MethodName("PDCode<") + TypeName<T> + "," + to_ct_string(targs) + ">";
     
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,tag);
     
     Tensor2<T,Int> pd_code;
     
@@ -88,7 +79,7 @@ Tensor2<T,Int> PDCode() const
     
     if( std::cmp_greater( arc_count, std::numeric_limits<T>::max() ) )
     {
-        error(tag() + ": Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
+        error(tag, ": Requested type ", TypeName<T>, " cannot store PD code for this diagram.");
         
         return pd_code;
     }
@@ -109,9 +100,9 @@ Tensor2<T,Int> PDCode() const
 template<IntQ T, PDCode_TArgs_T targs>
 void WritePDCode( mptr<T> pd_code, T offset = 0 ) const
 {
-    TOOLS_PTIMER(timer,MethodName("WritePDCode")
+    TOOLS_PTIMER(timer, MethodName("WritePDCode")
         + "<" + TypeName<T>
-        + "," + ToString(targs)
+        + "," + to_ct_string(targs)
         + ">");
     
     constexpr T T_LeftHanded  = SignedIntQ<T> ? T(-1) : T(0);
@@ -493,7 +484,7 @@ static constexpr CrossingState_T PDCodeHandedness( mptr<Int> X )
     }
     else
     {
-        eprint( std::string("PDHandedness: Handedness of {") + ToString(i) + "," + ToString(i) + "," + ToString(j) + "," + ToString(k) + "," + ToString(l) + "} could not be determined. Make sure that consecutive arcs on each component have consecutive labels (except the wrap-around, of course).");
+        Msgr::eprint("PDHandedness", "Handedness of {", i, "," , i, ",", j, ",", k, ",", l, "} could not be determined. Make sure that consecutive arcs on each component have consecutive labels (except the wrap-around, of course).");
         
         return CrossingState_T::Inactive;
     }
@@ -508,12 +499,12 @@ struct FromPDCode_TArgs_T
     bool checksQ   = true;
 };
 
-friend  std::string ToString( cref<FromPDCode_TArgs_T> args )
+consteval friend auto to_ct_string( cref<FromPDCode_TArgs_T> args )
 {
-    return std::string("{ ")
-        + "signQ = " + ToString(args.signQ)
-        + ", colorQ = " + ToString(args.colorQ)
-        + ", checksQ = " + ToString(args.checksQ)
+    return ct_string("{ ")
+        + "signQ = " + to_ct_string(args.signQ)
+        + ", colorQ = " + to_ct_string(args.colorQ)
+        + ", checksQ = " + to_ct_string(args.checksQ)
         + " }";
 };
 
@@ -541,20 +532,13 @@ static PD_T FromPDCode(
     const bool   compressQ = false
 )
 {
-    // needs to know all member variables
-    [[maybe_unused]] auto tag = [](){
-        std::string s = MethodName("FromPDCode");
-        s += "<";
-        s += ToString(targs);
-        s += ",";
-        s += TypeName<T>;
-        s += ",";
-        s += TypeName<ExtInt>;
-        s += ">";
-        return s;
-    };
+    constexpr auto tag = MethodName("FromPDCode")
+        + "<" + to_ct_string(targs)
+        + "," + TypeName<T>
+        + "," + TypeName<ExtInt>
+        + ">";
     
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,tag);
 
     PD_T pd (int_cast<Int>(crossing_count_));
     
@@ -590,15 +574,25 @@ static PD_T FromPDCode(
 
         if( (X[0] < Int(0)) || (X[1] < Int(0)) || (X[2] < Int(0)) || (X[3] < Int(0)) )
         {
-            eprint(tag() + ": There is a negative entry in the PD code. Returning invalid planar diagram.");
-            valprint("Code of crossing " + ToString(c), OutString::FromVector(&X[0],code_width) );
+            eprint(tag, ": There is a negative entry in the PD code. Returning invalid planar diagram.");
+            
+            valprint(
+                "Code of crossing " + ToString(c),
+                OutString::FromVector(&X[0],code_width)
+            );
+            
             return InvalidDiagram();
         }
         
         if( (X[0] > max_a) || (X[1] > max_a) || (X[2] > max_a) || (X[3] > max_a) )
         {
-            eprint(tag() + ": There is an entry greater than number of arcs - 1 = " + ToString(max_a) + " in the PD code. Returning invalid planar diagram.");
-            valprint("Code of crossing " + ToString(c), OutString::FromVector(&X[0],code_width) );
+            eprint(tag, ": There is an entry greater than number of arcs - 1 = ", max_a, " in the PD code. Returning invalid planar diagram.");
+            
+            valprint(
+                "Code of crossing " + ToString(c),
+                OutString::FromVector(&X[0],code_width)
+            );
+            
             return InvalidDiagram();
         }
         
@@ -606,8 +600,10 @@ static PD_T FromPDCode(
         {
             if( (X[over_pos] < Int(0)) || (X[under_pos] < Int(0)) )
             {
-                eprint(tag() + ": There is a negative color in the PD code. Returning invalid planar diagram.");
+                Msgr::eprint(tag, "There is a negative color in the PD code. Returning invalid planar diagram.");
+                
                 valprint("Code of crossing " + ToString(c), OutString::FromVector(&X[0],code_width) );
+                
                 return InvalidDiagram();
             }
         }
@@ -712,7 +708,7 @@ static PD_T FromPDCode(
     
     if( pd.arc_count != Int(2) * pd.crossing_count )
     {
-        eprint(tag() + ": Input PD code is invalid because number of active arcs (" + ToString(pd.arc_count)+ ") is not equal to twice the number of active crossings (" + ToString(pd.crossing_count)+ "). Returning invalid planar diagram.");
+        eprint(tag, ": Input PD code is invalid because number of active arcs (", pd.arc_count, ") is not equal to twice the number of active crossings (", pd.crossing_count, "). Returning invalid planar diagram.");
         
         logvalprint(
             "problematic pd code",
@@ -735,16 +731,19 @@ static PD_T FromPDCode(
             
             if( !in_okayQ )
             {
-                eprint(tag() + ": Input PD code is invalid because crossing " + ToString(c) + " has less than two incoming arcs.");
+                eprint(tag, ": Input PD code is invalid because crossing ", c, " has less than two incoming arcs.");
                 
-                valprint("crossing " + ToString(c), OutString::FromMatrix( pd.C_arcs.data(c), 2, 2 ) );
+                valprint(
+                    "crossing " + ToString(c),
+                    OutString::FromMatrix( pd.C_arcs.data(c), 2, 2 )
+                );
                 
                 all_crossings_initializedQ = false;
             }
             
             if( !out_okayQ )
             {
-                eprint(tag() + ": Input PD code is invalid because crossing " + ToString(c) + " has less than two outgoing arcs.");
+                eprint(tag, ": Input PD code is invalid because crossing ", c, " has less than two outgoing arcs.");
                 
                 valprint("crossing " + ToString(c), OutString::FromMatrix( pd.C_arcs.data(c), 2, 2 ) );
                 
@@ -758,7 +757,10 @@ static PD_T FromPDCode(
         {
             if( pd.A_cross(a,Tail) == Uninitialized )
             {
-                eprint(tag() + ": Input PD code is invalid because arc " + ToString(a) + " has no crossing assigned to its tail." + (( targs.signQ ) ? "" : " This can easily happen with unsigned PD codes when the arc labels are not ordered correctly: The arcs in a valid input PD code must be numbered sequentially around each component of the link. For each crossing the arcs most be listed in counterclockwise order starting with the incoming underarc.\n Please check your input code. Or even better: use a signed PD code as the requirements for signed PD codes are less strict."));
+                Msgr::eprint(tag, "Input PD code is invalid because arc ", a, " has no crossing assigned to its tail.");
+                
+//                Msgr::eprint(tag, "Input PD code is invalid because arc ", a, " has no crossing assigned to its tail.", ( targs.signQ ? ct_string("") : ct_string(" This can easily happen with unsigned PD codes when the arc labels are not ordered correctly: The arcs in a valid input PD code must be numbered sequentially around each component of the link. For each crossing the arcs most be listed in counterclockwise order starting with the incoming underarc.\n Please check your input code. Or even better: use a signed PD code as the requirements for signed PD codes are less strict."))
+//                );
                 
                 valprint("arc " + ToString(a), OutString::FromVector( pd.A_cross.data(a), 2 ) );
                 
@@ -767,7 +769,9 @@ static PD_T FromPDCode(
             
             if( pd.A_cross(a,Head) == Uninitialized )
             {
-                eprint(tag() + ": Input PD code is invalid because arc " + ToString(a) + " has no crossing assigned to its head." + (( targs.signQ ) ? "" : " This can easily happen with unsigned PD codes when the arc labels are not ordered correctly: The arcs in a valid input PD code must be numbered sequentially around each component of the link. For each crossing the arcs most be listed in counterclockwise order starting with the incoming underarc.\n Please check your input code. Or even better: use a signed PD code as the requirements for signed PD codes are less strict.") );
+                eprint(tag, ": Input PD code is invalid because arc ", a, " has no crossing assigned to its head.");
+                
+//                Msgr::eprint(tag, "Input PD code is invalid because arc ", a, " has no crossing assigned to its head.", (( targs.signQ ) ? "" : " This can easily happen with unsigned PD codes when the arc labels are not ordered correctly: The arcs in a valid input PD code must be numbered sequentially around each component of the link. For each crossing the arcs most be listed in counterclockwise order starting with the incoming underarc.\n Please check your input code. Or even better: use a signed PD code as the requirements for signed PD codes are less strict.") );
                 
                 valprint("arc " + ToString(a), OutString::FromVector( pd.A_cross.data(a), 2 ) );
                 
@@ -777,7 +781,7 @@ static PD_T FromPDCode(
         
         if( (!all_crossings_initializedQ) || (!all_arcs_initializedQ) )
         {
-            eprint(tag() + ": Input PD code is invalid. Returning invalid planar diagram.");
+            eprint(tag, ": Input PD code is invalid. Returning invalid planar diagram.");
             
             return InvalidDiagram();
         }
@@ -841,7 +845,8 @@ static PD_T FromPDCode(
     }
     else
     {
-        eprint(MethodName("FromPDCode") +": Code width is not equal to 4, 5, 6, or 7. Returning invalid diagram.");
+        
+        Msgr::eprint("FromPDCode", "Code width is not equal to 4, 5, 6, or 7. Returning invalid diagram.");
         return PD_T();
     }
 }
@@ -873,13 +878,13 @@ static PD_T FromPDCodeString(
     
     if( code_width < Size_T(4) )
     {
-        eprint(MethodName("FromPDCodeString") + ": Input has less than 4 tokens per line. This violates the assumptions for an unsigned and uncolored PD code. Returning invalid diagram.");
+        Msgr::eprint("FromPDCodeString", "Input has less than 4 tokens per line. This violates the assumptions for an unsigned and uncolored PD code. Returning invalid diagram.");
         return InvalidDiagram();
     }
     
     if( code_width > Size_T(7) )
     {
-        eprint(MethodName("FromPDCodeString") + ": Input has more than 7 tokens per line. This violates the assumptions for a signed and colored PD code. Returning invalid diagram.");
+        Msgr::eprint("FromPDCodeString", "Input has more than 7 tokens per line. This violates the assumptions for a signed and colored PD code. Returning invalid diagram.");
         
         return InvalidDiagram();
     }
@@ -901,7 +906,7 @@ static PD_T FromPDCodeString(
     
     if( s.FailedQ() )
     {
-        eprint(MethodName("FromPDCodeString") + ": Reading failed. Returning invalid diagram.");
+        Msgr::eprint("FromPDCodeString", "Reading failed. Returning invalid diagram.");
         return InvalidDiagram();
     }
     

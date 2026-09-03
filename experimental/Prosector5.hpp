@@ -33,7 +33,7 @@ namespace Knoodle
      * @tparam verboseQ Whether to log events more granulary. Only meant for debugging.
      */
     template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false>
-    class Prosector4 final
+    class Prosector5 final
     {
     public:
         
@@ -52,7 +52,8 @@ namespace Knoodle
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
         
-        using Prosector_T = Prosector4<Int,Idx,verboseQ>;
+        using Class_T     = Prosector5;
+        using Prosector_T = Class_T;
         using Vector3_T   = Tiny::Vector<3,Int,Int>;
         using LVector3_T  = Tiny::Vector<3,LInt,Int>;
         
@@ -95,17 +96,17 @@ namespace Knoodle
     public:
         
         // Default constructor
-        Prosector4() = default;
+        Prosector5() = default;
         // Default destructor
-        ~Prosector4() = default;
+        ~Prosector5() = default;
         // Copy constructor
-        Prosector4( const Prosector4 & other ) = default;
+        Prosector5( const Prosector5 & other ) = default;
         // Copy assignment operator
-        Prosector4 & operator=( const Prosector4 & other ) = default;
+        Prosector5 & operator=( const Prosector5 & other ) = default;
         // Move constructor
-        Prosector4( Prosector4 && other ) = default;
+        Prosector5( Prosector5 && other ) = default;
         // Move assignment operator
-        Prosector4 & operator=( Prosector4 && other ) = default;
+        Prosector5 & operator=( Prosector5 && other ) = default;
         
     private:
         
@@ -154,11 +155,9 @@ namespace Knoodle
             const Idx l, cptr<Int> y0, cptr<Int> y1
         )
         {
-            [[maybe_unused]] auto tag = [](){ return MethodName("ComputeIntersection"); };
-                    
             if constexpr ( verboseQ )
             {
-                logprint(tag() + " in verbose mode.");
+                Msgr::logprint("ComputeIntersection", "Running in verbose mode.");
             }
             
             LoadLineSegments( k, x0, x1, l, y0, y1 );
@@ -245,11 +244,9 @@ namespace Knoodle
 
         void Compute()
         {
-            [[maybe_unused]] auto tag = [](){ return MethodName("Compute"); };
-            
             if constexpr ( verboseQ )
             {
-                logprint(tag() + " in verbose mode.");
+                Msgr::logprint("Compute", "Running in verbose mode.");
             }
             
             u = x_1 - x_0;
@@ -396,7 +393,7 @@ namespace Knoodle
                 // If the line segments are coplanar in 3D, then there must be an intersection, too.
                 if constexpr ( verboseQ )
                 {
-                    logprint(MethodName("ComputeIntersection") + ": The line segments " + ToString(k_) + " and " + ToString(l_) + " are coplanar.");
+                    Msgr::logprint("ComputeIntersection", "The line segments ", k_, " and ", l_, " are coplanar.");
                 }
                 flag = Flag_T::Error;
                 return;
@@ -407,7 +404,7 @@ namespace Knoodle
             if( ZeroQ(sign_2) )
             {
                 // We should not get here
-                eprint(MethodName("ComputeIntersection") + ": The projections of the line segments " + ToString(k_) + " and " + ToString(l_) + " are parallel. No handedness assignable. But this case should have been caught before, so we should not have gotton here.");
+                Msgr::eprint("ComputeIntersection", "The projections of the line segments ", k_, " and ", l_, " are parallel. No handedness assignable. But this case should have been caught before, so we should not have gotton here.");
             }
             
             bool x_over_y_Q = (sign_3 != sign_2);
@@ -453,20 +450,17 @@ namespace Knoodle
         
     public:
         
-        static constexpr std::string MethodName( const std::string & tag )
-        {
-            return ClassName() + "::" + tag;
-        }
+        using Msgr = Tools::Messenger<Class_T>;
         
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("Prosector4")
+            return ct_string("Prosector5")
                 + "<" + TypeName<Int>
                 + "," + TypeName<Idx>
-                + "," + ToString(verboseQ)
+                + "," + to_ct_string(verboseQ)
                 + ">";
         }
         
-    }; // class Prosector4
+    }; // class Prosector5
     
 } // namespace Knoodle

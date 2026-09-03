@@ -14,9 +14,10 @@ namespace Knoodle
         
     public:
         
-        using Int    = Int_;
+        using Int     = Int_;
         
-        using Base_T = CachedObject<1,0,0,0>;
+        using Base_T  = CachedObject<1,0,0,0>;
+        using Class_T = CompleteBinaryTree;
         
         static_assert(std::in_range<Int>(4 * 64 + 1),"");
         
@@ -164,39 +165,22 @@ namespace Knoodle
             
             return std::pair<Node,Node>(
                 Node(
-                    2 * node.idx + 1,
-                    node.depth + 1,
-                    2 * node.column,
+                    Int{2} * node.idx + Int{1},
+                    node.depth + Int{1},
+                    Int{2} * node.column,
                     node.begin,
                     m
-                    )
+                )
                 ,
                 Node(
-                    2 * node.idx + 2,
-                    node.depth + 1,
-                    2 * node.column + 1,
+                    Int{2} * node.idx + Int{2},
+                    node.depth + Int{1},
+                    Int{2} * node.column + Int{1},
                     m,
                     node.end
                 )
             );
         }
-        
-//        Node Parent( const Node node) const
-//        {
-//            // TODO: Correct this!
-//            
-//            const bool evenQ = node.idx | Int{1};
-//            
-//            Int m = evenQ ? node.end : node.begin;
-//
-//            return Node(
-//                ( node.idx - 1 )/2,
-//                node.depth - 1,
-//                node.column / 2,
-//                evenQ ? node.begin : m,
-//                evenQ ? m          : node.end
-//            );
-//        }
         
     public:
         
@@ -426,9 +410,9 @@ namespace Knoodle
             }
         }
         
-//###############################################################################
+//#########################################################################
 //##        Get functions
-//###############################################################################
+//#########################################################################
 
     public:
 
@@ -442,14 +426,19 @@ namespace Knoodle
             return int_node_count;
         }
         
+        Int InteriorNodeCount() const
+        {
+            return int_node_count;
+        }
+        
         Int LeafNodeCount() const
         {
             return leaf_node_count;
         }
         
-//###############################################################################
+//#########################################################################
 //##        Breadth first
-//###############################################################################
+//#########################################################################
         
         /*! Breadth first scan of the tree. Every node is visited _before_ its children.
          *
@@ -513,10 +502,7 @@ namespace Knoodle
          * @param int_visit An instance of a functor class (e.g. a lamda). It must have a method `operator()( Int node )` that executes what ought to be done in an internal node.
          *
          * @param leaf_visit An instance of a functor class that specifies what ought to be done in a leaf node.
-         *
          */
-        
-        
         template< class Internal_T, class Leaf_T >
         void ReverseBreadthFirstSearch(
             Internal_T  & int_visit,
@@ -565,9 +551,9 @@ namespace Knoodle
             return GetCache<Tensor1<Int,Int>>(tag);
         }
         
-//###############################################################################
+//####################################################################
 //##        Depth first
-//###############################################################################
+//####################################################################
         
     public:
         
@@ -598,7 +584,7 @@ namespace Knoodle
         }
         
         
-       /*! Depth first scan of the tree. Can used to implement pre-order and post-order tree traversal.
+       /*!@brief Depth-first scan of the tree. Can be used to implement pre-order and post-order tree traversal.
         *
         * @param int_pre_visit An instance of a functor class (e.g. a lamda). It must have a method `bool operator()( Int node )` that executes what ought to be done in an internal node _before_ the children are visited. The returned `bool` indicates whether the children shall be visited and whether `int_post_visit` shall be executed.
         *
@@ -606,10 +592,7 @@ namespace Knoodle
         *
         * @param leaf_visit An instance of a functor class that specifies what ought to be done in a leaf node.
         *
-        * @param start_node The root of the subtree to be visited.
-        *
-        */
-        
+        * @param start_node The root of the subtree to be visited.*/
         template<DFS mode, class IntPre_T, class IntPost_T, class Leaf_T>
         void DepthFirstSearch(
             IntPre_T  && int_pre_visit,
@@ -797,7 +780,7 @@ namespace Knoodle
             
             if( stack_ptr >= stack_max_size )
             {
-                eprint(MethodName("DepthFirstSearch_ManualStack")+": Stack overflow.");
+                Msgr::eprint("DepthFirstSearch_ManualStack","Stack overflow.");
             }
         }
         
@@ -887,21 +870,25 @@ namespace Knoodle
             return sizeof(CompleteBinaryTree) + AllocatedByteCount();
         }
         
-        static constexpr std::string MethodName( const std::string & tag )
+
+    public:
+        
+        using Msgr = Tools::Messenger<Class_T>;
+        
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("CompleteBinaryTree")
-                + "<" + TypeName<Int>
-                + "," + Tools::ToString(precompute_rangesQ)
-                + "," + Tools::ToString(use_manual_stackQ)
+            return ct_string("CompleteBinaryTree<") + TypeName<Int>
+                + "," + to_ct_string(precompute_rangesQ)
+                + "," + to_ct_string(use_manual_stackQ)
                 + ">";
         }
 
     }; // CompleteBinaryTree
     
 } // namespace Knoodle
-

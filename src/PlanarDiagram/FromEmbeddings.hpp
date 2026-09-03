@@ -9,7 +9,9 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( mref<KnotEmbedding<Re
 {
     using Knot_T [[maybe_unused]] = KnotEmbedding<Real,Int,BReal>;
     
-    TOOLS_PTIMER(timer,MethodName("FromKnotEmbedding")+"("+Knot_T::ClassName()+")");
+    constexpr auto tag = MethodName("FromKnotEmbedding") + "(" + Knot_T::ClassName() + ")";
+    
+    TOOLS_PTIMER(timer,tag);
 
     Tensor1<Int,Int> comp_color(Int{1},Int{0});
     
@@ -17,7 +19,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( mref<KnotEmbedding<Re
     
     if( err != 0 )
     {
-        eprint(MethodName("FromKnotEmbedding") + "("+Knot_T::ClassName()+"): RequireIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
+        eprint(tag, ": RequireIntersections reported error code ", err, ". Returning invalid diagram.");
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
     
@@ -41,7 +43,9 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( mref<KnotEmbedding<Re
 template<FloatQ Real, IntQ ExtInt, FloatQ BReal = float>
 static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinates( cptr<Real> x, const ExtInt n )
 {
-    TOOLS_PTIMER(timer,MethodName("FromCoordinates") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+")");
+    constexpr auto tag = MethodName("FromCoordinates") + "<" + TypeName<Real> + "," + TypeName<ExtInt> + ">";
+    
+    TOOLS_PTIMER(timer,tag);
 
     KnotEmbedding<Real,Int,BReal> L ( n );
 
@@ -51,7 +55,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinates( cptr<Real> x, const Ext
 
     if( err != 0 )
     {
-        eprint(MethodName("FromCoordinates") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"): FindIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
+        eprint(tag, ": FindIntersections reported error code ", err, ". Returning invalid diagram.");
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
 
@@ -78,14 +82,16 @@ template<FloatQ Real, FloatQ BReal>
 static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding<Real,Int,BReal>> L )
 {
     using Link_T [[maybe_unused]] = LinkEmbedding<Real,Int,BReal>;
+ 
+    constexpr auto tag = MethodName("FromLinkEmbedding(") + Link_T::ClassName() + ")";
     
-    TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding")+"("+Link_T::ClassName()+")");
+    TOOLS_PTIMER(timer,tag);
 
     const int err = L.template RequireIntersections<true>();
 
     if( err != 0 )
     {
-        eprint(MethodName("FromLinkEmbedding") + "("+ Link_T::ClassName() +"): RequireIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
+        eprint(tag, ": RequireIntersections reported error code ", err, ". Returning invalid diagram.");
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
     
@@ -101,18 +107,22 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding<Re
 
 /*!@brief Construction from `FromLinkEmbedding_Int` object. Returns a planar diagram and the number of unlinks found in the input.
  */
-template<typename Real, typename Prosector_T>
-static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding_Int<Real,Prosector_T>> L )
+template<typename Real, typename Prosector_T, bool mortonQ>
+static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
+    mref<LinkEmbedding_Int<Real,Prosector_T,mortonQ>> L
+)
 {
-    using Link_T [[maybe_unused]] = LinkEmbedding_Int<Real,Prosector_T>;
+    using Link_T [[maybe_unused]] = LinkEmbedding_Int<Real,Prosector_T,mortonQ>;
     
-    TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding")+"("+Link_T::ClassName()+")");
+    constexpr auto tag = MethodName("FromLinkEmbedding(") + Link_T::ClassName() + ")";
+    
+    TOOLS_PTIMER(timer,tag);
 
     const int err = L.template RequireIntersections<true>();
 
     if( err != 0 )
     {
-        eprint(MethodName("FromLinkEmbedding") + "("+ Link_T::ClassName() +"): RequireIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
+        eprint(tag, ": RequireIntersections reported error code ", err, ". Returning invalid diagram.");
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
     
@@ -147,7 +157,9 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinatesAndEdges(
     const ExtInt n
 )
 {
-    TOOLS_PTIMER(timer,MethodName("FromCoordinatesAndEdges") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"*,"+TypeName<ExtInt>+")");
+    constexpr auto tag = MethodName("FromCoordinatesAndEdges") + "<" + TypeName<Real> + "," + TypeName<ExtInt> + ">";
+    
+    TOOLS_PTIMER(timer,tag);
 
     using LinkEmbedding_T = LinkEmbedding<Real,Int,Real>;
     
@@ -161,7 +173,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinatesAndEdges(
 
     if( err != 0 )
     {
-        eprint(MethodName("FromCoordinatesAndEdges") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"*,"+TypeName<ExtInt>+"): FindIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
+        eprint(tag, ": FindIntersections reported error code ", err, ". Returning invalid diagram.");
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
 

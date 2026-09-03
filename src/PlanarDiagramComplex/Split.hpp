@@ -6,13 +6,13 @@ public:
 
 Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_reducedQ = false )
 {
-    TOOLS_PTIMER(timer,MethodName("Split")+ "(pd,pd_output," + ToString(proven_reducedQ) + ")");
+    TOOLS_PTIMER(timer,MethodName("Split") + "(pd,pd_output," + ToString(proven_reducedQ) + ")");
     
 //    constexpr bool debugQ = true;
     
     if constexpr ( debugQ )
     {
-        wprint(MethodName("Split")+": Debug mode active.");
+        Msgr::wprint("Split","Debug mode active.");
     }
     
     if( pd.InvalidQ() ) { return Size_T{0}; }
@@ -28,7 +28,7 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
     {
         if constexpr ( debugQ )
         {
-            if( !pd.CheckAll() ) { pd_eprint("pd.CheckAll() failed when pushed to pd_output."); };
+            if( !pd.CheckAll() ) { pd_eprint(MethodName("Split"),": pd.CheckAll() failed when pushed to pd_output."); };
         }
         
         pd_done.push_back( std::move(pd) );
@@ -153,7 +153,7 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
                     {
                         TOOLS_LOGDUMP(a_counter);
                         TOOLS_LOGDUMP(pd_new.MaxArcCount());
-                        pd_eprint("a_counter >= pd_new.MaxArcCount()");
+                        pd_eprint(MethodName("Split"),"a_counter >= pd_new.MaxArcCount()");
                     }
                 }
                 
@@ -189,7 +189,7 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
                     {
                         TOOLS_LOGDUMP(c_0_label);
                         TOOLS_LOGDUMP(pd_new.MaxCrossingCount());
-                        pd_eprint("c_0_label >= pd_new.MaxCrossingCount()");
+                        pd_eprint(MethodName("Split"),"c_0_label >= pd_new.MaxCrossingCount()");
                     }
                 }
                 
@@ -233,33 +233,33 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
             if( pd_new.CrossingCount() <= Int{0} )
             {
                 TOOLS_LOGDUMP(pd_new.CrossingCount());
-                pd_eprint("pd_new.crossing_count <= Int{0}");
+                pd_eprint(MethodName("Split"),"pd_new.crossing_count <= Int{0}");
             }
             
             if( pd_new.CrossingCount() != pd_new.max_crossing_count )
             {
                 TOOLS_LOGDUMP(pd_new.CrossingCount());
                 TOOLS_LOGDUMP(pd_new.MaxCrossingCount());
-                pd_eprint("pd_new.crossing_count != pd_new.max_crossing_count");
+                pd_eprint(MethodName("Split"),"pd_new.crossing_count != pd_new.max_crossing_count");
             }
             
             if( pd_new.ArcCount() != pd_new.MaxArcCount() )
             {
                 TOOLS_LOGDUMP(pd_new.ArcCount());
                 TOOLS_LOGDUMP(pd_new.MaxArcCount());
-                pd_eprint("pd_new.arc_count != pd_new.MaxArcCount()");
+                pd_eprint(MethodName("Split"),"pd_new.arc_count != pd_new.MaxArcCount()");
             }
             
             if( pd_new.ArcCount() != Int{2} * pd_new.CrossingCount() )
             {
                 TOOLS_LOGDUMP(pd_new.ArcCount());
                 TOOLS_LOGDUMP(Int{2} * pd_new.CrossingCount());
-                pd_eprint("pd_new.ArcCount() != Int{2} * pd_new.CrossingCount()");
+                pd_eprint(MethodName("Split"),"pd_new.ArcCount() != Int{2} * pd_new.CrossingCount()");
             }
             
             if( !pd_new.CheckAll() )
             {
-                pd_eprint("pd_new.CheckAll() failed.");
+                pd_eprint(MethodName("Split"),"pd_new.CheckAll() failed.");
             }
         }
         

@@ -34,7 +34,7 @@ void FindIntersectingEdges_DFS() const
         return result;
     };
     
-    auto continueQ = [&stack_ptr,this]()
+    auto continueQ = [&stack_ptr]()
     {
         const bool overflowQ = (stack_ptr >= stack_limit);
         
@@ -46,7 +46,7 @@ void FindIntersectingEdges_DFS() const
         {
             if ( overflowQ ) [[unlikely]]
             {
-                eprint(this->MethodName("FindIntersectingEdges_DFS")+": Stack overflow.");
+                Msgr::eprint("FindIntersectingEdges_DFS","Stack overflow.");
             }
             return false;
         }
@@ -137,11 +137,9 @@ void ComputeEdgeEdgeIntersection( const Int k, const Int l ) const
 template<bool verboseQ>
 void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l ) const
 {
-    [[maybe_unused]] auto tag = [](){ return MethodName("ComputeEdgeEdgeIntersection"); };
-    
     if constexpr ( verboseQ )
     {
-        logprint(tag() + "( " + ToString(k) +" ," +  ToString(k) + " ).");
+        Msgr::logprint("ComputeEdgeEdgeIntersection", "( ", k, " ,", k, " ).");
     }
 
     // At this point we assume that `k != l` and that they are also not direct neighbors.
@@ -164,7 +162,7 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l ) const
         case Flag_T::Intersection:  break;
         case Flag_T::Error:
         {
-            eprint(tag() +": Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
+            Msgr::eprint("ComputeEdgeEdgeIntersection", "Edges ", k, " and ", l, " intersect in 3D.");
             // Prevent overflow by min - function.
             intersection_count_3D = std::min(
                  intersection_count_3D,
@@ -172,9 +170,9 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l ) const
             ) + Size_T{1};
             return;
         }
-        default:
+        [[unlikely]] default:
         {
-            eprint(tag() + ": This should never happen.");
+            Msgr::eprint("ComputeEdgeEdgeIntersection", "This should never happen.");
             return;
         }
     }

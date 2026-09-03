@@ -31,18 +31,18 @@ static PD_T FromInString( mref<Tools::InString> s )
     
     if( s.FailedQ() )
     {
-        eprint(MethodName("FromInString") +": InString is in failure state. Returning invalid diagram.");
+        Msgr::eprint("FromInString", ": InString is in failure state. Returning invalid diagram.");
         return PD_T::InvalidDiagram();
     }
     
     Int max_crossing_count;
     
-    const std::string name = ClassName();
+    const auto name = ClassName();
     
     s.SkipChars(&name[0],name.size());
     if( s.FailedQ() )
     {
-        eprint(MethodName("FromInString") +": InString does not start with \"" + name + "\". Returning invalid diagram. Maybe there is a type mismatch. Returning invalid diagram.");
+        Msgr::eprint("FromInString",": InString does not start with \"", name, "\". Returning invalid diagram. Maybe there is a type mismatch. Returning invalid diagram.");
         return PD_T::InvalidDiagram();
     }
     
@@ -51,7 +51,7 @@ static PD_T FromInString( mref<Tools::InString> s )
     
     if( s.FailedQ() )
     {
-        eprint(MethodName("FromInString") +": Failed to read max_crossing_count. Returning invalid diagram.");
+        Msgr::eprint("FromInString", ": Failed to read max_crossing_count. Returning invalid diagram.");
         return PD_T::InvalidDiagram();
     }
     
@@ -94,7 +94,7 @@ static PD_T FromInString( mref<Tools::InString> s )
     
     if( s.FailedQ() )
     {
-        eprint(MethodName("FromInString") +": Failed to read from InString. Returning invalid diagram.");
+        Msgr::eprint("FromInString", ": Failed to read from InString. Returning invalid diagram.");
         return PD_T::InvalidDiagram();
     }
     

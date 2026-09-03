@@ -29,10 +29,9 @@ static PD_T FromFile0( cref<std::filesystem::path> file )
 [[deprecated]]
 static PD_T FromInternalStateString( std::string_view text )
 {
-    auto fail = [&]( const std::string & msg ) -> PD_T
+    auto fail = [&]( std::string_view msg ) -> PD_T
     {
-        eprint(ClassName() + "::FromInternalStateString: " + msg
-               + ". Returning invalid diagram.");
+        Msgr::eprint("FromInternalStateString", msg, ". Returning invalid diagram.");
         return InvalidDiagram();
     };
 
@@ -232,15 +231,13 @@ static PD_T FromInternalStateString( std::string_view text )
 
     if( (c_count > Int(0)) && (pd.CrossingCount() != c_count) )
     {
-        wprint(ClassName() + "::FromInternalStateString: recomputed "
-               "crossing_count = " + ToString(pd.CrossingCount())
-               + " disagrees with the stored " + ToString(c_count) + ".");
+        Msgr::wprint("FromInternalStateString", "Recomputed "
+               "crossing_count = ", pd.CrossingCount(), " disagrees with the stored ", c_count, ".");
     }
     if( (a_count > Int(0)) && (pd.ArcCount() != a_count) )
     {
-        wprint(ClassName() + "::FromInternalStateString: recomputed "
-               "arc_count = " + ToString(pd.ArcCount())
-               + " disagrees with the stored " + ToString(a_count) + ".");
+        Msgr::wprint("FromInternalStateString", "Recomputed "
+               "arc_count = ", pd.ArcCount(), " disagrees with the stored ", a_count, ".");
     }
 
     return pd;

@@ -14,7 +14,7 @@ Tensor1<T,Size_T> JenkinsCode() const
 /*!@brief The number of integers needed to store the Jenkins code of this diagram.*/
 Size_T JenkinsCodeSize() const
 {
-    return Size_T(1) + ToSize_T(LinkComponentCount()) + Size_T(6) * ToSize_T(CrossingCount());
+    return Size_T{1} + ToSize_T(LinkComponentCount()) + Size_T{6} * ToSize_T(CrossingCount());
 }
 
 /*!@brief Write Jenkins code to buffer `jenkins_code`.*/
@@ -27,7 +27,7 @@ void WriteJenkinsCode( mptr<T> jenkins_code ) const
     
     Size_T idx = 1;
     Size_T comp_start = 1;
-    Size_T c_start = Size_T(1) + static_cast<Size_T>(lc_count) + Size_T(4) * static_cast<Size_T>(CrossingCount());
+    Size_T c_start = Size_T{1} + static_cast<Size_T>(lc_count) + Size_T{4} * static_cast<Size_T>(CrossingCount());
     
     this->template Traverse<true,false>(
         [&idx,&comp_start]( const Int a, const Int lc, const Int lc_begin )
@@ -53,15 +53,15 @@ void WriteJenkinsCode( mptr<T> jenkins_code ) const
             
             {
                 jenkins_code[idx + Size_T{0}] = c_0_pos;
-                jenkins_code[idx + Size_T(1)] = ArcOverQ(a,Tail) ? T(1) : T(-1);
-                idx += Int(2);
+                jenkins_code[idx + Size_T{1}] = ArcOverQ(a,Tail) ? T(1) : T(-1);
+                idx += Int{2};
             }
             
             if( !c_0_visitedQ )
             {
-                const Size_T pos  = c_start + Size_T(2) * static_cast<Size_T>(c_0_pos);
+                const Size_T pos  = c_start + Size_T{2} * static_cast<Size_T>(c_0_pos);
                 jenkins_code[pos + Size_T{0}] = c_0_pos;
-                jenkins_code[pos + Size_T(1)] = CrossingRightHandedQ(c_0) ? T(1) : T(-1);
+                jenkins_code[pos + Size_T{1}] = CrossingRightHandedQ(c_0) ? T(1) : T(-1);
             }
         },
         [&comp_start,jenkins_code]( const Int lc, const Int lc_begin, const Int lc_end )
@@ -79,7 +79,7 @@ OutString ToJenkinsCodeString() const
     
     auto code = JenkinsCode<T>();
 
-    OutString s ( code.Size() * (ToChars<T>::char_count + Size_T(1)) );
+    OutString s ( code.Size() * (ToChars<T>::char_count + Size_T{1}) );
     
     T lc_count = code[0];
     
@@ -137,7 +137,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromJenkinsCode( cptr<T> jenkins_code )
     
     Int lc_count = int_cast<Int>(jenkins_code[0]);
     
-    if( lc_count == Int(0) )
+    if( lc_count == Int{0} )
     {
         return {InvalidDiagram(),Tensor1<Int,Int>()};
     }
@@ -149,11 +149,11 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromJenkinsCode( cptr<T> jenkins_code )
     {
         Int comp_size = jenkins_code[idx];
         c_count += comp_size;
-        idx += Int(2) * comp_size + Int(1);
+        idx += Int{2} * comp_size + Int{1};
     }
     
     const Int c_start = idx;
-    c_count /= Int(2);
+    c_count /= Int{2};
 
     PD_T pd ( c_count, true );
 
@@ -163,9 +163,9 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromJenkinsCode( cptr<T> jenkins_code )
     
     for( Int i = 0; i < c_count; ++i )
     {
-        const Int pos = c_start + Int(2) * i;
-        const Int c = static_cast<Int>(jenkins_code[pos + Int(0)]);
-        pd.C_state[c] = BooleanToCrossingState(jenkins_code[pos + Int(1)] > T(0));
+        const Int pos = c_start + Int{2} * i;
+        const Int c = static_cast<Int>(jenkins_code[pos + Int{0}]);
+    pd.C_state[c] = BooleanToCrossingState(jenkins_code[pos + Int{1}] > T{0});
     }
     
     ColorCounts_T color_arc_counts;
@@ -180,7 +180,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromJenkinsCode( cptr<T> jenkins_code )
         Int comp_size = static_cast<Int>(jenkins_code[idx]);
         ++idx;
 
-        if( comp_size == Int(0) )
+        if( comp_size == Int{0} )
         {
             anello_colors.Push(lc);
             continue;
@@ -193,9 +193,9 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromJenkinsCode( cptr<T> jenkins_code )
         {
             const Int a              = a_begin;
             const Int c              = static_cast<Int>(jenkins_code[idx++]);
-            const Int a_prev         = a_end - Int(1);
+            const Int a_prev         = a_end - Int{1};
             
-            const bool overQ         = jenkins_code[idx++] > T(0);
+            const bool overQ         = jenkins_code[idx++] > T{0};
             const bool right_handedQ = pd.CrossingRightHandedQ(c);
             const bool side          = overQ != right_handedQ;
             
@@ -208,12 +208,12 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromJenkinsCode( cptr<T> jenkins_code )
             pd.A_color[a]            = lc;
         }
         
-        for( Int a = a_begin + Int(1); a < a_end; ++a )
+        for( Int a = a_begin + Int{1}; a < a_end; ++a )
         {
             const Int  c             = static_cast<Int>(jenkins_code[idx++]);
-            const Int  a_prev        = a - Int(1);
+            const Int  a_prev        = a - Int{1};
             
-            const bool overQ         = jenkins_code[idx++] > T(0);
+            const bool overQ         = jenkins_code[idx++] > T{0};
             const bool right_handedQ = pd.CrossingRightHandedQ(c);
             const bool side          = overQ != right_handedQ;
 

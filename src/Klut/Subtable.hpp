@@ -61,7 +61,7 @@ private:
     
     void Read()
     {
-        [[maybe_unused]] auto tag = [this](){ return MethodName("Read"); };
+        [[maybe_unused]] auto tag = [](){ return MethodName("Read"); };
         
         TOOLS_PTIMER(timer,tag());
         
@@ -75,7 +75,7 @@ private:
         std::ifstream v_stream ( v_file, std::ios::in );
         if( !v_stream )
         {
-            eprint(tag() + ": Could not open " + v_file.string() +". Aborting with incomplete table." );
+            eprint(tag(), ": Could not open ", v_file.string(), ". Aborting with incomplete table." );
             failedQ = true;
             return;
         }
@@ -83,7 +83,7 @@ private:
         std::ifstream k_stream ( k_file, std::ios::binary );
         if( !k_stream )
         {
-            eprint(tag() + ": Could not open " + k_file.string() +". Aborting with incomplete table." );
+            eprint(tag(), ": Could not open ", k_file.string(), ". Aborting with incomplete table." );
             failedQ = true;
             return;
         }
@@ -111,7 +111,7 @@ private:
             {
                 if( !k_stream )
                 {
-                    eprint(tag() + ": Problem while reading " + ToString(counter) + "-th key from " + k_file.string() +". Aborting with incomplete table." );
+                    eprint(tag(), ": Problem while reading ", counter, "-th key from ", k_file.string(), ". Aborting with incomplete table." );
                     
                     TOOLS_LOGDUMP(k_stream.good());
                     TOOLS_LOGDUMP(k_stream.fail());
@@ -184,14 +184,14 @@ public:
     
 public:
     
-    std::string MethodName( const std::string & tag ) const
+    static std::string MethodName( const std::string & tag )
     {
         return ClassName() + "::" + tag;
     }
     
-    std::string ClassName() const
+    static std::string ClassName()
     {
-        return std::string("Klut::Subtable(" + ToString(c_count) + ")");
+        return std::string("Klut::Subtable");
     }
     
 }; // class Subtable

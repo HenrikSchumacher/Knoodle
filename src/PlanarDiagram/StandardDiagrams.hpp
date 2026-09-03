@@ -35,7 +35,7 @@ static PD_T Farfalla( const Int color )
 {
     // needs to know all member variables
     
-    PD_T pd ( Int(1), true );
+    PD_T pd ( Int{1}, true );
     pd.crossing_count  = pd.MaxCrossingCount();
     pd.arc_count       = pd.MaxArcCount();
     
@@ -51,7 +51,7 @@ static PD_T Farfalla( const Int color )
     pd.A_color[1] = color;
 
     pd.proven_minimalQ = false;
-    pd.SetCache("LinkComponentCount",Int(1));
+    pd.SetCache("LinkComponentCount",Int{1});
     return pd;
 }
 
@@ -60,11 +60,11 @@ static PD_T HopfLink( const Int color_0, const Int color_1, const CrossingState_
 {
     // needs to know all member variables
     
-    PD_T pd ( Int(2), true );
+    PD_T pd ( Int{2}, true );
     pd.crossing_count  = pd.MaxCrossingCount();
     pd.arc_count       = pd.MaxArcCount();
     pd.proven_minimalQ = true;
-    pd.SetCache("LinkComponentCount",Int(2));
+    pd.SetCache("LinkComponentCount",Int{2});
     
     constexpr Int C[2][2][2] = {{{0, 3}, {2, 1}}, {{2, 1}, {0, 3}}};
     pd.C_arcs.Read(&C[0][0][0]);
@@ -87,11 +87,11 @@ static PD_T TrefoilKnot( const Int color, const CrossingState_T handedness )
 {
     // needs to know all member variables
     
-    PD_T pd ( Int(3), true );
+    PD_T pd ( Int{3}, true );
     pd.crossing_count  = pd.MaxCrossingCount();
     pd.arc_count       = pd.MaxArcCount();
     pd.proven_minimalQ = true;
-    pd.SetCache("LinkComponentCount",Int(1));
+    pd.SetCache("LinkComponentCount",Int{1});
     
     constexpr Int C[3][2][2] = {{{3, 0}, {5, 2}}, {{1, 4}, {3, 0}}, {{5, 2}, {1, 4}}};
     pd.C_arcs.Read(&C[0][0][0]);
@@ -110,11 +110,11 @@ static PD_T FigureEightKnot( const Int color )
 {
     // needs to know all member variables
     
-    PD_T pd ( Int(4), true );
+    PD_T pd ( Int{4}, true );
     pd.crossing_count  = pd.MaxCrossingCount();
     pd.arc_count       = pd.MaxArcCount();
     pd.proven_minimalQ = true;
-    pd.SetCache("LinkComponentCount",Int(1));
+    pd.SetCache("LinkComponentCount",Int{1});
     
     constexpr Int C[4][2][2] = {{{0, 5}, {4, 7}}, {{4, 1}, {0, 3}}, {{7, 2}, {1, 6}}, {{3, 6}, {5, 2}}};
     pd.C_arcs.Read(&C[0][0][0]);

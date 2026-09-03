@@ -136,7 +136,7 @@ bool CheckArcColors() const
             {
                 if( violation_count < Size_T(5) )
                 {
-                    eprint(MethodName("CheckArcColors") + " failed at arcs a = " + ArcString(a) + " and a_next = " + ArcString(a_next) + "." );
+                    Msgr::eprint("CheckArcColors", "Failed at arcs a = ", ArcString(a), " and a_next = ", ArcString(a_next), "." );
                 }
                 ++violation_count;
             }
@@ -145,7 +145,7 @@ bool CheckArcColors() const
     
     if( violation_count > Size_T{0} )
     {
-        eprint(MethodName("CheckArcColors") + ": Found = " + ToString(violation_count) + " color mismatches." );
+        Msgr::eprint("CheckArcColors", "Found = ", violation_count, " color mismatches." );
     }
     
     return (violation_count == Size_T{0});
@@ -204,7 +204,7 @@ Int FindArcWithColor( Int color ) const
         }
     }
     
-    eprint(MethodName("FindArcWithColor") + ": ContainsColor(color) reported that diagram contains an arc with color " + ToString(color) + ", but no such arc was found. Try to ClearCache() and do the query again.");
+    Msgr::eprint("FindArcWithColor", "ContainsColor(color) reported that diagram contains an arc with color ", color, ", but no such arc was found. Try to ClearCache() and do the query again.");
     
     return Uninitialized;
 }

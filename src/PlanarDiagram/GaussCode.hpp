@@ -4,7 +4,9 @@ public:
 template<typename T = ToSigned<Int>>
 Tensor1<T,Int> ExtendedGaussCode()  const
 {
-    TOOLS_PTIMER(timer,MethodName("ExtendedGaussCode")+"<"+TypeName<T>+">");
+    constexpr auto tag = MethodName("ExtendedGaussCode") + "<" + TypeName<T> + ">";
+    
+    TOOLS_PTIMER(timer,tag);
     
     static_assert( SignedIntQ<T>, "" );
     
@@ -12,19 +14,19 @@ Tensor1<T,Int> ExtendedGaussCode()  const
     
     if( !ValidQ() )
     {
-        wprint(MethodName("ExtendedGaussCode")+"<"+TypeName<T>+">: Trying to compute extended Gauss code of invalid planar diagram. Returning empty vector.");
+        wprint(tag, ": Trying to compute extended Gauss code of invalid planar diagram. Returning empty vector.");
         
         return code;
     }
     
-    if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
+    if( std::cmp_greater( crossing_count + Int{1}, std::numeric_limits<T>::max() ) )
     {
-        error(MethodName("ExtendedGaussCode")+"<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
+        error(tag, ": Requested type ", TypeName<T>, " cannot store extended Gauss code for this diagram.");
     }
     
-    if( LinkComponentCount() > Int(1) )
+    if( LinkComponentCount() > Int{1} )
     {
-        eprint(MethodName("ExtendedGaussCode")+"<"+TypeName<T>+">: Not defined for links with multiple components.");
+        error(tag, ": Not defined for links with multiple components.");
         
         return Tensor1<T,Int>();
     }
@@ -40,13 +42,15 @@ Tensor1<T,Int> ExtendedGaussCode()  const
 template<typename T>
 void WriteExtendedGaussCode( mptr<T> gauss_code )  const
 {
-    TOOLS_PTIMER(timer,MethodName("WriteExtendedGaussCode")+"<"+TypeName<T>+">");
+    constexpr auto tag = MethodName("WriteExtendedGaussCode") + "<" + TypeName<T> + ">";
+    
+    TOOLS_PTIMER(timer,tag);
     
     static_assert( SignedIntQ<T>, "" );
     
-    if( LinkComponentCount() > Int(1) )
+    if( LinkComponentCount() > Int{1} )
     {
-        eprint(MethodName("WriteExtendedGaussCode")+"<"+TypeName<T>+">: Not defined for links with multiple components. Aborting.");
+        eprint(tag, ": Not defined for links with multiple components. Aborting.");
     }
     
     this->template Traverse<true>(
@@ -63,7 +67,7 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
             (void)c_1_visitedQ;
             
             // We need 1-based integers to be able to use signs.
-            const T c_pos = static_cast<T>(c_0_pos) + T(1);
+            const T c_pos = static_cast<T>(c_0_pos) + T{1};
             
             gauss_code[a_pos] =
                 c_0_visitedQ
@@ -84,18 +88,20 @@ static PD_T FromExtendedGaussCode(
 {
     // needs to know all member variables
     
-    TOOLS_PTIMER(timer,MethodName("FromExtendedGaussCode")+"<"+TypeName<T>+","+TypeName<ExtInt>+">");
+    constexpr auto tag = MethodName("FromExtendedGaussCode") + "<" + TypeName<T> + "," + TypeName<ExtInt> + ">";
+    
+    TOOLS_PTIMER(timer,tag);
     
     // TODO: We should check whether 2 * arc_count_ fits into Int.
     
     const Int m = int_cast<Int>(arc_count_);
     
-    if( m <= ExtInt(0) )
+    if( m <= ExtInt{0} )
     {
         return Unknot(color);
     }
     
-    PD_T pd ( m / Int(2) );
+    PD_T pd ( m / Int{2} );
     pd.proven_minimalQ = proven_minimalQ_;
     
     Int crossing_counter = 0;
@@ -104,13 +110,13 @@ static PD_T FromExtendedGaussCode(
     ( const Int a_prev, const Int a ) -> int
     {
         const T g = gauss_code[a];
-        if( g == T(0) )
+        if( g == T{0} )
         {
-            eprint(MethodName("FromExtendedGaussCode")+"<"+TypeName<T>+","+TypeName<ExtInt>+">"+": Input code is invalid as it contains a crossing with label 0. Returning invalid planar diagram.");
+            eprint(tag, ": Input code is invalid as it contains a crossing with label 0. Returning invalid planar diagram.");
             return 1;
         }
         
-        const Int c = int_cast<Int>(Abs(g)) - Int(1);
+        const Int c = int_cast<Int>(Abs(g)) - Int{1};
 
         pd.A_cross(a_prev,Head) = c;
         pd.A_cross(a     ,Tail) = c;
@@ -121,7 +127,7 @@ static PD_T FromExtendedGaussCode(
         
         if( !visitedQ )
         {
-            pd.C_state[c] = BooleanToCrossingState(g > T(0));
+            pd.C_state[c] = BooleanToCrossingState(g > T{0});
             pd.C_arcs(c,Out,Left) = a;
             pd.C_arcs(c,In ,Left) = a_prev;
             ++crossing_counter;
@@ -130,7 +136,7 @@ static PD_T FromExtendedGaussCode(
         }
         else
         {
-            const bool overQ = (g > T(0));
+            const bool overQ = (g > T{0});
             
             const CrossingState_T c_state = pd.C_state[c];
             
@@ -179,15 +185,15 @@ static PD_T FromExtendedGaussCode(
         return 0;
     };
     
-    for( Int a = pd.MaxArcCount(); a --> Int(1); )
+    for( Int a = pd.MaxArcCount(); a --> Int{1}; )
     {
-        if( fun( a-Int(1), a ) )
+        if( fun( a-Int{1}, a ) )
         {
             return InvalidDiagram();
         }
     }
     
-    if( fun( m-Int(1), Int(0) ) )
+    if( fun( m-Int{1}, Int{0} ) )
     {
         return InvalidDiagram();
     }
@@ -195,9 +201,9 @@ static PD_T FromExtendedGaussCode(
     pd.crossing_count = crossing_counter;
     pd.arc_count      = pd.CountActiveArcs();
     
-    if( pd.arc_count != Int(2) * pd.crossing_count )
+    if( pd.arc_count != Int{2} * pd.crossing_count )
     {
-        eprint(MethodName("FromExtendedGaussCode")+"<"+TypeName<T>+","+TypeName<ExtInt>+">"+": Input Gauss code is invalid because arc_count != 2 * crossing_count. Returning invalid diagram.");
+        eprint(tag, ": Input Gauss code is invalid because arc_count != 2 * crossing_count. Returning invalid diagram.");
     }
     
     return pd;

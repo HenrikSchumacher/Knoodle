@@ -192,7 +192,7 @@ int main()
         PD_T bad2 = Deserialize("NotAPlanarDiagram\n");
         check(bad2.InvalidQ(), "malformed: wrong class name -> invalid diagram");
 
-        PD_T bad3 = Deserialize(PD_T::ClassName() + "\n");
+        PD_T bad3 = Deserialize(std::string(PD_T::ClassName()) + "\n");
         check(bad3.InvalidQ(),
               "malformed: no max_crossing_count -> invalid diagram");
 

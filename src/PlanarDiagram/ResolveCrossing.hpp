@@ -12,7 +12,7 @@ private:
 template<bool warningQ = false>
 bool ResolveCrossing_Private( const Int c )
 {
-    PD_PRINT(ClassName()+"::ResolveCrossing_Private");
+    PD_PRINT(MethodName("ResolveCrossing_Private"));
     PD_VALPRINT("c",c);
     
     PD_ASSERT(CrossingActiveQ(c));
@@ -41,7 +41,7 @@ bool ResolveCrossing_Private( const Int c )
 //            DeactivateArc(e_0);
             if constexpr( warningQ )
             {
-                wprint(MethodName("") +": This procedure would create a trivial, disconnected unlink. Aborting.");
+                Msgr::wprint("ResolveCrossing_Private", "This procedure would create a trivial, disconnected unlink. Aborting.");
             }
             return false;
         }
@@ -56,7 +56,7 @@ bool ResolveCrossing_Private( const Int c )
 //            DeactivateArc(e_1);
             if constexpr( warningQ )
             {
-                wprint(MethodName("") +": This procedure would create a trivial, disconnected unlink. Aborting.");
+                Msgr::wprint("ResolveCrossing_Private", "This procedure would create a trivial, disconnected unlink. Aborting.");
             }
             return false;
         }
@@ -88,7 +88,7 @@ bool ResolveCrossing_Private( const Int c )
     {
         if constexpr ( warningQ )
         {
-            wprint(MethodName("ResolveCrossing_Private")+": Crossing " + CrossingString(c) + " was already deactivated.");
+            Msgr::wprint("ResolveCrossing_Private", "Crossing ", CrossingString(c), " was already deactivated.");
         }
         return false;
     }

@@ -84,10 +84,11 @@ bool ArcActiveQ( const Int a ) const
 /*!@brief Return a string with the most essential information of arc `a`.*/
 std::string ArcString( const Int a ) const
 {
-    return "arc " +Tools::ToString(a) +" = { "
-        + Tools::ToString(A_cross(a,Tail)) + ", "
-        + Tools::ToString(A_cross(a,Head)) + " } ("
-        + ToString(A_state[a]) + ", color = " + ToString(A_color[a]) + ")";
+    return OutString::FromMisc( "arc ", a, " = { ", A_cross(a,Tail), ", ", A_cross(a,Head), " } (", ToString(A_state[a]), ", color = ", A_color[a], ")");
+//    return "arc " +Tools::ToString(a) +" = { "
+//        + Tools::ToString(A_cross(a,Tail)) + ", "
+//        + Tools::ToString(A_cross(a,Head)) + " } ("
+//        + ToString(A_state[a]) + ", color = " + ToString(A_color[a]) + ")";
 }
 
 /*!@brief Return the number of active arcs.*/
@@ -120,7 +121,7 @@ void DeactivateArc( const Int a )
     else
     {
 #if defined(PD_DEBUG)
-        wprint(MethodName("DeactivateArc")+": Attempted to deactivate already inactive " + ArcString(a) + ".");
+        Msgr::wprint("DeactivateArc", "Attempted to deactivate already inactive ", ArcString(a), ".");
 #endif
     }
     
@@ -391,9 +392,9 @@ bool CheckNextArc() const
  */
 cref<Tensor1<Int,Int>> ArcNextArc() const
 {
-    std::string tag ("ArcNextArc");
-    
-    TOOLS_PTIMER(timer,MethodName(tag));
+    TOOLS_PTIMER(timer,MethodName("ArcNextArc"));
+
+    const std::string tag ("ArcNextArc");
     
     if( !this->InCacheQ(tag) )
     {

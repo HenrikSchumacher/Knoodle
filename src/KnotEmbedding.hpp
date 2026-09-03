@@ -40,7 +40,7 @@ namespace Knoodle
         
         static constexpr Int AmbDim = 3;
         
-        
+        using Class_T        = KnotEmbedding;
         using Tree2_T        = AABBTree<2,Real,Int,BReal,false>;
 //        using Tree3_T        = AABBTree<3,Real,Int,BReal,false>;
         
@@ -243,14 +243,19 @@ namespace Knoodle
                 + ( "\n" + ct_tabs<t0> + "|>");
         }
         
-        static constexpr std::string MethodName( const std::string & tag )
+    public:
+        
+        using Msgr = Tools::Messenger<Class_T>;
+        
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("KnotEmbedding")
+            return ct_string("KnotEmbedding")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<BReal>

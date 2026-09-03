@@ -35,13 +35,13 @@ Size_T Disconnect()
 
 Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
 {
-    auto tag = [](){ return MethodName("Disconnect"); };
+    constexpr auto tag = MethodName("Disconnect");
     
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,tag);
     
     if constexpr ( debugQ )
     {
-        wprint(tag() + ": Debug mode active.");
+        wprint(tag, ": Debug mode active.");
         
         if( !pd.CheckAll() )
         {
@@ -129,7 +129,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
         {
             if( !pd.CheckAll() )
             {
-                pd_eprint("pd.CheckAll() failed when starting to process da_0 = " + pd.DarcString(da_0) +".");
+                pd_eprint("pd.CheckAll() failed when starting to process da_0 = ", pd.DarcString(da_0), ".");
             }
         }
         
@@ -144,7 +144,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
             {
                 if( da_0_loop_count > Size_T{0} )
                 {
-                    nprint(tag() + ":remove_loop(da_0) removed " + ToString(da_0_loop_count) + " loop.");
+                    nprint(tag, ":remove_loop(da_0) removed ", da_0_loop_count, " loop.");
                 }
                 if( !pd.CheckAll() )
                 {
@@ -175,7 +175,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
             f_F_compressed.clear();
             f_dA_compressed.clear();
             
-            logprint("Collecting face stats for face f = " + ToString(f) + ".");
+            logprint("Collecting face stats for face f = ", f, ".");
             if( !pd.CheckAll() ) { pd_eprint("!CheckAll()"); }
         }
         
@@ -188,12 +188,12 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                 
                 if( !pd.ArcActiveQ(e) )
                 {
-                    pd_eprint(MethodName("Disconnect") + ", during collecting face stats of face f = " + ToString(f) + ": " + pd.ArcString(e) + " is not active.");
+                    pd_eprint(MethodName("Disconnect"), ": During collecting face stats of face f = ", f, ": ", pd.ArcString(e), " is not active.");
                 }
                 
                 if( dA_F[de] != f )
                 {
-                    eprint(MethodName("Disconnect") + ", during collecting face stats of face f = " + ToString(f) + ": dA_F[de] != f (de = " + ToString(de) + ", dA_F[de] = " + ToString(dA_F[de]) + "); dA_F must be stale.");
+                    eprint(MethodName("Disconnect"), ": During collecting face stats of face f = ", f, ": dA_F[de] != f (de = ", de, ", dA_F[de] = ", dA_F[de],  "); dA_F must be stale.");
                     
                     pd.PrintInfo();
                     
@@ -204,9 +204,9 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                     
                     TOOLS_LOGDUMP(pd.ArcFaces());
                     TOOLS_LOGDUMP(F_count);
-                    logvalprint("F_state",OutString::FromVector(F_state, Int{2} * pd.MaxArcCount() ));
+                    logvalprint("F_state", OutString::FromVector(F_state, Int{2} * pd.MaxArcCount() ));
                     
-                    pd_eprint(MethodName("Disconnect") + ": End of error.");
+                    pd_eprint(MethodName("Disconnect"), ": End of error.");
                 }
                 
                 const Int g = dA_F[ReverseDarc(de)];
@@ -233,7 +233,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
             logvalprint("f_counts",ToString(f_counts));
             TOOLS_LOGDUMP(f_F_compressed);
             
-            logprint("Cycling over arcs of face f = " + ToString(f) + " (size = " + ToString(f_dA.size())+ ").");
+            logprint("Cycling over arcs of face f = ", f, " (size = ",f_dA.size(),  ").");
             
             if( !pd.CheckAll() ) { pd_eprint("!CheckAll()"); }
             
@@ -269,7 +269,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                 stack.push_back({db,g});
                 if constexpr( debugQ )
                 {
-                    logprint(std::string("stack.push_back({") + ToString(db) + "," + ToString(g) + "});");
+                    logprint("stack.push_back({", db, ",", g, "});");
                 }
                 continue;
             }
@@ -282,7 +282,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
             {
                 if( stack.back().second != g )
                 {
-                    pd_eprint("Face " + ToString(stack.back().second) + " on stack does not match g = " + ToString(g) + ".");
+                    pd_eprint("Face ", stack.back().second,  " on stack does not match g = ", g, ".");
                     TOOLS_LOGDUMP(stack);
                 }
                 
@@ -294,7 +294,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
             {
                 if constexpr ( debugQ )
                 {
-                    wprint(pd.ArcString(a) + " from the stack is not active. Maybe it should have been erased earlier? We pop it from stack now and continue.");
+                    wprint(pd.ArcString(a), " from the stack is not active. Maybe it should have been erased earlier? We pop it from stack now and continue.");
                     
                     TOOLS_LOGDUMP(dA_F[da]);
                     TOOLS_LOGDUMP(dA_F[ReverseDarc(da)]);
@@ -375,12 +375,12 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
 
                 if constexpr (debugQ)
                 {
-                    nprint("Creating new face f_new = " + ToString(f_new) +".");
+                    nprint("Creating new face f_new = ",f_new, ".");
                     
                     if( !pd.CheckAll() ) { pd_eprint("!CheckAll()"); }
                     logprint("Relabeling faces.");
                     
-                    nprint("Tell all darcs between da = " + ToString(da) + " (excluded) and db = " + ToString(db) + " (included) to have new face f_new = " + ToString(f_new) +".");
+                    nprint("Tell all darcs between da = ", da, " (excluded) and db = ", db, " (included) to have new face f_new = ", f_new, ".");
                 }
                 
                 //Tell all darcs LeftDarc(da),LeftDarc(LeftDarc(da)),...,db in face f that their left face is now f_new.
@@ -405,7 +405,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                         if( iterator != stack.end() )
                         {
                             // Should be impossible.
-                            eprint("{ "+ToString(de)+","+ToString(h)+"} is still on stack!");
+                            eprint("{ ", de, ",", h, "} is still on stack!");
                         }
 //                        nprint("Setting dA_F[de] = f_new; (de = " +ToString(de) +", f_new = " + ToString(f_new) + ").");
                         dA_F[de] = f_new;
@@ -423,8 +423,8 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                 
                 if constexpr (debugQ)
                 {
-                    if(!pd.CrossingActiveQ(c_a)) { pd_eprint(pd.CrossingString(c_a) + " is not active."); }
-                    if(!pd.CrossingActiveQ(c_b)) { pd_eprint(pd.CrossingString(c_b) + " is not active."); }
+                    if(!pd.CrossingActiveQ(c_a)) { pd_eprint(pd.CrossingString(c_a), " is not active."); }
+                    if(!pd.CrossingActiveQ(c_b)) { pd_eprint(pd.CrossingString(c_b), " is not active."); }
                        
                     logvalprint("c_a", pd.CrossingString(c_a));
                     logvalprint("c_b", pd.CrossingString(c_b));
@@ -464,7 +464,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                 {
                     if( da_loop_count > Size_T{0} )
                     {
-                        nprint("remove_loop(da) removed " + ToString(da_loop_count) + " loop.");
+                        nprint("remove_loop(da) removed ", da_loop_count, " loop.");
                     }
                     if( !pd.CheckAll() )
                     {
@@ -478,7 +478,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                 {
                     if( db_loop_count > Size_T{0} )
                     {
-                        nprint("remove_loop(db) removed " + ToString(db_loop_count) + " loop.");
+                        nprint("remove_loop(db) removed ", db_loop_count, " loop.");
                     }
                     if( !pd.CheckAll() )
                     {
@@ -495,11 +495,11 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                 if( !pd.CheckAll() ) { pd_eprint("!CheckAll()"); }
             }
             
-            if( f_counts[g] <= (1) )
+            if( f_counts[g] <= Int{1} )
             {
                 if constexpr ( debugQ )
                 {
-                    logprint("Popping darc " + ToString(stack.back()) + " from stack.");
+                    logprint("Popping darc ", ToString(stack.back()), " from stack.");
                 }
                 stack.pop_back();
             }
@@ -513,7 +513,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
         {
             if( !stack.empty() )
             {
-                wprint(tag() + ": !stack.empty().");
+                wprint(tag, ": !stack.empty().");
                 TOOLS_LOGDUMP(stack);
                 TOOLS_LOGDUMP(F_count);
             }
@@ -522,14 +522,14 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
             {
                 if( x.second >= I(2) )
                 {
-                    wprint(tag() + ": Face " + ToString(x.first) + " has count " + ToString(x.second) + " >= 2 in f_counts."  );
+                    wprint(tag, ": Face ", x.first, " has count ", x.second, " >= 2 in f_counts."  );
                     logvalprint("f_counts",ToString(f_counts));
                     break;
                 }
                 
                 if( x.second < I(0) )
                 {
-                    wprint(tag() + ": Face " + ToString(x.first) + " has negative count " + ToString(x.second) + " in f_counts."  );
+                    wprint(tag, ": Face ", x.first, " has negative count ", x.second, " in f_counts." );
                     logvalprint("f_counts",ToString(f_counts));
                     break;
                 }

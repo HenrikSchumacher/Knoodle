@@ -1,9 +1,9 @@
 #define TOOLS_USE_BOOST_UNORDERED
-#define TOOLS_ENABLE_PROFILER
+//#define TOOLS_ENABLE_PROFILER
     
 #include "../../Knoodle.hpp"
 
-using Int         = std::int64_t;                        // integer type used, e.g., for indices
+using Int         = std::int64_t; // integer type used, e.g., for indices
 using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T        = PDC_T::PD_T;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
@@ -13,10 +13,12 @@ int main()
     Tools::print( "-=| An example program for Knoodle. |=-" );
     Tools::print( "" );
  
-    std::filesystem::path path      = std::filesystem::path(__FILE__).parent_path();
+    const auto loc = std::source_location::current();
+    
+    std::filesystem::path path      = std::filesystem::path(loc.file_name()).parent_path();
     std::filesystem::path klut_path = path.parent_path() / "data" / "Klut";
-    Tools::valprint("working directory", path );
-    Tools::valprint("klut directory", klut_path );
+    Tools::valprint("working directory", path.string() );
+    Tools::valprint("klut directory", klut_path.string() );
     
     // Load a knot from file.
     std::vector<Int> pd_code;
@@ -28,7 +30,7 @@ int main()
         
         if(!s)
         {
-            Tools::eprint( "File " + filename + " not found." );
+            Tools::eprint( "File ", filename, " not found." );
             return EXIT_FAILURE;
         }
         
@@ -57,13 +59,13 @@ int main()
         .y_gap_size               = 1
     };
 
-    Tools::valprint( "No. of crossings",  pd_0.CrossingCount() );
+    Tools::valprint( "No. of crossings", pd_0.CrossingCount() );
     {
 //        // Print PD code to command line.
 //        Tools::valprint( "PD code (unsimplified)", pd.PDCode() );
 //
         std::string filename ( path / "Diagram_unsimplified.txt" );
-        Tools::print( "Writing diagram to file " + filename + "." );
+        Tools::print( "Writing diagram to file ", filename, "." );
         
         // Create an orthogonal layout for the currect knot diagram.
         OrthoDraw_T H ( pd_0, Int(-1), plot_settings );
@@ -82,7 +84,7 @@ int main()
     Tools::print( "Simplify applies pass moves to the diagram." );
     {
         std::string filename ( path / "Diagram_Simplify5.txt" );
-        Tools::print( "Writing diagrams to file " + filename + "." );
+        Tools::print( "Writing diagrams to file ", filename, "." );
         
         /*!For the simplification we have to load the PlanarDiagram into an instance of PlanarDiagramComplex.
          * Tthis is a data struture that can hold the many PlanarDiagrams that can be disconnected (in the sense of connected sum) or split off (in the sense of split link) during simplification.
@@ -100,7 +102,7 @@ int main()
         std::size_t iter = 0;
         for( const PD_T & pd : pdc.Diagrams() )
         {
-            Tools::print( "Connected component no. " + Tools::ToString(iter) + ":" );
+            Tools::print("Connected component no. ", iter, ":" );
             Tools::valprint( "No. of crossings", pd.CrossingCount() );
             // Print PD code to command line.
             Tools::valprint( "PD code", pd.template PDCode<Int,{.signQ = true,.colorQ = false}>() );
@@ -126,7 +128,7 @@ int main()
     Tools::print( "Reapr applies Simplify and then make a number of attempts to embed, randomly rotate, project, and run Simplify again. Often, the output of Simplify is already as good as it gets. You need a fairly hard knot for Reapr to make a difference. Note that Reapr is _not_ deterministic.." );
     {
         std::string filename ( path / "Diagram_Reapr.txt" );
-        Tools::print( "Writing diagram to file " + filename + "." );
+        Tools::print( "Writing diagram to file ", filename, "." );
         
         PDC_T pdc { PD_T(pd_0) }; // Creating a copy of pd here because PDC_T wants ownership. (Typically, to save memory.)
         
@@ -138,9 +140,9 @@ int main()
         {
             const PD_T & pd = pdc.Diagram(i);
             
-            Tools::print( "Connected component no. " + Tools::ToString(i) + ":" );
+            Tools::print( "Connected component no. ", i, ":" );
             
-            Tools::valprint( "No. of crossings",  pd.CrossingCount() );
+            Tools::valprint( "No. of crossings", pd.CrossingCount() );
             
             // Create an orthogonal layout for the current knot diagram.
             OrthoDraw_T H ( pd, Int(-1), plot_settings );

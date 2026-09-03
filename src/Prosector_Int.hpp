@@ -52,7 +52,8 @@ namespace Knoodle
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
         
-        using Prosector_T = Prosector_Int<Int,Idx,verboseQ>;
+        using Class_T     = Prosector_Int;
+        using Prosector_T = Class_T;
         using Vector3_T   = Tiny::Vector<3,Int,Int>;
         using LVector3_T  = Tiny::Vector<3,LInt,Int>;
         
@@ -154,11 +155,9 @@ namespace Knoodle
             const Idx l, cptr<Int> y0, cptr<Int> y1
         )
         {
-            [[maybe_unused]] auto tag = [](){ return MethodName("ComputeIntersection"); };
-                    
             if constexpr ( verboseQ )
             {
-                logprint(tag() + " in verbose mode.");
+                Msgr::logprint("ComputeIntersection", "Running in verbose mode.");
             }
             
             LoadLineSegments( k, x0, x1, l, y0, y1 );
@@ -245,11 +244,9 @@ namespace Knoodle
 
         void Compute()
         {
-            [[maybe_unused]] auto tag = [](){ return MethodName("Compute"); };
-            
             if constexpr ( verboseQ )
             {
-                logprint(tag() + " in verbose mode.");
+                Msgr::logprint("Compute", "Running in verbose mode.");
             }
             
             u = x_1 - x_0;
@@ -270,17 +267,12 @@ namespace Knoodle
             {
                 if( !ZeroQ(sign_uxq) )
                 {
-                    if constexpr ( verboseQ )
-                    {
-                        logprint("Case A.1.1: The \"generic\" case. Nothing to do here.");
-                    }
+                    logprint<verboseQ>("Case A.1.1: The \"generic\" case. Nothing to do here.");
                 }
                 else // if( ZeroQ(sign_uxq) )
                 {
-                    if constexpr ( verboseQ )
-                    {
-                        logprint("A.1.2: y_0 lies on line(x_0,x_1), but y_1 does not.");
-                    }
+                    logprint<verboseQ>("A.1.2: y_0 lies on line(x_0,x_1), but y_1 does not.");
+                    
                     flag = PointOnLineTest(y_0, x_0, x_1) ? Flag_T::Error : Flag_T::Empty;
                     return;
                 }
@@ -289,19 +281,15 @@ namespace Knoodle
             {
                 if( !ZeroQ(sign_uxq) )
                 {
-                    if constexpr ( verboseQ )
-                    {
-                        logprint("Case A.2.1: y_1 lies on line(x_0,x_1), but y_0 does not.");
-                    }
+                    logprint<verboseQ>("Case A.2.1: y_1 lies on line(x_0,x_1), but y_0 does not.");
+                    
                     flag = PointOnLineTest(y_1, x_0, x_1) ? Flag_T::Error : Flag_T::Empty;
                     return;
                 }
                 else // if( ZeroQ(sign_uxq) )
                 {
-                    if constexpr ( verboseQ )
-                    {
-                        logprint("Case A.2.2: The line segments are colinear. Do interval check.");
-                    }
+                    logprint<verboseQ>("Case A.2.2: The line segments are colinear. Do interval check.");
+                    
                     flag = LinesColinearTest() ? Flag_T::Error : Flag_T::Empty;
                     return;
                 }
@@ -330,17 +318,12 @@ namespace Knoodle
             {
                 if( !ZeroQ(sign_vxq) )
                 {
-                    if constexpr ( verboseQ )
-                    {
-                        logprint("Case B.1.1: The \"generic\" case; nothing to do here.");
-                    }
+                    logprint<verboseQ>("Case B.1.1: The \"generic\" case; nothing to do here.");
                 }
                 else // if( ZeroQ(sign_vxq) )
                 {
-                    if constexpr ( verboseQ )
-                    {
-                        logprint("Case B.1.2: x_1 lies on line(y_0,y_1), but x_0 does not.");
-                    }
+                    logprint<verboseQ>("Case B.1.2: x_1 lies on line(y_0,y_1), but x_0 does not.");
+                    
                     flag = PointOnLineTest(x_1, y_0, y_1) ? Flag_T::Error : Flag_T::Empty;
                     return;
                 }
@@ -349,19 +332,14 @@ namespace Knoodle
             {
                 if( !ZeroQ(sign_vxq) )
                 {
-                    if constexpr ( verboseQ )
-                    {
-                        logprint("Case B.2.1: x_0 lies on line(y_0,y_1), but x_1 does not.");
-                    }
+                    logprint<verboseQ>("Case B.2.1: x_0 lies on line(y_0,y_1), but x_1 does not.");
+                    
                     flag = PointOnLineTest(x_0, y_0, y_1) ? Flag_T::Error : Flag_T::Empty;
                     return;
                 }
                 else // if( ZeroQ(sign_vxq) )
                 {
-                    if constexpr ( verboseQ )
-                    {
-                        logprint("B.2.2: Both line segments are colinear. We checked this case before and found no intersection. So we simply do nothing.");
-                    }
+                    logprint<verboseQ>("B.2.2: Both line segments are colinear. We checked this case before and found no intersection. So we simply do nothing.");
                 }
             }
             
@@ -396,7 +374,7 @@ namespace Knoodle
                 // If the line segments are coplanar in 3D, then there must be an intersection, too.
                 if constexpr ( verboseQ )
                 {
-                    logprint(MethodName("ComputeIntersection") + ": The line segments " + ToString(k_) + " and " + ToString(l_) + " are coplanar.");
+                    Msgr::logprint("ComputeIntersection", "The line segments ", k_, " and ", l_, " are coplanar.");
                 }
                 flag = Flag_T::Error;
                 return;
@@ -407,7 +385,7 @@ namespace Knoodle
             if( ZeroQ(sign_2) )
             {
                 // We should not get here
-                eprint(MethodName("ComputeIntersection") + ": The projections of the line segments " + ToString(k_) + " and " + ToString(l_) + " are parallel. No handedness assignable. But this case should have been caught before, so we should not have gotton here.");
+                Msgr::eprint("ComputeIntersection", "The projections of the line segments ", k_, " and ", l_, " are parallel. No handedness assignable. But this case should have been caught before, so we should not have gotton here.");
             }
             
             bool x_over_y_Q = (sign_3 != sign_2);
@@ -453,17 +431,20 @@ namespace Knoodle
         
     public:
         
-        static constexpr std::string MethodName( const std::string & tag )
+        using Msgr = Tools::Messenger<Class_T>;
+        
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("Prosector_Int")
+            return ct_string("Prosector_Int")
                 + "<" + TypeName<Int>
                 + "," + TypeName<Idx>
-                + "," + ToString(verboseQ)
+                + "," + to_ct_string(verboseQ)
                 + ">";
         }
         

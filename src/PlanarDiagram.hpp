@@ -43,10 +43,10 @@ namespace Knoodle
         using UInt                      = ToUnsigned<Int>;
         
         using Base_T                    = CachedObject<1,0,0,0>;
-        using Class_T                   = PlanarDiagram<Int>;
+        using Class_T                   = PlanarDiagram;
         
         /*!@brief Alias for `PlanarDiagram`.*/
-        using PD_T                      = PlanarDiagram<Int>;
+        using PD_T                      = PlanarDiagram;
         using PD_List_T                 = std::vector<PD_T>;
         
         /*!@brief Container to store crossings. It essentially behaves like a tensor of dimensions `{CrossingCount(),2,2}`.*/
@@ -724,9 +724,9 @@ namespace Knoodle
             lockedQ = true;
         }
         
-        void LockMessage( const std::string & tag ) const
+        void LockMessage( std::string_view tag ) const
         {
-            wprint(MethodName(tag) + ": This method is considered **UNSAFE**, and the diagram is currently locked to prevent break of topological invariance. If you want to perform this operation anyways, call `Unlock()` first. (Don't forget to `Lock()` it again.)");
+            Msgr::wprint(tag, ": This method is considered **UNSAFE**, and the diagram is currently locked to prevent break of topological invariance. If you want to perform this operation anyways, call `Unlock()` first. (Don't forget to `Lock()` it again.)");
         }
         
     public:
@@ -800,17 +800,19 @@ namespace Knoodle
             return sizeof(PlanarDiagram) + AllocatedByteCount();
         }
         
-        /*!@brief Return a string that identifies a class method specified by `tag`. Mostly used for logging and in error messages.*/
-        static constexpr std::string MethodName( std::string_view tag )
+    public:
+        
+        using Msgr = Tools::Messenger<Class_T>;
+                
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName().append("::").append(tag);
+            return Msgr::MethodName(tag);
         }
         
-        /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.*/
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("PlanarDiagram<").append(TypeName<Int>)
-                .append(">");
+            return ct_string("PlanarDiagram<") + TypeName<Int> + ">";
         }
     };
 

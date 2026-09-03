@@ -11,7 +11,7 @@ std::string FaceString( const Int f ) const
     
     const Int f_size = i_end - i_begin;
     
-    return "face " + ToString(f) + " = " + std::string(OutString::FromVector( &F_dA_idx[i_begin], f_size ));
+    return OutString::FromMisc("face ", f, " = ", OutString::FromVector( &F_dA_idx[i_begin], f_size ));
     
 }
 
@@ -290,7 +290,7 @@ Tensor1<Int8,Int> CheckerBoardColoring() const
     
     if( ArcCount() != MaxArcCount() )
     {
-        eprint(MethodName("CheckerBoardColoring") + ": Diagram contains deactivated arcs. This algorithm uses the class " + MultiGraph_T::ClassName() + " and works only if all arcs are active. We have to abort here. Try it again after you compressed the diagram with `Compress` or `CreateCompressed`.");
+        Msgr::eprint("CheckerBoardColoring", "Diagram contains deactivated arcs. This algorithm uses the class ", MultiGraph_T::ClassName(), " and works only if all arcs are active. We have to abort here. Try it again after you compressed the diagram with `Compress` or `CreateCompressed`.");
         
         return Tensor1<Int8,Int>();
     }
@@ -370,7 +370,7 @@ void ComputeColorFaceWindingNumbers() const
     
     if( ArcCount() != MaxArcCount() )
     {
-        eprint(MethodName("ComputeColorFaceWindingNumbers") + ": Diagram contains deactivated arcs. This algorithm uses the class " + MultiGraph_T::ClassName() + " and works only if all arcs are active. We have to abort here. Try it again after you compressed the diagram with `Compress` or `CreateCompressed`.");
+        Msgr::eprint("ComputeColorFaceWindingNumbers", "Diagram contains deactivated arcs. This algorithm uses the class ", MultiGraph_T::ClassName(), " and works only if all arcs are active. We have to abort here. Try it again after you compressed the diagram with `Compress` or `CreateCompressed`.");
         
         this->SetCache("ColorFaceWindingNumbers",std::move(container));
         return;

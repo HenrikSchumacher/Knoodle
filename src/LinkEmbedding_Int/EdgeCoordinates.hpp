@@ -33,9 +33,7 @@ private:
     
     void ComputeEdgeCoordinates() const
     {
-        [[maybe_unused]] auto tag = [](){ return MethodName("ComputeEdgeCoordinates"); };
-        
-        TOOLS_PTIMER(timer,tag());
+        TOOLS_PTIMER(timer,MethodName("ComputeEdgeCoordinates"));
         
         edge_coords_computedQ    = false;
         bounding_boxes_computedQ = false;
@@ -49,7 +47,7 @@ private:
         
         if( !vertex_coords_loadedQ )
         {
-            wprint(tag() + ": No vertex coordinates loaded, yet. Call ReadVertexCoordinates first.");
+            Msgr::wprint("ComputeEdgeCoordinates", "No vertex coordinates loaded, yet. Call ReadVertexCoordinates first.");
         }
         
         if( edge_coords.Dim(0) != edge_count )
@@ -137,11 +135,14 @@ private:
                     err[1] = Max( err[1], Abs(std::fma(-scaling_factor,x[1],y[1])) );
                     err[2] = Max( err[2], Abs(std::fma(-scaling_factor,x[2],y[2])) );
                     
+                    if constexpr ( mortonQ ) { y -= int_lo; }
+                    
                     y.Write(edge_coords.data(i)); // static_cast<IReal> will be called automaticaly
                 }
                 else
                 {
                     (void)y;
+                    if constexpr ( mortonQ ) { x -= int_lo; }
                     // We know that all entries of `x` have exact integer values; so we can simply cast to `IReal`. No rounding error occurs.
                     x.Write(edge_coords.data(i)); // static_cast<IReal> will be called automatically
                 }
@@ -149,6 +150,7 @@ private:
             else
             {
                 (void)y;
+                if constexpr ( mortonQ ) { x -= int_lo; }
                 x.Write(edge_coords.data(i));   // static_cast<IReal> will be called automatically
             }
             
@@ -160,26 +162,23 @@ private:
         {
             tic("Morton ordering");
             p.template RequireSize<false>(edge_count);
-//            p.iota();
-            
-            IVector3_T z;
-            for( Int i = 0; i < edge_count; ++i )
-            {
-                p[i] = i;
-                z.Read(edge_coords.data(i));
-                z -= int_lo;
-                z.Write(edge_coords.data(i));
-            }
+            p.iota();
+            leaf_node_to_edge.template RequireSize<false>(edge_count);
             
             std::sort( &p[0], &p[edge_count],
-                [this]( Int i, Int j ) {
+                [this]( Int i, Int j )
+                {
                     return less_Morton<2>(
-                        reinterpret_cast<UInt * >(edge_coords.data(i)),
-                        reinterpret_cast<UInt * >(edge_coords.data(j))
+                        reinterpret_cast<UInt *>(edge_coords.data(i)),
+                        reinterpret_cast<UInt *>(edge_coords.data(j))
                     );
                 }
             );
             
+            for( Int i = 0; i < edge_count; ++i )
+            {
+                leaf_node_to_edge[i] = p[T.NodeBegin(T.InternalNodeCount() + i)];
+            }
             toc("Morton ordering");
         }
         

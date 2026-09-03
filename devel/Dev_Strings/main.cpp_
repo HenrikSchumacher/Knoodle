@@ -1,0 +1,173 @@
+#define TENSORS_BOUND_CHECKS
+
+//#define TOOLS_NO_RESTRICT
+
+//#define TOOLS_ENABLE_PROFILER
+//#define TOOLS_NO_INT128
+#define TOOLS_AGGRESSIVE_INLINING
+
+
+#include "../../Knoodle.hpp"
+
+
+using namespace Knoodle;
+using namespace Tools;
+
+using Real  = Real64;
+using Int   = Int64;
+using IReal = Int64;
+
+using Link_T = LinkEmbedding<Real,Int>;
+
+int main()
+{
+    Profiler::Clear();
+    
+    print("");
+    
+    {
+        //    print("Hello World!");
+        
+//        OutString s_0 ("Aaah!");
+//        OutString s = OutString::FromMisc("Hello World!"," ", 1,",",2,s_0);
+        
+//        print(s);
+    }
+    TOOLS_DUMP(Stringy<std::string>);
+    TOOLS_DUMP(Stringy<std::string &>);
+    TOOLS_DUMP(Stringy<const std::string &>);
+    TOOLS_DUMP(Stringy<std::string &&>);
+    
+    TOOLS_DUMP(Stringy<OutString>);
+    TOOLS_DUMP(Stringy<OutString &>);
+    TOOLS_DUMP(Stringy<const OutString &>);
+    TOOLS_DUMP(Stringy<OutString &&>);
+    
+    TOOLS_DUMP(Stringy<int>);
+    TOOLS_DUMP(Stringy<int &>);
+    TOOLS_DUMP(Stringy<const int &>);
+    TOOLS_DUMP(Stringy<int &&>);
+    
+    
+    Size_T reps= 1000000;
+    auto engine = InitializedRandomEngine<Knoodle::PRNG_T>();
+//    std::uniform_real_distribution<Real> dist (-1,1);
+    std::uniform_int_distribution<Int> dist (-1,1);
+    
+    Tensor2<Int,Size_T> a ( reps, Size_T(4) );
+    
+    for( Size_T i = 0; i < reps; ++i )
+    {
+        a(i,0) = dist(engine);
+        a(i,1) = dist(engine);
+        a(i,2) = dist(engine);
+        a(i,3) = dist(engine);
+    }
+    
+//    std::string s_0;
+//    s_0.reserve(reps);
+    
+    std::ofstream file_0 (HomeDirectory() / "test_0.txt");
+    std::string s_0;
+    
+    tic("s_0");
+    for( Size_T i = 0; i < reps; ++i )
+    {
+        auto s = ( std::string(Link_T::ClassName()) + "::" + "Test" + "< " + TypeName<Int> + ">" + ": "
+               +   "A = " + Tools::ToString(a(i,0))
+               + ", B = " + Tools::ToString(a(i,1))
+               + ", C = " + Tools::ToString(a(i,2))
+               + ", D = " + Tools::ToString(a(i,3))
+               + ".\n");
+        
+        file_0 << s << std::endl;
+//        s_0 += s;
+    }
+//    file_0 << s_0;
+    toc("s_0");
+    
+//    std::string s_1;
+//    s_1.reserve(reps);
+    
+    std::ofstream file_1 (HomeDirectory() / "test_1.txt");
+    std::string s_1;
+    
+    tic("s_1");
+    for( Size_T i = 0; i < reps; ++i )
+    {
+        std::string s;
+        s.append(Link_T::ClassName()).append("::").append("Test")
+        .append("< ").append(TypeName<Int>).append(">")
+        .append(": ")
+        .append(  "A = ").append(Tools::ToString(a(i,0)))
+        .append(", B = ").append(Tools::ToString(a(i,1)))
+        .append(", C = ").append(Tools::ToString(a(i,2)))
+        .append(", D = ").append(Tools::ToString(a(i,3)))
+        .append(".\n");
+        
+        file_1 << s << std::endl;
+//        s_1 += s;
+    }
+//    file_1 << s_1;
+    toc("s_1");
+    
+//    std::string s_2;
+//    s_2.reserve(reps);
+    
+    std::ofstream file_2 (HomeDirectory() / "test_2.txt");
+    file_2 << std::setprecision(17);
+    std::stringstream s_2;
+    s_2<< std::setprecision(17);
+    
+    tic("s_2");
+    for( Size_T i = 0; i < reps; ++i )
+    {
+        file_2 << Link_T::ClassName() << "::" << "Test" << "< " << TypeName<Int> << ">" << ": "
+               <<   "A = " << a(i,0)
+               << ", B = " << a(i,1)
+               << ", C = " << a(i,2)
+               << ", D = " << a(i,3)
+               << ".\n"  << std::endl;
+    }
+//    file_2 << s_2.view();
+    toc("s_2");
+    
+    
+    std::ofstream file_3 (HomeDirectory() / "test_3.txt");
+//    std::string s_3;
+    OutString s_3;
+    
+    tic("s_3");
+//    constexpr auto tag = ct_string("Test") + "< " + TypeName<Int> + ">";
+    
+    constexpr auto tag = ct_string("Test") + "< " + TypeName<Int> + ">";
+    
+    for( Size_T i = 0; i < reps; ++i )
+    {
+        auto s = Link_T::Msgr::Message( tag, ": "
+               ,   "A = " , a(i,0)
+               , ", B = " , a(i,1)
+               , ", C = " , a(i,2)
+               , ", D = " , a(i,3)
+               , ".\n");
+        
+//        s_3 << s;
+//        s_3 += s;
+        file_3 << s << std::endl;
+    }
+//    file_3 << s_3;
+    toc("s_3");
+
+//
+//    {
+//        OutString str;
+//        str << "Hello world!";
+//        print(str);
+//    }
+//    
+//    {
+//        OutString str;
+//        str << "Hello world!";
+//        print(std::move(str));
+//    }
+}

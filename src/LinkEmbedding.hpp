@@ -28,7 +28,8 @@ namespace Knoodle
         using BReal = BReal_;
         
         using Base_T          = Link<Int>;
-        using LinkEmbedding_T = LinkEmbedding<Real,Int,BReal>;
+        using Class_T         = LinkEmbedding;
+        using LinkEmbedding_T = Class_T;
         
         using Tree2_T         = AABBTree<2,Real,Int,BReal,false>;
         using Tree3_T         = AABBTree<3,Real,Int,BReal,false>;
@@ -45,10 +46,10 @@ namespace Knoodle
         using Prosector_T     = Prosector_Float<Real,Int>;
         using Intersection_T  = Prosector_T::Intersection_T;
         using EdgeCrossing_T  = EdgeCrossing<Int>;
-
-
+        
+        
         using ProsectorFlagCounts_T = Tiny::Vector<9,Size_T,        Underlying_T<ProsectorFlag>>;
-
+        
         static constexpr Int AmbDim = 3;
         static constexpr Int InvalidColor = PlanarDiagram<Int>::InvalidColor;
         
@@ -100,7 +101,7 @@ namespace Knoodle
         
         Prosector_T S;
         ProsectorFlagCounts_T prosector_flag_counts = {};
-
+        
         Size_T intersection_count_3D  = 0;
         Size_T box_box_counter        = 0;
         Size_T edge_edge_counter      = 0;
@@ -145,8 +146,8 @@ namespace Knoodle
          */
         template<IntQ I_0, IntQ I_1>
         LinkEmbedding(
-            cptr<I_0> edges_, cptr<I_0> edges_colors_, const I_1 edge_count_
-        )
+                      cptr<I_0> edges_, cptr<I_0> edges_colors_, const I_1 edge_count_
+                      )
         :   Base_T      { edges_, edges_colors_, int_cast<Int>(edge_count_) }
         ,   edge_coords { edge_count                                        }
         {}
@@ -154,24 +155,24 @@ namespace Knoodle
         
         // TODO: Make this available again. For that we have to make sure that the corresponding constructor of the Link class is intact.
         
-//        // Provide lists of edge tails and edge tips to make the object figure out its topology.
-//        template<IntQ I_0, IntQ I_1>
-//        LinkEmbedding(
-//            cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, cptr<I_0> edges_colors_, const I_1 edge_count_
-//        )
-//        :   Base_T      { edge_tails_, edge_tips_, edges_colors_, edge_count_ }
-//        ,   edge_coords { edge_count                                          }
-//        {}
+        //        // Provide lists of edge tails and edge tips to make the object figure out its topology.
+        //        template<IntQ I_0, IntQ I_1>
+        //        LinkEmbedding(
+        //            cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, cptr<I_0> edges_colors_, const I_1 edge_count_
+        //        )
+        //        :   Base_T      { edge_tails_, edge_tips_, edges_colors_, edge_count_ }
+        //        ,   edge_coords { edge_count                                          }
+        //        {}
         
     public:
-
+        
 #include "LinkEmbedding/Helpers.hpp"
 #include "LinkEmbedding/VertexCoordinates.hpp"
 #include "LinkEmbedding/BoundingBoxes.hpp"
 #include "LinkEmbedding/FindIntersections.hpp"
 #include "LinkEmbedding/ToFile.hpp"
 #include "LinkEmbedding/FromFile.hpp"
-
+        
     public:
         
         bool ValidQ() const
@@ -202,15 +203,15 @@ namespace Knoodle
         // This function must be here because KnotEmbedding needs another definition.
         void ComputeBoundingBoxes()
         {
-        //    TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
+            //    TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
             
             T.template ComputeBoundingBoxes<2,3>( edge_coords.data(), box_coords.data() );
             bounding_boxes_computedQ = true;
         }
-
+        
         
     public:
-
+        
         void DeleteTree()
         {
             T           = Tree2_T();
@@ -222,22 +223,22 @@ namespace Knoodle
             
             edge_times = Tensor1<Real,Int>();
         }
-
+        
     public:
-
+        
         Size_T AllocatedByteCount() const
         {
             return
-                  T.AllocatedByteCount()
-                + Base_T::edges.AllocatedByteCount()
-                + Base_T::next_edge.AllocatedByteCount()
-                + Base_T::edge_ptr.AllocatedByteCount()
-                + Base_T::component_ptr.AllocatedByteCount()
-                + Base_T::component_color.AllocatedByteCount()
-                + edge_coords.AllocatedByteCount()
-                + box_coords.AllocatedByteCount()
-                + edge_cross.AllocatedByteCount()
-                + edge_times.AllocatedByteCount();
+            T.AllocatedByteCount()
+            + Base_T::edges.AllocatedByteCount()
+            + Base_T::next_edge.AllocatedByteCount()
+            + Base_T::edge_ptr.AllocatedByteCount()
+            + Base_T::component_ptr.AllocatedByteCount()
+            + Base_T::component_color.AllocatedByteCount()
+            + edge_coords.AllocatedByteCount()
+            + box_coords.AllocatedByteCount()
+            + edge_cross.AllocatedByteCount()
+            + edge_times.AllocatedByteCount();
         }
         
         Size_T ByteCount() const
@@ -250,28 +251,33 @@ namespace Knoodle
         {
             constexpr int t1 = t0 + 1;
             return
-                ct_string("<|")
-                + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::edges)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::next_edge)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::edge_ptr)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_ptr)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_color)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_coords)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_cross)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_times)
-                + ( "\n" + ct_tabs<t0> + "|>");
+            ct_string("<|")
+            + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
+            + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::edges)
+            + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::next_edge)
+            + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::edge_ptr)
+            + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_ptr)
+            + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_color)
+            + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_coords)
+            + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
+            + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_cross)
+            + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_times)
+            + ( "\n" + ct_tabs<t0> + "|>");
         }
         
-        static constexpr std::string MethodName( const std::string & tag )
+    public:
+        
+        using Msgr = Tools::Messenger<Class_T>;
+        
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("LinkEmbedding")
+            return ct_string("LinkEmbedding")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<BReal>

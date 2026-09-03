@@ -9,11 +9,9 @@ public:
 template<bool verboseQ = true> // whether to print errors and warnings
 [[nodiscard]] int RequireIntersections( bool force_recomputeQ = false ) const
 {
-   [[maybe_unused]] auto tag = [](){ return MethodName("RequireIntersections"); };
-       
     if( !vertex_coords_loadedQ )
     {
-        wprint(tag() + ": Failed to compute intersections because no vertex coordinates have been loaded, yet." );
+        Msgr::wprint("RequireIntersections","Failed to compute intersections because no vertex coordinates have been loaded, yet.");
         return 1;
     }
     
@@ -24,13 +22,13 @@ template<bool verboseQ = true> // whether to print errors and warnings
     
     if( !intersections_computedQ )
     {
-        wprint(tag() + ": Failed to compute intersections for an unknown reason." );
+        Msgr::wprint("RequireIntersections","Failed to compute intersections for an unknown reason.");
         return 2;
     }
     
     if( intersection_count_3D > Size_T{0} )
     {
-        wprint(tag() + ": Detected at least "  + ToString(intersection_count_3D)+ " self-intersections in 3-space after perturbation. Link is not an embedding." );
+        Msgr::wprint("RequireIntersections","Detected at least ", intersection_count_3D, " self-intersections in 3-space after perturbation. Link is not an embedding.");
         return 3;
     }
 
@@ -177,9 +175,7 @@ private:
 template<bool verboseQ = true> // whether to print errors and warnings
 void ComputeIntersections() const
 {
-    [[maybe_unused]] auto tag = [](){ return MethodName("ComputeIntersections"); };
-    
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,MethodName("ComputeIntersections"));
     
     intersections_computedQ  = false;
     intersections.Clear();
@@ -196,7 +192,7 @@ void ComputeIntersections() const
         
         if( !bounding_boxes_computedQ )
         {
-            wprint(tag() + ": Boundung boxes not computed, yet. Aborting.");
+            Msgr::wprint("ComputeIntersections","Boundung boxes not computed, yet. Aborting.");
         }
         
         FindIntersectingEdges_DFS();
@@ -206,7 +202,7 @@ void ComputeIntersections() const
     
     if( !std::in_range<Int>( Size_T{8} * ToSize_T(intersections.Size())) )
     {
-        eprint(tag() + ": More intersections found (intersections.size() = " + ToString(intersections.Size()) + ") than can be handled by integer type Int = " + TypeName<Int> + " = " + std::string(PrettyTypeName<Int>()) + ". Please try again with a wider integer type." );
+        Msgr::eprint("ComputeIntersections","More intersections found (intersections.size() = ", intersections.Size(), ") than can be handled by integer type Int = ", TypeName<Int>, " = ", PrettyTypeName<Int>(), ". Please try again with a wider integer type." );
         
         intersections_computedQ = true;
         return;
@@ -225,7 +221,7 @@ void ComputeIntersections() const
     intersection_count = intersections.Size();
     
     {
-        TOOLS_PTIMER(sort_timer, tag() + ": coarse sorting.");
+        TOOLS_PTIMER(sort_timer, MethodName("ComputeIntersections") + ": coarse sorting.");
         
         // We do a counting sort here.
         
@@ -250,7 +246,7 @@ void ComputeIntersections() const
     }
 
     {
-        TOOLS_PTIMER(sort_timer, tag() + ": fine sorting.");
+        TOOLS_PTIMER(sort_timer, MethodName("ComputeIntersections") + ": fine sorting.");
         
         Tensor1<EdgeCrossing_T,Int> buffer( max_per_edge );
         Tensor1<Int,Int>            perm  ( max_per_edge );
@@ -259,8 +255,8 @@ void ComputeIntersections() const
         for( Int i = 0; i < edge_count; ++i )
         {
             // This is the range of data in edge_cross that belongs to edge i.
-            const Int begin = edge_ptr[i  ];
-            const Int end   = edge_ptr[i+1];
+            const Int begin = edge_ptr[i       ];
+            const Int end   = edge_ptr[i+Int{1}];
             const Int n     = end - begin;
             
             // We need to sort only if there are at least two intersections on that edge.

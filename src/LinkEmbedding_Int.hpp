@@ -4,7 +4,7 @@
 
 namespace Knoodle
 {
-    
+    /*!@brief Given to vectors `u`, `v` of unsigned integers, this function returns `true` if `u` is stricly less than `v` in Morton ordering, i.e., in the ordering obtained by the Z-shaped curve.*/
     template<int AmbDim, UnsignedIntQ UInt>
     TOOLS_FORCE_INLINE bool less_Morton( cptr<UInt> u, cptr<UInt> v )
     {
@@ -42,7 +42,7 @@ namespace Knoodle
      *
      * @tparam Real_ The scalar type used for the coordinates of the link embedding. This is the format for loading and storing these curves. Allowed are `float`, `double`, and signed integral types.
      *
-     * @tparam Prosector_T_ What is expected here is one of the `Prosector*` classes that the backend for projecting the coordinates to a plane and for computing the intersections. This also specified which integer classes to use for indexing and for coordinate computations. CAUTION: The type `Prosector_T_::Idx` must be an integral type big enough to hold the number of crossings that emerge after projecting the link to the x-y-plane. So `Int64` is probably the safest bet here.
+     * @tparam Prosector_T_ What is expected here is one of the `Prosector*` classes that the backend for projecting the coordinates to a plane and for computing the intersections. This also specifies which integer types to use for indexing and for coordinate computations. CAUTION: The type `Prosector_T_::Idx` must be an integral type big enough to hold the number of crossings that emerge after projecting the link to the x-y-plane. So `Int64` is probably the safest bet here.
      */
     
     template<
@@ -58,7 +58,13 @@ namespace Knoodle
         
         using Real            = Real_;
         using Prosector_T     = Prosector_T_;
+        static constexpr bool mortonQ = mortonQ_;
         
+        using Base_T          = Link<typename Prosector_T_::Idx>;
+        using Class_T         = LinkEmbedding_Int;
+        using LinkEmbedding_T = LinkEmbedding_Int;
+
+
         using Int             = Prosector_T::Idx;
         using IReal           = Prosector_T::Int;
         using UInt            = ToUnsigned<Int>;
@@ -69,11 +75,7 @@ namespace Knoodle
         
         static constexpr Int  AmbDim = 3;
         static constexpr Int  InvalidColor = PlanarDiagram<Int>::InvalidColor;
-        static constexpr bool mortonQ = mortonQ_;
         
-        using Base_T          = Link<Int>;
-        using LinkEmbedding_T = LinkEmbedding_Int;
-
         using Tree2_T         = AABBTree<2,IReal,Int,IReal,false>;
         using Tree3_T         = AABBTree<3,IReal,Int,IReal,false>;
         
@@ -124,6 +126,7 @@ namespace Knoodle
         Matrix3x3_T R { { {1,0,0}, {0,1,0}, {0,0,1} } }; // a rotation matrix (later to be randomized)
         
         mutable Tensor1<Int,Int> p;
+        mutable Tensor1<Int,Int> leaf_node_to_edge;
         
         //Containers and data whose sizes stay constant under ReadVertexCoordinates.
         
@@ -232,7 +235,7 @@ namespace Knoodle
         
         Size_T ByteCount() const
         {
-            return sizeof(LinkEmbedding_Int) + AllocatedByteCount();
+            return sizeof(Class_T) + AllocatedByteCount();
         }
         
         template<int t0 = 0>
@@ -255,18 +258,22 @@ namespace Knoodle
                 + ( "\n" + ct_tabs<t0> + "|>");
         }
         
-        static constexpr std::string MethodName( const std::string & tag )
+    public:
+
+        using Msgr = Tools::Messenger<Class_T>;
+        
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName().append("::").append(tag);
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("LinkEmbedding_Int")
-                .append("<").append(TypeName<Real>)
-                .append(",").append(Prosector_T::ClassName())
-                .append(",").append(ToString(mortonQ))
-                .append(">");
+            return ct_string("LinkEmbedding_Int<") + TypeName<Real>
+                + "," + Prosector_T::ClassName()
+                + "," + to_ct_string(mortonQ)
+                + ">";
         }
         
     }; // LinkEmbedding_Int

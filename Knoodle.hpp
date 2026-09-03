@@ -53,7 +53,7 @@ namespace Knoodle
 
 #include "src/WideInt.hpp"   // Used in Prosector classes.
 #include "src/LinkEmbedding_Int.hpp"
-#include "src/LinkEmbedding5.hpp"
+#include "src/LinkEmbedding4.hpp"
 
 #include "src/MultiGraphBase.hpp"
 #include "src/MultiGraph.hpp"

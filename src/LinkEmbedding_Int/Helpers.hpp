@@ -9,7 +9,7 @@ static constexpr Int AmbientDimension()
 /*!@brief Return the number of crossings/intersections in the x-y-Plane.*/
 Int CrossingCount() const
 {
-    return int_cast<Int>( intersections.size() );
+    return intersections.Size();
 }
 
 /*!@brief Whether the link embedding is in valid state.*/

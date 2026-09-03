@@ -11,9 +11,9 @@ public:
     template<bool verboseQ = true> // whether to print errors and warnings
     [[nodiscard]] int FindIntersections()
     {
-        [[maybe_unused]] auto tag = [](){ return MethodName("FindIntersections"); };
+        constexpr auto tag = MethodName("FindIntersections");
         
-        TOOLS_PTIMER(timer,tag());
+        TOOLS_PTIMER(timer,tag);
         
         // Here we do something strange:
         // We hand over edge_coords, a Tensor3 of size edge_count x 2 x 3
@@ -35,7 +35,7 @@ public:
         {
             if constexpr ( verboseQ )
             {
-                eprint(tag()+": Detected " + ToString(degenerate_edge_count) + " degenerate edges.");
+                eprint(tag, ": Detected ", degenerate_edge_count, " degenerate edges.");
             }
             return 9;
         }
@@ -63,7 +63,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    eprint(tag() + ": Detected " + ToString(count) + " cases where line segments intersection times were out of bounds.");
+                    eprint(tag, ": Detected ", count, " cases where line segments intersection times were out of bounds.");
                 }
                 return 7;
             }
@@ -75,7 +75,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    eprint(tag() + ": Detected " + ToString(count) + " cases where line segments intersected in 3D.");
+                    eprint(tag, ": Detected ", count, " cases where line segments intersected in 3D.");
                 }
                 return 6;
             }
@@ -87,7 +87,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    wprint(tag() + ": Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval). Try to randomly rotate the input coordinates.");
+                    wprint(tag, ": Detected ", count, " cases where the line-line intersection was degenerate (the intersection set was an interval). Try to randomly rotate the input coordinates.");
                 }
                 return 5;
             }
@@ -100,7 +100,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    wprint(tag() + ": Detected " + ToString(count) + " cases where the line-line intersection was a point in the corners of two line segments. Try to randomly rotate the input coordinates.");
+                    wprint(tag, ": Detected ", count, " cases where the line-line intersection was a point in the corners of two line segments. Try to randomly rotate the input coordinates.");
                 }
                 return 4;
             }
@@ -115,7 +115,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    wprint(tag() + ": Detected " + ToString(count) + " cases where the line-line intersection was a point in a corner of a line segment. Try to randomly rotate the input coordinates.");
+                    wprint(tag, ": Detected ", count, " cases where the line-line intersection was a point in a corner of a line segment. Try to randomly rotate the input coordinates.");
                 }
                 return 3;
             }
@@ -128,13 +128,14 @@ public:
             )
         )
         {
-            eprint(tag() + ": More intersections found than can be handled by integer type " + TypeName<Int> + "." );
+            wprint(tag, ": More intersections found than can be handled by integer type ", TypeName<Int>, ".");
         }
         
         intersection_count = intersections.Size();
         
+        
         {
-            TOOLS_PTIMER(sort_timer, tag() + ": coarse sorting.");
+            TOOLS_PTIMER(sort_timer,tag + ": coarse sorting.");
             
             // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
             Tensor1<Int,Int> edge_ctr { edge_ptr };
@@ -170,7 +171,7 @@ public:
         Size_T close_counter = 0;
         
         {
-            TOOLS_PTIMER(sort_timer, tag() + ": fine sorting.");
+            TOOLS_PTIMER(sort_timer, tag + ": fine sorting.");
             
             // Sort intersections edgewise w.r.t. edge_times.
             TwoArraySort<Real,EdgeCrossing_T,Int> sort (intersection_count);
@@ -214,7 +215,7 @@ public:
                                 
                                 const Int j_1 = (isec_1.edges[0] == i) ? isec_1.edges[1] : isec_1.edges[0];
                             
-                                wprint(tag() + ": Detected tiny difference of intersection times = " + ToString(delta) + " < " + ToString(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + (ec_0.OverQ() ? "over" : "under") + ") and " + ToString(j_1) + " (" + (ec_1.OverQ() ? "over" : "under") + ")." );
+                            wprint(tag, ": Detected tiny difference of intersection times = ", delta, " < " , intersection_time_tolerance, " = intersection_time_tolerance for intersections of line segment " , i, " with line segments ", j_0, " (", (ec_0.OverQ() ? std::string("over") : std::string("under")) , ") and " , j_1, " (" , (ec_1.OverQ() ? std::string("over") : std::string("under")), ")." );
     //                        }
                         }
                     }
@@ -233,7 +234,7 @@ public:
             // TODO: On the long run we need a more precise detector for the ordering of the intersection times.
 //            if constexpr ( verboseQ )
 //            {
-                wprint(tag() + ": Detected " + ToString(close_counter) + " case(s) of tiny difference between intersection times." );
+            wprint(tag, ": Detected ", close_counter, " case(s) of tiny difference between intersection times." );
 //            }
             return 8;
         }
@@ -295,7 +296,7 @@ private:
             return result;
         };
         
-        auto continueQ = [&stack_ptr,this]()
+        auto continueQ = [&stack_ptr]()
         {
             const bool overflowQ = (stack_ptr >= stack_limit);
             
@@ -307,7 +308,7 @@ private:
             {
                 if ( overflowQ ) [[unlikely]]
                 {
-                    eprint(this->ClassName()+"::FindIntersectingEdges_DFS_impl_1: Stack overflow.");
+                    Msgr::eprint("FindIntersectingEdges_DFS_ManualStack","Stack overflow.");
                 }
                 return false;
             }
@@ -510,7 +511,8 @@ protected:
         
         if constexpr ( verboseQ )
         {
-            logprint(ClassName()+"::ComputeEdgeEdgeIntersection in verbose mode.");
+            
+            Msgr::logprint("ComputeEdgeEdgeIntersection","Running in verbose mode.");
             TOOLS_LOGDUMP(k);
             TOOLS_LOGDUMP(l);
         }
@@ -630,42 +632,42 @@ protected:
         {
             case ProsectorFlag::AtCorner0:
             {
-                wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(k) + ".");
+                Msgr::wprint("ComputeEdgeIntersection","Edges ",k, " and ", l, " intersect in first corner of edge ",k, ".");
 //                logvalprint("edge " + ToString(k), x);
 //                logvalprint("edge " + ToString(l), y);
                 break;
             }
             case ProsectorFlag::AtCorner1:
             {
-                wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(l) + ".");
+                Msgr::wprint("ComputeEdgeIntersection", "Edges ",k, " and ",l, " intersect in first corner of edge ",l, ".");
 //                logvalprint("edge " + ToString(k), x);
 //                logvalprint("edge " + ToString(l), y);
                 break;
             }
             case ProsectorFlag::CornerCorner:
             {
-                wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " have common first corners.");
+                Msgr::wprint("ComputeEdgeIntersection", "Edges ",k, " and ", l, " have common first corners.");
 //                logvalprint("edge " + ToString(k), x);
 //                logvalprint("edge " + ToString(l), y);
                 break;
             }
             case ProsectorFlag::Interval:
             {
-                wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in an interval.");
+                Msgr::wprint("ComputeEdgeIntersection", "Edges ",k, " and ", l, " intersect in an interval.");
 //                logvalprint("edge " + ToString(k), x);
 //                logvalprint("edge " + ToString(l), y);
                 break;
             }
             case ProsectorFlag::Spatial:
             {
-                wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
+                Msgr::wprint("ComputeEdgeIntersection", "Edges ", k, " and ", l, " intersect in 3D.");
                 logvalprint("edge " + ToString(k), x);
                 logvalprint("edge " + ToString(l), y);
                 break;
             }
             case ProsectorFlag::OOBounds:
             {
-                wprint(ClassName()+"::ComputeEdgeIntersection: Intersection times of intersection between edges " + ToString(k) + " and " + ToString(l) + " are out of bounds.");
+                Msgr::wprint("ComputeEdgeIntersection", "Intersection times of intersection between edges ",k, " and ",l, " are out of bounds.");
 //                logvalprint("edge " + ToString(k), x);
 //                logvalprint("edge " + ToString(l), y);
                 break;

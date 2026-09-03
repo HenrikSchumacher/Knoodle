@@ -24,7 +24,10 @@ TOOLS_FORCE_INLINE static DepressedCubic Det_Perturbed( cref<LVector3_T> a, cref
 TOOLS_FORCE_INLINE static
 Sign_T Sign_Perturbed( cref<LVector3_T> a, cref<LVector3_T> b )
 {
-    if constexpr ( verboseQ ) { logprint(MethodName("Sign_Perturbed")); }
+    if constexpr ( verboseQ )
+    {
+        Msgr::logprint("Sign_Perturbed");
+    }
     
     Sign_T s;
     s = Sign<Sign_T>( a[0] * b[1] - a[1] * b[0] );
@@ -41,7 +44,10 @@ Sign_T Sign_Perturbed( cref<LVector3_T> a, cref<LVector3_T> b )
 TOOLS_FORCE_INLINE static
 std::pair<Sign_T,LInt> Sign_Det_Perturbed( cref<LVector3_T> a, cref<LVector3_T> b )
 {
-    if constexpr ( verboseQ ) { logprint(MethodName("Sign_Det_Perturbed")); }
+    if constexpr ( verboseQ )
+    {
+        Msgr::logprint("Sign_Det_Perturbed");
+    }
     
     LInt det = a[0] * b[1] - a[1] * b[0];
     Sign_T s = Sign<Sign_T>( det );
@@ -59,7 +65,11 @@ std::pair<Sign_T,LInt> Sign_Det_Perturbed( cref<LVector3_T> a, cref<LVector3_T> 
 TOOLS_FORCE_INLINE static
 Sign_T Sign_Perturbed_Kahan( cref<Vector3_T> a, cref<Vector3_T> b )
 {
-    if constexpr ( verboseQ ) { logprint(MethodName("Sign_Perturbed_Kahan")); }
+    if constexpr ( verboseQ )
+    {
+        Msgr::logprint("Sign_Perturbed_Kahan");
+    }
+
     Sign_T s;
     s = DetSign2D_Kahan<Sign_T>(double(a[0]),double(a[1]),double(b[0]),double(b[1]));
     if( !ZeroQ(s) ) { return s; }

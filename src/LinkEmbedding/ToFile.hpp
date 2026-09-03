@@ -5,7 +5,6 @@ public:
  * @param file The file to write to.
  *
  * @param colorQ Whether the colors of the link components shall be exported in the format `#color <int>` at the start of each component. In any case, the output should be compatible with KnotPlot.
- *
  */
 bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) const
 {
@@ -15,13 +14,13 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) c
 
     if( !stream )
     {
-        eprint(MethodName("WriteToFile") + ": Could not open file " + file.string() + ". Aborting.");
+        Msgr::eprint("WriteToFile", ": Could not open file ", file.string(), ". Aborting.");
         return false;
     }
     
-    if( component_ptr.Dim(0) <= Int(1) )
+    if( component_ptr.Dim(0) <= Int{1} )
     {
-        eprint(MethodName("WriteToFile") + ": Diagram is invalid. Aborting.");
+        Msgr::eprint("WriteToFile", ": Diagram is invalid. Aborting.");
         return false;
     };
 
@@ -31,7 +30,7 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) c
     
     if( !stream )
     {
-        eprint(MethodName("WriteToFile") + ": Failed to write to file. Aborting.");
+        Msgr::eprint("WriteToFile", ": Failed to write to file. Aborting.");
         return false;
     }
     
@@ -42,7 +41,7 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) c
 /*!@brief Write the vertex coordinates of the link to `OutString` `s`. The vertex coordinates of each link component are written in `x y z` lines in the order they appear in the link component. Link components are separated by blank lines.
  *
  * @param s Output stream.
- * 
+ *
  * @param colorQ Whether the colors of the link components shall be exported in the format `#color <int>` at the start of each component. In any case, the output should be compatible with KnotPlot. CAUTION: If this is a multiple-component link and if several components have the same color, then not writing the colors leads to a loss/change of some important topological information. We provide this option only to allow export for downstream application that cannot handle the `#color` statement and that do not treat it as comment.
  *
  */
@@ -51,8 +50,8 @@ bool WriteToOutString( mref<OutString> s, const bool colorQ = true ) const
 {
     for( Int lc = 0; lc < component_count; ++lc )
     {
-        const Int i_begin = component_ptr[lc    ];
-        const Int i_end   = component_ptr[lc + 1];
+        const Int i_begin = component_ptr[lc         ];
+        const Int i_end   = component_ptr[lc + Int{1}];
         
         if( i_end <= i_begin ) { continue; }
         
@@ -68,13 +67,16 @@ bool WriteToOutString( mref<OutString> s, const bool colorQ = true ) const
         const Int n = 3;
 
         s.PutArray(
-            [this,i_begin]( const Int i, const Int j ) { return edge_coords(i_begin + i,Int(0),j); },
+            [this,i_begin]( const Int i, const Int j )
+            {
+                return edge_coords(i_begin + i, Int{0}, j);
+            },
             true,
             m, "", "\n", "",
             n, "", " ", ""
         );
         
-        if( (lc + Int(1)) != component_count )
+        if( (lc + Int{1}) != component_count )
         {
             s.PutChars("\n\n");
         }

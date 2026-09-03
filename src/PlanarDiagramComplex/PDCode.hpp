@@ -24,24 +24,21 @@ void WritePDCode( mptr<T> pd_code ) const
 {
     static_assert( targs.farfalleQ == true, "This won't work correctly without farfalle." );
     
-    [[maybe_unused]] auto tag = []()
-    {
-        return MethodName("WritePDCode")+
-            + "<" + TypeName<T>
-            + "," + ToString(targs)
-            + ">";
-    };
+    [[maybe_unused]] constexpr auto tag = MethodName("WritePDCode")
+        + "<" + TypeName<T>
+        + "," + to_ct_string(targs)
+        + ">";
     
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,tag);
 
     if constexpr ( !targs.signQ )
     {
-        wprint(tag() + ": Attempting to write unsigned pd code. Beware that this may lead to loss of information.");
+        wprint(tag, ": Attempting to write unsigned pd code. Beware that this may lead to loss of information.");
     }
     
     if constexpr ( color_warningQ && !targs.colorQ )
     {
-        wprint(tag() + ": Attempting to write uncolored pd code. Beware that this may lead to the loss of information on connected summands and thus to a different link class.");
+        wprint(tag, ": Attempting to write uncolored pd code. Beware that this may lead to the loss of information on connected summands and thus to a different link class.");
     }
 
     constexpr Int code_width = static_cast<Int>(PD_T::PDCodeWidth(targs.signQ,targs.colorQ));
@@ -72,15 +69,11 @@ void WritePDCode( mptr<T> pd_code ) const
 template<IntQ T, PDCode_TArgs_T targs = {.signQ = true, .colorQ = true, .farfalleQ = true}>
 Tensor2<T,Int> PDCode() const
 {
-    [[maybe_unused]] auto tag = []()
-    {
-        return MethodName("PDCode")+
-            + "<" + TypeName<T>
-            + "," + ToString(targs)
-            + ">";
-    };
-    
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer, MethodName("PDCode")+
+        + "<" + TypeName<T>
+        + "," + to_ct_string(targs)
+        + ">"
+    );
     
     Tensor2<T,Int> pd_code ( PDCodeCrossingCount(), PD_T::PDCodeWidth(targs.signQ,targs.colorQ) );
     

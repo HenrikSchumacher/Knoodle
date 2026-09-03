@@ -3,17 +3,19 @@ public:
 template<IntQ T = UInt>
 Tensor1<T,Int> LongMacLeodCode() const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::LongMacLeodCode<"+TypeName<T>+">");
+    constexpr auto tag = MethodName("LongMacLeodCode<") + TypeName<T> + ">";
+    
+    TOOLS_PTIMER(timer,tag);
     
     if( LinkComponentCount() > Int(1) )
     {
-        eprint(ClassName()+"::LongMacLeodCode<"+TypeName<T>+">: This diagram has several link components. And, you know, there can be only one.>");
+        eprint(tag, ": This diagram has several link components. And, you know, there can be only one.>");
         return Tensor1<T,Int>();
     }
     
     if( !ValidQ() )
     {
-        wprint(ClassName()+"::LongMacLeodCode<"+TypeName<T>+">: Trying to compute long MacLeod code of invalid diagram. Returning empty vector.");
+        wprint(tag, ": Trying to compute long MacLeod code of invalid diagram. Returning empty vector.");
         return Tensor1<T,Int>();
     }
     
@@ -29,18 +31,20 @@ Tensor1<T,Int> LongMacLeodCode() const
 template<IntQ T>
 void WriteLongMacLeodCode( mptr<T> code ) const
 {
-    TOOLS_PTIMER(timer,MethodName("WriteLongMacLeodCode")+"<"+TypeName<T>+">");
+    constexpr auto tag = MethodName("WriteLongMacLeodCode") + "<" + TypeName<T> + ">";
+    
+    TOOLS_PTIMER(timer,tag);
     
     if( LinkComponentCount() > Int(1) )
     {
-        eprint(MethodName("WriteLongMacLeodCode")+"<"+TypeName<T>+">: Not defined for links with multiple components. Aborting.");
+        eprint(tag,": Not defined for links with multiple components. Aborting.");
         
         return;
     }
     
     if( !ValidQ() )
     {
-        wprint(MethodName("WriteLongMacLeodCode")+"<"+TypeName<T>+">: Trying to compute long MacLeod code of invalid diagram. Returning empty vector.");
+        wprint(tag,": Trying to compute long MacLeod code of invalid diagram. Returning empty vector.");
         return;
     }
     
@@ -161,11 +165,13 @@ static PD_T FromLongMacLeodCode(
 )
 {
     // needs to know all member variables
-    
-    TOOLS_PTIMER(timer,MethodName("FromLongMacLeodCode")
+ 
+    constexpr auto tag = MethodName("FromLongMacLeodCode")
         + "<" + TypeName<T>
         + "," + TypeName<ExtInt>
-        + ">");
+        + ">";
+    
+    TOOLS_PTIMER(timer,tag);
     
     // TODO: We should check whether 2 * arc_count_ fits into Int.
 
@@ -274,7 +280,7 @@ static PD_T FromLongMacLeodCode(
     
     if( !std::cmp_equal(pd.arc_count, arc_count_) )
     {
-        eprint(MethodName("FromLongMacLeodCode") + ": Input long MacLeod code code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
+        eprint(tag, ": Input long MacLeod code code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }
     
     return pd;

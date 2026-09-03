@@ -35,6 +35,9 @@ namespace Knoodle
         
         using F_T       = ProsectorFlag;
         
+        using Class_T     = Prosector_Float;
+        using Prosector_T = Class_T;
+        
         using Vector2_T = Tiny::Vector<2,Real,Int>;
         
         struct Intersection_T
@@ -168,7 +171,7 @@ namespace Knoodle
         {
             if constexpr ( verboseQ )
             {
-                wprint(ClassName()+"::IntersectionType in verbose mode.");
+                Msgr::wprint("IntersectionType","Running in verbose mode.");
             }
             
             // Caution:
@@ -473,14 +476,19 @@ namespace Knoodle
 //            return intersection_counts;
 //        }
         
-        static constexpr std::string MethodName( const std::string & tag )
+    public:
+        
+        using Msgr = Tools::Messenger<Class_T>;
+        
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("Prosector_Float")
+            return ct_string("Prosector_Float")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + ">";

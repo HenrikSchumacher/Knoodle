@@ -81,7 +81,9 @@ Sparse::MatrixCSR<ToSigned<Int>,Int,Int,Sequential> ColorIntersectionMatrix() co
     using I = ToSigned<Int>;
     using Matrix_T = Sparse::MatrixCSR<ToSigned<Int>,Int,Int,Sequential>;
     
-    if( !this->InCacheQ("ColorIntersectionMatrix") )
+    const std::string tag = "ColorIntersectionMatrix";
+    
+    if( !this->InCacheQ(tag) )
     {
         auto lut = ColorIntersectionCounts();
         
@@ -104,11 +106,10 @@ Sparse::MatrixCSR<ToSigned<Int>,Int,Int,Sequential> ColorIntersectionMatrix() co
         
         Int n = MaxColor() + Int(1);
         
-        this->SetCache(
-            "ColorIntersectionMatrix",
+        this->SetCache(tag,
             Matrix_T( i.Size(), i.data(), j.data(), a.data(), n, n, Int(1), false, true, false )
         );
     }
     
-    return this->template GetCache<Matrix_T>("ColorIntersectionMatrix");
+    return this->template GetCache<Matrix_T>(tag);
 }

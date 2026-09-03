@@ -34,25 +34,25 @@ struct Simplify_Args_T
 friend std::string ToString( cref<Simplify_Args_T> args )
 {
     return std::string("{ ")
-            +   "compress_initialQ = " + ToString(args.compress_initialQ)
-            + ", local_opt_level = " + ToString(args.local_opt_level)
-            + ", strategy = " + ToString(args.strategy)
-            + ", start_max_dist = " + ToString(args.start_max_dist)
-            + ", final_max_dist = " + ToString(args.final_max_dist)
-            + ", disconnectQ = " + ToString(args.disconnectQ)
-            + ", splitQ = " + ToString(args.splitQ)
-            + ", compressQ = " + ToString(args.compressQ)
-            + ", compression_threshold = " + ToString(args.compression_threshold)
-    
-            + ", embedding_trials = " + ToString(args.embedding_trials)
-            + ", rotation_trials = " + ToString(args.rotation_trials)
-            + ", permute_randomQ = " + ToString(args.permute_randomQ)
-            + ", energy = " + ToString(args.energy)
-    
-            + ", randomize_bends = " + ToString(args.randomize_bends)
-            + ", randomize_virtual_edgesQ = " + ToString(args.randomize_virtual_edgesQ)
-            + ", compaction_method = " + ToString(args.compaction_method)
-    + " }";
+        +   "compress_initialQ = " + ToString(args.compress_initialQ)
+        + ", local_opt_level = " + ToString(args.local_opt_level)
+        + ", strategy = " + ToString(args.strategy)
+        + ", start_max_dist = " + ToString(args.start_max_dist)
+        + ", final_max_dist = " + ToString(args.final_max_dist)
+        + ", disconnectQ = " + ToString(args.disconnectQ)
+        + ", splitQ = " + ToString(args.splitQ)
+        + ", compressQ = " + ToString(args.compressQ)
+        + ", compression_threshold = " + ToString(args.compression_threshold)
+
+        + ", embedding_trials = " + ToString(args.embedding_trials)
+        + ", rotation_trials = " + ToString(args.rotation_trials)
+        + ", permute_randomQ = " + ToString(args.permute_randomQ)
+        + ", energy = " + ToString(args.energy)
+
+        + ", randomize_bends = " + ToString(args.randomize_bends)
+        + ", randomize_virtual_edgesQ = " + ToString(args.randomize_virtual_edgesQ)
+        + ", compaction_method = " + ToString(args.compaction_method)
+        + " }";
 }
 
 
@@ -110,7 +110,7 @@ Size_T Simplify( mref<Reapr_T> reapr, cref<Simplify_Args_T> args = Simplify_Args
         }
         default:
         {
-            eprint( MethodName("Simplify") + ": local_opt_level = " + ToString(args.local_opt_level) + " is invalid." );
+            Msgr::eprint("Simplify", "local_opt_level = " , args.local_opt_level, " is invalid." );
             return 0;
         }
     }
@@ -174,7 +174,7 @@ Size_T Simplify_Variant( cref<Simplify_Args_T> args = Simplify_Args_T(), Size_T 
         }
         default:
         {
-            wprint(MethodName("SimplifyVariant") + " variand " + ToString(variant) + " unknown. Using default.");
+            Msgr::wprint("SimplifyVariant", " variant ", variant, " unknown. Using default.");
             return Simplify(args);
         }
     }
@@ -191,18 +191,15 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
 //    using TArgs_T = StrandSimplifier_T::SimplifyStrands_TArgs;
 //    constexpr TArgs_T targs = TArgs_T();
 
-    [[maybe_unused]] auto tag = [this]()
-    {
-        return this->MethodName("Simplify_impl") + "<" + ToString(local_opt_level) + ">";
-    };
+    [[maybe_unused]] constexpr auto tag = ct_string("Simplify_impl") + "<" + to_ct_string(local_opt_level) + ">"
     
-    PD_TIMER(timer,tag());
+    PD_TIMER(timer,MethodName(tag));
 
 #ifdef TOOLS_ENABLE_PROFILER
     logvalprint("args",ToString(args));
 #endif
     
-    if constexpr (debugQ) { wprint(tag()+": Debug mode active."); }
+    if constexpr (debugQ) { wprint(tag,": Debug mode active."); }
     
     // By intializing S here, it will have enough internal memory for all planar diagrams.
     mref<PassSimplifier_T> S = GetPassSimplifier(args.strategy);
@@ -263,7 +260,7 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
         {
             if( proven_reducedQ && !pd.ReducedQ() )
             {
-                eprint(tag()+": proven_reducedQ && !pd.ReducedQ().");
+                Msgr::eprint(tag,": proven_reducedQ && !pd.ReducedQ().");
             }
         }
         
@@ -295,7 +292,10 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
             {
                 if constexpr (debugQ)
                 {
-                    if( !reapr_list.empty() ) { eprint(tag() +": !reapr_list.empty() before calling Split."); }
+                    if( !reapr_list.empty() )
+                    {
+                        Msgr::eprint(tag, "!reapr_list.empty() before calling Split.");
+                    }
                 }
                 
                 change_count += Split( std::move(pd), reapr_list, proven_reducedQ );
@@ -311,7 +311,11 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
                 
                 if constexpr (debugQ)
                 {
-                    if( !reapr_list.empty() ) { eprint(tag() +": !reapr_list.empty() after calling Split."); }
+                    if( !reapr_list.empty() )
+                    {
+                        Msgr::eprint(tag, "!reapr_list.empty() after calling Split."
+                        );
+                    }
                 }
             }
             else
@@ -344,8 +348,8 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
     
     if constexpr (debugQ)
     {
-        if( !pd_list.empty() ) { pd_eprint("!pd_list.empty()"); };
-        if( !pd_todo.empty() ) { pd_eprint("!pd_todo.empty()"); };
+        if( !pd_list.empty() ) { pd_eprint(MethodName(tag), ": !pd_list.empty()"); };
+        if( !pd_todo.empty() ) { pd_eprint(MethodName(tag), ": !pd_todo.empty()"); };
     }
 
     swap( pd_list, pd_done );
@@ -366,7 +370,7 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
     
     if constexpr (debugQ)
     {
-        if( !CheckAll() ) { pd_eprint(tag() + ": !CheckAll()."); }
+        if( !CheckAll() ) { pd_eprint(MethodName(tag), ": !CheckAll()."); }
     }
     
     return change_count;
@@ -458,8 +462,7 @@ void DumpRattleFailure(
         // 3. The exact geometry, at full precision, so it can be re-projected.
         (void)emb.WriteToFile( base.string() + ".xyz", true );
 
-        wprint( MethodName("Rattle") + ": wrote a failure bundle to "
-              + base.string() + ".{txt,pd.tsv,xyz} -- please attach these to any bug report." );
+        Msgr::wprint("Rattle", ": wrote a failure bundle to ", base.string(), ".{txt,pd.tsv,xyz} -- please attach these to any bug report." );
     }
     catch( ... )
     {
@@ -472,18 +475,17 @@ Size_T Rattle(
     mref<PassSimplifier_T> S, mref<Reapr_T> reapr, PD_T && pd, cref<Simplify_Args_T> args
 )
 {
-    [[maybe_unused]] auto tag = [this]() { return this->MethodName("Rattle"); };
-    
-    TOOLS_PTIMER(timer,tag());
+    [[maybe_unused]] constexpr auto tag = ct_string("Rattle");
+    TOOLS_PTIMER(timer,MethodName(tag));
 
     if constexpr (debugQ)
     {
-        logprint(tag());
-        if( pd.InvalidQ() ) { pd_eprint(tag() + ": pd.InvalidQ()."); }
-        if( pd.ProvenMinimalQ() ) { wprint(tag() + ": pd.ProvenMinimalQ()."); }
-        if( pd.CrossingCount() <= Int{1} ) { pd_eprint(tag() + ": pd.CrossingCount() <= Int{1}."); }
-        if( pd.DiagramComponentCount() != Int{1} ) { pd_eprint(tag() + ": pd.DiagramComponentCount() != Int{1}."); }
-        if( !pd.CheckAll() ) { pd_eprint(tag() + ": !pd.CheckAll()."); }
+        logprint(tag);
+        if( pd.InvalidQ() ) { pd_eprint(MethodName(tag), ": pd.InvalidQ()."); }
+        if( pd.ProvenMinimalQ() ) { Msgr::wprint(tag, ": pd.ProvenMinimalQ()."); }
+        if( pd.CrossingCount() <= Int{1} ) { pd_eprint(MethodName(tag), ": pd.CrossingCount() <= Int{1}."); }
+        if( pd.DiagramComponentCount() != Int{1} ) { pd_eprint(MethodName(tag), ": pd.DiagramComponentCount() != Int{1}."); }
+        if( !pd.CheckAll() ) { pd_eprint(MethodName(tag), ": !pd.CheckAll()."); }
     }
     
     if( pd.InvalidQ() ) { return 0; }
@@ -543,7 +545,7 @@ Size_T Rattle(
             
             if( projection_flag != 0 )
             {
-                eprint(MethodName("Rattle") + ": " + emb.MethodName("FindIntersections")+ " returned invalid status flag for " + ToString(max_projection_iter) + " random rotation matrices. Something must be wrong. Returning an invalid diagram. Check your results carefully.");
+                Msgr::eprint(tag,  emb.MethodName("FindIntersections"), " returned invalid status flag for ", max_projection_iter, " random rotation matrices. Something must be wrong. Returning an invalid diagram. Check your results carefully.");
 
                 // Although we did not succeed in simplifying this, we need to push it to the list of diagrams that are "done"; otherwise we would lose it.
                 PushDiagramDone( std::move(pd) );
@@ -554,7 +556,10 @@ Size_T Rattle(
             
             if constexpr (debugQ)
             {
-                if( !pdc_new.CheckAll() ) { pd_eprint(tag() + ": !pdc_new.CheckAll())."); }
+                if( !pdc_new.CheckAll() )
+                {
+                    pd_eprint(MethodName(tag), ": !pdc_new.CheckAll()).");
+                }
             }
             
             // We might get some unlinks here. We push them to "done", so that they won't be forgotton.
@@ -564,7 +569,7 @@ Size_T Rattle(
                 {
                     if( !pdc_new.pd_list[i].AnelloQ() )
                     {
-                        pd_eprint(tag() + ": !pdc_new.pd_list[" + ToString(i) + "].AnelloQ().");
+                        pd_eprint(MethodName(tag), ": !pdc_new.pd_list[", i, "].AnelloQ().");
                     }
                 }
                 
@@ -614,7 +619,7 @@ Size_T Rattle(
         {
             if( proven_reducedQ && !pd.ReducedQ() )
             {
-                eprint(tag()+": proven_reducedQ && !pd.ReducedQ().");
+                Msgr::eprint(tag, "proven_reducedQ && !pd.ReducedQ().");
             }
         }
         
@@ -646,9 +651,10 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
     mref<PassSimplifier_T> S, mref<PD_T> pd, cref<Simplify_Args_T> args
 )
 {
-    [[maybe_unused]] auto tag = [this](){ return this->MethodName("SimplifyDiagrammatically"); };
+    [[maybe_unused]] constexpr auto tag = ct_string("SimplifyDiagrammatically");
     
-    TOOLS_PTIMER(timer,tag());
+    
+    TOOLS_PTIMER(timer,MethodName(tag));
     
     if( pd.InvalidQ() ) { return {Size_T{0},Size_T{0}}; }
     
@@ -656,7 +662,7 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
     {
         if constexpr (debugQ)
         {
-            if( !pd.CheckAll() ) { pd_eprint(tag()+": CheckAll() failed when pushed to pd_done."); };
+            if( !pd.CheckAll() ) { pd_eprint(MethodName(tag), ": CheckAll() failed when pushed to pd_done."); };
         }
         
         if( pd.crossing_count < pd.max_crossing_count )
@@ -674,7 +680,7 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
     
     if constexpr (debugQ)
     {
-        if( !pd.ValidQ() ) { pd_eprint(tag() +": pd.ValidQ()."); };
+        if( !pd.ValidQ() ) { pd_eprint(MethodName(tag), ": pd.ValidQ()."); };
     }
     
     // It is very likely that we change the diagram.
@@ -710,7 +716,7 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
             
             if constexpr (debugQ)
             {
-                if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after SimplifyOverPasses."); };
+                if( !pd.CheckAll() ) { pd_eprint(MethodName(tag), ": CheckAll() failed after SimplifyOverPasses."); };
             }
             
 //            if constexpr ( !targs.interleave_over_underQ || !targs.restart_after_successQ || !targs.restart_after_failureQ )
@@ -728,7 +734,7 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
                 
                 if constexpr (debugQ)
                 {
-                    if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after SimplifyUnderPasses."); };
+                    if( !pd.CheckAll() ) { pd_eprint(MethodName(tag), ": CheckAll() failed after SimplifyUnderPasses."); };
                 }
             }
         }
@@ -742,23 +748,14 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
     // Caution: Disconnect is allowed to push some small diagrams to pd_done.
     if( args.disconnectQ )
     {
-//        Size_T disconnect_iter = 0;
         Size_T local_disconnect_count = 0;
         // TODO: This while loop is nasty. Isn't there a way to disconnect in just one round?
         do
         {
-//            ++disconnect_iter;
             local_disconnect_count = Disconnect(pd);
             disconnect_count += local_disconnect_count;
         }
         while( local_disconnect_count > Size_T{0} );
-//        
-//#ifdef PD_DEBUG
-//        if( disconnect_iter > Size_T{2} )
-//        {
-//            PD_PRINT(tag() + ": Needed " + ToString(disconnect_iter-1) + " rounds of disconnect. (disconnect_count = " + ToString(disconnect_count)+ ", crossing_count = " + ToString(pd.CrossingCount()) + ").");
-//        }
-//#endif // PD_DEBUG
     }
     
     return {pass_change_count,disconnect_count};

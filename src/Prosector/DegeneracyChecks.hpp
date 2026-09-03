@@ -9,7 +9,7 @@ bool PointOnLineTest( cref<Vector3_T> z, cref<Vector3_T> a_0, cref<Vector3_T> a_
 {
     // Precondition: z lies on the line through a_0 and a_1.
     
-    if constexpr ( verboseQ ) { logprint(MethodName("PointOnLineTest")); }
+    if constexpr ( verboseQ ) { Msgr::logprint("PointOnLineTest"); }
     
     // TODO: Rephrase this as for loop?
 //    for( int k = 0; k < 3; ++k )
@@ -24,7 +24,7 @@ bool PointOnLineTest( cref<Vector3_T> z, cref<Vector3_T> a_0, cref<Vector3_T> a_
     {
         if constexpr ( verboseQ )
         {
-            logprint(MethodName("PointOnLineTest") + ": Line segment is denegerate.");
+            Msgr::logprint("PointOnLineTest", "Line segment is denegerate.");
             TOOLS_LOGDUMP(z);
             TOOLS_LOGDUMP(a_0);
             TOOLS_LOGDUMP(a_1);
@@ -39,7 +39,7 @@ bool PointOnLineTest( cref<Vector3_T> z, cref<Vector3_T> a_0, cref<Vector3_T> a_
     {
         if constexpr ( verboseQ )
         {
-            logprint("Point lies on line segment.");
+            Msgr::logprint("PointOnLineTest", "Point lies on line segment.");
             TOOLS_LOGDUMP(z);
             TOOLS_LOGDUMP(a_0);
             TOOLS_LOGDUMP(a_1);
@@ -50,7 +50,7 @@ bool PointOnLineTest( cref<Vector3_T> z, cref<Vector3_T> a_0, cref<Vector3_T> a_
     {
         if constexpr ( verboseQ )
         {
-            logprint("Point does not lie on line segment.");
+            Msgr::logprint("PointOnLineTest", "Point does not lie on line segment.");
         }
         return false;
     }
@@ -60,7 +60,7 @@ bool LinesColinearTest()
 {
     // Precondition: The two lines are colinear.
     
-    if constexpr ( verboseQ ) { logprint(MethodName("LinesColinearTest")); }
+    if constexpr ( verboseQ ) { Msgr::logprint("LinesColinearTest"); }
     
     for( Int k = 0; k < Int{3}; ++k )
     {
@@ -78,7 +78,7 @@ bool LinesColinearTest()
         
         if constexpr ( verboseQ )
         {
-            logprint(MethodName("LinesColinearTest") + (result ? "Line segments intersect." : "Line segments do not intersect."));
+            Msgr::logprint("LinesColinearTest", result ? "Line segments intersect." : "Line segments do not intersect.");
         }
         
         return result;
@@ -98,7 +98,7 @@ bool LinesColinearTest()
     
     if constexpr ( verboseQ )
     {
-        logprint(MethodName("LinesColinearTest") + ": Both line segments are denegerate.");
+        Msgr::logprint("LinesColinearTest", "Both line segments are denegerate.");
     }
     // If we arrive here, then both intervals are degenerate and colinear. So their intersection is one point, namely `x_0 == x_1 == y_0 == y_1`.
     

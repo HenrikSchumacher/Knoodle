@@ -13,8 +13,7 @@ bool WriteToFile( cref<std::filesystem::path> file, bool preallocateQ = true ) c
 
     if( !stream )
     {
-        eprint(MethodName("WriteToFile") + ": Could not open file "
-               + file.string() + ". Aborting.");
+        Msgr::eprint("WriteToFile", "Could not open file ", file.string(), ". Aborting.");
         return false;
     }
     
@@ -32,8 +31,7 @@ bool WriteToFile( cref<std::filesystem::path> file, bool preallocateQ = true ) c
     
     if( !stream )
     {
-        eprint(MethodName("WriteToFile") + ": Could not write to file "
-               + file.string() + ".");
+        Msgr::eprint("WriteToFile", "Could not write to file ", file.string(), ".");
         return false;
     }
 

@@ -32,11 +32,11 @@ namespace Knoodle
     {
         switch( s )
         {
-            case CrossingState_T::Inactive             : return "Inactive";
+            case CrossingState_T::Inactive    : return "Inactive";
                 
-            case CrossingState_T::RightHanded          : return "RightHanded";
+            case CrossingState_T::RightHanded : return "RightHanded";
                 
-            case CrossingState_T::LeftHanded           : return "LeftHanded";
+            case CrossingState_T::LeftHanded  : return "LeftHanded";
                 
             default:
             {
