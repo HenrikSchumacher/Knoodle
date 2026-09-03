@@ -577,12 +577,6 @@ namespace Knoodle
             return s << ClassName() << OutString::FromVector(&c.limbs[0],limb_count);
         }
         
-        template<typename CharT,typename Traits>
-        std::stringstream & operator<<( mref<std::basic_ostream<CharT,Traits>&> s ) const
-        {
-            return s << ToString(*this);
-        }
-        
     public:
         
         static constexpr std::string MethodName( const std::string & tag )
