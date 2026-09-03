@@ -37,14 +37,14 @@ void WriteLongMacLeodCode( mptr<T> code ) const
     
     if( LinkComponentCount() > Int(1) )
     {
-        eprint(tag,": Not defined for links with multiple components. Aborting.");
+        eprint(tag, ": Not defined for links with multiple components. Aborting.");
         
         return;
     }
     
     if( !ValidQ() )
     {
-        wprint(tag,": Trying to compute long MacLeod code of invalid diagram. Returning empty vector.");
+        wprint(tag, ": Trying to compute long MacLeod code of invalid diagram. Returning empty vector.");
         return;
     }
     

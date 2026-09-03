@@ -1,6 +1,6 @@
 public:
 
-/*!@brief **EXPERIMENTAL** Type to represent an intersection time as a double. Only meant for benchmarking.*/
+/*!@brief **INEXACT** **EXPERIMENTAL** Type to represent an intersection time as a double. Only meant for benchmarking.*/
 class IntersectionTime_Double final
 {
 private:

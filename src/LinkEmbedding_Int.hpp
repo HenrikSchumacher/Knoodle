@@ -23,7 +23,7 @@ namespace Knoodle
         return u[i] < v[i];
     }
     
-    /*!@brief **EXPERIMENTAL.** This class is mostly intended for reading in 3D vertex coordinates, applying a planar projection, and computing the crossings. Then it can be handed over to class `PlanarDiagram` or `PlanarDiagramComplex`.
+    /*!@brief This class is mostly intended for reading in 3D vertex coordinates, applying a planar projection, and computing the crossings. Then it can be handed over to class `PlanarDiagram` or `PlanarDiagramComplex`.
      *
      *  This class's main routines are `ReadVertexCoordinates` and `RequireIntersections`.
      *  `ReadVertexCoordinates` loads vertex coordinates from a raw buffer; the intrinsic topology of the link and the ordering in which individual vertices are loaded depends on which constructor was used.

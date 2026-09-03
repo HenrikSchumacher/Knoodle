@@ -84,17 +84,19 @@ static void MacLeodCode_to_LongMacLeodCode(
 template<IntQ T = UInt>
 void WriteMacLeodCode( mptr<T> s_mac_leod ) const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">");
+    constexpr auto tag = ct_string("WriteMacLeodCode<") + TypeName<T> + ">";
+    
+    TOOLS_PTIMER(timer,tag);
     
     if( LinkComponentCount() > Int(1) )
     {
-        eprint(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">: Not defined for links with multiple components. Aborting.");
+        eprint(tag, ": Not defined for links with multiple components. Aborting.");
         return;
     }
 
     if( !ValidQ() )
     {
-        wprint(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">: Trying to compute MacLeod code of invalid planar diagram. Returning empty vector.");
+        wprint(tag, ": Trying to compute MacLeod code of invalid planar diagram. Returning empty vector.");
         return;
     }
 
@@ -109,17 +111,17 @@ void WriteMacLeodCode( mptr<T> s_mac_leod ) const
 template<IntQ T = UInt>
 Tensor1<T,Int> MacLeodCode() const
 {
-    constexpr auto tag = ct_string("MacLeodCode<") + TypeName<T> + ">";
+    constexpr auto tag = MethodName("MacLeodCode<") + TypeName<T> + ">";
     
     if( LinkComponentCount() > Int(1) )
     {
-        Msgr::eprint(tag,"This diagram has several link components. And, you know, there can be only one.");
+        eprint(tag, ": This diagram has several link components. And, you know, there can be only one.");
         return Tensor1<T,Int>();
     }
     
     if( !ValidQ() )
     {
-        Msgr::wprint(tag,"Trying to compute MacLeod code of invalid planar diagram. Returning empty vector.");
+        wprint(tag, ": Trying to compute MacLeod code of invalid planar diagram. Returning empty vector.");
         return Tensor1<T,Int>();
     }
     

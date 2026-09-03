@@ -1,6 +1,6 @@
 public:
 
-/*!@brief **EXPERIMENTAL** Type to represent an intersection time as a rational function of the form
+/*!@brief Type to represent an intersection time as a rational function of the form
  *
  *      a[0] + a[1] * eps + a[2] * eps * eps
  *     --------------------------------------

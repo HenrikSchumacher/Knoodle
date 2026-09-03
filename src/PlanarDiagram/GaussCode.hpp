@@ -106,7 +106,7 @@ static PD_T FromExtendedGaussCode(
     
     Int crossing_counter = 0;
     
-    auto fun = [&gauss_code,&pd,&crossing_counter,color]
+    auto fun = [&gauss_code,&pd,&crossing_counter,color,&tag]
     ( const Int a_prev, const Int a ) -> int
     {
         const T g = gauss_code[a];

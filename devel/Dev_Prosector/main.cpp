@@ -8,7 +8,7 @@
 #include "../../Knoodle.hpp"
 //#include "../../experimental/LinkEmbedding_Boost.hpp"
 //#include "../../experimental/LinkEmbedding3.hpp"
-#include "../../experimental/LinkEmbedding4.hpp"
+#include "../../experimental/LinkEmbedding5.hpp"
 
 using namespace Knoodle;
 using namespace Tools;
@@ -17,13 +17,15 @@ using Real  = Real64;
 using Int   = Int64;
 using IReal = Int64;
 
-//using Link1_T = LinkEmbedding<Real,Int>;
+using Link1_T = LinkEmbedding<Real,Int>;
 //using Link2_T = LinkEmbedding_Boost<Real,Int>;
 //using Link3_T = LinkEmbedding3<Real,Int>;
-//using Link4_T = LinkEmbedding4<Real,Int,IReal>;
-using Link5_T = LinkEmbedding5<Real,Int,IReal>;
+using Link4_T = LinkEmbedding4<Real,Int,IReal>;
+//using Link5_T = LinkEmbedding5<Real,Int,IReal>;
 
 using PDC_T   = PlanarDiagramComplex<Int>;
+using PD_T    = PDC_T::PD_T;
+
 int main()
 {
     Profiler::Clear();
@@ -33,12 +35,12 @@ int main()
     
     print("");
 
-//    auto L1 = Link1_T::FromFile(file);
-//    tic(L1.ClassName());
-//    err = L1.RequireIntersections();
-//    toc(L1.ClassName());
-//    TOOLS_DUMP(err);
-//    print("");
+    auto L1 = Link1_T::FromFile(file);
+    tic(L1.ClassName());
+    err = L1.RequireIntersections();
+    toc(L1.ClassName());
+    TOOLS_DUMP(err);
+    print("");
     
 //    auto L2 = Link2_T::FromFile(file);
 //    tic(L2.ClassName());
@@ -53,26 +55,54 @@ int main()
 //    toc(L3.ClassName());
 //    TOOLS_DUMP(err);
 //    print("");
-//    
-//    Link4_T L4 = Link4_T::FromFile(file);
-//    tic(L4.ClassName());
-//    err = L4.RequireIntersections();
-//    toc(L4.ClassName());
-//    TOOLS_DUMP(err);
-//    print("");
     
-    Link5_T L5 = Link5_T::FromFile(file);
-    tic(std::string(L5.ClassName()));
-    err = L5.RequireIntersections();
-    toc(std::string(L5.ClassName()));
+    Link4_T L4 = Link4_T::FromFile(file);
+    tic(L4.ClassName());
+    err = L4.RequireIntersections();
+    toc(L4.ClassName());
     TOOLS_DUMP(err);
     print("");
+    
+
+    std::ostringstream ostrstream;
+    
+    
+//    ofstream << L4;
+//    ostrstream << L4;
+    
+    PDC_T pdc (L4);
+    print(pdc[0]);
+    {
+        std::ofstream ofstream ( HomeDirectory() /"b.txt" );
+        ofstream << pdc[0];
+        ofstream << pdc[0];
+    }
+    
+    PD_T pd_0;
+    PD_T pd_1;
+    
+    {
+        InString in ( HomeDirectory() /"b.txt" );
+        print(in.View());
+        in >> pd_0;
+        in >> pd_1;
+        
+    }
+    print("pd_0 = ", pd_0);
+    print("pd_1 = ", pd_1);
+    
+//    Link5_T L5 = Link5_T::FromFile(file);
+//    tic(std::string(L5.ClassName()));
+//    err = L5.RequireIntersections();
+//    toc(std::string(L5.ClassName()));
+//    TOOLS_DUMP(err);
+//    print("");
     
 //    TOOLS_DUMP(L1.AllocatedByteCount());
 //    TOOLS_DUMP(L2.AllocatedByteCount());
 //    TOOLS_DUMP(L3.AllocatedByteCount());
-//    TOOLS_DUMP(L4.AllocatedByteCount());
-    TOOLS_DUMP(L5.AllocatedByteCount());
+    TOOLS_DUMP(L4.AllocatedByteCount());
+//    TOOLS_DUMP(L5.AllocatedByteCount());
     
     print("");
     
@@ -91,109 +121,20 @@ int main()
     
     
     
-    TOOLS_DUMP(Stringy<std::string>);
-    TOOLS_DUMP(Stringy<std::string &>);
-    TOOLS_DUMP(Stringy<const std::string &>);
-    TOOLS_DUMP(Stringy<std::string &&>);
+//    TOOLS_DUMP(Stringy<std::string>);
+//    TOOLS_DUMP(Stringy<std::string &>);
+//    TOOLS_DUMP(Stringy<const std::string &>);
+//    TOOLS_DUMP(Stringy<std::string &&>);
+//    
+//    TOOLS_DUMP(Stringy<OutString>);
+//    TOOLS_DUMP(Stringy<OutString &>);
+//    TOOLS_DUMP(Stringy<const OutString &>);
+//    TOOLS_DUMP(Stringy<OutString &&>);
+//    
+//    TOOLS_DUMP(Stringy<int>);
+//    TOOLS_DUMP(Stringy<int &>);
+//    TOOLS_DUMP(Stringy<const int &>);
+//    TOOLS_DUMP(Stringy<int &&>);
     
-    TOOLS_DUMP(Stringy<OutString>);
-    TOOLS_DUMP(Stringy<OutString &>);
-    TOOLS_DUMP(Stringy<const OutString &>);
-    TOOLS_DUMP(Stringy<OutString &&>);
     
-    TOOLS_DUMP(Stringy<int>);
-    TOOLS_DUMP(Stringy<int &>);
-    TOOLS_DUMP(Stringy<const int &>);
-    TOOLS_DUMP(Stringy<int &&>);
-    
-    
-    Size_T reps= 1000000;
-    auto engine = InitializedRandomEngine<Knoodle::PRNG_T>();
-    std::uniform_int_distribution<Int> dist (0,999);
-    
-    Tensor2<Int,Size_T> a ( reps, 4 );
-    
-    std::string s_0;
-    s_0.reserve(reps);
-    
-    for( Size_T rep = 0; rep < reps; ++rep )
-    {
-        a(reps,0) = dist(engine);
-        a(reps,1) = dist(engine);
-        a(reps,2) = dist(engine);
-        a(reps,3) = dist(engine);
-    }
-    
-    tic("s_0");
-    for( Size_T rep = 0; rep < reps; ++rep )
-    {
-        auto s = (Link5_T::ClassName() + "::" + "Test" + ": "
-               +   "A = " + Tools::ToString(a(reps,0))
-               + ", B = " + Tools::ToString(a(reps,1))
-               + ", C = " + Tools::ToString(a(reps,2))
-               + ", D = " + Tools::ToString(a(reps,3))
-               + ".");
-        
-        s_0 += s[0];
-    }
-    toc("s_0");
-    
-    std::string s_1;
-    s_1.reserve(reps);
-    tic("s_1");
-    for( Size_T rep = 0; rep < reps; ++rep )
-    {
-        std::string s;
-        s.append(Link5_T::ClassName()).append("::").append("Test")
-        .append(": ")
-        .append(  "A = ").append(Tools::ToString(a(reps,0)))
-        .append(", B = ").append(Tools::ToString(a(reps,1)))
-        .append(", C = ").append(Tools::ToString(a(reps,2)))
-        .append(", D = ").append(Tools::ToString(a(reps,3)));
-        s_1 += s[0];
-    }
-    toc("s_1");
-    
-    std::string s_2;
-    s_2.reserve(reps);
-    tic("s_2");
-    
-    constexpr auto tag = ct_string("Test") + "< " + TypeName<Int> + ">";
-    for( Size_T rep = 0; rep < reps; ++rep )
-    {
-        auto s = Link5_T::Msgr::Message( tag
-               , ", A = " , a(reps,0)
-               , ", B = " , a(reps,1)
-               , ", C = " , a(reps,2)
-               , ", D = " , a(reps,3)
-               , ".");
-        
-        s_2 += s[0];
-    }
-    toc("s_2");
-    
-    print(std::string_view( &s_0[0], &s_0[12] ));
-    print(std::string_view( &s_1[0], &s_1[12] ));
-    print(std::string_view( &s_2[0], &s_2[12] ));
-    {
-        auto s = Link5_T::Msgr::Message( "Test"
-            ,   "A = " , a(reps,0)
-            , ", B = " , a(reps,1)
-            , ", C = " , a(reps,2)
-            , ", D = " , a(reps,3)
-            , ".");
-        print(s);
-    }
-    
-    {
-        OutString str;
-        str << "Hello world!";
-        print(str);
-    }
-    
-    {
-        OutString str;
-        str << "Hello world!";
-        print(std::move(str));
-    }
 }

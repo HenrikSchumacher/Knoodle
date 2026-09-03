@@ -84,3 +84,22 @@ bool WriteToOutString( mref<OutString> s, const bool colorQ = true ) const
     
     return true;
 }
+
+
+/*!@brief Export to `OutString`, using default options.*/
+friend OutString & operator<<( OutString & s, const LinkEmbedding_T & L )
+{
+    (void)L.WriteToOutString(s);
+    return s;
+}
+
+/*!@brief Export to `std::basic_ostream`, using default options.*/
+template<typename C, typename T>
+friend std::basic_ostream<C,T> & operator<<(
+    std::basic_ostream<C,T> & stream, const LinkEmbedding_T & L
+)
+{
+    OutString s;
+    s << L;
+    return stream << s;
+}

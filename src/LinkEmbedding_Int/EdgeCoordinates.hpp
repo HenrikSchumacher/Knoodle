@@ -160,7 +160,6 @@ private:
         
         if constexpr ( mortonQ )
         {
-            tic("Morton ordering");
             p.template RequireSize<false>(edge_count);
             p.iota();
             leaf_node_to_edge.template RequireSize<false>(edge_count);
@@ -179,7 +178,6 @@ private:
             {
                 leaf_node_to_edge[i] = p[T.NodeBegin(T.InternalNodeCount() + i)];
             }
-            toc("Morton ordering");
         }
         
         edge_coords_computedQ = true;

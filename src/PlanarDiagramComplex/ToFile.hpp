@@ -56,3 +56,21 @@ bool WriteToOutString( mref<Tools::OutString> s, const bool leading_kQ = true ) 
     
     return true;
 }
+
+/*!@brief Export to `OutString`, using default options.*/
+friend OutString & operator<<( OutString & s, const PDC_T & pdc )
+{
+    (void)pdc.WriteToOutString(s);
+    return s;
+}
+
+/*!@brief Export to `std::basic_ostream`, using default options.*/
+template<typename C, typename T>
+friend std::basic_ostream<C,T> & operator<<(
+    std::basic_ostream<C,T> & stream, const PDC_T & pdc
+)
+{
+    OutString s;
+    s << pdc;
+    return stream << s;
+}
