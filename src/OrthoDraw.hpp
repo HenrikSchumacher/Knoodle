@@ -13,12 +13,12 @@
 
 namespace MCF
 {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmisleading-indentation"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmisleading-indentation"
     
     #include "MCFSimplex.C"
     
-#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 }
 
 namespace Knoodle
