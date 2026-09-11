@@ -22,7 +22,7 @@ void SetMatchingPortTo( const Int c, const bool io, const Int a, const Int b )
 }
 
 
-/*!@brief Unplugs arc `a` from its head/tail and reconnects it to the head/tail of arc `b`, depending on the value of `headtail`. Depending on the value of `deactivateQ`, arc `b` will be deactivated or not. Mind that the other end of arc `b` might become dangling this way. It lies in the user's responsibility to take care of that.
+/*!@brief **UNSAFE** Unplugs arc `a` from its head/tail and reconnects it to the head/tail of arc `b`, depending on the value of `headtail`. Depending on the value of `deactivateQ`, arc `b` will be deactivated or not. Mind that the other end of arc `b` might become dangling this way. It lies in the user's responsibility to take care of that.
  *
  * Ti minimize branching, arc `a` and `b` are assumed to be distinct. It is the users's responsibility to guarantee this.
  *

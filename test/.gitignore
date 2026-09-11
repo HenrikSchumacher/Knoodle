@@ -15,13 +15,19 @@ klut_bench_boost
 canon_check
 component_check
 error_tap_check
+embedding_check
+embedding_inflation_check
 intersection_flag_reset_check
+intersection3d_check
 klut_identify_check
 klut_identify_random_check
 plantri_check
 link_alex_probe
 link_inflate_check
 link_split_check
+link_color_roundtrip
+embedding_check
+reapr_corner_probe
 vendor/plantri/plantri
 inflate_fail_*.tsv
 link_inflate_fail_*.tsv
@@ -32,4 +38,10 @@ knoodlesimplify.log
 # private cluster config (site-specific; never commit)
 cluster/cluster.conf
 cluster/*.local
+local_moves_check
+intersection3d_check
+move_trace_check
 orthodecorate_check
+pass_view_check
+oracle_vs_reroute
+ordering_probe

@@ -20,27 +20,27 @@ namespace Knoodle
         
         using Dummy_T = char;
         
-        using S0 = std::conditional_t< (arity > Size_T(0)),
-                typename std::remove_cvref<typename F_traits::template arg<(arity > Size_T(0)) ? Size_T(0) : Size_T(0)>::type>::type, Dummy_T >;
-        using S1 = std::conditional_t< (arity > Size_T(1)),
-                typename std::remove_cvref<typename F_traits::template arg<(arity > Size_T(1)) ? Size_T(1) : Size_T(0)>::type>::type, Dummy_T >;
-        using S2 = std::conditional_t< (arity > Size_T(2)),
-                typename std::remove_cvref<typename F_traits::template arg<(arity > Size_T(2)) ? Size_T(2) : Size_T(0)>::type>::type, Dummy_T >;
-        using S3 = std::conditional_t< (arity > Size_T(3)),
-                typename std::remove_cvref<typename F_traits::template arg<(arity > Size_T(3)) ? Size_T(3) : Size_T(0)>::type>::type, Dummy_T >;
+        using S0 = std::conditional_t< (arity > Size_T{0}),
+                typename std::remove_cvref<typename F_traits::template arg<(arity > Size_T{0}) ? Size_T{0} : Size_T{0}>::type>::type, Dummy_T >;
+        using S1 = std::conditional_t< (arity > Size_T{1}),
+                typename std::remove_cvref<typename F_traits::template arg<(arity > Size_T{1}) ? Size_T{1} : Size_T{0}>::type>::type, Dummy_T >;
+        using S2 = std::conditional_t< (arity > Size_T{2}),
+                typename std::remove_cvref<typename F_traits::template arg<(arity > Size_T{2}) ? Size_T{2} : Size_T{0}>::type>::type, Dummy_T >;
+        using S3 = std::conditional_t< (arity > Size_T{3}),
+                typename std::remove_cvref<typename F_traits::template arg<(arity > Size_T{3}) ? Size_T{3} : Size_T{0}>::type>::type, Dummy_T >;
         
         using R = std::remove_cvref<typename F_traits::return_type>::type;
         
         static_assert( SameQ<R,typename std::remove_cvref<typename G_traits::return_type>::type>, "" );
         
-        using T0 = std::conditional_t< (arity > Size_T(0)),
-                typename std::remove_cvref<typename G_traits::template arg<(arity > Size_T(0)) ? Size_T(0) : Size_T(0)>::type>::type, Dummy_T >;
-        using T1 = std::conditional_t< (arity > Size_T(1)),
-                typename std::remove_cvref<typename G_traits::template arg<(arity > Size_T(1)) ? Size_T(1) : Size_T(0)>::type>::type, Dummy_T >;
-        using T2 = std::conditional_t< (arity > Size_T(2)),
-                typename std::remove_cvref<typename G_traits::template arg<(arity > Size_T(2)) ? Size_T(2) : Size_T(0)>::type>::type, Dummy_T >;
-        using T3 = std::conditional_t< (arity > Size_T(3)),
-                typename std::remove_cvref<typename G_traits::template arg<(arity > Size_T(3)) ? Size_T(3) : Size_T(0)>::type>::type, Dummy_T >;
+        using T0 = std::conditional_t< (arity > Size_T{0}),
+                typename std::remove_cvref<typename G_traits::template arg<(arity > Size_T{0}) ? Size_T{0} : Size_T{0}>::type>::type, Dummy_T >;
+        using T1 = std::conditional_t< (arity > Size_T{1}),
+                typename std::remove_cvref<typename G_traits::template arg<(arity > Size_T{1}) ? Size_T{1} : Size_T{0}>::type>::type, Dummy_T >;
+        using T2 = std::conditional_t< (arity > Size_T{2}),
+                typename std::remove_cvref<typename G_traits::template arg<(arity > Size_T{2}) ? Size_T{2} : Size_T{0}>::type>::type, Dummy_T >;
+        using T3 = std::conditional_t< (arity > Size_T{3}),
+                typename std::remove_cvref<typename G_traits::template arg<(arity > Size_T{3}) ? Size_T{3} : Size_T{0}>::type>::type, Dummy_T >;
         
         if( verboseQ )
         {

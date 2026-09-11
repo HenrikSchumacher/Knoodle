@@ -1,0 +1,7 @@
+# Edge 3 runs from (4,0,3) to (1,0,3); edge 0 runs from (0,0,0) to (6,0,0).
+# Their projections are collinear along y=0 and overlap in the interval [1,4].
+note = two non-adjacent edges whose projections share a segment
+knot = unknot
+collinear_overlap    == 1
+vertex_on_edge       >= 2
+spatial              == 0

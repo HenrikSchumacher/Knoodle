@@ -29,11 +29,11 @@ namespace Knoodle
         using UInt                  = ToUnsigned<Int>;
         
         using Base_T                = CachedObject<1,0,0,0>;
-        using Class_T               = PlanarDiagramComplex<Int>;
+        using Class_T               = PlanarDiagramComplex;
         /*!@brief Alias for `PlanarDiagram`.*/
         using PD_T                  = PlanarDiagram<Int>;
         /*!@brief Alias for `PlanarDiagramComplex`.*/
-        using PDC_T                 = PlanarDiagramComplex<Int>;
+        using PDC_T                 = PlanarDiagramComplex;
         using PD_List_T             = std::vector<PD_T>;
         
         using C_Arcs_T              = PD_T::C_Arcs_T;
@@ -104,9 +104,9 @@ namespace Knoodle
         // Copy assignment operator
         PlanarDiagramComplex & operator=( const PlanarDiagramComplex & other ) = default;
         // Move constructor
-        PlanarDiagramComplex( PlanarDiagramComplex && other ) = default;
+        PlanarDiagramComplex( PlanarDiagramComplex && other ) noexcept = default;
         // Move assignment operator
-        PlanarDiagramComplex & operator=( PlanarDiagramComplex && other ) = default;
+        PlanarDiagramComplex & operator=( PlanarDiagramComplex && other ) noexcept = default;
  
         /*!@brief Initialize from a `PlanarDiagram` and a list of unlink colors, taking ownership.*/
         PlanarDiagramComplex( PD_T && pd, Tensor1<Int,Int> && unlink_colors )
@@ -142,8 +142,9 @@ namespace Knoodle
         :   PlanarDiagramComplex( std::move(pd), Tensor1<Int,Int>() )
         {}
         
+        /*!@brief Initialize from a `PlanarDiagram`, copying it.*/
         explicit PlanarDiagramComplex( const PD_T & pd )
-        :   PlanarDiagramComplex( pd, Tensor1<Int,Int>() )
+        :   PlanarDiagramComplex( PD_T(pd), Tensor1<Int,Int>() )
         {}
         
         /*!@brief Initialize from a `LinkEmbedding`, taking ownership.*/
@@ -158,15 +159,15 @@ namespace Knoodle
         :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
         {}
         
-        /*!@brief Initialize from a `LinkEmbedding2`, taking ownership.*/
-        template<typename Real, typename IReal>
-        explicit PlanarDiagramComplex( LinkEmbedding2<Real,Int,IReal> && L )
+        /*!@brief Initialize from a `LinkEmbedding_Int`, taking ownership.*/
+        template<typename Real, typename Prosector_T>
+        explicit PlanarDiagramComplex( LinkEmbedding_Int<Real,Prosector_T> && L )
         :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
         {}
         
-        /*!@brief Initialize from a `LinkEmbedding2`.*/
-        template<typename Real, typename IReal>
-        explicit PlanarDiagramComplex( LinkEmbedding2<Real,Int,IReal> & L )
+        /*!@brief Initialize from a `LinkEmbedding_Int`.*/
+        template<typename Real, typename Prosector_T>
+        explicit PlanarDiagramComplex( LinkEmbedding_Int<Real,Prosector_T> & L )
         :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
         {}
         
@@ -190,8 +191,8 @@ namespace Knoodle
 #include "PlanarDiagramComplex/Disconnect.hpp"
 #include "PlanarDiagramComplex/Canonicalize.hpp"
 #include "PlanarDiagramComplex/Simplify.hpp"
-#include "PlanarDiagramComplex/Rerouting_Experimental.hpp"
-//#include "PlanarDiagramComplex/SimplifyLocal2.hpp" // Only for development and debugging.
+//#include "PlanarDiagramComplex/Rerouting_Experimental.hpp"
+
 #include "PlanarDiagramComplex/LinkingNumber.hpp"
 #include "PlanarDiagramComplex/ModifyDiagramList.hpp"
 #include "PlanarDiagramComplex/ModifyDiagram.hpp"
@@ -219,21 +220,21 @@ namespace Knoodle
         /*!@brief Expose the `i`-th diagram in the internal list of `PlanarDiagram`s. Read-only.*/
         cref<PD_T> Diagram( Int i ) const
         {
-            if( i < Int(0) )
+            if( i < Int{0} )
             {
-                eprint(MethodName("Diagram") + ": Index  i < 0. Returning invalid diagram.");
+                Msgr::eprint("Diagram", "Index  i < 0. Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
             
             if( i >= DiagramCount() )
             {
-                eprint(MethodName("Diagram") + ": Index  i = " +ToString(i) + " is greater equal DiagramCount() = " + ToString(DiagramCount()) + " . Returning invalid diagram.");
+                Msgr::eprint("Diagram", "Index  i = ", i, " is greater equal DiagramCount() = ", DiagramCount(), " . Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
             
-            return pd_list[Size_T(i)];
+            return pd_list[ToSize_T(i)];
         }
         
         /*!@brief Expose the `i`-th diagram in the internal list of `PlanarDiagram`s. Read-only.*/
@@ -251,7 +252,7 @@ namespace Knoodle
             }
             else
             {
-                eprint(MethodName("LastDiagram") + ": List of diagrams is empty. Returning invalid diagram.");
+                Msgr::eprint("LastDiagram", "List of diagrams is empty. Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
@@ -321,7 +322,7 @@ namespace Knoodle
             
             if( PDC.DiagramCount() > Int(1) )
             {
-                eprint(MethodName("ToSingleDiagram") + ": Merged complex contains more than one diagram. Something must have gone wrong. Returning invalid complex.");
+                Msgr::eprint("ToSingleDiagram", "Merged complex contains more than one diagram. Something must have gone wrong. Returning invalid complex.");
                 
                 return PD_T();
             }
@@ -346,19 +347,19 @@ namespace Knoodle
         {
             if( i < Int(0) )
             {
-                eprint(MethodName("Diagram") + ": Index  i < 0. Returning invalid diagram.");
+                Msgr::eprint("Diagram", "Index  i < 0. Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
             
             if( i >= DiagramCount() )
             {
-                eprint(MethodName("Diagram") + ": Index i = " +ToString(i) + " is greater equal DiagramCount() = " + ToString(DiagramCount()) + ". Returning invalid diagram.");
+                Msgr::eprint("Diagram", "Index i = ", i, " is greater equal DiagramCount() = ", DiagramCount(), ". Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
             
-            return pd_list[Size_T(i)];
+            return pd_list[ToSize_T(i)];
         }
         
     public:
@@ -688,7 +689,7 @@ namespace Knoodle
                 }
             );
             
-            if( total_counter > Size_T(0) ) { this->ClearCache(); }
+            if( total_counter > Size_T{0} ) { this->ClearCache(); }
             
             return total_counter;
         }
@@ -696,13 +697,28 @@ namespace Knoodle
 
         mref<PassSimplifier_T> GetPassSimplifier( const Dijkstra_T strategy = Dijkstra_T::Bidirectional )
         {
-            if( !this->InCacheQ("GetPassSimplifier") )
+            if( !this->InCacheQ("PassSimplifier") )
             {
-                this->SetCache("GetPassSimplifier", PassSimplifier_T(*this,strategy));
+                this->SetCache("PassSimplifier", PassSimplifier_T(*this,strategy));
             }
 
-            return this->template GetCache<PassSimplifier_T>("GetPassSimplifier").SetDijkstraStrategy(strategy);
+            return this->template GetCache<PassSimplifier_T>("PassSimplifier").SetDijkstraStrategy(strategy);
         }
+        
+        /*!@brief **EXPERIMENTAL:** Attempts to find the shortest path between the faces created by merging the two faces of arc`a` and the faces created by merging the two faces of arc `b`.
+         *
+         * CAUTION: This assumes that `a` and `b` lie on the same link component!
+         *
+         *  @param idx Index of the subdiagram in which the path shall be found.
+         *
+         *  @param a The one end arc of the shortest path we are looking for.
+         *
+         *  @param b The other end arc of the shortest path we are looking for.
+         *
+         *  @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
+         *
+         *  @param strategy The search strategy.
+         */
         
         PassSimplifier_T::Path_T FindShortestPath(
             const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
@@ -711,6 +727,18 @@ namespace Knoodle
             return GetPassSimplifier(strategy).FindShortestPath( pd_list[idx], a, b, max_dist );
         }
         
+        /*!@brief **EXPERIMENTAL:** Attempts to find the arcs that make up a minimally rerouted strand, neglecting the arcs from `a` to `b` when traversed in natural order. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow! (It has to find and mark a the currect path between `a` and `b`, if existent.
+         *
+         *  @param idx Index of the subdiagram in which the path shall be found.
+         *
+         *  @param a The first arc of the input strand.
+         *
+         *  @param b The last arc of the input strand (included).
+         *
+         *  @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
+         *
+         *  @param strategy The search strategy.
+         */
         PassSimplifier_T::Path_T FindShortestRerouting(
             const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
         )
@@ -738,25 +766,25 @@ namespace Knoodle
             lockedQ = true;
         }
         
-        void LockMessage( const std::string & tag ) const
+        
+        void LockMessage( std::string_view tag ) const
         {
-            wprint(MethodName(tag) + ": This method is considered **UNSAFE**, and the diagram is currently locked to prevent break of topological invariance. If you want to perform this operation anyways, call `Unlock()` first. (Don't forget to `Lock()` it again.)");
+            Msgr::wprint(tag, ": This method is considered **UNSAFE**, and the diagram is currently locked to prevent break of topological invariance. If you want to perform this operation anyways, call `Unlock()` first. (Don't forget to `Lock()` it again.)");
         }
         
     public:
         
-        /*!@brief Return a string that identifies a class method specified by `tag`. Mostly used for logging and in error messages.*/
-        static constexpr std::string MethodName( const std::string & tag )
+        using Msgr = Tools::Messenger<Class_T>;
+
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.*/
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("PlanarDiagramComplex")
-                + "<" + TypeName<Int>
-                + ">";
+            return ct_string("PlanarDiagramComplex<") + TypeName<Int> + ">";
         }
     };
 

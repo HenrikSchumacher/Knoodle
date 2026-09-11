@@ -125,7 +125,7 @@ void WriteSubtableToFile( cref<Path_T> file, const Int n )
     for( const auto & [key,id] : subtable.lut )
     {
         Klut::KeyToMacLeodCode(key,code.data());
-        s.template PutVectorFun<Format::Vector::TSV>(code.ReadAccess(),c);
+        s.template PutVector<Format::Vector::TSV>(code.ReadAccess(),c);
         s.PutChar('\t');
         s.PutChars(subtable.knot_names[id]);
         s.PutChar('\n');

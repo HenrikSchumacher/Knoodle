@@ -48,7 +48,7 @@ void FinalReport()
     {
 //        kv<t1>("Accumulated Intersection Flag Counts", acc_intersec_counts );
         
-        using F_T = Link_T::Intersector_T::F_T;
+        using F_T = Link_T::Prosector_T::F_T;
         
         auto get = [this]( F_T flag )
         {
@@ -69,17 +69,17 @@ void FinalReport()
             Size_T cnt = get(F_T::AtCorner0) + get(F_T::AtCorner0) + get(F_T::CornerCorner);
             if( cnt != 0 )
             {
-                eprint(ClassName()+"::FinalReport: PlanarLineSegmentIntersector detected " + ToString(cnt) + " spatial intersections.");
+                eprint(ClassName()+"::FinalReport: Prosector_Float detected " + ToString(cnt) + " spatial intersections.");
             }
             cnt = get(F_T::AtCorner0) + get(F_T::AtCorner0) + get(F_T::CornerCorner);
             if( cnt != 0 )
             {
-                wprint(ClassName()+"::FinalReport: PlanarLineSegmentIntersector detected " + ToString(cnt) + " corner cases.");
+                wprint(ClassName()+"::FinalReport: Prosector_Float detected " + ToString(cnt) + " corner cases.");
             }
             cnt = get(F_T::Interval);
             if( cnt != 0 )
             {
-                wprint(ClassName()+"::FinalReport: PlanarLineSegmentIntersector detected " + ToString(cnt) + " interval-like intersections.");
+                wprint(ClassName()+"::FinalReport: Prosector_Float detected " + ToString(cnt) + " interval-like intersections.");
             }
         }
     }

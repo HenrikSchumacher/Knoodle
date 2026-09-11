@@ -61,7 +61,7 @@ namespace Knoodle
         
         using PDC_T                     = PlanarDiagramComplex<Int>;
         using PD_T                      = PDC_T::PD_T;
-        using IntersectionFlagCounts_T  = Link_T::IntersectionFlagCounts_T;
+        using ProsectorFlagCounts_T  = Link_T::ProsectorFlagCounts_T;
         using FoldFlagCounts_T          = Clisby_T::FoldFlagCounts_T;
         using PRNG_T                    = Clisby_T::PRNG_T;
         
@@ -127,7 +127,7 @@ namespace Knoodle
         
         std::pair<Real,Real> e_dev;
 
-        IntersectionFlagCounts_T acc_intersec_counts;
+        ProsectorFlagCounts_T acc_intersec_counts;
         
         TimeInterval T_run;
         
@@ -227,12 +227,12 @@ print(R"(
                     Run();
                     
                     print("Done.");
-                    valprint<30>("Time elapsed during burn-in",burn_in_time);
-                    valprint<30>("Time elapsed during sampling",total_sampling_time);
-                    valprint<30>("Time elapsed during analysis",total_analysis_time);
-                    valprint<30>("Time elapsed during snapshots",total_snapshot_time);
+                    valprint<true,30>("Time elapsed during burn-in",burn_in_time);
+                    valprint<true,30>("Time elapsed during sampling",total_sampling_time);
+                    valprint<true,30>("Time elapsed during analysis",total_analysis_time);
+                    valprint<true,30>("Time elapsed during snapshots",total_snapshot_time);
                     print(std::string(26 + 24,'-'));
-                    valprint<30>("Time elapsed all together",total_timing);
+                    valprint<true,30>("Time elapsed all together",total_timing);
                 }
             }
             catch( const std::exception & e )

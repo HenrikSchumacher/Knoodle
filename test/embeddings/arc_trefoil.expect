@@ -1,0 +1,34 @@
+# The trefoil in ARC PRESENTATION (open book form). The z-axis is the binding;
+# every arc lies in one half-plane through it, running
+#
+#     (0,0,z) -> (a,b,z) -> (a,b,z1) -> (0,0,z1)
+#
+# so all five binding points project to the origin, each arc's vertical segment
+# projects to a point, and -- the sharp part -- each arc's outbound and return
+# segments project onto EXACTLY THE SAME segment.
+#
+# The naive vertical projection therefore has no transversal crossings at all:
+# it is five doubled rays through one point. Every crossing in the answer is
+# manufactured by the symbolic perturbation, which makes this the strongest
+# single test of it in the suite. LinkEmbedding2/3/4 recover 8 crossings and
+# agree crossing-for-crossing; they simplify to the left-handed trefoil.
+#
+# LinkEmbedding refuses it (error code 9, degenerate edges). That is correct,
+# not a defect, and needs no marker: the invariant tier anchors a class without
+# symbolic perturbation on a generic image instead.
+#
+# This is not a contrived shape. It is the form of the petaluma random-knot
+# model, so it is what a generator in the wild will hand to Knoodle directly.
+#
+# Built from the 5x5 grid diagram X = [0,1,2,3,4], O = [2,3,4,0,1], with the
+# five pages placed at integer directions in cyclic order around the origin:
+# (1,0), (1,2), (-1,1), (-2,-1), (1,-2). See README for the construction.
+note = arc presentation: every crossing is on the binding axis and projects to one point
+knot = left-handed trefoil
+
+vertical_edges         == 5
+collinear_overlap      == 5
+coincident_vertices    == 15
+multiple_points        == 1
+max_point_multiplicity == 10
+spatial                == 0

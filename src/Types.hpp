@@ -32,11 +32,11 @@ namespace Knoodle
     {
         switch( s )
         {
-            case CrossingState_T::Inactive             : return "Inactive";
+            case CrossingState_T::Inactive    : return "Inactive";
                 
-            case CrossingState_T::RightHanded          : return "RightHanded";
+            case CrossingState_T::RightHanded : return "RightHanded";
                 
-            case CrossingState_T::LeftHanded           : return "LeftHanded";
+            case CrossingState_T::LeftHanded  : return "LeftHanded";
                 
             default:
             {
@@ -518,14 +518,6 @@ namespace Knoodle
                 return c;
             }
         }
-    }
-    
-    
-    
-    template<IntQ Int>
-    double ToDouble( cref<Int> a )
-    {
-        return static_cast<double>(a);
     }
     
 } // namespace Tools

@@ -55,8 +55,8 @@ using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T        = PDC_T::PD_T;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Energy_T    = PDC_T::Energy_T;
-using LinkEmb_T   = Knoodle::LinkEmbedding<Real, Int, float>;
 using Reapr_T     = Knoodle::Reapr<Real, Int, float>;  // only used for RandomRotation()
+using LinkEmb_T   = Reapr_T::LinkEmbedding_T;
 
 // The timing aliases live in a named namespace rather than at global scope.
 // Apple's <MacTypes.h> (pulled in transitively by <Accelerate/Accelerate.h>,
@@ -949,7 +949,7 @@ bool ParseNumericLine(const std::string& line,
  * knoodlesimplify's --format=pdc) get Henrik's exact, unmodified output
  * regardless of whether their own destination is a file or stdout.
  */
-bool WritePdcNativeFormat(PDC_T& pdc, std::ostream& output, bool leading_kQ = true)
+[[maybe_unused]] bool WritePdcNativeFormat(PDC_T& pdc, std::ostream& output, bool leading_kQ = true)
 {
     static std::atomic<unsigned long long> counter{0};
 
@@ -1068,11 +1068,11 @@ PD_T CreateDiagramFrom3D(const std::vector<Real>& vertices,
     }
 
     // Create PlanarDiagram from 3D coordinates using static factory
-    auto [pd, unlinks] = PD_T::FromKnotEmbedding(coords.data(), vertex_count);
+    auto [pd, unlinks] = PD_T::FromCoordinates(coords.data(), vertex_count);
 
     if (!pd.ValidQ())
     {
-        // FromKnotEmbedding returns an invalid pd alongside a populated
+        // FromCoordinates returns an invalid pd alongside a populated
         // `unlinks` color list precisely when every component turned out to
         // have zero self-intersections (see PlanarDiagramComplex's own
         // pair-consuming constructor, which treats this combination as "all
@@ -1084,7 +1084,7 @@ PD_T CreateDiagramFrom3D(const std::vector<Real>& vertices,
             return PD_T::Unknot(unlinks[0]);
         }
 
-        LogError("FromKnotEmbedding failed to create a valid diagram");
+        LogError("FromCoordinates failed to create a valid diagram");
         return PD_T();
     }
 
@@ -1106,9 +1106,7 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
     switch (format)
     {
         case 4:
-            // Not PD_T::FromUnsignedPDCode: that wrapper does not compile
-            // against the new FromPDCode<targs> signature (upstream bug).
-            return PD_T::template FromPDCode<{.signQ = false, .colorQ = false}>(
+            return PD_T::FromUnsignedPDCode(
                 crossings.data(), crossing_count, false, true
             );
         case 5:
@@ -1140,7 +1138,7 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
  * @param[out] reached_eof Set to true if we hit EOF.
  * @return The parsed InputKnot, or nullopt on error.
  */
-std::optional<InputKnot> ReadKnot(std::istream& input,
+[[maybe_unused]] std::optional<InputKnot> ReadKnot(std::istream& input,
                                    bool randomize_projection,
                                    Knoodle::PRNG_T& rng,
                                    const std::string& source_name,

@@ -1,0 +1,9 @@
+# Bowtie: the curve passes through the projected point (2,2) twice, once at
+# z=0 and once at z=3, so four edges meet there endpoint-to-endpoint.
+note = two vertices project onto each other; four edges through one point
+knot = unknot (figure-eight projection, two embedded lobes)
+corner_corner        == 4
+coincident_vertices  == 1
+max_point_multiplicity == 4
+multiple_points      >= 1
+spatial              == 0

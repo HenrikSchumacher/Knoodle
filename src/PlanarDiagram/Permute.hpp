@@ -19,17 +19,19 @@ PD_T PermuteRandom( mref<PRNGT_T> random_engine ) const
 template<IntQ ExtInt>
 PD_T Permute( mref<Permutation<ExtInt>> c_perm, mref<Permutation<ExtInt>> a_perm )  const
 {
-    TOOLS_PTIMER(timer,MethodName("Permute")+"<"+TypeName<ExtInt>+">");
+    constexpr auto tag = MethodName("Permute") + "<" + TypeName<ExtInt> + ">";
+    
+    TOOLS_PTIMER(timer,tag);
     
     if( std::cmp_not_equal(max_crossing_count,c_perm.Size()) )
     {
-        eprint(MethodName("Permute")+"<"+TypeName<ExtInt>+">: Size " + Tools::ToString(c_perm.Size()) + " does not match number of elements " + Tools::ToString(max_crossing_count) + " in Crossings(). Returning invalid diagram.");
+        eprint(tag, ": Size ", c_perm.Size(), " does not match number of elements ", max_crossing_count, " in Crossings(). Returning invalid diagram.");
         return InvalidDiagram();
     }
     
     if( std::cmp_not_equal(max_arc_count,a_perm.Size()) )
     {
-        eprint(MethodName("Permute")+"<"+TypeName<ExtInt>+">: Size " + Tools::ToString(a_perm.Size()) + " does not match number of elements " + Tools::ToString(max_arc_count) + " in Arcs(). Returning invalid diagram.");
+        eprint(tag, ": Size ", a_perm.Size(), " does not match number of elements ", max_arc_count, " in Arcs(). Returning invalid diagram.");
         return  InvalidDiagram();
     }
     

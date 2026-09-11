@@ -84,17 +84,19 @@ static void MacLeodCode_to_LongMacLeodCode(
 template<IntQ T = UInt>
 void WriteMacLeodCode( mptr<T> s_mac_leod ) const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">");
+    constexpr auto tag = ct_string("WriteMacLeodCode<") + TypeName<T> + ">";
+    
+    TOOLS_PTIMER(timer,tag);
     
     if( LinkComponentCount() > Int(1) )
     {
-        eprint(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">: Not defined for links with multiple components. Aborting.");
+        eprint(tag, ": Not defined for links with multiple components. Aborting.");
         return;
     }
 
     if( !ValidQ() )
     {
-        wprint(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">: Trying to compute MacLeod code of invalid planar diagram. Returning empty vector.");
+        wprint(tag, ": Trying to compute MacLeod code of invalid planar diagram. Returning empty vector.");
         return;
     }
 
@@ -109,17 +111,17 @@ void WriteMacLeodCode( mptr<T> s_mac_leod ) const
 template<IntQ T = UInt>
 Tensor1<T,Int> MacLeodCode() const
 {
-    TOOLS_PTIMER(timer,MethodName("MacLeodCode")+"<"+TypeName<T>+">");
+    constexpr auto tag = MethodName("MacLeodCode<") + TypeName<T> + ">";
     
     if( LinkComponentCount() > Int(1) )
     {
-        eprint(MethodName("MacLeodCode")+"<"+TypeName<T>+">: This diagram has several link components. And, you know, there can be only one.>");
+        eprint(tag, ": This diagram has several link components. And, you know, there can be only one.");
         return Tensor1<T,Int>();
     }
     
     if( !ValidQ() )
     {
-        wprint(MethodName("MacLeodCode")+"<"+TypeName<T>+">: Trying to compute MacLeod code of invalid planar diagram. Returning empty vector.");
+        wprint(tag, ": Trying to compute MacLeod code of invalid planar diagram. Returning empty vector.");
         return Tensor1<T,Int>();
     }
     
@@ -138,11 +140,11 @@ static PD_T FromMacLeodCode(
     const bool    proven_minimalQ_ = false
 )
 {
-    TOOLS_PTIMER(timer,MethodName("FromMacLeodCode")
+    TOOLS_PTIMER(timer, Msgr::MethodName( ct_string("FromMacLeodCode")
         + "<" + TypeName<T>
         + "," + TypeName<ExtInt>
         + "," + TypeName<ExtInt2>
-        + ">");
+        + ">" ) );
     
     Int c_count = int_cast<Int>(crossing_count_);
     Int a_count = Int(2) * c_count;
@@ -191,7 +193,7 @@ static PD_T FromMacLeodCode(
 
 std::string MacLeodString() const
 {
-    TOOLS_PTIMER(timer,MethodName("MacLeodString"));
+    TOOLS_PTIMER(timer,Msgr::MethodName("MacLeodString"));
     
     auto code = this->template MacLeodCode<UInt>();
     
@@ -206,7 +208,7 @@ std::string MacLeodString() const
 template<IntQ ExtInt2>
 static PD_T FromMacLeodString( cref<std::string> s, const ExtInt2 color )
 {
-    TOOLS_PTIMER(timer,MethodName("FromMacLeodString"));
+    TOOLS_PTIMER(timer,Msgr::MethodName("FromMacLeodString"));
     
     Size_T L = ToSize_T(s.size());
     Size_T d = 1;   // current digit count that we try

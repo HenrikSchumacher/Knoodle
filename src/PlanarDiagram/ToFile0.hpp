@@ -71,8 +71,7 @@ bool WriteToFile0( cref<std::filesystem::path> file ) const
 
     if( !stream )
     {
-        eprint(MethodName("WriteToFile0") + ": Could not open file "
-               + file.string() + ". Aborting.");
+        Msgr::eprint("WriteToFile0", "Could not open file ", file.string(), ". Aborting.");
         return false;
     }
 

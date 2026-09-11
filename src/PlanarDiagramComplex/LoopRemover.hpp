@@ -9,8 +9,9 @@ namespace Knoodle
         
         using Int  = Int_;
         
-        using PDC_T = PlanarDiagramComplex<Int>;
-        using PD_T  = PDC_T::PD_T;
+        using Class_T = LoopRemover;
+        using PDC_T   = PlanarDiagramComplex<Int>;
+        using PD_T    = PDC_T::PD_T;
     
         static constexpr Int  Uninitialized = PD_T::Uninitialized;
         static constexpr bool Tail = PD_T::Tail;
@@ -132,20 +133,17 @@ namespace Knoodle
         
     public:
         
-    /*!@brief Return a string that identifies a class method specified by `tag`. Mostly used for logging and in error messages.
-     */
-        
-        static std::string MethodName( const std::string & tag )
+        using Msgr = Tools::Messenger<Class_T>;
+
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-    /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.
-    */
-        
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("LoopRemover")
+            return ct_string("LoopRemover")
                 + "<" + TypeName<Int>
                 + ">";
         }

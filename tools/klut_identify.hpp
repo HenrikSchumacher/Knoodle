@@ -57,6 +57,12 @@ struct IdentifyParams
     // (~<=5 crossings: +15..32% at 3-4 crossings), and loses above that as local
     // moves stall and force Reapr escalation. Not worth a size-adaptive branch --
     // the reroute default (seed_local_opt=0, seed_reroute=true) stays.
+    // WARNING (2026-08-14): seed_local_opt = 4 is currently UNSOUND, not merely
+    // slow. It enables the assisted R_IIa patterns, which half-apply on a
+    // locked diagram and can change the knot type -- see GitHub issue #33 and
+    // test/local_moves_check. The July finding below concerns speed and was
+    // measured before that was known; treat its level-4 numbers as suspect.
+    // The default of 0 is unaffected.
     Size_T seed_local_opt = 0;  // local_opt_level for the seed: 0=off (default), 1=R1,
                                 // 2=R1+R2, 4=all local patterns.
     bool   seed_reroute = true; // rerouteQ for the seed. false + seed_local_opt>0 = a
@@ -121,7 +127,7 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
     R.summands.clear();                            // keep the vector's capacity
     R.status          = IdentifyResult::Status::Knot;
     R.component_error = false;
-    R.reapr_calls     = Size_T(0);
+    R.reapr_calls     = Size_T{0};
 
     // Push()/Pop()/Clear() are lock-guarded: on a locked complex they do nothing
     // and warn, because they cannot verify that arc colors stay consistent
@@ -150,7 +156,7 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
     // Seed: pass-only decomposition, canonicalize OFF (hot path).
     {
         PDC_T::Simplify_Args_T a{};
-        a.embedding_trials = Size_T(0);
+        a.embedding_trials = Size_T{0};
         a.canonicalizeQ    = false;
         a.local_opt_level  = static_cast<Knoodle::UInt8>(q.seed_local_opt);  // default 0: no-op
         a.rerouteQ         = q.seed_reroute;                                 // default true: no-op

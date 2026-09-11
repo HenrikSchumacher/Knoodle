@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../Knoodle.hpp"
+#include "diagram_sanity.hpp"
 
 extern "C" {
 #include "vendor/libhomfly/homfly.h"
@@ -31,6 +32,8 @@ extern "C" {
 extern "C" void knoodle_gc_free_all(void);
 
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <map>
 #include <set>
 #include <sstream>
@@ -296,6 +299,37 @@ inline PDC_T::Simplify_Args_T SimplifyArgs()
     return PDC_T::Simplify_Args_T{};
 }
 
+/// Corruption tripwires: the thorough recompute-from-scratch sanity checks
+/// from diagram_sanity.hpp, run on everything Simplify hands back through this
+/// oracle. A failure here is diagram corruption, not an invariance result the
+/// caller can interpret -- and the invariance checks alone would miss any
+/// corruption that happens to preserve the polynomial or the component count
+/// -- so it fails the test binary immediately and loudly instead of returning
+/// through a channel that a coincidentally-preserved invariant could mask.
+inline void RequireComplexSanity(PDC_T& pdc, const char* where)
+{
+    std::string why;
+    if (!KnoodleTest::ComplexSanityQ(pdc, &why))
+    {
+        std::fprintf(stderr,
+            "FATAL: diagram sanity failure after %s:\n%s", where, why.c_str());
+        std::fflush(nullptr);
+        std::exit(1);
+    }
+}
+
+inline void RequireDiagramSanity(const PD_T& pd, const char* where)
+{
+    std::string why;
+    if (!KnoodleTest::DiagramSanityQ(pd, &why))
+    {
+        std::fprintf(stderr,
+            "FATAL: diagram sanity failure after %s:\n%s", where, why.c_str());
+        std::fflush(nullptr);
+        std::exit(1);
+    }
+}
+
 enum class InvStatus { Preserved, Changed, Unsupported };
 
 /// HOMFLY of the simplified diagram, honoring its split structure (via
@@ -313,12 +347,14 @@ inline Polynomial SimplifiedHomfly(const PD_T& pd, bool& supported)
     {
         return Polynomial{ {{0, 0}, 1} };  // unknot
     }
+    RequireComplexSanity(pdc, "Simplify (SimplifiedHomfly)");
     PD_T single = pdc.ToSingleDiagram();
     if (!single.ValidQ())
     {
         supported = false;
         return {};
     }
+    RequireDiagramSanity(single, "ToSingleDiagram (SimplifiedHomfly)");
     return HomflyOfPossiblySplit(KnoodleJenkins(single), supported);
 }
 
@@ -397,11 +433,14 @@ inline SimplifyMeasure SimplifyAndMeasure(const PD_T& pd, bool need_single,
         m.reduced_to_unknot = true;
         return m;
     }
+    RequireComplexSanity(pdc, "Simplify (SimplifyAndMeasure)");
     m.comp_after = ComplexComponentCount(pdc);
     if (need_single)
     {
         m.single_after = pdc.ToSingleDiagram();
         if (!m.single_after.ValidQ()) { m.reassembly_failed = true; }
+        else { RequireDiagramSanity(m.single_after,
+                                    "ToSingleDiagram (SimplifyAndMeasure)"); }
     }
     if (need_pieces)   // each is a diagrammatically-prime summand of the result
     {

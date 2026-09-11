@@ -13,8 +13,7 @@ bool WriteToFile( cref<std::filesystem::path> file, bool preallocateQ = true ) c
 
     if( !stream )
     {
-        eprint(MethodName("WriteToFile") + ": Could not open file "
-               + file.string() + ". Aborting.");
+        Msgr::eprint("WriteToFile", "Could not open file ", file.string(), ". Aborting.");
         return false;
     }
     
@@ -32,8 +31,7 @@ bool WriteToFile( cref<std::filesystem::path> file, bool preallocateQ = true ) c
     
     if( !stream )
     {
-        eprint(MethodName("WriteToFile") + ": Could not write to file "
-               + file.string() + ".");
+        Msgr::eprint("WriteToFile", "Could not write to file ", file.string(), ".");
         return false;
     }
 
@@ -119,11 +117,6 @@ bool WriteToOutString_impl( mref<Tools::OutString> s ) const
         
     constexpr bool check_sizeQ = !preallocateQ;
     
-    
-//    // DEBUGGING
-//    valprint("s.Capacity() before write", s.Capacity());
-//    valprint("s.Size()     before write", s.Size());
-    
     // We put `ClassName()` on top of the string as it contains the integer type to use for indices.
     // It depends on this integer type what `PD_T::Uninitialized` is: for signed integers, we have `PD_T::Uninitialized == -1`; but for unsigned integer types `PD_T::Uninitialized` is the largest possible value. So knowing the integer type is crucial for reconstructing a diagram that contain inactive crossings or inactive vertices.
     // This also means that signed types will typically lead to smaller files.
@@ -164,9 +157,24 @@ bool WriteToOutString_impl( mref<Tools::OutString> s ) const
     s.Put(proven_minimalQ);
     s.template PutChar<check_sizeQ>('\n');
     
-//    // DEBUGGING
-//    valprint("s.Capacity() after write", s.Capacity());
-//    valprint("s.Size()     after write", s.Size());
-    
     return true;
+}
+
+
+/*!@brief Export to `OutString`, using default options.*/
+friend OutString & operator<<( OutString & s, const PD_T & pd )
+{
+    (void)pd.WriteToOutString(s);
+    return s;
+}
+
+/*!@brief Export to `std::basic_ostream`, using default options.*/
+template<typename C, typename T>
+friend std::basic_ostream<C,T> & operator<<(
+    std::basic_ostream<C,T> & stream, const PD_T & pd
+)
+{
+    OutString s;
+    s << pd;
+    return stream << s;
 }

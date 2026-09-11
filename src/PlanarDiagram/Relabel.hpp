@@ -20,23 +20,12 @@ PD_T CreateRelabeled(
     bool surjectiveQ = false
 )  const
 {
-    [[maybe_unused]] auto tag = [](){ return MethodName("CreateRelabeled"); };
+    [[maybe_unused]] constexpr auto tag = ct_string("CreateRelabeled");
     
     if( InvalidQ() ) { return InvalidDiagram(); }
 
-    TOOLS_PTIMER(timer,tag());
-    
-//    if( std::cmp_not_equal(max_crossing_count,c_map.Size()) )
-//    {
-//        eprint(tag()+": Size " + Tools::ToString(c_map.Size()) + " does not match number of elements " + Tools::ToString(max_crossing_count) + " in Crossings(). Returning invalid diagram.");
-//        return InvalidDiagram();
-//    }
-//    
-//    if( std::cmp_not_equal(max_crossing_count,a_map.Size()) )
-//    {
-//        eprint(tag()+": Size " + Tools::ToString(a_map.Size()) + " does not match number of elements " + Tools::ToString(max_arc_count) + " in Arcs(). Returning invalid diagram.");
-//        return InvalidDiagram();
-//    }
+    TOOLS_PTIMER(timer,MethodName(tag));
+
 
     // TODO: Check that `max_c_label_plus_one - 1`  and `max_a_label_plus_one - 1` fit into Int.
     
@@ -62,13 +51,13 @@ PD_T CreateRelabeled(
         
         if( t < Int(0) )
         {
-            eprint(tag() + ": Found negative mapped crossing index. Aborting and returning invalid diagram.");
+            Msgr::eprint(tag, "Found negative mapped crossing index. Aborting and returning invalid diagram.");
             return InvalidDiagram();
         }
         
         if( t >= max_c_label_plus_one )
         {
-            eprint(tag() + ": Found mapped crossing index greater or equal to max_c_label_plus_one. Aborting and returning invalid diagram.");
+            Msgr::eprint(tag, "Found mapped crossing index greater or equal to max_c_label_plus_one. Aborting and returning invalid diagram.");
             return InvalidDiagram();
         }
 
@@ -90,13 +79,13 @@ PD_T CreateRelabeled(
         
         if( t < ExtInt(0) )
         {
-            eprint(tag() + ": Found negative mapped arc index. Aborting and returning invalid diagram.");
+            Msgr::eprint(tag, "Found negative mapped arc index. Aborting and returning invalid diagram.");
             return InvalidDiagram();
         }
         
         if( t >= max_a_label_plus_one )
         {
-            eprint(tag() + ": Found mapped arc index greater or equal to max_a_label_plus_one. Aborting and returning invalid diagram.");
+            Msgr::eprint(tag, "Found mapped arc index greater or equal to max_a_label_plus_one. Aborting and returning invalid diagram.");
             return InvalidDiagram();
         }
 
@@ -263,7 +252,6 @@ void ScratchRandomPackedCrossingIndices( mref<PRNG_T> random_engine )  const
 template<typename PRNG_T>
 Tensor1<Int,Int> RandomPackedCrossingIndices( mref<PRNG_T> random_engine ) const
 {
-    std::string tag (MethodName("RandomPackedCrossingIndices"));
     Tensor1<Int,Int> c_map ( MaxCrossingCount() );
     WriteRandomPackedCrossingIndices( random_engine, c_map.data() );
     return c_map;
@@ -336,4 +324,3 @@ void PermuteRandom( mref<PRNG_T> random_engine )
     PD_T pd = CreatePermutedRandom( random_engine );
     if( ValidQ() == pd.ValidQ() ) { *this = std::move(pd); }
 }
-

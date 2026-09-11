@@ -134,7 +134,7 @@ mref<ArcContainer_T> ArcLeftDarcs() const
     
     if( !this->InCacheQ(tag) )
     {
-        TOOLS_PTIMER(timer,MethodName(tag));
+        TOOLS_PTIMER(timer,MethodName("ArcLeftDarcs"));
         
         ArcContainer_T A_left_buffer ( max_arc_count );
         

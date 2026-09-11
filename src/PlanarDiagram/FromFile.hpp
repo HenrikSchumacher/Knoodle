@@ -24,25 +24,25 @@ static PD_T FromInString( mref<Tools::InString> s )
 {
     // needs to know all member variables
     
-    // Using 1-byte separators that are compatible with Mathematica and that minimize string size..
+    // Using 1-byte separators that are compatible with Mathematica and that minimize string size.
     constexpr char prefix [2] = "{";
     constexpr char infix  [2] = ",";
     constexpr char suffix [2] = "}";
     
     if( s.FailedQ() )
     {
-        eprint(MethodName("FromInString") +": InString is in failure state. Returning invalid diagram.");
+        Msgr::eprint("FromInString", ": InString is in failure state. Returning invalid diagram.");
         return PD_T::InvalidDiagram();
     }
     
     Int max_crossing_count;
     
-    constexpr std::string name = ClassName();
+    const auto name = ClassName();
     
     s.SkipChars(&name[0],name.size());
     if( s.FailedQ() )
     {
-        eprint(MethodName("FromInString") +": InString does not start with \"" + name + "\". Returning invalid diagram. Maybe there is a type mismatch. Returning invalid diagram.");
+        Msgr::eprint("FromInString",": InString does not start with \"", name, "\". Returning invalid diagram. Maybe there is a type mismatch. Returning invalid diagram.");
         return PD_T::InvalidDiagram();
     }
     
@@ -51,7 +51,7 @@ static PD_T FromInString( mref<Tools::InString> s )
     
     if( s.FailedQ() )
     {
-        eprint(MethodName("FromInString") +": Failed to read max_crossing_count. Returning invalid diagram.");
+        Msgr::eprint("FromInString", ": Failed to read max_crossing_count. Returning invalid diagram.");
         return PD_T::InvalidDiagram();
     }
     
@@ -71,8 +71,8 @@ static PD_T FromInString( mref<Tools::InString> s )
     s.SkipChars("\nC_arcs = ");
     s.TakeArray(pd.C_arcs.WriteAccess(),
         n     , prefix, infix, suffix,
-        Int(2), prefix, infix, suffix,
-        Int(2), prefix, infix, suffix
+        Int{2}, prefix, infix, suffix,
+        Int{2}, prefix, infix, suffix
     );
     s.SkipChars("\nC_state = ");
     s.TakeArray(pd.C_state.WriteAccess(), n, prefix, infix, suffix);
@@ -80,7 +80,7 @@ static PD_T FromInString( mref<Tools::InString> s )
     s.SkipChars("\nA_cross = ");
     s.TakeArray(pd.A_cross.WriteAccess(),
         m     , prefix, infix, suffix,
-        Int(2), prefix, infix, suffix
+        Int{2}, prefix, infix, suffix
     );
     s.SkipChars("\nA_state = ");
     s.TakeArray(pd.A_state.WriteAccess(), m, prefix, infix, suffix);
@@ -94,9 +94,28 @@ static PD_T FromInString( mref<Tools::InString> s )
     
     if( s.FailedQ() )
     {
-        eprint(MethodName("FromInString") +": Failed to read from InString. Returning invalid diagram.");
+        Msgr::eprint("FromInString", ": Failed to read from InString. Returning invalid diagram.");
         return PD_T::InvalidDiagram();
     }
     
     return pd;
 }
+
+/*!@brief Import from `InString`, using default options.*/
+friend InString & operator>>( InString & s, PD_T & pd )
+{
+    pd = PD_T::FromInString(s);
+    return s;
+}
+
+///*!@brief Import from `std::basic_istream`, using default options.*/
+//template<typename C, typename T>
+//friend std::basic_istream<C,T> & operator>>(
+//    std::basic_istream<C,T> & stream, const PD_T & pd
+//)
+//{
+//    InString s;
+//    s << stream
+//    s >> pd;
+//    return stream;
+//}

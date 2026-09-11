@@ -9,47 +9,47 @@ struct SimplifyLocal_Args_T
 friend std::string ToString( cref<SimplifyLocal_Args_T> args )
 {
     return std::string("{ ")
-            +   "max_iter = " + ToString(args.max_iter)
-            + ", compression_threshold = " + ToString(args.compression_threshold)
-            + ", compressQ = " + ToString(args.compressQ)
-            + ", opt_level = " + ToString(args.opt_level)
+            +   "max_iter = " + std::string(args.max_iter)
+            + ", compression_threshold = " + std::string(args.compression_threshold)
+            + ", compressQ = " + std::string(args.compressQ)
+            + ", opt_level = " + std::string(args.opt_level)
     + " }";
 }
 
 Size_T SimplifyLocal( cref<SimplifyLocal_Args_T> args )
 {
-    if( DiagramCount() == Int(0) )
+    if( DiagramCount() == Int{0} )
     {
         return 0;
     }
     
-    const UInt8 level = Clamp(args.opt_level, UInt8(0), UInt8(4));
+    const UInt8 level = Clamp(args.opt_level, UInt8{0}, UInt8{4});
     
     switch ( level )
     {
-        case UInt8(0):
+        case UInt8{0}:
         {
             return 0;
         }
-        case UInt8(1):
+        case UInt8{1}:
         {
             return SimplifyLocal_impl<1,true>(args);
         }
-        case UInt8(2):
+        case UInt8{2}:
         {
             return SimplifyLocal_impl<2,true>(args);
         }
-        case UInt8(3):
+        case UInt8{3}:
         {
             return SimplifyLocal_impl<3,true>(args);
         }
-        case UInt8(4):
+        case UInt8{4}:
         {
             return SimplifyLocal_impl<4,true>(args);
         }
         default:
         {
-            eprint( MethodName("SimplifyLocal")+": Value " + ToString(level) + " is invalid" );
+            Msgr::eprint("SimplifyLocal", ": Value ", level, " is invalid" );
             return 0;
         }
     }
@@ -62,7 +62,7 @@ private:
 template<UInt8 opt_level, bool multi_compQ>
 Size_T SimplifyLocal_impl( cref<SimplifyLocal_Args_T> args )
 {
-    TOOLS_PTIMER(timer,MethodName("SimplifyLocal_impl")+"<" + ToString(opt_level) + "," + ToString(multi_compQ) + ">");
+    TOOLS_PTIMER(timer,MethodName("SimplifyLocal_impl")+"<" + to_ct_string(opt_level) + "," + to_ct_string(multi_compQ) + ">");
     
     using ArcSimplifier_T = ArcSimplifier<Int,opt_level,multi_compQ>;
     
@@ -88,7 +88,7 @@ Size_T SimplifyLocal_impl( cref<SimplifyLocal_Args_T> args )
             
             counter += changes;
             
-            if( changes > Size_T(0) ) { pd.ClearCache(); }
+            if( changes > Size_T{0} ) { pd.ClearCache(); }
             
             PushDiagramDone( std::move(pd) );
         }
@@ -96,14 +96,14 @@ Size_T SimplifyLocal_impl( cref<SimplifyLocal_Args_T> args )
         swap( pd_list, pd_todo );
         pd_todo = PD_List_T();
     }
-    while( pd_list.size() != Size_T(0) );
+    while( pd_list.size() != Size_T{0} );
     
     PD_ASSERT( pd_list.empty() );
     PD_ASSERT( pd_todo.empty() );
 
     swap( pd_list, pd_done );
     
-    if( counter > Size_T(0) )
+    if( counter > Size_T{0} )
     {
         SortByCrossingCount();
         this->ClearCache();

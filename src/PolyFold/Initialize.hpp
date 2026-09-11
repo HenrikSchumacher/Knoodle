@@ -452,8 +452,8 @@ void Initialize()
     expected_byte_count = static_cast<Size_T>(double(expected_byte_count) * 1.1);
     
     print("Initialization done.");
-    valprint<a>("Maximum Byte Count", max_byte_count);
-    valprint<a>("Expected Byte Count", force_deallocQ ? expected_byte_count : max_byte_count);
+    valprint<true,a>("Maximum Byte Count", max_byte_count);
+    valprint<true,a>("Expected Byte Count", force_deallocQ ? expected_byte_count : max_byte_count);
     
     if( !force_deallocQ )
     {

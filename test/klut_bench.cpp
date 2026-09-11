@@ -27,7 +27,7 @@
  * knots, occasional >13-crossing diagrams that escalate or stay Unidentified).
  *
  * Parallel scaling uses the REENTRANT path: subtables pre-loaded once
- * (LoadSubtables, avoiding the lazy-load race); ki::Identify's lookups use a
+ * (RequireSubtables, avoiding the lazy-load race); ki::Identify's lookups use a
  * thread-local buffer (FindID(buffer, c), NOT the shared-buffer FindID(pd)) over
  * the shared read-only table, and each worker thread owns its own Reapr.
  *
@@ -367,6 +367,10 @@ int main(int argc, char* argv[])
     ki::Size_T seed_local_opt = ki::IdentifyParams{}.seed_local_opt; // --seed-local-opt=N: seed
                                                         // local_opt_level (0=off default,1=R1,2=R1+R2,
                                                         // 4=all local). See klut_identify.hpp finding.
+                                                        // WARNING: level 4 is UNSOUND today (GitHub
+                                                        // issue #33) -- it can change the knot type,
+                                                        // so a benchmark run at 4 measures wrong
+                                                        // answers. Default 0 is unaffected.
     int seed_reroute = ki::IdentifyParams{}.seed_reroute ? 1 : 0; // --seed-reroute=0/1 (default 1);
                                                         // 0 + --seed-local-opt=4 = local-only seed
     Int polygon_edges = 0;       // --polygon-edges=N: random-polygon firehose mode (N-gon knots)
@@ -423,7 +427,7 @@ int main(int argc, char* argv[])
     // Build the table and pre-load (single-threaded) so parallel reads are safe.
     Klut klut{ std::filesystem::path(klut_dir), static_cast<Knoodle::Size_T>(c_max) };
     const auto tL0 = Clock::now();
-    klut.LoadSubtables();
+    klut.RequireSubtables();
     const auto tL1 = Clock::now();
     std::cout << "  subtables loaded in " << Secs(tL0, tL1) << " s\n";
 

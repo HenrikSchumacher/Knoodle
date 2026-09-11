@@ -61,9 +61,9 @@ void PrintClisbyFlagCounts( cref<FoldFlagCounts_T> counts )
 }
 
 template<Size_T t, bool appendQ = true>
-void PrintIntersectionFlagCounts( cref<std::string> key, cref<IntersectionFlagCounts_T> counts )
+void PrintIntersectionFlagCounts( cref<std::string> key, cref<ProsectorFlagCounts_T> counts )
 {
-    using F_T = Link_T::Intersector_T::F_T;
+    using F_T = Link_T::Prosector_T::F_T;
     
     auto get = [&counts]( F_T flag )
     {

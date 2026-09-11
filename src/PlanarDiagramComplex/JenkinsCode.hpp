@@ -44,7 +44,7 @@ static PDC_T FromJenkinsCodeFile( cref<std::filesystem::path> file, const bool s
     
     if( s.FailedQ() || s.EmptyQ() )
     {
-        eprint(MethodName("FromJenkinsCodeFile") + ": Reading failed.");
+        Msgr::eprint("FromJenkinsCodeFile", "Reading failed.");
         return PDC_T();
     }
     

@@ -41,7 +41,7 @@ private:
 template<bool overQ>
 RaggedList<Int,Int> StrandArcs() const
 {
-    TOOLS_PTIMER(timer, MethodName(overQ ? "Over" : "Under") + "StrandArcs");
+    TOOLS_PTIMER(timer, overQ ? MethodName("OverStrandArcs") : MethodName("UnderStrandArcs"));
     
     // Are these sizes optimal?
     RaggedList<Int,Int> strand_arcs ( crossing_count, arc_count );
@@ -67,8 +67,8 @@ RaggedList<Int,Int> StrandArcs() const
 template<bool overQ>
 Tensor1<Int,Int> ArcStrands() const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
-    
+    TOOLS_PTIMER(timer,overQ ? MethodName("ArcOverStrands") : MethodName("ArcUnderStrands"));
+
     Tensor1<Int,Int> A_strand ( MaxArcCount(), Uninitialized );
     Int strand = 0;
     
@@ -121,7 +121,7 @@ CrossingContainer_T CrossingUnderStrands() const
 template<bool overQ>
 CrossingContainer_T CrossingStrands() const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
+    TOOLS_PTIMER(timer,overQ ? MethodName("CrossingOverStrands") : MethodName("CrossingUnderStrands"));
     
 //    CrossingContainer_T C_strand ( max_crossing_count, 2, 2, -1 );
     

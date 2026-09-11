@@ -50,8 +50,7 @@ static PDC_T FromLinkEmbedding_Raw(
     cptr<ExtInt>  component_color,
     const ExtInt  crossing_count_,
     cptr<ExtInt>  edge_ptr,
-    cptr<ExtInt>  edge_intersections,
-    cptr<ExtInt2> edge_state
+    cptr<ExtInt>  edge_cross
 )
 {
     return PDC_T( PD_T::FromLinkEmbedding_Raw(
@@ -60,7 +59,6 @@ static PDC_T FromLinkEmbedding_Raw(
         component_color,
         crossing_count_,
         edge_ptr,
-        edge_intersections,
-        edge_state
+        edge_cross
     ) );
 }

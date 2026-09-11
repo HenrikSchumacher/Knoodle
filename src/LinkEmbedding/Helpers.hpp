@@ -25,15 +25,20 @@ cref<Tensor1<Real,Int>> EdgeIntersectionTimes() const
     return edge_times;
 }
 
-cref<Tensor1<Int,Int>> EdgeIntersections() const
+cref<Tensor1<EdgeCrossing_T,Int>> EdgeCrossings() const
 {
-    return edge_intersections;
+    return edge_cross;
 }
 
-cref<Tensor1<Int8,Int>> EdgeStates() const
-{
-    return edge_state;
-}
+//cref<Tensor1<Int,Int>> EdgeIntersections() const
+//{
+//    return edge_intersections;
+//}
+//
+//cref<Tensor1<Int8,Int>> EdgeStates() const
+//{
+//    return edge_state;
+//}
 
 cref<std::vector<Intersection_T>> Intersections() const
 {
@@ -50,9 +55,9 @@ cref<Vector3_T> SterbenzShift() const
     return Sterbenz_shift;
 }
 
-cref<IntersectionFlagCounts_T> IntersectionFlagCounts() const
+cref<ProsectorFlagCounts_T> IntersectionFlagCounts() const
 {
-    return intersection_flag_counts;
+    return prosector_flag_counts;
 }
 
 bool BoundingBoxesComputedQ()
@@ -80,29 +85,9 @@ cref<Matrix3x3_T> TransformationMatrix() const
     return R;
 }
 
-template<bool shiftQ = true>
-void Transform( cref<Matrix3x3_T> A )
+Matrix3x3_T InverseTransformationMatrix() const
 {
-    TOOLS_PTIMER(timer,MethodName("Transform"));
-    
-    Tensor2<Real,Int> v_coords( edge_count, AmbDim );
-    
-    WriteVertexCoordinates(v_coords.data());
-
-    SetTransformationMatrix(A);
-    
-    this->template ReadVertexCoordinates<true,shiftQ>(v_coords.data());
-    
-    // We make it so that we can restore the original coordinates up to shift from R.
-    // That is: we rotate both the coordinates and R by A; then we set R to the rotated matrix.
-    SetTransformationMatrix(Dot(A,R));
-}
-
-template<bool shiftQ = true>
-[[deprecated("This is a misnomer; changed name to `Transform`")]]
-void Rotate( cref<Matrix3x3_T> A )
-{
-    Transform(A);
+    return Inverse_Kahan(R);
 }
 
 
@@ -127,7 +112,7 @@ Int DegenerateEdgeCount() const
         
         if( degenerateQ )
         {
-            wprint(ClassName()+"::DegenerateEdges: Detected degenerate edge " + ToString(edge) +".");
+            Msgr::wprint("DegenerateEdges","Detected degenerate edge ", edge, ".");
             logvalprint("x", x);
             logvalprint("y", y);
             logvalprint("edge data", EdgeData(edge));

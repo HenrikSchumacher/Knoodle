@@ -6,7 +6,9 @@
 //      "./submodules/Min-Cost-Flow-Class/MCFSimplex/
 
 
-#define KNOODLE_H
+#ifndef KNOODLE_HPP
+    #define KNOODLE_HPP
+#endif
 
 #ifdef KNOODLE_USE_BOOST_UNORDERED
     #ifndef TOOLS_USE_BOOST_UNORDERED
@@ -28,6 +30,10 @@ namespace Knoodle
     using namespace Tools;
     
     using Tools::ToString;
+    
+    // Forward declarions
+    template<IntQ> class PlanarDiagram;
+    template<IntQ> class PlanarDiagramComplex;
 }
 
 #include "src/Types.hpp"
@@ -40,11 +46,14 @@ namespace Knoodle
 
 #include "src/Intersection.hpp"
 
-#include "src/PlanarLineSegmentIntersector.hpp"
+#include "src/Prosector_Float.hpp"
+#include "src/LinkEmbedding_Int/EdgeCrossing.hpp"
 #include "src/LinkEmbedding.hpp"
 #include "src/KnotEmbedding.hpp" // Like LinkEmbedding, only for knots. A bit more efficient this way.
 
-#include "src/LinkEmbedding2.hpp"
+#include "src/WideInt.hpp"   // Used in Prosector classes.
+#include "src/LinkEmbedding_Int.hpp"
+#include "src/LinkEmbedding4.hpp"
 
 #include "src/MultiGraphBase.hpp"
 #include "src/MultiGraph.hpp"
@@ -54,6 +63,8 @@ namespace Knoodle
 
 namespace Knoodle
 {
+    // Forward declarations. Best to keep this list as short as possible. (Somewhat annoying to maintain.)
+    
     template<IntQ Int> class PlanarDiagram;
     template<IntQ Int> class PlanarDiagramComplex;
 
@@ -84,11 +95,8 @@ namespace Knoodle
 #include "src/KnotInvariants/AlexanderStrandMatrix.hpp"
 #include "src/KnotInvariants/AlexanderFaceMatrix.hpp"
 
-//#include "src/Alexander.hpp"  // Uses my own Cholesky factorization.
-                                // Not favorable compared to Alexander_UMFPACK.hpp
-
 #ifdef KNOODLE_USE_UMFPACK
-#include "src/KnotInvariants/Alexander_UMFPACK.hpp" // Improved version of the former.
+#include "src/KnotInvariants/Alexander_UMFPACK.hpp"
 #endif
 
 //

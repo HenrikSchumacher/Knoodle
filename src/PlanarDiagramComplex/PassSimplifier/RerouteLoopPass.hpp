@@ -33,7 +33,7 @@ void RerouteLoopPass( const Int e, const Int c_0 )
     {
         const Int a = NextArc(e,Head,c_0);
         
-        if( ArcMarkedQ(a) ) [[unlikely]]
+        if( ArcMarkedQ(a) )
         {
             PD_ASSERT( ArcOverQ(e,Head) == overQ );
             // TODO: Should this assert ever fail: The strand can also form a Big Hopf Link or a Big Figure-8-Shaped Unlink!

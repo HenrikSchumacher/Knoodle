@@ -1,0 +1,9 @@
+# Vertex 3 = (2,0,3) projects into the relative interior of edge 0, which runs
+# along y=0 at z=0. The two edges meeting at that vertex therefore each end on
+# another edge's interior.
+note = a vertex projects into the interior of a non-incident segment
+knot = unknot
+vertex_on_edge       == 2
+max_point_multiplicity == 3
+multiple_points      >= 1
+spatial              == 0

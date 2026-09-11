@@ -1,0 +1,13 @@
+# Closed Hamiltonian cycle on the 06^3 cubic lattice, from ndmansfield's
+# -record-loops mode (see README). Every edge is a unit step, so the projection
+# is degenerate everywhere: whole columns of vertices project onto each other,
+# many edges project to points, and long runs of edges are collinear.
+note = space-filling lattice knot; all degeneracy classes at once
+vertical_edges       >= 1
+coincident_vertices  >= 1
+vertex_on_edge       >= 1
+corner_corner        >= 1
+collinear_overlap    >= 1
+multiple_points      >= 1
+max_point_multiplicity >= 3
+spatial              == 0

@@ -142,13 +142,13 @@ void Analyze( const LInt i )
         
         T_intersection.Tic<V2Q>();
         
-        int err = L.template FindIntersections<true>();
+        const int err = L.template FindIntersections<true>();
         
         T_intersection.Toc<V2Q>();
         
-        const IntersectionFlagCounts_T intersection_flag_counts = L.IntersectionFlagCounts();
+        const ProsectorFlagCounts_T prosector_flag_counts = L.IntersectionFlagCounts();
         
-        acc_intersec_counts += intersection_flag_counts;
+        acc_intersec_counts += prosector_flag_counts;
         
         if( (err != 0) || V1Q )
         {
@@ -160,7 +160,7 @@ void Analyze( const LInt i )
                 log << L.template AllocatedByteCountDetails<t2>();
                 
                 PrintIntersectionFlagCounts<t2>(
-                    "Intersection Flag Counts", intersection_flag_counts
+                    "Intersection Flag Counts", prosector_flag_counts
                 );
                 
                 PrintIntersectionFlagCounts<t2>(

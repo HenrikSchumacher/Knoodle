@@ -31,6 +31,7 @@
 #include "link_alexander.hpp"
 
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -54,8 +55,19 @@ bool   FPEqual(const LinkFP& a, const LinkFP& b) { return LinkAlex_T::Equal(a, b
 std::string FPToString(const LinkFP& f) { return LinkAlex_T::ToString(f); }
 
 // Load a 5-col signed PD code (one crossing per row) -> PD_T. Handles links.
-PD_T LoadSignedPD(const std::string& path)
+//
+// `missingQ` separates "there is no such file" from "the file held something
+// that is not a diagram". Collapsing those two is how this probe spent an
+// unknown length of time reporting 3/5: two of its five hardcoded names did not
+// exist (the corpus indexes a mu-component link with mu-1 suffixes, so the
+// 3-component entries are L6a4_0_0, not L6a4_0), and a missing file was
+// announced as "INVALID diagram, skipping" -- which reads like a library
+// failure rather than a typo.
+PD_T LoadSignedPD(const std::string& path, bool& missingQ)
 {
+    missingQ = !std::filesystem::exists(path);
+    if (missingQ) { return PD_T::InvalidDiagram(); }
+
     std::ifstream in(path);
     std::vector<Int> ints;
     Int v;
@@ -148,7 +160,15 @@ int main(int argc, char* argv[])
     }
     if (names.empty())
     {
-        names = {"L2a1_0", "L4a1_0", "L5a1_0", "L6a4_0", "L6n1_0"};
+        // Two components each, then two THREE-component links. The corpus
+        // indexes orientation variants with one suffix per component after the
+        // first, so a 3-component entry carries two: L6a4_0_0, not L6a4_0.
+        // L6a4 is the Borromean rings; L6n1 is the other 6-crossing
+        // 3-component link. They are here because mu >= 3 is where the |det|
+        // argument is least obviously safe -- the reduced strand matrix
+        // degenerates at t = 1 to rank n - mu, and mu = 2 is the only case
+        // this probe used to actually reach.
+        names = {"L2a1_0", "L4a1_0", "L5a1_0", "L6a4_0_0", "L6n1_0_0"};
     }
 
     std::cout << "link_alex_probe: validating single-variable |det| link fingerprint\n"
@@ -161,8 +181,19 @@ int main(int argc, char* argv[])
     for (const auto& nm : names)
     {
         const std::string path = linktable + "/" + nm + ".tsv";
-        PD_T pd = LoadSignedPD(path);
+        bool missingQ = false;
+        PD_T pd = LoadSignedPD(path, missingQ);
         std::cout << nm << " (" << path << ")\n";
+        if (missingQ)
+        {
+            std::cout << "  " << nm << ": NO SUCH FILE -- this is a bad fixture"
+                         " name, not a library failure.\n"
+                         "    (mu-component entries carry mu-1 suffixes:"
+                         " L6a4_0_0, not L6a4_0.)\n";
+            ++fails;
+            std::cout << "\n";
+            continue;
+        }
         if (!ProbeLink(nm, pd)) { ++fails; }
 
         // Stash base fingerprint for the discrimination check.

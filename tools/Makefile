@@ -1,12 +1,51 @@
 # Makefile for knoodlesimplify and knoodledraw
 CXX ?= g++
 
+# Warning set shared by the optimized and debug builds below.
+#
+# -Wno-ignored-qualifiers: every function returning one of Tools' cptr<T>/mptr<T>
+# aliases (Tools.hpp:259, `const T * TOOLS_RESTRICT const`) trips this. The
+# culprit is the TRAILING const -- verified in isolation: top-level const alone
+# warns, TOOLS_RESTRICT alone does not, and pointee const does not.
+#
+# It is safe to silence because the return type is a pointer. Per [expr.type]/2 a
+# prvalue of type cv T, T non-class and non-array, is adjusted to T, so the call
+# expression `p.data()` has type `const Scal *` with the top-level const already
+# gone -- no caller can observe it. The pointee constness, which is the part that
+# matters, survives untouched. Note the const IS still part of the function type
+# (decltype(&T::data) keeps it); what is discarded is the expression type, which
+# is why this can never change codegen. For a CLASS return type the const would
+# NOT be discarded and would not be a no-op -- and neither compiler warns there,
+# so the diagnostic only ever fires where the qualifier is genuinely inert.
+#
+# Both compilers implement the warning; clang exempts qualifiers that arrive
+# through a type alias, which is the only reason the macOS build looks clean.
+# Under gcc it is ~120 per translation unit, essentially all from the
+# Tensors/Tools submodules, burying the warnings that do matter in the CI logs.
+# test/Makefile already carries this flag; keep the two in step.
+WARNFLAGS = -Wall -Wextra -Wno-ignored-qualifiers
+
 # Detect OS and set appropriate flags
 UNAME_S := $(shell uname -s)
+
+# ---------------------------------------------------------------------------
+# Parallel builds by default. Knoodle/Tensors/Tools are header-only, so a
+# Tools or Tensors bump cannot be absorbed by relinking: every tool below
+# recompiles the whole stack from scratch. Those compiles are independent,
+# which made the serial build embarrassingly slow (the three tools compile in
+# parallel now). NPROC=n is the override knob (NPROC=1 for a serial
+# build): under Apple's make 3.81 a command-line -jN never shows up in
+# MAKEFLAGS during parsing, so the guard below cannot see it and this
+# assignment would silently win. Submakes see the -j as "forced" and print a
+# one-line jobserver warning; harmless.
+NPROC ?= $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
+ifeq ($(filter -j%,$(MAKEFLAGS)),)
+    MAKEFLAGS += -j$(NPROC)
+endif
 ifeq ($(UNAME_S),Darwin)
     # macOS - use clang with matrix extensions
     CXX = clang++
-    CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
+    CXXFLAGS = $(WARNFLAGS) -std=c++20 -O3 -march=native -mtune=native \
                -fenable-matrix -pthread
 else ifeq ($(UNAME_S),Linux)
     # Linux - g++ by default for ecosystem compatibility; clang if the user
@@ -14,7 +53,7 @@ else ifeq ($(UNAME_S),Linux)
     # function_traits<bool*> bug, issue #15). ?= lets an env/command-line CXX
     # through while keeping the gcc default.
     CXX ?= g++
-    CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
+    CXXFLAGS = $(WARNFLAGS) -std=c++20 -O3 -march=native -mtune=native \
                -pthread
     # Knoodle's clang matrix path (src/AffineTransforms/ClangMatrix.hpp) needs
     # the matrix-types extension; clang errors out without this flag.
@@ -23,7 +62,7 @@ else ifeq ($(UNAME_S),Linux)
     endif
 else
     # Fallback for other Unix systems
-    CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
+    CXXFLAGS = $(WARNFLAGS) -std=c++20 -O3 -march=native -mtune=native \
                -pthread
 endif
 
@@ -75,19 +114,19 @@ DEPFLAGS = -MMD -MP
 
 # Debug build flags (similar OS detection)
 ifeq ($(UNAME_S),Darwin)
-    DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
+    DEBUG_CXXFLAGS = $(WARNFLAGS) -std=c++20 -g -O0 -DDEBUG \
                      -fenable-matrix -pthread
 else ifeq ($(UNAME_S),Linux)
     ifeq ($(findstring llvm,$(CXX)),llvm)
         # Homebrew clang on Linux - use libc++ for complete ABI consistency
-        DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
+        DEBUG_CXXFLAGS = $(WARNFLAGS) -std=c++20 -g -O0 -DDEBUG \
                          -fenable-matrix -pthread \
                          -stdlib=libc++ \
                          -I$(HOMEBREW_PREFIX)/opt/llvm/include/c++/v1 \
                          -I$(HOMEBREW_PREFIX)/include
     else
         # Plain Linux clang/gcc (e.g. cluster clang module, not Homebrew llvm).
-        DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
+        DEBUG_CXXFLAGS = $(WARNFLAGS) -std=c++20 -g -O0 -DDEBUG \
                          -pthread
         # clang's matrix path (ClangMatrix.hpp) still needs the extension here.
         ifneq ($(findstring clang,$(CXX)),)
@@ -95,7 +134,7 @@ else ifeq ($(UNAME_S),Linux)
         endif
     endif
 else
-    DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
+    DEBUG_CXXFLAGS = $(WARNFLAGS) -std=c++20 -g -O0 -DDEBUG \
                      -pthread
 endif
 
@@ -139,34 +178,6 @@ klut_e2e: ../test/klut_e2e.cpp ../Knoodle.hpp
 	@echo "Compiling ../test/klut_e2e.cpp..."
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) ../test/klut_e2e.cpp $(LDFLAGS) -o ../test/klut_e2e
 	@echo "✓ klut_e2e compiled successfully"
-
-# The move-trace record carrier (test/move_trace_check.cpp): both snapshot
-# carriers, the record's parts, and the ways a malformed stream must fail
-# rather than fall back. Self-contained; exit 0 = pass.
-move_trace_check: ../test/move_trace_check.cpp ../Knoodle.hpp ../src/MoveTrace.hpp \
-                  diagram_agreement.hpp
-	@echo "=== Building move_trace_check on $(UNAME_S) ==="
-	@echo "Compiling ../test/move_trace_check.cpp..."
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) ../test/move_trace_check.cpp $(LDFLAGS) -o ../test/move_trace_check
-	@echo "✓ move_trace_check compiled successfully"
-
-# OrthoDecorate regression test (test/orthodecorate_check.cpp): face map,
-# distance transform, portals, multi-face routing. Self-contained; exit 0 = pass.
-orthodecorate_check: ../test/orthodecorate_check.cpp ../Knoodle.hpp ../src/OrthoDecorate.hpp
-	@echo "=== Building orthodecorate_check on $(UNAME_S) ==="
-	@echo "Compiling ../test/orthodecorate_check.cpp..."
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) ../test/orthodecorate_check.cpp $(LDFLAGS) -o ../test/orthodecorate_check
-	@echo "✓ orthodecorate_check compiled successfully"
-
-# The two-deletions contract (test/pass_view_check.cpp): render each deletion
-# view of a pass move, parse the DRAWING back into a diagram, and compare it
-# port-by-port to what that view is supposed to be. Exit 0 = pass.
-pass_view_check: ../test/pass_view_check.cpp ../Knoodle.hpp ../src/OrthoDecorate.hpp \
-                 pass_view.hpp drawing_extractor.hpp diagram_agreement.hpp find_pass.hpp
-	@echo "=== Building pass_view_check on $(UNAME_S) ==="
-	@echo "Compiling ../test/pass_view_check.cpp..."
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) ../test/pass_view_check.cpp $(LDFLAGS) -o ../test/pass_view_check
-	@echo "✓ pass_view_check compiled successfully"
 
 debug: CXXFLAGS = $(DEBUG_CXXFLAGS)
 debug: all

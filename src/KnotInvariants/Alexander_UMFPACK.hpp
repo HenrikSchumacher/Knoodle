@@ -92,11 +92,11 @@ namespace Knoodle
 
         template<typename ExtScal, IntQ ExtInt>
         int Alexander(
-            cref<PD_T> pd,
+            cref<PD_T>    pd,
             ExtScal       arg,
             mref<ExtScal> mantissa,
             mref<ExtInt>  exponent,
-            bool multiply_toQ
+            bool          multiply_toQ
         ) const
         {
             if( pd.LinkComponentCount() > Int(1) )
@@ -126,7 +126,7 @@ namespace Knoodle
             ExtInt        arg_count,
             mptr<ExtScal> mantissas,
             mptr<ExtInt>  exponents,
-            bool multiply_toQ
+            bool          multiply_toQ
         ) const
         {
             if( pd.LinkComponentCount() > Int(1) )

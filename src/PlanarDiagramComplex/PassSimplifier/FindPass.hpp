@@ -680,7 +680,7 @@ bool FindPass_Reidemeister_II_Forward(
         PD_ASSERT( a_1_out != pass.last );
         PD_ASSERT( a_2_out != pass.last );
         
-        /*              a_2_out == a_2_in
+        /*              a_1_out == a_2_in
          *             +---------------->+
          *             ^                 |
          *             |                 |
@@ -740,7 +740,7 @@ bool FindPass_Reidemeister_II_Forward(
         PD_ASSERT( a_1_out != pass.last );
         
 //        // A nasty case that is easy to overlook.
-        if( a_2_in == b ) [[unlikely]]
+        if( a_2_in == b )
         {
             //               a_1_out         +<---+ a_2_in == b
             //             ^                 |    |

@@ -19,7 +19,6 @@ void RequireBoundingBoxes()
     
     ComputeBoundingBoxes();
 }
-
 private:
 
 

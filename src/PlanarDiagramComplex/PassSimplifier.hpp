@@ -375,7 +375,6 @@ namespace Knoodle
             return a;
         }
         
-        
     
     public:
         

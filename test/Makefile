@@ -1,15 +1,37 @@
 # Makefile for Knoodle test drivers.
 #
-# Targets:
-#   homfly_check        - HOMFLY correctness oracle (vendored libhomfly, no Python)
-#   key_roundtrip_probe - MacLeod-key round-trip stability probe over the KLUT
-#   inflate_check       - randomized inflate-to-100k stress test (needs UMFPACK +
-#                         BLAS/LAPACK; NOT built by `make all`, build explicitly)
-#   libhomfly           - just the vendored libhomfly objects
+# WHAT EXISTS IS DEFINED IN manifest.tsv, NOT HERE. Every build rule below is
+# generated from that file, so a target cannot be added to the tree without
+# also being built by `all`. Before this, `all` built 2 of 23 binaries and the
+# rest were built only when someone named them -- which is how klut_identify_check
+# stopped compiling and link_alex_probe started exiting 1 without anyone noticing.
 #
-# Run `make` to build the quick drivers; `make inflate_check` for the stress test.
+# Each test documents itself in the header comment of its own .cpp; that is the
+# place to look for what a test does and why it exists.
+#
+# Targets:
+#   all        - every binary in the manifest (the default)
+#   lint       - check that the manifest and the tree agree
+#   <name>     - any single target from the manifest
+#   libhomfly  - just the vendored libhomfly objects
+#   clean
 
 UNAME_S := $(shell uname -s)
+
+# ---------------------------------------------------------------------------
+# Parallel builds by default. Knoodle/Tensors/Tools are header-only, so a
+# Tools or Tensors bump cannot be absorbed by relinking: every driver below
+# recompiles the whole stack from scratch. Those compiles are independent,
+# which made the serial build embarrassingly slow (minutes on every push, and
+# this is the light tier). NPROC=n is the override knob (NPROC=1 for a serial
+# build): under Apple's make 3.81 a command-line -jN never shows up in
+# MAKEFLAGS during parsing, so the guard below cannot see it and this
+# assignment would silently win. Submakes see the -j as "forced" and print a
+# one-line jobserver warning; harmless.
+NPROC ?= $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
+ifeq ($(filter -j%,$(MAKEFLAGS)),)
+    MAKEFLAGS += -j$(NPROC)
+endif
 
 CXX ?= clang++
 CC  ?= cc
@@ -31,10 +53,11 @@ endif
 
 # -MMD -MP: emit a .d file per driver listing every header it actually
 # included, so editing a Knoodle header rebuilds the tests that use it. Hand-
-# written prerequisites cannot keep up (this Makefile listed ../Knoodle.hpp and
-# missed src/PassDescriptor.hpp, so a stale orthodecorate_check reported
-# passing cases that the new code rejects).
-CXXFLAGS = -Wall -Wextra -std=c++20 -O3 $(ARCHFLAGS) -pthread -MMD -MP
+# written prerequisites cannot keep up: the recipes below name ../Knoodle.hpp
+# but not src/, so on 2026-08-15 local_moves_check twice reported a pre-fix
+# result after Henrik's fix had already been merged. -MP adds phony targets so
+# a deleted or renamed header does not wedge the build.
+CXXFLAGS = -Wall -Wextra -Wno-ignored-qualifiers -std=c++20 -O3 $(ARCHFLAGS) -pthread -MMD -MP
 
 # Knoodle core include paths (mirror tools/Makefile). The Homebrew include dir
 # is only added when HOMEBREW_PREFIX is set (macOS); on Linux/cluster the
@@ -55,29 +78,9 @@ LIBHOMFLY_OBJ = $(patsubst $(LIBHOMFLY_DIR)/%.c,build/libhomfly_%.o,$(LIBHOMFLY_
 # Vendored plantri (Apache 2.0; single translation unit — see vendor/plantri).
 PLANTRI = vendor/plantri/plantri
 
-all: homfly_check key_roundtrip_probe
-
-build:
-	@mkdir -p build
-
-build/libhomfly_%.o: $(LIBHOMFLY_DIR)/%.c | build
-	$(CC) -O2 -w -I$(LIBHOMFLY_DIR) -c $< -o $@
-
-libhomfly: $(LIBHOMFLY_OBJ)
-
-homfly_check: homfly_check.cpp $(LIBHOMFLY_OBJ) ../Knoodle.hpp
-	@echo "=== Building homfly_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) homfly_check.cpp $(LIBHOMFLY_OBJ) -o $@
-	@echo "✓ homfly_check compiled successfully"
-
-key_roundtrip_probe: key_roundtrip_probe.cpp ../Knoodle.hpp
-	@echo "=== Building key_roundtrip_probe on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) key_roundtrip_probe.cpp -o $@
-	@echo "✓ key_roundtrip_probe compiled successfully"
-
-# inflate_check needs the Alexander invariant (UMFPACK sparse solver) and
-# BLAS/LAPACK. On macOS that is Apple Accelerate; elsewhere use OpenBLAS and
-# adjust UMFPACK_LDFLAGS / the force-included header accordingly.
+# The UMFPACK link shapes need the Alexander invariant (UMFPACK sparse solver)
+# and BLAS/LAPACK. On macOS that is Apple Accelerate; elsewhere use OpenBLAS
+# and adjust UMFPACK_LDFLAGS / the force-included header accordingly.
 ifeq ($(UNAME_S),Darwin)
     UMFPACK_INC      = -I$(HOMEBREW_PREFIX)/include/suitesparse \
                        -include ../submodules/Tensors/Accelerate.hpp
@@ -88,227 +91,162 @@ else
     UMFPACK_LDFLAGS  = -L$(HOMEBREW_PREFIX)/lib -lumfpack -lopenblas
 endif
 
-inflate_check: inflate_check.cpp $(LIBHOMFLY_OBJ) ../Knoodle.hpp
-	@echo "=== Building inflate_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
-	    inflate_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
-	@echo "✓ inflate_check compiled successfully"
+# ---------------------------------------------------------------------------
+# Link shapes. The manifest's `needs` column names one of these; the generated
+# rule below expands FLAGS_/LIBS_/DEPS_ for it. There are exactly five, which
+# is what the twenty-three hand-written recipes reduced to.
+# ---------------------------------------------------------------------------
 
-# error_tap_check — regression test for the CLI tools' fail-loudly machinery
-# (cerr error tap + staged/atomic output). Light build, no UMFPACK.
-error_tap_check: error_tap_check.cpp ../tools/knoodle_io.hpp ../Knoodle.hpp
-	@echo "=== Building error_tap_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) error_tap_check.cpp -o $@
-	@echo "✓ error_tap_check compiled successfully"
+FLAGS_plain           = $(KNOODLE_INC)
+LIBS_plain            =
+DEPS_plain            =
 
-# intersection_flag_reset_check — pins that LinkEmbedding's intersection flag
-# counters describe one projection, not the embedding's lifetime. Needs the src
-# header as an explicit dep: this is a src-only change, and without it make would
-# not rebuild and the test would appear to pass against unfixed code.
-intersection_flag_reset_check: intersection_flag_reset_check.cpp ../Knoodle.hpp \
-                               ../src/LinkEmbedding/FindIntersections.hpp
-	@echo "=== Building intersection_flag_reset_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) intersection_flag_reset_check.cpp -o $@
-	@echo "✓ intersection_flag_reset_check compiled successfully"
+FLAGS_homfly          = $(KNOODLE_INC)
+LIBS_homfly           = $(LIBHOMFLY_OBJ)
+DEPS_homfly           = $(LIBHOMFLY_OBJ)
 
-# reapr_corner_probe — reproduce/diagnose the FindIntersections CornerCorner
-# degeneracy that makes Rattle bail after 10 failed random rotations.
-reapr_corner_probe: reapr_corner_probe.cpp ../Knoodle.hpp
-	@echo "=== Building reapr_corner_probe on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) reapr_corner_probe.cpp -o $@
-	@echo "✓ reapr_corner_probe compiled successfully"
+FLAGS_umfpack         = -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC)
+LIBS_umfpack          = $(UMFPACK_LDFLAGS)
+DEPS_umfpack          =
 
-# link_alex_probe — prototype: single-variable Alexander |det| fingerprint for
-# LINKS (no knots-only normalization). Same heavy config as inflate_check.
-link_alex_probe: link_alex_probe.cpp link_alexander.hpp ../Knoodle.hpp
-	@echo "=== Building link_alex_probe on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
-	    link_alex_probe.cpp $(UMFPACK_LDFLAGS) -o $@
-	@echo "✓ link_alex_probe compiled successfully"
+FLAGS_homfly_umfpack  = -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC)
+LIBS_homfly_umfpack   = $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS)
+DEPS_homfly_umfpack   = $(LIBHOMFLY_OBJ)
 
-# link_inflate_check — inflate-and-recover stress test for LINKS. Tripwires:
-# single-variable Alexander |det| fingerprint + component count, plus a HOMFLY
-# cross-check (split-safe oracle homfly_invariance.hpp -> vendored libhomfly).
-link_inflate_check: link_inflate_check.cpp link_alexander.hpp homfly_invariance.hpp \
-                    $(LIBHOMFLY_OBJ) ../Knoodle.hpp
-	@echo "=== Building link_inflate_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
-	    link_inflate_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
-	@echo "✓ link_inflate_check compiled successfully"
+FLAGS_boost_umfpack   = -DKNOODLE_USE_UMFPACK -DKNOODLE_USE_BOOST_UNORDERED \
+                        -DTOOLS_USE_BOOST_UNORDERED $(KNOODLE_INC) $(UMFPACK_INC)
+LIBS_boost_umfpack    = $(UMFPACK_LDFLAGS)
+DEPS_boost_umfpack    =
 
-# link_split_check — direct split-link corner-case test (oracle correctness vs
-# delta rule, Simplify preservation incl. free loops, |det| graceful degradation).
-link_split_check: link_split_check.cpp link_alexander.hpp homfly_invariance.hpp \
-                  $(LIBHOMFLY_OBJ) ../Knoodle.hpp
-	@echo "=== Building link_split_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
-	    link_split_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
-	@echo "✓ link_split_check compiled successfully"
+# Per-target extra prerequisites, for the handful that need something beyond
+# their link shape. Header dependencies are NOT listed anywhere: -MMD -MP
+# discovers them, which is why these rules can be generated at all.
+EXTRA_DEPS_plantri_check = $(PLANTRI)
 
-# klut_bench — throughput benchmark for the KLUT Identify path (construct ->
-# ki::Identify), single- and multi-threaded. See docs/klut-simplify-perf.md.
-# Note: with -include of a Tensors header (UMFPACK build), the KNOODLE->TOOLS
-# boost cascade is front-run, so pass -DTOOLS_USE_BOOST_UNORDERED explicitly to
-# actually enable boost's flat maps.
-klut_bench: klut_bench.cpp ../tools/klut_identify.hpp ../Knoodle.hpp
-	@echo "=== Building klut_bench on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
-	    klut_bench.cpp $(UMFPACK_LDFLAGS) -o $@
-	@echo "✓ klut_bench compiled successfully"
+# ---------------------------------------------------------------------------
+# Rule generation from the manifest.
+#
+# One shell call reads it into `target:needs:source` triples -- those three
+# columns never contain spaces, so they survive make's word splitting. The
+# light/heavy argument columns DO contain spaces, and are deliberately not read
+# here: only run_tests.py needs them.
+# ---------------------------------------------------------------------------
 
-# klut_bench_boost — klut_bench with boost::unordered_flat_map under both the
-# integer maps AND the CachedObject string->any cache (the ~+15% dependency-free
-# build). boost.unordered is header-only. TOOLS_USE_BOOST_UNORDERED is passed
-# EXPLICITLY: the -include of a Tensors header below front-runs Knoodle.hpp, so the
-# KNOODLE_USE_BOOST_UNORDERED -> TOOLS_USE_BOOST_UNORDERED cascade would otherwise
-# be defeated and boost would silently fall back to std. Verify after building:
-#   nm klut_bench_boost | c++filt | grep -c boost::unordered   (must be nonzero)
-klut_bench_boost: klut_bench.cpp ../tools/klut_identify.hpp ../Knoodle.hpp
-	@echo "=== Building klut_bench_boost on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK -DKNOODLE_USE_BOOST_UNORDERED \
-	    -DTOOLS_USE_BOOST_UNORDERED $(KNOODLE_INC) $(UMFPACK_INC) \
-	    klut_bench.cpp $(UMFPACK_LDFLAGS) -o $@
-	@echo "✓ klut_bench_boost compiled successfully"
+COMMA         := ,
+MANIFEST      := manifest.tsv
+# kind=script rows (Python) have nothing to compile, so they are filtered out
+# here. They are still manifest rows -- the runner and the lint see them -- which
+# is the point: cli_stdin_check.py used to sit outside the manifest entirely,
+# which is exactly the orphan condition the manifest exists to prevent.
+MANIFEST_ROWS := $(shell awk -F'\t' '$$0 !~ /^\#/ && NF>=4 && $$2 != "script" { print $$1":"$$3":"(($$4=="-")?$$1".cpp":$$4) }' $(MANIFEST))
+TARGETS       := $(foreach r,$(MANIFEST_ROWS),$(word 1,$(subst :, ,$(r))))
 
-# klut_check — exhaustive KLUT internal-consistency test. Same heavy config as
-# inflate_check (Alexander via UMFPACK + BLAS/LAPACK; links vendored libhomfly).
-klut_check: klut_check.cpp $(LIBHOMFLY_OBJ) ../Knoodle.hpp
-	@echo "=== Building klut_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
-	    klut_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
-	@echo "✓ klut_check compiled successfully"
+# EXCLUDE_NEEDS lets a platform build only what it can link. CI images without
+# SuiteSparse pass EXCLUDE_NEEDS=umfpack,homfly_umfpack,boost_umfpack. Build
+# RULES are still generated for every target -- only what `all` builds is
+# filtered -- so naming an excluded target explicitly still works and fails
+# with a real linker error rather than "no rule to make target".
+EXCLUDE_NEEDS ?=
+BUILD_TARGETS := $(foreach r,$(MANIFEST_ROWS),\
+    $(if $(filter $(word 2,$(subst :, ,$(r))),$(subst $(COMMA), ,$(EXCLUDE_NEEDS))),,\
+        $(word 1,$(subst :, ,$(r)))))
 
-# canon_check — locks the identify hot-path optimization: declining the final
-# Canonicalize must NOT change the looked-up MacLeod code / KLUT id (i.e.
-# WriteMacLeodCode is canonical-by-construction). Reads data/Klut; same heavy
-# config as klut_bench. See docs/klut-identify-design.md.
-canon_check: canon_check.cpp ../Knoodle.hpp
-	@echo "=== Building canon_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
-	    canon_check.cpp $(UMFPACK_LDFLAGS) -o $@
-	@echo "✓ canon_check compiled successfully"
+define BUILD_RULE
+$(1): $(3) $$(DEPS_$(2)) $$(EXTRA_DEPS_$(1))
+	@echo "=== Building $(1) on $$(UNAME_S) ==="
+	$$(CXX) $$(CXXFLAGS) $$(FLAGS_$(2)) $(3) $$(LIBS_$(2)) -o $$@
+	@echo "✓ $(1) compiled successfully"
+endef
 
-# orthodecorate_check — OrthoDecorate face/route/overlay checks, incl. the pass
-# descriptor's spec checks (docs/move-descriptor.md) and the margin regression.
-# Light config (no UMFPACK). Depends on the header it exercises, so editing
-# OrthoDecorate.hpp actually rebuilds the test.
-orthodecorate_check: orthodecorate_check.cpp ../Knoodle.hpp ../src/OrthoDecorate.hpp \
-                     knot_determinant.hpp pass_fixtures.hpp
-	@echo "=== Building orthodecorate_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) orthodecorate_check.cpp -o $@
-	@echo "✓ orthodecorate_check compiled successfully"
+$(foreach r,$(MANIFEST_ROWS),$(eval $(call BUILD_RULE,$(word 1,$(subst :, ,$(r))),$(word 2,$(subst :, ,$(r))),$(word 3,$(subst :, ,$(r))))))
 
-# klut_e2e — end-to-end Identify run over the KLUT data via the two built
-# tools. Self-contained: needs the KLUT data, no UMFPACK.
-klut_e2e: klut_e2e.cpp ../Knoodle.hpp
-	@echo "=== Building klut_e2e on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) klut_e2e.cpp -o $@
-	@echo "✓ klut_e2e compiled successfully"
+all: $(BUILD_TARGETS)
 
-# pd_internal_state_check — round trip for PlanarDiagram's internal-state
-# serialization (WriteToOutString / FromInString, and the file pair
-# WriteToFile / FromFile). Covers inactive slots and max_* vs active counts,
-# which PD codes cannot express, and that malformed input yields an invalid
-# diagram rather than a silently empty one. Light config.
-pd_internal_state_check: pd_internal_state_check.cpp ../Knoodle.hpp
-	@echo "=== Building pd_internal_state_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) pd_internal_state_check.cpp -o $@
-	@echo "✓ pd_internal_state_check compiled successfully"
 
-# component_check — regression guard for the CollapseArcRange unlink-loss bug
-# (Henrik's 5151f39). Embedded 8-crossing 2-component-unlink reproducer; default
-# Simplify must preserve the link-component count. Light config (no UMFPACK).
-component_check: component_check.cpp ../Knoodle.hpp
-	@echo "=== Building component_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) component_check.cpp -o $@
-	@echo "✓ component_check compiled successfully"
+# ---------------------------------------------------------------------------
+# Infrastructure
+# ---------------------------------------------------------------------------
 
-# klut_identify_check — PR test for the Identify routine (test/klut_identify.hpp):
-# single knots (perturbed), connect sums (multi-diagram PDC + single spliced
-# diagram), the unknot, and multi-component links. Same heavy config as klut_bench.
-klut_identify_check: klut_identify_check.cpp ../tools/klut_identify.hpp ../Knoodle.hpp
-	@echo "=== Building klut_identify_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
-	    klut_identify_check.cpp $(UMFPACK_LDFLAGS) -o $@
-	@echo "✓ klut_identify_check compiled successfully"
+build:
+	@mkdir -p build
 
-# klut_identify_random_check — characterization/stability test: Identify a fixed
-# random 2048-gon's unsimplified diagram (3348 crossings, embedded). Exercises
-# decomposition, Reapr escalation, and the Unidentified path on a realistic input.
-# Same heavy config as klut_identify_check.
-klut_identify_random_check: klut_identify_random_check.cpp ../tools/klut_identify.hpp ../Knoodle.hpp
-	@echo "=== Building klut_identify_random_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
-	    klut_identify_random_check.cpp $(UMFPACK_LDFLAGS) -o $@
-	@echo "✓ klut_identify_random_check compiled successfully"
+build/libhomfly_%.o: $(LIBHOMFLY_DIR)/%.c | build
+	$(CC) -O2 -w -I$(LIBHOMFLY_DIR) -c $< -o $@
 
-# Vendored plantri binary (the test shells out to it). Single .c file, C stdlib
-# only; -w because plantri's own source is not warning-clean and is unmodified.
+libhomfly: $(LIBHOMFLY_OBJ)
+
+# Vendored plantri binary (plantri_check shells out to it). Single .c file, C
+# stdlib only; -w because plantri's own source is not warning-clean and is
+# unmodified.
 $(PLANTRI): vendor/plantri/plantri.c
 	@echo "=== Building vendored plantri on $(UNAME_S) ==="
 	$(CC) -O2 -w -o $@ $<
 	@echo "✓ plantri compiled successfully"
 
-# plantri_check — exhaustive plantri-generated diagrams: HOMFLY-invariance under
-# Simplify as the oracle, plus (with --klut) the KLUT identify-contract check
-# (ki::Identify A+B). Light config (no UMFPACK; ki::Identify's Reapr uses TV+MCF).
-# Needs the vendored plantri binary at runtime.
-plantri_check: plantri_check.cpp homfly_invariance.hpp ../tools/klut_identify.hpp \
-               $(LIBHOMFLY_OBJ) $(PLANTRI) ../Knoodle.hpp
-	@echo "=== Building plantri_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) plantri_check.cpp $(LIBHOMFLY_OBJ) -o $@
-	@echo "✓ plantri_check compiled successfully"
-
-# cli_stdin_check — regression test for the interactive-stdin notice (isatty).
+# cli_stdin_check -- regression test for the interactive-stdin notice (isatty).
 # Pure-Python (stdlib only, no Regina/venv); needs the tools built in ../tools.
+# Not in the manifest: nothing to compile.
 cli_stdin_check:
 	@echo "=== Running cli_stdin_check (interactive-stdin notice) ==="
 	python3 cli_stdin_check.py
 
-clean:
-	rm -rf build homfly_check key_roundtrip_probe inflate_check \
-	       klut_check klut_bench klut_bench_boost canon_check component_check \
-	       klut_identify_check klut_identify_random_check \
-	       plantri_check link_alex_probe link_inflate_check \
-	       link_split_check $(PLANTRI)
-	 rm -f *.d
+# The random-polygon corpus generator. NOT a test and not in the manifest: it
+# is run by hand when the corpus needs regenerating. The corpus is checked in.
+polygons/make_polygons: polygons/make_polygons.cpp ../Knoodle.hpp
+	@echo "=== Building make_polygons on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) polygons/make_polygons.cpp -o $@
+	@echo "✓ make_polygons compiled successfully"
 
-.PHONY: all libhomfly clean cli_stdin_check
+polygons: polygons/make_polygons
+
+# ---------------------------------------------------------------------------
+# The tiers.
+#
+#   make check       every test at light settings. Budget: build time plus 30 s
+#                    of RUN time. This is what the pre-push hook and CI run, so
+#                    the budget is what keeps it from being dodged.
+#   make check-full  every test at full settings, before a release. Hours are
+#                    fine -- better to delay a release than to ship a
+#                    regression.
+#
+# Both build everything first, tools included: klut_e2e, cli_contract_check,
+# cli_stdin_check and run_tests all drive the real binaries in ../tools.
+#
+# The light tier REDUCES every test rather than skipping any. Skipping is how
+# `all` came to build 2 of 23 targets.
+# ---------------------------------------------------------------------------
+
+tools:
+	@$(MAKE) -C ../tools all
+
+check: all tools lint
+	@python3 run_tier.py --tier=light
+
+check-full: all tools lint
+	@python3 run_tier.py --tier=heavy
+
+# Install the versioned hooks by pointing core.hooksPath at scripts/githooks.
+#
+# That DISABLES the hooks git-lfs installed in .git/hooks, which is why
+# scripts/githooks carries verbatim copies of all four of them. Losing the LFS
+# hooks is silent -- objects just stop uploading -- so this is checked by
+# test/hooks_check.
+hooks:
+	@git -C .. config core.hooksPath scripts/githooks
+	@echo "core.hooksPath -> scripts/githooks"
+	@echo "  pre-push:  Git LFS, then the push policy (see scripts/githooks/knoodle-push-policy)"
+	@echo "  to undo:   git config --unset core.hooksPath"
+
+# The two lints that make orphans impossible: every *_check.cpp must have a
+# manifest row, and every manifest row must have a source file.
+lint:
+	@python3 manifest_lint.py
+
+clean:
+	rm -rf build $(TARGETS) $(PLANTRI)
+	rm -f *.d
+
+.PHONY: all libhomfly clean cli_stdin_check lint polygons tools check check-full hooks
 
 # Generated by -MMD; absent on a fresh checkout, hence the leading '-'.
 -include $(wildcard *.d)
-
-# ordering_probe — is the FindShortestPath ordering regularity a property of
-# legal pass moves, or only of that producer? Searches for a strictly
-# shortening, well-formed, LAGGING corridor (corridor step j naming the
-# transversal of an already-processed crossing x_i, j > i) — the configuration
-# that triggers the Reroute arc-label aliasing. A hit reopens PR #30.
-# Light config (no UMFPACK).
-ordering_probe: ordering_probe.cpp ../Knoodle.hpp ../src/PassDescriptor.hpp \
-                pass_fixtures.hpp
-	@echo "=== Building ordering_probe on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) ordering_probe.cpp -o $@
-	@echo "✓ ordering_probe compiled successfully"
-
-# oracle_vs_reroute — compares OrthoDecorate::AfterDiagram (built from the
-# descriptor, never calling the applier) against PassSimplifier::Reroute on the
-# same pass move, by DiagramsAgreeQ and by determinant. Needs the friend access
-# Henrik approved 2026-08-12 (Knoodle.hpp forward decl + friend line in
-# PassSimplifier); the harness is test/pass_oracle.hpp. Light config.
-oracle_vs_reroute: oracle_vs_reroute.cpp pass_oracle.hpp ../tools/diagram_agreement.hpp \
-                   ../tools/drawing_extractor.hpp ../tools/pass_view.hpp ../tools/find_pass.hpp \
-                   knot_determinant.hpp ../src/OrthoDecorate.hpp \
-                   ../src/PassDescriptor.hpp ../Knoodle.hpp
-	@echo "=== Building oracle_vs_reroute on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) oracle_vs_reroute.cpp -o $@
-	@echo "✓ oracle_vs_reroute compiled successfully"
-
-# checkall_planarity_check — CheckAll passes on a NON-PLANAR object. It is all
-# local incidence checks (crossings, arcs, degrees, colors); nothing tests
-# V - E + F == 2. The Reroute arc-label aliasing rewires the map onto a genus-2
-# surface and CheckAll still returns true. Needs the friend access (pass_oracle.hpp).
-checkall_planarity_check: checkall_planarity_check.cpp pass_oracle.hpp \
-                          pass_fixtures.hpp ../Knoodle.hpp
-	@echo "=== Building checkall_planarity_check on $(UNAME_S) ==="
-	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) checkall_planarity_check.cpp -o $@
-	@echo "✓ checkall_planarity_check compiled successfully"

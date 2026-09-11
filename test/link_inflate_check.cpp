@@ -180,6 +180,24 @@ bool RunTrial(PD_T start, const std::string& name, const Config& cfg,
         }
         pd = std::move(pd_new);
 
+        // Tripwire 0: the embed->reproject round must hand back a sane planar
+        // diagram (structural, cheaper and earlier than the fingerprint).
+        {
+            std::string why;
+            if (!KnoodleTest::DiagramSanityQ(pd, &why))
+            {
+                const std::string dump = "link_inflate_fail_seed"
+                    + std::to_string(cfg.seed) + "_round" + std::to_string(round) + ".tsv";
+                DumpPD(prev, dump);
+                std::cout << "  FAIL: diagram sanity failed at round " << round
+                          << " (" << pd.CrossingCount() << " crossings):\n"
+                          << why
+                          << "  reproduce: load " << dump << ", Reapr seed "
+                          << seed_k << ", one embed+reproject.\n";
+                return false;
+            }
+        }
+
         // Tripwire 1: component count must be preserved.
         if (pd.LinkComponentCount() != comps0)
         {
@@ -236,6 +254,17 @@ bool RunTrial(PD_T start, const std::string& name, const Config& cfg,
         std::cout << "  FAIL: Simplify returned no diagram.\n";
         DumpPD(pd, "link_inflate_fail_seed" + std::to_string(cfg.seed) + "_simplify.tsv");
         return false;
+    }
+
+    {
+        std::string why;
+        if (!KnoodleTest::ComplexSanityQ(pdc, &why))
+        {
+            std::cout << "  FAIL: simplified complex failed diagram sanity:\n"
+                      << why;
+            DumpPD(pd, "link_inflate_fail_seed" + std::to_string(cfg.seed) + "_simplify.tsv");
+            return false;
+        }
     }
 
     // Total crossings across all resulting diagram components (a split link may

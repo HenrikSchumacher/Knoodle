@@ -24,9 +24,9 @@ PD_T CreateCompressed_Private()
     
     if( !ValidQ() ) { return InvalidDiagram(); }
     
-    auto tag = [](){ return MethodName("CreateCompressed_Private")+"<" + ToString(recolorQ) + ">"; };
+    [[maybe_unused]] constexpr auto tag = MethodName("CreateCompressed_Private") + "<" + to_ct_string(recolorQ) + ">";
     
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,tag);
     
     if( AnelloQ() )
     {
@@ -58,11 +58,11 @@ PD_T CreateCompressed_Private()
     
     if constexpr ( debugQ )
     {
-        wprint(tag() + ": Debug mode active.");
+        wprint(tag, ": Debug mode active.");
         
         this->PrintInfo();
         
-        if( this->CheckAll() ) { pd_eprint(tag() + ": this->CheckAll() failed."); }
+        if( this->CheckAll() ) { pd_eprint(tag, ": this->CheckAll() failed."); }
         
         pd = PD_T( crossing_count );
     }
@@ -91,9 +91,7 @@ PD_T CreateCompressed_Private()
     this->template Traverse<true>(
         []( const Int a, const Int lc, const Int lc_begin )
         {
-            (void)a;
-            (void)lc;
-            (void)lc_begin;
+            Void{a, lc, lc_begin};
         },
         [&tag, &C_arcs_new, &C_state_new, &A_cross_new, &A_state_new, A_color_new, this](
             const Int a,   const Int a_pos,   const Int  lc,
@@ -101,47 +99,45 @@ PD_T CreateCompressed_Private()
             const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
         )
         {
-            (void)lc;
-            (void)c_1;
-            (void)c_1_visitedQ;
+            Void{lc, c_1, c_1_visitedQ};
             
             if constexpr ( debugQ )
             {
                 if( !ValidIndexQ(a) )
                 {
-                    pd_eprint(tag()+": Index a = " + ToString(a) + " is invalid.");
+                    pd_eprint(tag, ": Index a = ", a, " is invalid.");
                 }
                 if( !this->ArcActiveQ(a) )
                 {
-                    pd_eprint(tag()+": a = " + this->ArcString(a) + " is inactive.");
+                    pd_eprint(tag, ": a = ", this->ArcString(a), " is inactive.");
                 }
                 if( !ValidIndexQ(c_0) )
                 {
-                    pd_eprint(tag()+": Index c_0 = " + ToString(c_0) + " is invalid.");
+                    pd_eprint(tag, ": Index c_0 = ", c_0, " is invalid.");
                 }
                 if( !this->CrossingActiveQ(c_0) )
                 {
-                    pd_eprint(tag()+": c_0 = " + this->CrossingString(c_0) + " is inactive.");
+                    pd_eprint(tag, ": c_0 = ", this->CrossingString(c_0), " is inactive.");
                 }
                 if( !ValidIndexQ(c_1) )
                 {
-                    pd_eprint(tag()+": Index c_1 = " + ToString(c_1) + " is invalid.");
+                    pd_eprint(tag, ": Index c_1 = ", c_1, " is invalid.");
                 }
                 if( !this->CrossingActiveQ(c_1) )
                 {
-                    pd_eprint(tag()+": c_1 = " + this->CrossingString(c_1) + " is inactive.");
+                    pd_eprint(tag, ": c_1 = ", this->CrossingString(c_1), " is inactive.");
                 }
                 if( !ValidIndexQ(a_pos) )
                 {
-                    pd_eprint(tag()+": Index a_pos = " + ToString(a_pos) + " is invalid.");
+                    pd_eprint(tag, ": Index a_pos = ", a_pos, " is invalid.");
                 }
                 if( !ValidIndexQ(c_0_pos) )
                 {
-                    pd_eprint(tag()+": Index c_0_pos = " + ToString(c_0_pos) + " is invalid.");
+                    pd_eprint(tag, ": Index c_0_pos = ", c_0_pos, " is invalid.");
                 }
                 if( !ValidIndexQ(c_1_pos) )
                 {
-                    pd_eprint(tag()+": Index c_1_pos = " + ToString(c_1_pos) + " is invalid.");
+                    pd_eprint(tag, ": Index c_1_pos = " , c_1_pos, " is invalid.");
                 }
             }
             else
@@ -177,10 +173,7 @@ PD_T CreateCompressed_Private()
                 color_arc_counts[lc] = lc_end - lc_begin;
             }
             {
-                (void)lc;
-                (void)lc_begin;
-                (void)lc_end;
-                (void)color_arc_counts;
+                Void{lc, lc_begin, lc_end, color_arc_counts};
             }
         }
     );
@@ -199,7 +192,7 @@ PD_T CreateCompressed_Private()
     if constexpr ( debugQ )
     {
         pd.PrintInfo();
-        if( !pd.CheckAll() ) { pd_eprint(tag() + ": pd.CheckAll() failed."); }
+        if( !pd.CheckAll() ) { pd_eprint(tag, ": pd.CheckAll() failed."); }
     }
     
     return pd;
@@ -254,11 +247,7 @@ bool CompressedOrderQ() const
             const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
         )
         {
-            (void)lc;
-            (void)c_0_visitedQ;
-            (void)c_1;
-            (void)c_1_pos;
-            (void)c_1_visitedQ;
+            Void{lc, c_0_visitedQ, c_1, c_1_pos, c_1_visitedQ};
             
             orderedQ = orderedQ && (a == a_pos) && (c_0 == c_0_pos);
         }

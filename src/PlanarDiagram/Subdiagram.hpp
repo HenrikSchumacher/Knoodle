@@ -18,9 +18,7 @@ bool CheckArcSelector( ArcSelectorFun_T & select_arcQ ) const
 template<bool check_arc_selectorQ = true, typename ArcSelectorFun_T>
 std::pair<PD_T,Tensor1<Int,Int>> Subdiagram( ArcSelectorFun_T && select_arcQ ) const
 {
-    [[maybe_unused]] auto tag = [](){ return MethodName("Subdiagram"); };
-    
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,MethodName("Subdiagram"));
     
     if( InvalidQ() ) { return {InvalidDiagram(),Tensor1<Int,Int>()}; }
     
@@ -33,7 +31,7 @@ std::pair<PD_T,Tensor1<Int,Int>> Subdiagram( ArcSelectorFun_T && select_arcQ ) c
     {
         if( !CheckArcSelector(select_arcQ ) )
         {
-            wprint(tag() + ": Selector function select_arcQ is not valid. Returning invalid diagram.");
+            Msgr::wprint("Subdiagram", "Selector function select_arcQ is not valid. Returning invalid diagram.");
             return {InvalidDiagram(),Tensor1<Int,Int>()};
         }
     }

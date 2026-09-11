@@ -6,34 +6,34 @@ public:
 
 Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_reducedQ = false )
 {
-    TOOLS_PTIMER(timer,MethodName("Split")+ "(pd,pd_output," + ToString(proven_reducedQ) + ")");
+    TOOLS_PTIMER(timer,MethodName("Split") + "(pd,pd_output," + ToString(proven_reducedQ) + ")");
     
 //    constexpr bool debugQ = true;
     
     if constexpr ( debugQ )
     {
-        wprint(MethodName("Split")+": Debug mode active.");
+        Msgr::wprint("Split","Debug mode active.");
     }
     
-    if( pd.InvalidQ() ) { return Size_T(0); }
+    if( pd.InvalidQ() ) { return Size_T{0}; }
     
-    if( pd.crossing_count <= Int(1) )
+    if( pd.crossing_count <= Int{1} )
     {
         CreateUnlink(pd.last_color_deactivated);
         pd = PD_T::InvalidDiagram();
-        return Size_T(1);
+        return Size_T{1};
     }
     
     if( pd.proven_minimalQ )
     {
         if constexpr ( debugQ )
         {
-            if( !pd.CheckAll() ) { pd_eprint("pd.CheckAll() failed when pushed to pd_output."); };
+            if( !pd.CheckAll() ) { pd_eprint(MethodName("Split"),": pd.CheckAll() failed when pushed to pd_output."); };
         }
         
         pd_done.push_back( std::move(pd) );
         pd = PD_T::InvalidDiagram();
-        return Size_T(1);
+        return Size_T{1};
     }
     
     if( proven_reducedQ )
@@ -63,20 +63,20 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
     
     const Int lc_count = pd.LinkComponentCount();
     
-    if( lc_count == Int(1) )
+    if( lc_count == Int{1} )
     {
         push( std::move(pd) );
         pd = PD_T::InvalidDiagram();
-        return Size_T(1);
+        return Size_T{1};
     }
 
     const Int dc_count = pd.DiagramComponentCount();
     
-    if( dc_count == Int(1) )
+    if( dc_count == Int{1} )
     {
         push( std::move(pd) );
         pd = PD_T::InvalidDiagram();
-        return Size_T(1);
+        return Size_T{1};
     }
 
     cref<typename PD_T::ComponentMatrix_T> A = pd.DiagramComponentLinkComponentMatrix();
@@ -131,7 +131,7 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
             dc_arc_count += j_end - j_begin;
         }
 
-        PD_T pd_new (dc_arc_count/Int(2),true);
+        PD_T pd_new (dc_arc_count/Int{2},true);
         Int a_counter = 0;
         Int c_counter = 0;
         
@@ -153,7 +153,7 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
                     {
                         TOOLS_LOGDUMP(a_counter);
                         TOOLS_LOGDUMP(pd_new.MaxArcCount());
-                        pd_eprint("a_counter >= pd_new.MaxArcCount()");
+                        pd_eprint(MethodName("Split"),"a_counter >= pd_new.MaxArcCount()");
                     }
                 }
                 
@@ -189,7 +189,7 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
                     {
                         TOOLS_LOGDUMP(c_0_label);
                         TOOLS_LOGDUMP(pd_new.MaxCrossingCount());
-                        pd_eprint("c_0_label >= pd_new.MaxCrossingCount()");
+                        pd_eprint(MethodName("Split"),"c_0_label >= pd_new.MaxCrossingCount()");
                     }
                 }
                 
@@ -230,42 +230,42 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
         
         if constexpr (debugQ)
         {
-            if( pd_new.CrossingCount() <= Int(0) )
+            if( pd_new.CrossingCount() <= Int{0} )
             {
                 TOOLS_LOGDUMP(pd_new.CrossingCount());
-                pd_eprint("pd_new.crossing_count <= Int(0)");
+                pd_eprint(MethodName("Split"),"pd_new.crossing_count <= Int{0}");
             }
             
             if( pd_new.CrossingCount() != pd_new.max_crossing_count )
             {
                 TOOLS_LOGDUMP(pd_new.CrossingCount());
                 TOOLS_LOGDUMP(pd_new.MaxCrossingCount());
-                pd_eprint("pd_new.crossing_count != pd_new.max_crossing_count");
+                pd_eprint(MethodName("Split"),"pd_new.crossing_count != pd_new.max_crossing_count");
             }
             
             if( pd_new.ArcCount() != pd_new.MaxArcCount() )
             {
                 TOOLS_LOGDUMP(pd_new.ArcCount());
                 TOOLS_LOGDUMP(pd_new.MaxArcCount());
-                pd_eprint("pd_new.arc_count != pd_new.MaxArcCount()");
+                pd_eprint(MethodName("Split"),"pd_new.arc_count != pd_new.MaxArcCount()");
             }
             
-            if( pd_new.ArcCount() != Int(2) * pd_new.CrossingCount() )
+            if( pd_new.ArcCount() != Int{2} * pd_new.CrossingCount() )
             {
                 TOOLS_LOGDUMP(pd_new.ArcCount());
-                TOOLS_LOGDUMP(2 * pd_new.CrossingCount());
-                pd_eprint("pd_new.ArcCount() != Int(2) * pd_new.CrossingCount()");
+                TOOLS_LOGDUMP(Int{2} * pd_new.CrossingCount());
+                pd_eprint(MethodName("Split"),"pd_new.ArcCount() != Int{2} * pd_new.CrossingCount()");
             }
             
             if( !pd_new.CheckAll() )
             {
-                pd_eprint("pd_new.CheckAll() failed.");
+                pd_eprint(MethodName("Split"),"pd_new.CheckAll() failed.");
             }
         }
         
         PD_PRINT(MethodName("Split") + ": Split off a diagram with " + ToString(pd_new.CrossingCount()) + " crossings.");
         
-        PD_ASSERT( pd_new.CrossingCount() > Int(0) );
+        PD_ASSERT( pd_new.CrossingCount() > Int{0} );
         
         if( pd_new.ValidQ() )
         {

@@ -1,0 +1,3 @@
+# Markers that apply to every fixture, for defects that belong to a class rather
+# than to any particular curve. A per-fixture .expect wins over these for the
+# same tier.

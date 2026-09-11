@@ -38,7 +38,7 @@ Size_T RemoveLoops( mref<PD_T> pd )
         while( R.Step() ) { ++loop_count; }
     }
     
-    if( loop_count > Size_T(0) ) { pd.ClearCache(); }
+    if( loop_count > Size_T{0} ) { pd.ClearCache(); }
     
     return loop_count;
 }

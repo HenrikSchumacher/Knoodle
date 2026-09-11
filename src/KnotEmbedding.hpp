@@ -40,7 +40,7 @@ namespace Knoodle
         
         static constexpr Int AmbDim = 3;
         
-        
+        using Class_T        = KnotEmbedding;
         using Tree2_T        = AABBTree<2,Real,Int,BReal,false>;
 //        using Tree3_T        = AABBTree<3,Real,Int,BReal,false>;
         
@@ -52,10 +52,14 @@ namespace Knoodle
         using VContainer_T   = Tiny::VectorList_AoS<AmbDim,Real,Int>;
         using BContainer_T   = typename Tree2_T::BContainer_T;
         
-        using Intersection_T = Intersection<Real,Int>;
+        using Prosector_T     = Prosector_Float<Real,Int>;
+        using Intersection_T  = Prosector_T::Intersection_T;
+        using EdgeCrossing_T  = EdgeCrossing<Int>;
         
-        using Intersector_T  = PlanarLineSegmentIntersector<Real,Int>;
-        using IntersectionFlagCounts_T = Tiny::Vector<9,Size_T,Int>;
+        using ProsectorFlagCounts_T = Tiny::Vector<9,Size_T,        Underlying_T<ProsectorFlag>>;
+        
+        
+        static constexpr bool countersQ = false;
         
     protected:
         
@@ -80,19 +84,19 @@ namespace Knoodle
         BContainer_T box_coords;
         
         // Containers that might have to be reallocated after calls to ReadVertexCoordinates.
-        std::vector<Intersection_T> intersections;
-        Tensor1<Int ,Int> edge_intersections;
+        Aggregator<Intersection_T,Int> intersections;
+        Tensor1<EdgeCrossing_T,Int> edge_cross;
         Tensor1<Real,Int> edge_times;
-        Tensor1<Int8,Int> edge_state;
-        Tensor1<Int,Int>  edge_ctr;
         
         Vector3_T Sterbenz_shift {0};
         
-        Intersector_T S;
-        IntersectionFlagCounts_T intersection_flag_counts = {};
+        Prosector_T S;
+        ProsectorFlagCounts_T prosector_flag_counts = {};
         
-        Int intersection_count    = 0;
-        Int intersection_count_3D = 0;
+        Int    intersection_count     = 0;
+        Size_T intersection_count_3D  = 0;
+        Size_T box_box_counter        = 0;
+        Size_T edge_edge_counter      = 0;
         
         bool intersections_computedQ  = false;
         bool bounding_boxes_computedQ = false;
@@ -126,7 +130,7 @@ namespace Knoodle
                 std::cmp_greater_equal(edge_count_, Scalar::Max<Int> - Int(1))
                 ||
                 std::cmp_less(edge_count_, Int(0))
-            ) [[unlikely]]
+            )
             {
                 edge_count = 0;
             }
@@ -134,6 +138,7 @@ namespace Knoodle
             component_ptr[1] = edge_count;
         }
 
+#include "KnotEmbedding/VertexCoordinates.hpp"
 #include "LinkEmbedding/Helpers.hpp"
 #include "LinkEmbedding/BoundingBoxes.hpp"
 #include "LinkEmbedding/FindIntersections.hpp"
@@ -186,65 +191,6 @@ namespace Knoodle
             return Vector3_T( vertex_coords.data(edge + k) );
         }
         
-        template<bool transformQ = false,bool shiftQ = true>
-        void ReadVertexCoordinates( cptr<Real> v )
-        {
-            TOOLS_PTIMER(timer,MethodName("ReadVertexCoordinates")+"<" + ToString(transformQ) + "," + ToString(shiftQ) + ">");
-            
-            Vector3_T lo;
-            Vector3_T hi;
-            
-            Vector3_T x;
-            Vector3_T y;
-
-            intersections_computedQ  = false;
-            bounding_boxes_computedQ = false;
-            intersections.clear();
-            
-            ComputeBoundingBox( v, edge_count, lo, hi );
-            
-            if constexpr ( shiftQ )
-            {
-                // Compute Sterbenz shift.
-                Sterbenz_shift[0] = std::fma(-Real(2), lo[0], hi[0]);
-                Sterbenz_shift[1] = std::fma(-Real(2), lo[1], hi[1]);
-                Sterbenz_shift[2] = std::fma(-Real(2), lo[2], hi[2]);
-            }
-            
-            for( Int edge = 0; edge < edge_count; ++edge )
-            {
-                cptr<Real> source = &v[AmbDim * edge];
-                mptr<Real> target = vertex_coords.data(edge);
-                
-                if constexpr ( transformQ )
-                {
-                    y.Read(source);
-                    x = Dot(R,y);
-                }
-                else
-                {
-                    x.Read(source);
-                }
-                
-                if constexpr ( shiftQ )
-                {
-                    x += Sterbenz_shift;
-                }
-
-                x.Write(target);
-            }
-
-            // Copy the coordinates for the first vertex to the last's.
-            copy_buffer<AmbDim>(vertex_coords.data(),vertex_coords.data(edge_count));
-        }
-        
-        void WriteVertexCoordinates( mptr<Real> v ) const
-        {
-            TOOLS_PTIMER(timer,MethodName("WriteVertexCoordinates"));
-            
-            copy_buffer(vertex_coords.data(),v,edge_count * AmbDim);
-        }
-        
         void ComputeBoundingBoxes()
         {
 //            TOOLS_TIMER(timer,MethodName("ComputeBoundingBoxes"));
@@ -270,17 +216,11 @@ namespace Knoodle
         {
             return
                   T.AllocatedByteCount()
-//                + Base_T::edges.AllocatedByteCount()
-//                + Base_T::next_edge.AllocatedByteCount()
                 + edge_ptr.AllocatedByteCount()
-//                + Base_T::component_ptr.AllocatedByteCount()
-//                + Base_T::component_lookup.AllocatedByteCount();
-                + edge_ctr.AllocatedByteCount()
                 + vertex_coords.AllocatedByteCount()
                 + box_coords.AllocatedByteCount()
-                + edge_intersections.AllocatedByteCount()
-                + edge_times.AllocatedByteCount()
-                + edge_state.AllocatedByteCount();
+                + edge_cross.AllocatedByteCount()
+                + edge_times.AllocatedByteCount();
         }
         
         Size_T ByteCount() const
@@ -288,31 +228,34 @@ namespace Knoodle
             return sizeof(KnotEmbedding) + AllocatedByteCount();
         }
         
-        template<int t0>
+        template<int t0 = 0>
         std::string AllocatedByteCountDetails() const
         {
             constexpr int t1 = t0 + 1;
             return
                 std::string("<|")
-                + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(vertex_coords)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
+                + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ptr)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ctr)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_intersections)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(vertex_coords)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_cross)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_times)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_state)
                 + ( "\n" + ct_tabs<t0> + "|>");
         }
         
-        static constexpr std::string MethodName( const std::string & tag )
+    public:
+        
+        using Msgr = Tools::Messenger<Class_T>;
+        
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("KnotEmbedding")
+            return ct_string("KnotEmbedding")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<BReal>

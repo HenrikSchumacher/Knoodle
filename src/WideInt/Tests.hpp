@@ -24,8 +24,8 @@ namespace Knoodle
         auto rand = [&engine,&dist](){ return dist(engine); };
 
         return TestWideInt("NegativeQ",
-            []( cref<T> a ) -> bool { return a.NegativeQ(); },
-            []( cref<S> a ) -> bool { return (a < 0); },
+            []( cref<T> a ) -> bool { return NegativeQ(a); },
+            []( cref<S> a ) -> bool { return NegativeQ(a); },
             rand, n, reps, verboseQ
         );
     }
@@ -252,11 +252,11 @@ namespace Knoodle
 //                wide_convert(b,b_wint);
 //                TOOLS_DUMP(ToDouble(a));
 //                TOOLS_DUMP(static_cast<double>(a_wint));
-//                TOOLS_DUMP(a.NegativeQ());
+//                TOOLS_DUMP(NegativeQ(a));
 //                TOOLS_DUMP(a_wint < 0);
 //                TOOLS_DUMP(ToDouble(b));
 //                TOOLS_DUMP(static_cast<double>(b_wint));
-//                TOOLS_DUMP(b.NegativeQ());
+//                TOOLS_DUMP(NegativeQ(a));
 //                TOOLS_DUMP(b_wint < 0);
 //                TOOLS_DUMP(static_cast<double>(r));
                 return r;
