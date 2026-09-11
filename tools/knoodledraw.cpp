@@ -23,6 +23,7 @@
 #include "knoodle_io.hpp"
 #include "pass_view.hpp"
 #include "find_pass.hpp"
+#include "witness_check.hpp"
 
 #include <charconv>     // ParsePassMove
 #include <cmath>
@@ -3391,6 +3392,50 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                     std::cout << "\n";
 
                     if (!drawnQ) { verify_failed = true; }
+                }
+
+                // The feasibility witness, when the record carries one. V0
+                // rebuilds the disk and the pieces on the witness's side from
+                // the snapshot and the descriptor alone; V4 demands the
+                // classes be exactly the same-strand unions at the disk's
+                // crossings. (V1/V2/V3/V5 are the emitter's own gate.)
+                if (rec.feas)
+                {
+                    const auto wr = KnoodleWitness::CheckWitness<PD_T>(
+                        dia, mvv, *rec.feas);
+
+                    std::cout << "#verify step " << records_drawn << " disk (V0): ";
+                    if (!wr.v0_checkedQ)
+                    {
+                        std::cout << "UNCHECKED (" << wr.v0_why << ")\n";
+                    }
+                    else if (wr.v0_okQ)
+                    {
+                        std::cout << "VERIFIED (side " << rec.feas->side << ": "
+                                  << wr.disk_size << " interior crossings, "
+                                  << wr.piece_count << " pieces)\n";
+                    }
+                    else
+                    {
+                        std::cout << "MISMATCH -- " << wr.v0_why << "\n";
+                        verify_failed = true;
+                    }
+
+                    std::cout << "#verify step " << records_drawn << " classes (V4): ";
+                    if (!wr.v4_checkedQ)
+                    {
+                        std::cout << "UNCHECKED (" << wr.v4_why << ")\n";
+                    }
+                    else if (wr.v4_okQ)
+                    {
+                        std::cout << "VERIFIED (" << wr.class_count
+                                  << " classes, exactly the same-strand unions)\n";
+                    }
+                    else
+                    {
+                        std::cout << "MISMATCH -- " << wr.v4_why << "\n";
+                        verify_failed = true;
+                    }
                 }
 
                 // A `#candidate` was evaluated and NOT applied, so the stream's

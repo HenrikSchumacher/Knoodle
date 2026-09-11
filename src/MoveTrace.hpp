@@ -67,6 +67,35 @@ namespace Knoodle
         using PD_T = PD_T_;
         using Int  = typename PD_T::Int;
 
+        /*!@brief One piece of a feasibility witness: a whole arc, or the half of
+         * a route-crossed arc incident to its tail (`half == 0`, spelled `12t`)
+         * or head (`half == 1`, spelled `12h`) crossing.
+         */
+        struct FeasPiece
+        {
+            Int arc  = Int(-1);
+            int half = -1;        // -1: the whole arc
+        };
+
+        /*!@brief One `#fvar` line: a class of pieces and its label. */
+        struct FeasClass
+        {
+            std::vector<FeasPiece> pieces;
+            char label = 'f';     // 'a' above, 'b' below, 'f' free
+        };
+
+        /*!@brief A `#feas` header and the `#fvar` lines after it: the claimed
+         * sweep disk on one side of the move, and the labelling of the pieces
+         * on that side. The reader checks the grammar only; what the witness
+         * CLAIMS is a verifier's business (V0-V5).
+         */
+        struct Feasibility
+        {
+            int                    side = 0;
+            std::vector<Int>       disk;       // interior crossings, as listed
+            std::vector<FeasClass> classes;
+        };
+
         /*!@brief One record of a trace stream. */
         struct Record
         {
@@ -92,6 +121,9 @@ namespace Knoodle
             // are reported rather than represented -- on both sides.
             std::optional<Int> spinoffs;
             std::vector<Int>   spinoff_colors;
+
+            // `#feas` + `#fvar`: the move's feasibility witness, if carried.
+            std::optional<Feasibility> feas;
 
             // The before diagram: `#state` in v1, the PD rows in v0.
             std::optional<PD_T> state;
@@ -232,6 +264,29 @@ namespace Knoodle
             {
                 const std::string v = ValueOf(line,key);
                 return !v.empty() && ParseInt(v,out);
+            }
+
+            /*!@brief A comma-separated integer list; the empty string is the
+             * empty list, but an empty entry (`1,,2`) is an error.
+             */
+            static bool ParseIntList( const std::string & s, std::vector<Int> & out )
+            {
+                out.clear();
+                if( s.empty() ) { return true; }
+
+                std::size_t pos = 0;
+                while( pos <= s.size() )
+                {
+                    auto end = s.find(',',pos);
+                    if( end == std::string::npos ) { end = s.size(); }
+
+                    Int v = Int(0);
+                    const std::string_view tok (s.data()+pos,end-pos);
+                    if( tok.empty() || !ParseInt(tok,v) ) { return false; }
+                    out.push_back(v);
+                    pos = end + 1;
+                }
+                return true;
             }
 
             bool ParseVersion( const std::string & line, std::string & why )
@@ -488,6 +543,109 @@ namespace Knoodle
                         }
                         rec.spinoffs = n;
                     }
+                }
+                else if( line.starts_with("#feas ") )
+                {
+                    // The witness grammar, as middlestrands emits it:
+                    //   #feas side=<0|1> disk=<c1,c2,...>   (disk may be empty)
+                    if( rec.feas )
+                    {
+                        why = "record carries a second '#feas' header";
+                        return false;
+                    }
+
+                    Feasibility w;
+
+                    const std::string side = ValueOf(line,"side=");
+                    if     ( side == "0" ) { w.side = 0; }
+                    else if( side == "1" ) { w.side = 1; }
+                    else
+                    {
+                        why = "bad '#feas' header '" + line + "': want side=<0|1>";
+                        return false;
+                    }
+
+                    if( (line.find(" disk=") == std::string::npos)
+                        || !ParseIntList(ValueOf(line,"disk="),w.disk) )
+                    {
+                        why = "bad '#feas' header '" + line
+                            + "': want disk=<c1,c2,...> (the list may be empty)";
+                        return false;
+                    }
+
+                    rec.feas = std::move(w);
+                }
+                else if( line.starts_with("#fvar ") )
+                {
+                    //   #fvar <piece>[,<piece>...]=<a|b|f>
+                    // where <piece> is <arc>, <arc>t or <arc>h.
+                    if( !rec.feas )
+                    {
+                        why = "'#fvar' header before the record's '#feas'";
+                        return false;
+                    }
+
+                    const auto eq = line.rfind('=');
+                    const char lab = (eq == std::string::npos || eq + 2 != line.size())
+                                   ? '\0' : line[eq+1];
+
+                    if( (lab != 'a') && (lab != 'b') && (lab != 'f') )
+                    {
+                        why = "bad '#fvar' header '" + line
+                            + "': want <piece>[,<piece>...]=<a|b|f>";
+                        return false;
+                    }
+
+                    FeasClass cls;
+                    cls.label = lab;
+
+                    const std::string list = line.substr(6,eq-6);
+                    std::size_t pos = 0;
+                    while( pos <= list.size() )
+                    {
+                        auto end = list.find(',',pos);
+                        if( end == std::string::npos ) { end = list.size(); }
+
+                        std::string_view tok (list.data()+pos,end-pos);
+                        FeasPiece p;
+                        if( !tok.empty() && ((tok.back() == 't') || (tok.back() == 'h')) )
+                        {
+                            p.half = (tok.back() == 'h') ? 1 : 0;
+                            tok.remove_suffix(1);
+                        }
+                        if( tok.empty() || !ParseInt(tok,p.arc) || (p.arc < Int(0)) )
+                        {
+                            why = "bad piece in '#fvar' header '" + line + "'";
+                            return false;
+                        }
+
+                        // Each piece belongs to exactly one class.
+                        for( const auto & other : rec.feas->classes )
+                        {
+                            for( const auto & q : other.pieces )
+                            {
+                                if( (q.arc == p.arc) && (q.half == p.half) )
+                                {
+                                    why = "piece in '" + line
+                                        + "' already belongs to an earlier '#fvar'";
+                                    return false;
+                                }
+                            }
+                        }
+                        for( const auto & q : cls.pieces )
+                        {
+                            if( (q.arc == p.arc) && (q.half == p.half) )
+                            {
+                                why = "piece repeated within '" + line + "'";
+                                return false;
+                            }
+                        }
+
+                        cls.pieces.push_back(p);
+                        pos = end + 1;
+                    }
+
+                    rec.feas->classes.push_back(std::move(cls));
                 }
 
                 return true;

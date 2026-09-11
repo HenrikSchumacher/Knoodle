@@ -82,3 +82,4 @@ orthodecorate_check	test	plain	-	-	-	PROBE OK \([1-9][0-9]* checks passed\)
 pass_view_check	test	plain	-	-	-	PASS VIEW CHECK OK \([1-9][0-9]* checks passed\)
 oracle_vs_reroute	tool	plain	-	-	-	-
 ordering_probe	tool	plain	-	-	-	-
+witness_check	test	plain	-	-	-	WITNESS CHECK OK \([1-9][0-9]* checks passed\)
