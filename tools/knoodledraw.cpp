@@ -3311,11 +3311,21 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                 // compares below.
                 std::vector<Int> freed;
                 PD_T ad = dv.AfterDiagram(dia, mvv, vwhy, freed);
-                if (!vwhy.empty())
+
+                // Our surgery cannot carry out every well-formed move (e.g. a
+                // corridor that crosses one healed arc twice, where the order
+                // of the two crossings is not in the descriptor). That is a
+                // limit of the checker, not a fault in the record: the claims
+                // that need the after-diagram go UNCHECKED, and the witness is
+                // still checked. A malformed descriptor still aborts, when the
+                // record is drawn below.
+                const bool afterQ = vwhy.empty();
+                if (!afterQ)
                 {
-                    std::cerr << "knoodledraw: trace line " << rec.line
-                              << ": --verify: AfterDiagram: " << vwhy << "\n";
-                    return false;
+                    std::cout << "#verify step " << records_drawn
+                              << " result/drawing/trace: UNCHECKED (AfterDiagram"
+                                 " cannot build what the move produces: "
+                              << vwhy << ")\n";
                 }
                 if (!freed.empty())
                 {
@@ -3331,7 +3341,7 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                 // thing. Neither side can hold a crossingless component beside
                 // crossings, so both report rather than represent -- and the
                 // two reports have to agree.
-                if (rec.spinoffs)
+                if (afterQ && rec.spinoffs)
                 {
                     const Int mine   = static_cast<Int>(freed.size());
                     const bool sameQ = (*rec.spinoffs == mine);
@@ -3345,7 +3355,7 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                 }
 
                 // The applier's own result, compared port by port.
-                if (rec.result)
+                if (afterQ && rec.result)
                 {
                     std::vector<std::array<Int,2>> seeds;
                     std::string swhy;
@@ -3370,7 +3380,12 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
 
                 // The two deletions, checked in this record's own drawing.
                 auto prv = dv.RoutePassMove(dia, mvv);
-                if (!prv.validQ)
+                if (!afterQ)
+                {
+                    // Already reported: the second deletion needs the
+                    // after-diagram.
+                }
+                else if (!prv.validQ)
                 {
                     std::cout << "#verify step " << records_drawn
                               << " drawing: UNCHECKED (the move does not"
@@ -3459,7 +3474,7 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                 // A `#candidate` was evaluated and NOT applied, so the stream's
                 // diagram does not advance across it and its claim must not be
                 // carried into the next record's trace check.
-                if (!rec.candidateQ)
+                if (afterQ && !rec.candidateQ)
                 {
                     pending_after = std::move(ad);
                     pending_label = "step " + std::to_string(records_drawn);

@@ -20,6 +20,7 @@
 #include "../Knoodle.hpp"
 #include "../tools/witness_check.hpp"
 #include "witness_fixtures.hpp"
+#include "knot_determinant.hpp"
 
 #include <cstdint>
 #include <cstdio>
@@ -33,6 +34,9 @@ using PD_T    = Knoodle::PlanarDiagram<Int>;
 using Trace_T = Knoodle::MoveTrace<PD_T>;
 using Desc_T  = Knoodle::PassDescriptor<Int>;
 using Feas_T  = Trace_T::Feasibility;
+
+using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
+using Deco_T      = Knoodle::OrthoDecorate<PD_T>;
 
 static bool ok = true;
 
@@ -328,6 +332,94 @@ int main()
                 }
                 check(builtQ, "a disk crossing with its two strands in two classes exists");
             }
+        }
+    }
+
+    // ---- 2c. chords and anchors ---------------------------------------------
+    // No route arc in middlestrands' fixture is a chord of W, and none of their
+    // witnesses breaks an ordering at an anchor, so these three records come
+    // from a search over data/diagrams with a scratch solver; see
+    // witness_fixtures.hpp for where each came from.
+    std::printf("=== chords and anchors: synthetic witnesses ===\n");
+    {
+        // A crossed arc whose tail and head are both interior crossings of W.
+        auto chord_of = []( const Loaded_T & L ) -> Int
+        {
+            std::vector<Int> interior;
+            for( std::size_t i = 1; i < L.mv.strand.size(); ++i )
+            {
+                interior.push_back(Desc_T::DarcHeadCrossing(*L.pd, L.mv.strand[i-1]));
+            }
+            auto inQ = [&]( Int c ) { return std::find(interior.begin(), interior.end(), c) != interior.end(); };
+            for( Int da : L.mv.cross )
+            {
+                const Int a = Desc_T::ArcOf(da);
+                if( inQ(L.pd->Arcs()(a, PD_T::Tail)) && inQ(L.pd->Arcs()(a, PD_T::Head)) ) { return a; }
+            }
+            return Int(-1);
+        };
+
+        std::string why;
+
+        Loaded_T agree;
+        if( !Load(witness_rec_chord_agree, agree, why) )
+        {
+            check(false, "load the chord-agree record (" + why + ")");
+        }
+        else
+        {
+            const Int b = chord_of(agree);
+            check(b >= 0, "agree: the corridor crosses a chord of W (arc " + std::to_string(b) + ")");
+            const auto r = Run(agree, agree.feas);
+            check(r.v0_okQ && r.v4_okQ && r.labels_okQ,
+                  "agree: a witness honouring the chord rule passes V0-V5");
+            if( !r.labels_okQ ) { std::printf("      %s\n", r.labels_why.c_str()); }
+        }
+
+        Loaded_T conflict;
+        if( !Load(witness_rec_chord_conflict, conflict, why) )
+        {
+            check(false, "load the chord-conflict record (" + why + ")");
+        }
+        else
+        {
+            const Int b = chord_of(conflict);
+            check(b >= 0, "conflict: the corridor crosses a chord of W (arc " + std::to_string(b) + ")");
+            const auto r = Run(conflict, conflict.feas);
+            check(r.v0_okQ && r.v4_okQ && !r.labels_okQ && Contains(r.labels_why, "(a chord of W)"),
+                  "conflict: V2 refuses a witness that ignores the chord rule");
+            std::printf("      %s\n", r.labels_okQ ? "(passed)" : r.labels_why.c_str());
+        }
+
+        Loaded_T lie;
+        if( !Load(witness_rec_anchor_lie, lie, why) )
+        {
+            check(false, "load the anchor-ordering record (" + why + ")");
+        }
+        else
+        {
+            const auto r = Run(lie, lie.feas);
+            check(r.v0_okQ && r.v4_okQ && !r.labels_okQ
+                  && Contains(r.labels_why, "(an anchor)") && Contains(r.labels_why, "(V3)"),
+                  "anchor: V3 refuses a witness that breaks an ordering at an anchor");
+            std::printf("      %s\n", r.labels_okQ ? "(passed)" : r.labels_why.c_str());
+
+            // Why the anchor orderings matter: the move this witness prescribes
+            // is not an isotopy.
+            OrthoDraw_T H (*lie.pd, Int(-1), OrthoDraw_T::Settings_T{});
+            Deco_T deco (H, Int(2));
+            std::vector<Int> freed;
+            std::string awhy;
+            const PD_T after = deco.AfterDiagram(*lie.pd, lie.mv, awhy, freed);
+
+            const Int P  = 1000003;
+            const Int d0 = DeterminantModP(*lie.pd);
+            const Int d1 = awhy.empty() ? DeterminantModP(after) : Int(0);
+            const bool changedQ = awhy.empty() && (d0 != d1) && ((d0 + d1) % P != 0);
+            check(changedQ, "anchor: and the move it prescribes changes the determinant");
+            std::printf("      %s\n", !awhy.empty() ? awhy.c_str()
+                : ("det " + std::to_string(std::min(d0, P - d0)) + " -> "
+                   + std::to_string(std::min(d1, P - d1))).c_str());
         }
     }
 

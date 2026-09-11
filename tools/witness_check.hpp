@@ -23,8 +23,8 @@
  *
  *   V2  at each interior crossing of W, the transversal's piece on the side is
  *       above if the transversal passes over W, below if under;
- *   V3  at each disk crossing away from W, never under-strand above with
- *       over-strand below;
+ *   V3  at each disk crossing, never under-strand above with over-strand
+ *       below -- at an anchor, between whatever non-W pieces the strands have;
  *   V5  each `cross=` tag agrees with its arc's half on the side: `o` iff that
  *       half is below.
  *
@@ -530,20 +530,30 @@ void CheckLabels(
     {
         const auto k = StrandKeysAt(pd, S, c);
 
-        // An anchor: a strand pair there contains a W arc, and has no piece.
-        if( (k[0] < Int(0)) || (k[1] < Int(0)) || (k[2] < Int(0)) || (k[3] < Int(0)) )
+        // At an anchor one strand runs along W's end arc, which carries no
+        // piece. The ordering still binds whatever pieces the two strands DO
+        // have there: middlestrands' FeasibleSide imposes these edges, and a
+        // witness that breaks one can prescribe a move that changes the knot
+        // (found by a synthetic search: determinant 1 -> 29 on an unknot).
+        bool countedQ = false;
+        for( Int ku : { k[0], k[1] } )
         {
-            continue;
+            for( Int ko : { k[2], k[3] } )
+            {
+                if( (ku < Int(0)) || (ko < Int(0)) ) { continue; }
+                if( !countedQ ) { ++r.order_count; countedQ = true; }
+
+                const char lu = label_of(ku);
+                const char lo = label_of(ko);
+                if( (lu != 'a') || !belowQ(lo) || !v3.empty() ) { continue; }
+
+                const bool anchorQ = (k[0] < Int(0)) || (k[1] < Int(0))
+                                  || (k[2] < Int(0)) || (k[3] < Int(0));
+                v3 = "at crossing " + std::to_string(c) + (anchorQ ? " (an anchor)" : "")
+                   + " the under-strand's " + name_of(ku) + " is above (=a) but the"
+                     " over-strand's " + name_of(ko) + " is below (=" + lo + ") (V3)";
+            }
         }
-
-        ++r.order_count;
-        const char lu = label_of(k[0]);
-        const char lo = label_of(k[2]);
-        if( (lu != 'a') || !belowQ(lo) || !v3.empty() ) { continue; }
-
-        v3 = "at crossing " + std::to_string(c) + " the under-strand's " + name_of(k[0])
-           + " is above (=a) but the over-strand's " + name_of(k[2]) + " is below (="
-           + lo + ") (V3)";
     }
 
     // ---- V5: each route tag agrees with its arc's half on the side ---------

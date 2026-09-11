@@ -457,7 +457,7 @@ are what make them true.
 | V0 | rebuild both sides from the snapshot and the descriptor; `disk=` equals side `s`'s interior crossings, and the classes name exactly side `s`'s pieces | `knoodledraw --verify`: `disk (V0)` |
 | V1 | at each interior crossing, each strand's two pieces share a class (a strand pair containing a W arc is skipped) | emitter; implied by V4 |
 | V2 | at each interior crossing of W, the transversal's side-`s` piece is `a` if the transversal passes over W, and below (`b`, or `f` after the fill) if under. A crossed arc running between two interior crossings of W (a *chord*) is one physical arc, so the germ at either end applies to both of its halves | emitter; `knoodledraw --verify`: `labels (V2/V3/V5)` |
-| V3 | at each interior crossing not on W, never under = `a` with over below, after the fill (skipped where a strand pair contains a W arc) | emitter; `knoodledraw --verify`: `labels (V2/V3/V5)` |
+| V3 | at each interior crossing, never under = `a` with over below, after the fill. At an anchor one strand runs along W's end arc, which carries no piece; the ordering still binds whatever non-W pieces the two strands have there. (A check that skips anchors accepts witnesses whose moves change the knot: synthetic examples take unknot diagrams to determinants 29 and 5.) | emitter's solver; `knoodledraw --verify`: `labels (V2/V3/V5)` |
 | V4 | the classes are exactly the unions of V1's equalities: no merge that no chain forces, and no split | `knoodledraw --verify`: `classes (V4)` |
 | V5 | for each `cross=DA:tag`, tag `o` ⟺ the side-`s` half of that arc is below, after the fill | emitter; `knoodledraw --verify`: `labels (V2/V3/V5)` |
 

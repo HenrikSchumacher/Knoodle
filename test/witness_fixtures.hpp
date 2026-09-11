@@ -1,6 +1,6 @@
 #pragma once
 
-// Four witnessed records from middlestrands' fixture
+// Seven witnessed records. The first four are REAL, from middlestrands' fixture
 // handoff/middlepass-descriptor-emission/fixture-zf061098-walk-v2-witnessed.trace
 // (their commit 07d2baf), verbatim except that each record's #result block is
 // dropped: the witness checks need only #move, #feas/#fvar and #state.
@@ -108,6 +108,100 @@ C_state = {-1,-1,-1,1,-1,-1,-1,-1,1,1,-1,-1,1,1,1,-1,-1,-1,1,-1,1,1,1,1,-1,-1,1,
 A_cross = {{0,1},{1,2},{2,3},{3,4},{4,5},{5,6},{6,7},{7,8},{8,2},{2,9},{9,10},{10,11},{11,12},{12,13},{13,14},{14,15},{15,16},{16,17},{17,18},{18,19},{19,20},{20,21},{21,22},{22,23},{23,24},{24,10},{10,0},{0,16},{16,25},{25,26},{26,27},{27,28},{28,29},{29,30},{30,31},{31,32},{32,33},{33,34},{34,21},{21,5},{5,35},{35,7},{7,36},{36,18},{18,37},{37,38},{38,39},{39,29},{29,40},{40,41},{41,42},{42,43},{43,44},{44,25},{25,45},{45,37},{37,46},{46,47},{47,34},{34,48},{48,23},{23,49},{49,9},{9,1},{1,17},{17,45},{45,26},{26,50},{50,51},{51,52},{52,41},{41,53},{53,30},{30,54},{54,55},{55,46},{46,19},{19,36},{36,8},{8,3},{3,49},{49,24},{24,56},{56,57},{57,58},{58,42},{42,52},{52,59},{59,60},{60,51},{51,43},{43,61},{61,13},{13,12},{12,57},{57,62},{62,32},{32,63},{63,54},{54,39},{39,28},{28,64},{64,59},{59,60},{60,65},{65,27},{27,38},{38,55},{55,66},{66,33},{33,67},{67,56},{56,11},{11,68},{68,15},{15,44},{44,50},{50,65},{65,64},{64,40},{40,53},{53,69},{69,62},{62,67},{67,48},{48,22},{22,4},{4,35},{35,6},{6,20},{20,47},{47,66},{66,63},{63,31},{31,69},{69,58},{58,61},{61,14},{14,68},{68,0}}
 A_state = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
 A_color = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+last_color_deactivated = -1
+proven_minimalQ = 0
+
+)TRACE";
+
+// ---- SYNTHETIC records -----------------------------------------------------
+// No witness in middlestrands' fixture crosses a chord of W (a crossed arc whose
+// two ends are interior crossings of W) or breaks an ordering at an anchor, so
+// these were found by a search over data/diagrams: for each strand W and chord,
+// route a corridor across the chord and solve the witness system with a scratch
+// solver (not committed) in four modes -- chord rule on/off, anchor orderings
+// on/off. Nothing below is middlestrands' output.
+
+// juhasz-veryhard-262, side 1; the corridor crosses chord arc 7. Witness solved with the
+// chord rule AND the anchor orderings: passes V0-V5, and AfterDiagram keeps the
+// determinant at 1.
+static const char * witness_rec_chord_agree = R"TRACE(#trace v=1
+#step n=0 summand=0
+#comment SYNTHETIC chord fixture (agree): juhasz-veryhard-262.tsv side 1, chord arc 7; witness from a scratch solver with the chord rule and anchor orderings
+#move kind=middlepass strand=37,39,41,43,45,47,49,51 depart=36 cross=15:o,74:o,20:u,57:o,27:u land=50
+#feas side=1 disk=0,1,2,3,4,5,9,13,14,20,21,22
+#fvar 0,1,2,3,4,5,6,38,39,40,41,42,43,44,45=b
+#fvar 7h=b
+#fvar 9,10t=a
+#fvar 13h,14,15,16=a
+#fvar 28h,29,30,31=b
+#fvar 34,35,36,37t=b
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 23
+crossing_count = 23
+max_arc_count = 46
+arc_count = 46
+C_arcs = {{{1,36},{35,0}},{{29,2},{1,28}},{{14,3},{2,13}},{{4,41},{40,3}},{{40,5},{4,39}},{{43,6},{5,42}},{{7,24},{23,6}},{{8,19},{18,7}},{{20,9},{8,19}},{{10,37},{36,9}},{{28,11},{10,27}},{{12,27},{26,11}},{{26,13},{12,25}},{{15,30},{29,14}},{{45,16},{15,44}},{{17,22},{21,16}},{{33,18},{17,32}},{{21,34},{33,20}},{{32,23},{22,31}},{{25,38},{37,24}},{{44,31},{30,43}},{{35,0},{45,34}},{{39,42},{41,38}}}
+C_state = {1,-1,-1,1,1,-1,1,1,1,-1,-1,-1,-1,-1,1,-1,-1,-1,1,-1,1,1,-1}
+A_cross = {{21,0},{0,1},{1,2},{2,3},{3,4},{4,5},{5,6},{6,7},{7,8},{8,9},{9,10},{10,11},{11,12},{12,2},{2,13},{13,14},{14,15},{15,16},{16,7},{7,8},{8,17},{17,15},{15,18},{18,6},{6,19},{19,12},{12,11},{11,10},{10,1},{1,13},{13,20},{20,18},{18,16},{16,17},{17,21},{21,0},{0,9},{9,19},{19,22},{22,4},{4,3},{3,22},{22,5},{5,20},{20,14},{14,21}}
+A_state = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+A_color = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+last_color_deactivated = -1
+proven_minimalQ = 0
+
+)TRACE";
+
+// L7a5_1 (a 7-crossing link), side 1; the corridor crosses chord arc 5, whose two germs
+// disagree. Witness solved IGNORING the chord rule: V2 must refuse it.
+static const char * witness_rec_chord_conflict = R"TRACE(#trace v=1
+#step n=0 summand=0
+#comment SYNTHETIC chord fixture (conflict): L7a5_1.tsv side 1, chord arc 5; witness from a scratch solver that IGNORES the chord rule
+#move kind=middlepass strand=15,17,19,21,23 depart=14 cross=9:u,12:o,6:u,11:o land=22
+#feas side=1 disk=
+#fvar 3t=a
+#fvar 4h=a
+#fvar 5h=b
+#fvar 6t=b
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 7
+crossing_count = 7
+max_arc_count = 14
+arc_count = 14
+C_arcs = {{{0,11},{10,5}},{{12,1},{0,11}},{{2,13},{12,1}},{{10,3},{2,9}},{{7,4},{3,6}},{{5,8},{7,4}},{{9,6},{13,8}}}
+C_state = {1,1,1,1,-1,-1,-1}
+A_cross = {{0,1},{1,2},{2,3},{3,4},{4,5},{5,0},{6,4},{4,5},{5,6},{6,3},{3,0},{0,1},{1,2},{2,6}}
+A_state = {1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+A_color = {0,0,0,0,0,0,1,1,1,1,1,1,1,1}
+last_color_deactivated = -1
+proven_minimalQ = 0
+
+)TRACE";
+
+// juhasz-veryhard-267 (an unknot diagram), side 0. Witness solved SKIPPING the orderings at
+// anchors: it passes V0-V5 as V3 was first specified, V3 at anchors must refuse it,
+// and AfterDiagram takes the diagram to determinant 29.
+static const char * witness_rec_anchor_lie = R"TRACE(#trace v=1
+#step n=0 summand=0
+#comment SYNTHETIC anchor-ordering violation: juhasz-veryhard-267.tsv side 0, chord arc 13; witness from a scratch solver that SKIPS orderings at anchors
+#move kind=middlepass strand=117,119,1,3,5 depart=116 cross=27:u,113:o,7:o,110:o land=4
+#feas side=0 disk=2,13
+#fvar 3t=f
+#fvar 13t=a
+#fvar 14,15=a
+#fvar 55h,56t=f
+#fvar 57=b
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 30
+crossing_count = 30
+max_arc_count = 60
+arc_count = 60
+C_arcs = {{{1,16},{15,0}},{{13,2},{1,12}},{{56,3},{2,55}},{{4,27},{26,3}},{{5,36},{35,4}},{{31,6},{5,30}},{{7,22},{21,6}},{{21,8},{7,20}},{{9,20},{19,8}},{{23,10},{9,22}},{{46,11},{10,45}},{{12,51},{50,11}},{{14,59},{58,13}},{{58,15},{14,57}},{{17,26},{25,16}},{{18,35},{34,17}},{{32,19},{18,31}},{{47,24},{23,46}},{{25,50},{49,24}},{{43,28},{27,42}},{{29,38},{37,28}},{{30,45},{44,29}},{{48,33},{32,47}},{{34,49},{48,33}},{{44,37},{36,43}},{{39,52},{51,38}},{{53,40},{39,52}},{{41,54},{53,40}},{{55,42},{41,54}},{{57,0},{59,56}}}
+C_state = {1,-1,-1,-1,1,-1,1,1,1,1,-1,1,-1,-1,1,1,-1,-1,1,-1,-1,-1,-1,-1,-1,1,1,1,1,1}
+A_cross = {{29,0},{0,1},{1,2},{2,3},{3,4},{4,5},{5,6},{6,7},{7,8},{8,9},{9,10},{10,11},{11,1},{1,12},{12,13},{13,0},{0,14},{14,15},{15,16},{16,8},{8,7},{7,6},{6,9},{9,17},{17,18},{18,14},{14,3},{3,19},{19,20},{20,21},{21,5},{5,16},{16,22},{22,23},{23,15},{15,4},{4,24},{24,20},{20,25},{25,26},{26,27},{27,28},{28,19},{19,24},{24,21},{21,10},{10,17},{17,22},{22,23},{23,18},{18,11},{11,25},{25,26},{26,27},{27,28},{28,2},{2,29},{29,13},{13,12},{12,29}}
+A_state = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+A_color = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 last_color_deactivated = -1
 proven_minimalQ = 0
 
