@@ -599,7 +599,6 @@ static void ConvertHits(
     long long tried = 0, converted = 0, lag_kept = 0, faces_kept = 0;
     long long bigon_free = 0, shortest = 0;
     std::map<Int,long long> excess_hist;
-    int reported = 0;
 
     for( Knoodle::cref<Desc_T> d : hits )
     {
@@ -672,7 +671,6 @@ static void ConvertHits(
                          && (n < static_cast<std::size_t>(report_cap)); ++n )
     {
         Knoodle::cref<Survivor> v = survivors[n];
-        ++reported;
         std::printf("\n  *** SURVIVOR #%zu: W has %lld arcs -> reroute has %lld arcs"
                     " (%lld crossings -> %lld) ***\n",
             n+1, (long long)v.L, (long long)(v.k + Int(1)),

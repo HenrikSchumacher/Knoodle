@@ -25,7 +25,7 @@
 // the wrong port of an anchor therefore fails even when what it draws is a
 // perfectly legal diagram of the right knot.
 //
-// Build: `make pass_view_check` in tools/.
+// Build: `make pass_view_check` in test/ (a row in test/manifest.tsv).
 
 #include "../Knoodle.hpp"
 
@@ -52,6 +52,10 @@ using Extract_T   = KnoodleDrawIO::DrawingExtractor<PD_T>;
 using View        = KnoodlePassView::PassViewKind;
 
 static bool ok = true;
+
+// Checks that passed. Printed at the end so the manifest's work pattern can
+// tell a run that examined something from one that examined nothing.
+static int checks_passed = 0;
 
 static constexpr Int margin = Int(2);
 
@@ -120,6 +124,7 @@ static void RunCase( const Case_T & kase, Int xg, Int yg )
     }
 
     std::printf("  %s  both deletions OK (k=%zu)\n", tag, mv.cross.size());
+    ++checks_passed;
 }
 
 // The oracle has to be able to FAIL, or it proves nothing. Each corruption
@@ -167,7 +172,7 @@ static void RunNegativeTests( const PD_T & pd, const char * spec )
             caught ? "caught" : "*** NOT CAUGHT ***",
             caught ? " -- " : "", caught ? reason.c_str() : "");
 
-        if( !caught ) { ok = false; }
+        if( !caught ) { ok = false; } else { ++checks_passed; }
     };
 
     // 1. --pass-view=both is not a single deletion: the dot is a branch point
@@ -287,7 +292,9 @@ static void RunPlainRoundTrip(
         std::printf("  plain %-16s %2lldx%-2lld  CheckAll failed\n",
             name, (long long)xg, (long long)yg);
         ok = false;
+        return;
     }
+    ++checks_passed;
 }
 
 // A pass move can free a crossingless component: when a transversal closes up
@@ -390,6 +397,7 @@ static void RunSplitTests( const PD_T & pd, const char * spec,
         }
     }
 
+    ++checks_passed;
     std::printf("  split %-14s k=%zu, %lld->%lld crossings, 1 component freed"
         " (colour %lld), drawing agrees\n", name, mv.cross.size(),
         (long long)pd.CrossingCount(), (long long)after.CrossingCount(),
@@ -446,7 +454,11 @@ static void RunMixedTagTests( const PD_T & pd )
                 : "*** WRONG ANSWER ***");
 
         if( gotQ != expect_okQ ) { ok = false; }
-        else if( !gotQ ) { std::printf("       reason: %s\n", why.c_str()); }
+        else
+        {
+            ++checks_passed;
+            if( !gotQ ) { std::printf("       reason: %s\n", why.c_str()); }
+        }
     };
 
     // Uniform tags: converts, and must keep converting.
@@ -560,7 +572,7 @@ static void RunDiskTests( const char * name, const PD_T & pd,
               : (!touch_wQ ? "  *** does not touch the strand ***"
                            : "  *** does not touch the corridor ***")))));
 
-    if( !goodQ ) { ok = false; }
+    if( !goodQ ) { ok = false; } else { ++checks_passed; }
 }
 
 // The other way to name a pass move: give the strand's first and last arc and
@@ -632,6 +644,7 @@ static void RunFoundPassTests( const char * name, const PD_T & pd,
                 continue;
             }
             ++drawn;
+            ++checks_passed;
         }
     }
 
@@ -665,7 +678,11 @@ static void RunIsomorphismTests()
                 ? (got ? "isomorphic (as expected)" : "refused (as expected)")
                 : "*** WRONG ANSWER ***");
         if( got != wantQ ) { ok = false; }
-        else if( !got ) { std::printf("      reason: %s\n", why.c_str()); }
+        else
+        {
+            ++checks_passed;
+            if( !got ) { std::printf("      reason: %s\n", why.c_str()); }
+        }
     };
 
     PD_T trefoil = build({ 0,4,1,3,1,  2,0,3,5,1,  4,2,5,1,1 });
@@ -856,6 +873,7 @@ int main()
     std::printf("=== the oracle must be able to fail ===\n");
     RunNegativeTests(trefoil, "strand=1,3 depart=1 cross=6:u land=3");
 
-    std::printf(ok ? "PASS VIEW CHECK OK\n" : "PASS VIEW CHECK FAILED\n");
+    if( ok ) { std::printf("PASS VIEW CHECK OK (%d checks passed)\n", checks_passed); }
+    else     { std::printf("PASS VIEW CHECK FAILED\n"); }
     return ok ? 0 : 1;
 }

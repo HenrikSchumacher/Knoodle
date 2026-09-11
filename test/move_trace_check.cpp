@@ -19,7 +19,7 @@
 // call, and the line count in the header is computed from the very bytes it
 // introduces.
 //
-// Build: `make move_trace_check` in tools/.
+// Build: `make move_trace_check` in test/ (a row in test/manifest.tsv).
 
 #include "../Knoodle.hpp"
 
@@ -37,10 +37,14 @@ using Trace_T = Knoodle::MoveTrace<PD_T>;
 
 static bool ok = true;
 
+// Checks that passed. Printed at the end so the manifest's work pattern can
+// tell a run that examined something from one that examined nothing.
+static int checks_passed = 0;
+
 static void check( bool passedQ, const char * what )
 {
     std::printf("  %-62s %s\n", what, passedQ ? "OK" : "FAILED");
-    if( !passedQ ) { ok = false; }
+    if( passedQ ) { ++checks_passed; } else { ok = false; }
 }
 
 static PD_T Trefoil()
@@ -320,6 +324,7 @@ int main()
         }
     }
 
-    std::printf("\n%s\n", ok ? "MOVE TRACE CHECK OK" : "MOVE TRACE CHECK FAILED");
+    if( ok ) { std::printf("\nMOVE TRACE CHECK OK (%d checks passed)\n", checks_passed); }
+    else     { std::printf("\nMOVE TRACE CHECK FAILED\n"); }
     return ok ? 0 : 1;
 }

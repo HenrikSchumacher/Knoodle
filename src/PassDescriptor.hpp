@@ -237,7 +237,7 @@ namespace Knoodle
             //    the end of W, and it returns a diagram unrelated to the move
             //    (on a trefoil, 2 crossings out of 3). A lengthening pass is a
             //    perfectly good isotopy; it is just not expressible here.
-            if( k + Int(1) > static_cast<Int>(m) )
+            if( k + 1 > m )
             {
                 return fail("the corridor has " + Tools::ToString(k)
                     + " crossings but the strand has only "

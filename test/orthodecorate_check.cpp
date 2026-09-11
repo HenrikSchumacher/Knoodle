@@ -11,7 +11,7 @@
 //
 // Cases: trefoil and figure-eight, each at a tight 4x2 grid and the
 // standard 20x20 drawing grid. Exit 0 iff everything passes.
-// Build: `make orthodecorate_check` in tools/.
+// Build: `make orthodecorate_check` in test/ (a row in test/manifest.tsv).
 
 #include "../Knoodle.hpp"
 
@@ -28,6 +28,10 @@ using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T        = PDC_T::PD_T;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Deco_T      = Knoodle::OrthoDecorate<PD_T>;
+
+// Checks that passed, across every case. Printed at the end so the manifest's
+// work pattern can tell a run that examined something from one that did not.
+static int checks_passed = 0;
 
 static int run_case(const char * name, std::vector<Int> pd, Int n,
                     Int xg, Int yg)
@@ -150,6 +154,7 @@ static int run_case(const char * name, std::vector<Int> pd, Int n,
 
         std::printf("  route %s: %zu points, %zu crossings OK\n",
             name, mr.path.size(), n_crossings);
+        ++checks_passed;
         return true;
     };
 
@@ -190,6 +195,8 @@ static int run_case(const char * name, std::vector<Int> pd, Int n,
                 if (mr.validQ)
                 { std::printf("  invalid chain (%lld,%lld) ACCEPTED\n",
                     (long long)da, (long long)db); ok = false; }
+                else
+                { ++checks_passed; }
                 found = true;
             }
         }
@@ -266,6 +273,7 @@ static int run_case(const char * name, std::vector<Int> pd, Int n,
                 (countQ ? (detQ ? "OK" : "*** DETERMINANT CHANGED ***")
                         : "*** wrong crossing count ***"));
             if (!cleanQ || !countQ || !detQ) { ok = false; }
+            else                             { ++checks_passed; }
         };
 
         // 2-arc strand (1 interior crossing), corridor of 1: 3 - 1 + 1
@@ -313,6 +321,7 @@ static int run_case(const char * name, std::vector<Int> pd, Int n,
                 name, mv.cross.size(), (long long)ad.CrossingCount(),
                 cleanQ ? "PASS" : "FAIL", detQ ? "preserved" : "*** CHANGED ***");
             if (!cleanQ || !countQ || !detQ) { ok = false; }
+            else                             { ++checks_passed; }
         };
 
         // the aliasing case: 8 corridor crossings replacing 8 strand crossings
@@ -392,7 +401,8 @@ static int run_pass_tests(Int xg, Int yg)
             ok = false;
             return;
         }
-        if (!pr.validQ) { std::printf("  pass %s: rejected OK\n", name); return; }
+        if (!pr.validQ)
+        { std::printf("  pass %s: rejected OK\n", name); ++checks_passed; return; }
 
         bool good = integrity(pr.route)
             && pr.route.crossing_indices.size() == n_cross
@@ -413,6 +423,7 @@ static int run_pass_tests(Int xg, Int yg)
         }
         std::printf("  pass %s: %zu points, %zu crossings OK\n",
             name, pr.route.path.size(), n_cross);
+        ++checks_passed;
     };
 
     // The spec's worked example: reroute arc 5 (darc 11, runs c2 -> c0),
@@ -477,6 +488,10 @@ static int run_pass_tests(Int xg, Int yg)
                 (long long)ext, pr.why.c_str());
             ok = false;
         }
+        else
+        {
+            ++checks_passed;
+        }
     }
     std::printf("  exterior-independence sweep: 5 exteriors\n");
 
@@ -523,6 +538,7 @@ int main()
     rc |= run_pass_tests(4, 2);
     rc |= run_pass_tests(20, 20);
 
-    std::printf(rc == 0 ? "PROBE OK\n" : "PROBE FAILED\n");
+    if (rc == 0) std::printf("PROBE OK (%d checks passed)\n", checks_passed);
+    else         std::printf("PROBE FAILED\n");
     return rc;
 }
