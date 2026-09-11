@@ -375,7 +375,8 @@ Two distinct predicates apply to a record, and tools split along them:
   witness its kind requires, and the witness checks out. Only verifiers
   (knoodleprove) demand this, and only for records that advance the
   diagram. For `redraw` the witness is the embedding+rotation (above); for
-  `middlepass` the verifier tier is **empty** — see below.
+  `middlepass` it is the feasibility witness, whose checks are specified but
+  whose soundness theorem is not yet ratified — see below.
 
 ## Step kind: `middlepass`
 
@@ -394,7 +395,7 @@ middlepass has no more room in the data structure for extra crossings than a
 classical pass does, and only check 5's uniformity requirement goes away.
 (The handoff rounds say "checks 1–4" throughout because they predate check 6.)
 
-**The verifier tier for `middlepass` is EMPTY, deliberately.** An earlier
+**Quotient-simplicity is not a soundness condition.** An earlier
 revision of this document required *quotient-simplicity* of the corridor —
 deleting the strand merges the two flank faces of each strand arc, and the
 corridor was said not to be allowed to revisit a class of that quotient. That
@@ -403,18 +404,78 @@ middlestrands retracted the mechanism behind it in
 `ROUND-2-RESPONSE.md` after their own poster fixture for it turned out to
 apply soundly while revisiting the quotient four times. Their guard stays on
 for conservatism, but "quotient-revisit ⟹ unrealizable" is an open question,
-not a soundness condition, and this spec canonized it by mistake. Nothing
-replaces it until their mechanism reattribution lands.
+not a soundness condition, and this spec canonized it by mistake.
 
-The one witness still on the table (reserved, not normative):
+### The feasibility witness: `#feas` / `#fvar` (normative)
 
-- the **§G feasibility witness**: header lines `#feas ...` / `#fvar ...`
-  carrying the disk and the piece-class labelling, verified by the
-  check-don't-solve contract V0–V5 proposed in
-  `ROUND-1-RESPONSE-ADDENDUM-feasibility-witness.md`. These header names
-  are RESERVED here; the normative text lands after the witness emitter
-  exists and real payloads have been validated against it (same shakedown
-  discipline as the grammar itself).
+A `middlepass` record may carry a witness to the feasibility solve that chose
+its over/under tags: the sweep disk on one side of the move, and a labelling of
+every piece on that side. Finding the labelling takes a solver; checking it
+takes none. The header lines go after `#move` and before `#state`:
+
+```
+#feas side=<0|1> disk=<c1,c2,...>        (disk may be empty: "disk=")
+#fvar <piece>[,<piece>...]=<a|b|f>       (one line per class)
+```
+
+(Proposed in `ROUND-1-RESPONSE-ADDENDUM-feasibility-witness.md`, emitted by
+middlestrands from 2026-08-13, and pinned here in ROUND-6 after V0 and V4 had
+passed all 41 witnesses of their `fixture-zf061098-walk-v2-witnessed.trace`.)
+
+**Pieces.** The loop is W — every arc of the strand — followed by the corridor.
+W's arcs carry no pieces. An arc the corridor crosses is two pieces, split
+where the corridor crosses it: `<arc>t`, the half incident to the arc's tail
+crossing, and `<arc>h`, the half incident to its head crossing. Every other arc
+is one piece, `<arc>`. A piece never meets the loop, so it lies on one side of
+it.
+
+**Sides.** Side 0 is the side holding the first non-W piece reached by walking
+W's component forward, along its orientation, from the arc after W's
+orientation-last arc; a crossed arc is entered through its `t` half. Side 1 is
+the other.
+
+**Interior crossings.** A crossing is interior on side `s` iff every incident
+piece lies on side `s`, W's arcs counting as neutral. So an anchor is interior
+on side `s` when its three non-W pieces all lie there. `disk=` lists the
+interior crossings of side `s`.
+
+**Classes.** The `#fvar` lines name every piece on side `s`, each exactly once.
+Labels: `a` above the disk, `b` below, `f` free (never forced); checkers fill
+`f` ⟹ below. Readers must not depend on the order of the classes, or of the
+pieces within one.
+
+**Readers MUST refuse** `#fvar` before `#feas`, a second `#feas`, a `side`
+other than 0 or 1, a missing `disk=` field, an empty entry in a list, a label
+other than `a`/`b`/`f`, a malformed piece, and a piece in two classes or twice
+in one.
+
+**The checks.** `disk=` and the classes are asserted by the emitter; the checks
+are what make them true.
+
+| | check | where it runs |
+|---|---|---|
+| V0 | rebuild both sides from the snapshot and the descriptor; `disk=` equals side `s`'s interior crossings, and the classes name exactly side `s`'s pieces | `knoodledraw --verify`: `disk (V0)` |
+| V1 | at each interior crossing, each strand's two pieces share a class (a strand pair containing a W arc is skipped) | emitter; implied by V4 |
+| V2 | at each interior crossing of W, the transversal's side-`s` piece is `a` if the transversal passes over W, `b` if under | emitter |
+| V3 | at each interior crossing not on W, never under = `a` with over = `b`, after the fill (skipped where a strand pair contains a W arc) | emitter |
+| V4 | the classes are exactly the unions of V1's equalities: no merge that no chain forces, and no split | `knoodledraw --verify`: `classes (V4)` |
+| V5 | for each `cross=DA:tag`, tag `o` ⟺ the side-`s` half of that arc is below, after the fill | emitter |
+
+V0 rebuilds the sides as a flood over face fragments. The corridor cuts each
+face it visits in two, at the middle of the darcs it passes through; fragments
+join across every arc half the loop does not occupy, which is every half except
+W's interior arcs and, on W's first and last arc, the half toward W's interior
+(the stub toward the anchor stays passable, which is what puts an anchor where
+the rule above puts it); exactly two regions remain. V0 reports `UNCHECKED`
+rather than guessing when W is a single arc, the diagram is split, or the
+corridor visits a face twice.
+
+**What a passing witness proves.** That the §G constraint system of this
+(W, corridor, side) is satisfied by the emitted labelling, and nothing more.
+That the reroute is then an isotopy is middlestrands' Theorem B (§G-feasible +
+the anchor condition + chain-consistent ⟹ a spanning disk), drafted 2026-08-14
+and awaiting review. Until it is ratified, the `middlepass` verifier tier checks
+witnesses but does not certify soundness.
 
 Emitter guidance: recommended canonical `depart`/`land` darcs are the
 strand-flank darcs at the anchors (they pin the emerging flank even when a
@@ -673,6 +734,14 @@ and any seeded choice an emitter makes must be recorded in the stream.
   are echoed unrendered. Malformed records and rejected descriptors abort
   with a line-numbered message and nonzero exit. Example stream:
   `test/trace_example.txt`.
+- **Also implemented**: `--verify` checks a record's feasibility witness when
+  it carries one, reporting `#verify step <n> disk (V0):` and
+  `classes (V4):` (see "The feasibility witness" above). The reader
+  (`src/MoveTrace.hpp`) parses `#feas`/`#fvar` into the record and refuses the
+  malformed forms listed there; the checks are `tools/witness_check.hpp`, and
+  `test/witness_check` pins them on four real witnesses, on corruptions each
+  check must catch, and on middlestrands' Whitehead-link witness that omits a
+  trapped circle.
 
 ## Open questions
 
@@ -682,9 +751,6 @@ and any seeded choice an emitter makes must be recorded in the stream.
   eliminations are recorded.
 - Whether `#faces` should also carry per-face canonical names for the WL
   side's convenience, or WL derives them (leaning: derive).
-- Landing/departure flank when an anchor crossing is itself removed by the
-  move (can a pass move's anchors be R1-collapsed in the same step in
-  middlepass? If so the descriptor needs a compound kind or a step split).
 - `redraw` instrumentation: whether Reapr exposes (or can be made to expose,
   via the same one-callback hook) the embedding `E` and rotation `R` at the
   moment it commits to a projection — and whether its projection step is
