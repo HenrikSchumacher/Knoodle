@@ -122,6 +122,12 @@ int main()
         check(r.v4_okQ, std::string(name) + ": V4, "
             + std::to_string(r.class_count) + " classes");
         if( !r.v4_okQ ) { std::printf("      %s\n", r.v4_why.c_str()); }
+
+        check(r.labels_okQ, std::string(name) + ": V2/V3/V5, "
+            + std::to_string(r.germ_count) + " germs, "
+            + std::to_string(r.order_count) + " orderings, "
+            + std::to_string(r.tag_count) + " tags");
+        if( !r.labels_okQ ) { std::printf("      %s\n", r.labels_why.c_str()); }
     }
 
     // ---- 2. corruptions ------------------------------------------------------
@@ -231,6 +237,96 @@ int main()
                 f.classes[4].pieces.pop_back();
                 f.classes.push_back(lone);
                 expect_v4(f, "must share a class", "a class split in two");
+            }
+        }
+    }
+
+    // ---- 2b. label corruptions ---------------------------------------------
+    std::printf("=== label corruptions V2, V3 and V5 must catch ===\n");
+    {
+        Loaded_T L;
+        std::string why;
+        if( !Load(witness_rec_small_disk, L, why) )
+        {
+            check(false, "load the 8-crossing record (" + why + ")");
+        }
+        else
+        {
+            const Feas_T base = L.feas;
+
+            auto run = [&]( const Desc_T & mv, const Feas_T & f )
+            {
+                return KnoodleWitness::CheckWitness<PD_T>(*L.pd, mv, f);
+            };
+
+            // Every class of this witness is forced by a germ or a tag, so
+            // flipping any single label must be caught.
+            bool v2_seen = false, v5_seen = false;
+            for( std::size_t ci = 0; ci < base.classes.size(); ++ci )
+            {
+                Feas_T f = base;
+                f.classes[ci].label = (f.classes[ci].label == 'a') ? 'b' : 'a';
+
+                const auto r = run(L.mv, f);
+                const bool caughtQ = r.v0_okQ && r.v4_okQ && !r.labels_okQ;
+                check(caughtQ, "a label flip on class " + std::to_string(ci) + " is caught");
+                std::printf("      %s\n", caughtQ ? r.labels_why.c_str() : "(passed)");
+
+                v2_seen = v2_seen || Contains(r.labels_why, "(V2)");
+                v5_seen = v5_seen || Contains(r.labels_why, "(V5)");
+            }
+            check(v2_seen, "some flip is caught as a germ violation (V2)");
+            check(v5_seen, "some flip is caught as a tag violation (V5)");
+
+            {
+                Desc_T mv = L.mv;
+                mv.over[0] = !mv.over[0];
+                const auto r = run(mv, base);
+                check(!r.labels_okQ && Contains(r.labels_why, "(V5)"),
+                      "V5 catches: a route tag flipped");
+                std::printf("      %s\n", r.labels_okQ ? "(passed)" : r.labels_why.c_str());
+            }
+
+            // V3 needs a disk crossing whose two strands lie in different
+            // classes: make the under-strand's class above and the over's below.
+            {
+                KnoodleWitness::Sides_T<PD_T> S;
+                KnoodleWitness::ReconstructSides<PD_T>(*L.pd, L.mv, S, why);
+
+                auto class_index = []( const Feas_T & f, Int key ) -> int
+                {
+                    for( std::size_t ci = 0; ci < f.classes.size(); ++ci )
+                    {
+                        for( const auto & p : f.classes[ci].pieces )
+                        {
+                            if( KnoodleWitness::PieceKey(p.arc, p.half) == key ) { return int(ci); }
+                        }
+                    }
+                    return -1;
+                };
+
+                bool builtQ = false;
+                for( Int c : S.disk[base.side] )
+                {
+                    const auto k = KnoodleWitness::StrandKeysAt<PD_T>(*L.pd, S, c);
+                    if( (k[0] < 0) || (k[1] < 0) || (k[2] < 0) || (k[3] < 0) ) { continue; }
+
+                    const int cu = class_index(base, k[0]);
+                    const int co = class_index(base, k[2]);
+                    if( (cu < 0) || (co < 0) || (cu == co) ) { continue; }
+
+                    Feas_T f = base;
+                    f.classes[std::size_t(cu)].label = 'a';
+                    f.classes[std::size_t(co)].label = 'b';
+
+                    const auto r = run(L.mv, f);
+                    check(!r.labels_okQ && Contains(r.labels_why, "(V3)"),
+                          "V3 catches: under above, over below at crossing " + std::to_string(c));
+                    std::printf("      %s\n", r.labels_okQ ? "(passed)" : r.labels_why.c_str());
+                    builtQ = true;
+                    break;
+                }
+                check(builtQ, "a disk crossing with its two strands in two classes exists");
             }
         }
     }

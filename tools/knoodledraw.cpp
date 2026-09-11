@@ -3436,6 +3436,24 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                         std::cout << "MISMATCH -- " << wr.v4_why << "\n";
                         verify_failed = true;
                     }
+
+                    std::cout << "#verify step " << records_drawn
+                              << " labels (V2/V3/V5): ";
+                    if (!wr.labels_checkedQ)
+                    {
+                        std::cout << "UNCHECKED (" << wr.labels_why << ")\n";
+                    }
+                    else if (wr.labels_okQ)
+                    {
+                        std::cout << "VERIFIED (" << wr.germ_count << " germs, "
+                                  << wr.order_count << " orderings, "
+                                  << wr.tag_count << " tags)\n";
+                    }
+                    else
+                    {
+                        std::cout << "MISMATCH -- " << wr.labels_why << "\n";
+                        verify_failed = true;
+                    }
                 }
 
                 // A `#candidate` was evaluated and NOT applied, so the stream's

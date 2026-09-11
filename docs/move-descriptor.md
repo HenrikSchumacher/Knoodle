@@ -456,10 +456,13 @@ are what make them true.
 |---|---|---|
 | V0 | rebuild both sides from the snapshot and the descriptor; `disk=` equals side `s`'s interior crossings, and the classes name exactly side `s`'s pieces | `knoodledraw --verify`: `disk (V0)` |
 | V1 | at each interior crossing, each strand's two pieces share a class (a strand pair containing a W arc is skipped) | emitter; implied by V4 |
-| V2 | at each interior crossing of W, the transversal's side-`s` piece is `a` if the transversal passes over W, `b` if under | emitter |
-| V3 | at each interior crossing not on W, never under = `a` with over = `b`, after the fill (skipped where a strand pair contains a W arc) | emitter |
+| V2 | at each interior crossing of W, the transversal's side-`s` piece is `a` if the transversal passes over W, and below (`b`, or `f` after the fill) if under. A crossed arc running between two interior crossings of W (a *chord*) is one physical arc, so the germ at either end applies to both of its halves | emitter; `knoodledraw --verify`: `labels (V2/V3/V5)` |
+| V3 | at each interior crossing not on W, never under = `a` with over below, after the fill (skipped where a strand pair contains a W arc) | emitter; `knoodledraw --verify`: `labels (V2/V3/V5)` |
 | V4 | the classes are exactly the unions of V1's equalities: no merge that no chain forces, and no split | `knoodledraw --verify`: `classes (V4)` |
-| V5 | for each `cross=DA:tag`, tag `o` ⟺ the side-`s` half of that arc is below, after the fill | emitter |
+| V5 | for each `cross=DA:tag`, tag `o` ⟺ the side-`s` half of that arc is below, after the fill | emitter; `knoodledraw --verify`: `labels (V2/V3/V5)` |
+
+V2, V3 and V5 also run on the verifier's side even though the emitter runs
+them, so that a record's verdict never rests on the emitter's own gate.
 
 V0 rebuilds the sides as a flood over face fragments. The corridor cuts each
 face it visits in two, at the middle of the darcs it passes through; fragments

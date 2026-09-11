@@ -18,6 +18,18 @@
  *       chain of such equalities joins them. A stray merge fails, and so does
  *       a split (which is V1 seen from the other side).
  *
+ * The remaining checks are pure lookups once V0 has fixed the pieces, and they
+ * are here too, so that a record's verdict never rests on the emitter's gate:
+ *
+ *   V2  at each interior crossing of W, the transversal's piece on the side is
+ *       above if the transversal passes over W, below if under;
+ *   V3  at each disk crossing away from W, never under-strand above with
+ *       over-strand below;
+ *   V5  each `cross=` tag agrees with its arc's half on the side: `o` iff that
+ *       half is below.
+ *
+ * `f` (free) is filled below throughout.
+ *
  * Nothing here solves anything, and nothing reads the emitter's code.
  *
  * V0: the face-fragment flood
@@ -53,6 +65,7 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <string>
 #include <utility>
@@ -380,12 +393,186 @@ struct WitnessReport_T
     bool        v4_okQ      = false;
     std::string v4_why;
 
+    bool        labels_checkedQ = false;   // V2, V3 and V5 together
+    bool        labels_okQ      = false;
+    std::string labels_why;                // every failing check, first instance each
+
     std::size_t disk_size   = 0;
     std::size_t piece_count = 0;
     std::size_t class_count = 0;
+    std::size_t germ_count  = 0;
+    std::size_t order_count = 0;
+    std::size_t tag_count   = 0;
 };
 
-/*!@brief Run V0 and V4 on a witness against its record's snapshot and move. */
+/*!@brief The pieces at crossing `c` as keys, in the order under-strand in,
+ * under-strand out, over-strand in, over-strand out; -1 where the arc is W's.
+ */
+template<class PD_T>
+std::array<typename PD_T::Int,4> StrandKeysAt(
+    const PD_T &          pd,
+    const Sides_T<PD_T> & S,
+    typename PD_T::Int    c )
+{
+    using Int = typename PD_T::Int;
+
+    const auto & C_arcs = pd.Crossings();
+
+    // The under-strand enters at (In,Right) at a right-handed crossing and at
+    // (In,Left) at a left-handed one, and leaves straight through.
+    const bool side = pd.CrossingRightHandedQ(c) ? PD_T::Right : PD_T::Left;
+
+    const Int arcs [4] = {
+        C_arcs(c, PD_T::In,  side), C_arcs(c, PD_T::Out, !side),
+        C_arcs(c, PD_T::In, !side), C_arcs(c, PD_T::Out,  side)
+    };
+
+    std::array<Int,4> keys;
+    for( int i = 0; i < 4; ++i )
+    {
+        const auto z = static_cast<std::size_t>(arcs[i]);
+        if( S.in_W[z] ) { keys[std::size_t(i)] = Int(-1); continue; }
+
+        // An arc arrives at an In port with its head, leaves an Out port with
+        // its tail.
+        const int half = S.in_route[z] ? ((i % 2 == 0) ? 1 : 0) : -1;
+        keys[std::size_t(i)] = PieceKey(arcs[i], half);
+    }
+    return keys;
+}
+
+/*!@brief V2, V3 and V5: the labels satisfy the clauses the snapshot forces.
+ * Needs V0's pieces to be right (`class_of` maps every piece key on the side to
+ * its class).
+ */
+template<class PD_T>
+void CheckLabels(
+    const PD_T &                                              pd,
+    const Knoodle::PassDescriptor<typename PD_T::Int> &      mv,
+    const typename Knoodle::MoveTrace<PD_T>::Feasibility &   w,
+    const Sides_T<PD_T> &                                     S,
+    const std::vector<int> &                                  class_of,
+    WitnessReport_T &                                         r )
+{
+    using Int    = typename PD_T::Int;
+    using Desc_T = Knoodle::PassDescriptor<Int>;
+
+    auto Z = []( Int i ) { return static_cast<std::size_t>(i); };
+
+    r.labels_checkedQ = true;
+
+    const int s = w.side;
+
+    auto label_of = [&]( Int key )
+    {
+        return w.classes[std::size_t(class_of[Z(key)])].label;
+    };
+    auto belowQ  = []( char lab ) { return lab != 'a'; };   // free fills below
+    auto name_of = []( Int key )
+    {
+        return PieceName(static_cast<long long>(key / Int(3)), int(key % Int(3)) - 1);
+    };
+
+    std::string v2, v3, v5;
+
+    // ---- V2: the germs at W's interior crossings ----------------------------
+    std::vector<char> W_interior (Z(pd.MaxCrossingCount()), char(0));
+    for( std::size_t i = 1; i < mv.strand.size(); ++i )
+    {
+        W_interior[Z(Desc_T::DarcHeadCrossing(pd, mv.strand[i-1]))] = char(1);
+    }
+
+    for( std::size_t i = 1; i < mv.strand.size(); ++i )
+    {
+        const Int  x = Desc_T::DarcHeadCrossing(pd, mv.strand[i-1]);
+        const auto k = StrandKeysAt(pd, S, x);
+
+        const bool W_underQ = (k[0] < Int(0)) || (k[1] < Int(0));
+        const bool W_overQ  = (k[2] < Int(0)) || (k[3] < Int(0));
+        if( W_underQ == W_overQ ) { continue; }   // W crosses itself here
+
+        // A transversal passing over W is forced above; under W, below.
+        const char want = W_underQ ? 'a' : 'b';
+
+        for( Int key : { W_underQ ? k[2] : k[0], W_underQ ? k[3] : k[1] } )
+        {
+            // A crossed arc running between two interior crossings of W is a
+            // chord: one physical arc, so a germ at either end forces both of
+            // its halves (middlestrands' Feasibility::ForcedPieces).
+            const Int  a      = key / Int(3);
+            const bool chordQ = S.in_route[Z(a)]
+                             && W_interior[Z(pd.Arcs()(a, PD_T::Tail))]
+                             && W_interior[Z(pd.Arcs()(a, PD_T::Head))];
+
+            std::vector<Int> forced;
+            if( chordQ ) { forced = { PieceKey(a,0), PieceKey(a,1) }; }
+            else         { forced = { key }; }
+
+            for( Int f : forced )
+            {
+                if( S.side_of[Z(f)] != s ) { continue; }   // the other side's germ
+
+                ++r.germ_count;
+                const char lab = label_of(f);
+                if( ((want == 'a') ? (lab == 'a') : belowQ(lab)) || !v2.empty() ) { continue; }
+
+                v2 = "at crossing " + std::to_string(x) + " of W the transversal passes "
+                   + (want == 'a' ? "over" : "under") + " W, so " + name_of(f)
+                   + (chordQ ? " (a chord of W)" : "") + " must be "
+                   + (want == 'a' ? "above" : "below") + ", but its class is ="
+                   + lab + " (V2)";
+            }
+        }
+    }
+
+    // ---- V3: never under-strand above with over-strand below ----------------
+    for( Int c : S.disk[s] )
+    {
+        const auto k = StrandKeysAt(pd, S, c);
+
+        // An anchor: a strand pair there contains a W arc, and has no piece.
+        if( (k[0] < Int(0)) || (k[1] < Int(0)) || (k[2] < Int(0)) || (k[3] < Int(0)) )
+        {
+            continue;
+        }
+
+        ++r.order_count;
+        const char lu = label_of(k[0]);
+        const char lo = label_of(k[2]);
+        if( (lu != 'a') || !belowQ(lo) || !v3.empty() ) { continue; }
+
+        v3 = "at crossing " + std::to_string(c) + " the under-strand's " + name_of(k[0])
+           + " is above (=a) but the over-strand's " + name_of(k[2]) + " is below (="
+           + lo + ") (V3)";
+    }
+
+    // ---- V5: each route tag agrees with its arc's half on the side ---------
+    for( std::size_t i = 0; i < mv.cross.size(); ++i )
+    {
+        const Int a   = Desc_T::ArcOf(mv.cross[i]);
+        const Int key = (S.side_of[Z(PieceKey(a,0))] == s) ? PieceKey(a,0) : PieceKey(a,1);
+        if( S.side_of[Z(key)] != s ) { continue; }
+
+        ++r.tag_count;
+        const char lab = label_of(key);
+        if( (bool(mv.over[i]) == belowQ(lab)) || !v5.empty() ) { continue; }
+
+        v5 = "cross[" + std::to_string(i) + "] is " + std::to_string(mv.cross[i]) + ":"
+           + (mv.over[i] ? "o" : "u") + ", but " + name_of(key) + ", its half on side "
+           + std::to_string(s) + ", is =" + lab + ", which calls for :"
+           + (belowQ(lab) ? "o" : "u") + " (V5)";
+    }
+
+    for( const std::string * m : { &v2, &v3, &v5 } )
+    {
+        if( m->empty() ) { continue; }
+        if( !r.labels_why.empty() ) { r.labels_why += "; "; }
+        r.labels_why += *m;
+    }
+    r.labels_okQ = r.labels_why.empty();
+}
+
+/*!@brief Run V0-V5 on a witness against its record's snapshot and move. */
 template<class PD_T>
 WitnessReport_T CheckWitness(
     const PD_T &                                                      pd,
@@ -525,9 +712,14 @@ WitnessReport_T CheckWitness(
 
     if( !piece_why.empty() )
     {
-        r.v4_why = "the witness's pieces are not the side's pieces (V0)";
+        r.v4_why     = "the witness's pieces are not the side's pieces (V0)";
+        r.labels_why = r.v4_why;
         return r;
     }
+
+    // Before V4, whose mismatches return early: a bad class must not hide a
+    // bad label.
+    CheckLabels<PD_T>(pd, mv, w, S, class_of, r);
 
     // ---- V4: classes are exactly the same-strand unions at disk crossings ---
     r.v4_checkedQ = true;
