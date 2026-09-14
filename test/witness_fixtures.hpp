@@ -152,7 +152,9 @@ proven_minimalQ = 0
 )TRACE";
 
 // L7a5_1 (a 7-crossing link), side 1; the corridor crosses chord arc 5, whose two germs
-// disagree. Witness solved IGNORING the chord rule: V2 must refuse it.
+// disagree. Witness solved IGNORING the chord rule. Until 2026-09-14 V2 refused it; with
+// the chord rule withdrawn (Theorem B: it was a surplus constraint) it passes V0-V5.
+// AfterDiagram cannot apply it: the corridor crosses one healed arc twice.
 static const char * witness_rec_chord_conflict = R"TRACE(#trace v=1
 #step n=0 summand=0
 #comment SYNTHETIC chord fixture (conflict): L7a5_1.tsv side 1, chord arc 5; witness from a scratch solver that IGNORES the chord rule
@@ -173,6 +175,37 @@ C_state = {1,1,1,1,-1,-1,-1}
 A_cross = {{0,1},{1,2},{2,3},{3,4},{4,5},{5,0},{6,4},{4,5},{5,6},{6,3},{3,0},{0,1},{1,2},{2,6}}
 A_state = {1,1,1,1,1,1,1,1,1,1,1,1,1,1}
 A_color = {0,0,0,0,0,0,1,1,1,1,1,1,1,1}
+last_color_deactivated = -1
+proven_minimalQ = 0
+
+)TRACE";
+
+// juhasz-veryhard-218 (an unknot diagram), side 0; the corridor crosses chord arc 24,
+// whose two germs disagree. Witness solved WITHOUT the chord rule and WITH the anchor
+// orderings, i.e. exactly Theorem B's system: it passes V0-V5, and AfterDiagram keeps
+// the determinant at 1. The positive counterpart of the anchor liar below.
+static const char * witness_rec_chord_sound = R"TRACE(#trace v=1
+#step n=0 summand=0
+#comment SYNTHETIC disagreeing chord: juhasz-veryhard-218.tsv side 0, chord arc 24; witness from a scratch solver WITHOUT the chord rule, anchor orderings on
+#move kind=middlepass strand=7,9,11,13,15,17,19,21 depart=6 cross=101:u,44:u,65:u,48:o land=21
+#feas side=0 disk=10,11,12,13,19,20
+#fvar 11,12,13,14=a
+#fvar 21,22t=a
+#fvar 24t=b
+#fvar 25,26,27,28,29,30,31=a
+#fvar 32h,33=a
+#fvar 50h=a
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 37
+crossing_count = 37
+max_arc_count = 74
+arc_count = 74
+C_arcs = {{{1,56},{55,0}},{{2,39},{38,1}},{{64,3},{2,63}},{{51,4},{3,50}},{{34,5},{4,33}},{{6,21},{20,5}},{{7,24},{23,6}},{{15,8},{7,14}},{{32,9},{8,31}},{{10,25},{24,9}},{{26,11},{10,25}},{{29,12},{11,28}},{{13,30},{29,12}},{{14,27},{26,13}},{{23,16},{15,22}},{{17,62},{61,16}},{{41,18},{17,40}},{{19,42},{41,18}},{{61,20},{19,60}},{{22,33},{32,21}},{{31,28},{27,30}},{{35,66},{65,34}},{{45,36},{35,44}},{{37,46},{45,36}},{{38,53},{52,37}},{{49,40},{39,48}},{{58,43},{42,57}},{{44,71},{70,43}},{{72,47},{46,71}},{{48,57},{56,47}},{{63,50},{49,62}},{{52,65},{64,51}},{{73,54},{53,72}},{{55,0},{73,54}},{{68,59},{58,67}},{{60,69},{68,59}},{{70,67},{66,69}}}
+C_state = {1,1,-1,-1,-1,1,-1,-1,-1,1,1,-1,-1,1,-1,1,1,1,-1,-1,-1,1,-1,-1,1,-1,-1,1,-1,-1,-1,-1,1,1,1,1,1}
+A_cross = {{33,0},{0,1},{1,2},{2,3},{3,4},{4,5},{5,6},{6,7},{7,8},{8,9},{9,10},{10,11},{11,12},{12,13},{13,7},{7,14},{14,15},{15,16},{16,17},{17,18},{18,5},{5,19},{19,14},{14,6},{6,9},{9,10},{10,13},{13,20},{20,11},{11,12},{12,20},{20,8},{8,19},{19,4},{4,21},{21,22},{22,23},{23,24},{24,1},{1,25},{25,16},{16,17},{17,26},{26,27},{27,22},{22,23},{23,28},{28,29},{29,25},{25,30},{30,3},{3,31},{31,24},{24,32},{32,33},{33,0},{0,29},{29,26},{26,34},{34,35},{35,18},{18,15},{15,30},{30,2},{2,31},{31,21},{21,36},{36,34},{34,35},{35,36},{36,27},{27,28},{28,32},{32,33}}
+A_state = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+A_color = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 last_color_deactivated = -1
 proven_minimalQ = 0
 

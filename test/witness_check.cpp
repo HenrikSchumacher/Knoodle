@@ -386,9 +386,68 @@ int main()
             const Int b = chord_of(conflict);
             check(b >= 0, "conflict: the corridor crosses a chord of W (arc " + std::to_string(b) + ")");
             const auto r = Run(conflict, conflict.feas);
-            check(r.v0_okQ && r.v4_okQ && !r.labels_okQ && Contains(r.labels_why, "(a chord of W)"),
-                  "conflict: V2 refuses a witness that ignores the chord rule");
+            check(r.v0_okQ && r.v4_okQ && r.labels_okQ,
+                  "conflict: a disagreeing chord's witness passes V0-V5 (no chord rule)");
             std::printf("      %s\n", r.labels_okQ ? "(passed)" : r.labels_why.c_str());
+
+            // Each half is still bound by its own germ: flip the class of the
+            // chord's side-s half and V2 must name that half.
+            int ci_half = -1;
+            std::string half_name;
+            for( std::size_t ci = 0; ci < conflict.feas.classes.size(); ++ci )
+            {
+                for( const auto & p : conflict.feas.classes[ci].pieces )
+                {
+                    if( (p.arc == b) && (p.half >= 0) )
+                    {
+                        ci_half   = int(ci);
+                        half_name = std::to_string(b) + (p.half == 0 ? "t" : "h");
+                    }
+                }
+            }
+            check(ci_half >= 0, "conflict: the witness names a half of the chord");
+            if( ci_half >= 0 )
+            {
+                Feas_T f = conflict.feas;
+                auto & lab = f.classes[std::size_t(ci_half)].label;
+                lab = (lab == 'a') ? 'b' : 'a';
+                const auto rf = Run(conflict, f);
+                check(!rf.labels_okQ && Contains(rf.labels_why, "(V2)")
+                      && Contains(rf.labels_why, (half_name + " must be").c_str()),
+                      "conflict: flipping " + half_name + " is caught by its own germ (V2)");
+                std::printf("      %s\n", rf.labels_okQ ? "(passed)" : rf.labels_why.c_str());
+            }
+        }
+
+        Loaded_T sound;
+        if( !Load(witness_rec_chord_sound, sound, why) )
+        {
+            check(false, "load the sound disagreeing-chord record (" + why + ")");
+        }
+        else
+        {
+            const Int b = chord_of(sound);
+            check(b >= 0, "sound: the corridor crosses a chord of W (arc " + std::to_string(b) + ")");
+            const auto r = Run(sound, sound.feas);
+            check(r.v0_okQ && r.v4_okQ && r.labels_okQ,
+                  "sound: Theorem B's system, chord rule off, passes V0-V5");
+            if( !r.labels_okQ ) { std::printf("      %s\n", r.labels_why.c_str()); }
+
+            // By Theorem B the move is an isotopy; the determinant agrees.
+            OrthoDraw_T H (*sound.pd, Int(-1), OrthoDraw_T::Settings_T{});
+            Deco_T deco (H, Int(2));
+            std::vector<Int> freed;
+            std::string awhy;
+            const PD_T after = deco.AfterDiagram(*sound.pd, sound.mv, awhy, freed);
+
+            const Int P  = 1000003;
+            const Int d0 = DeterminantModP(*sound.pd);
+            const Int d1 = awhy.empty() ? DeterminantModP(after) : Int(0);
+            const bool sameQ = awhy.empty() && ((d0 == d1) || ((d0 + d1) % P == 0));
+            check(sameQ, "sound: and the move it prescribes keeps the determinant");
+            std::printf("      %s\n", !awhy.empty() ? awhy.c_str()
+                : ("det " + std::to_string(std::min(d0, P - d0)) + " -> "
+                   + std::to_string(std::min(d1, P - d1))).c_str());
         }
 
         Loaded_T lie;
@@ -420,6 +479,50 @@ int main()
             std::printf("      %s\n", !awhy.empty() ? awhy.c_str()
                 : ("det " + std::to_string(std::min(d0, P - d0)) + " -> "
                    + std::to_string(std::min(d1, P - d1))).c_str());
+        }
+    }
+
+    // ---- 2d. Theorem B's strand hypothesis ------------------------------------
+    // W's crossings must be pairwise distinct. Well-formedness does not ask for
+    // that, so V0 reports UNCHECKED instead: walk a knot from W's first arc
+    // until the walk returns to a crossing it has already passed, go one arc
+    // further, and hand that strand to the reconstruction.
+    std::printf("=== a strand that passes through a crossing twice ===\n");
+    {
+        Loaded_T L;
+        std::string why;
+        if( !Load(witness_rec_chord_agree, L, why) )
+        {
+            check(false, "load the chord-agree record (" + why + ")");
+        }
+        else
+        {
+            Desc_T mv = L.mv;
+            mv.strand.clear();
+            mv.cross.clear();
+            mv.over.clear();
+
+            Int cur = Desc_T::ArcOf(L.mv.strand.front());
+            std::vector<Int> seen { L.pd->Arcs()(cur, PD_T::Tail) };
+            bool repeatQ = false;
+            while( !repeatQ && (mv.strand.size() < std::size_t(L.pd->ArcCount())) )
+            {
+                mv.strand.push_back(Int(2) * cur + Int(1));
+                const Int c = L.pd->Arcs()(cur, PD_T::Head);
+                repeatQ = std::find(seen.begin(), seen.end(), c) != seen.end();
+                seen.push_back(c);
+                cur = L.pd->NextArc(cur, PD_T::Head);
+            }
+            mv.strand.push_back(Int(2) * cur + Int(1));
+            mv.depart = mv.strand.front();
+            mv.land   = mv.strand.back() - Int(1);
+
+            KnoodleWitness::Sides_T<PD_T> S;
+            const bool builtQ = KnoodleWitness::ReconstructSides<PD_T>(*L.pd, mv, S, why);
+            check(repeatQ && !builtQ && Contains(why, "twice; Theorem B"),
+                  "V0 is UNCHECKED on a strand of " + std::to_string(mv.strand.size())
+                  + " arcs that repeats a crossing");
+            std::printf("      %s\n", why.c_str());
         }
     }
 

@@ -133,6 +133,23 @@ bool ReconstructSides(
             + " diagram components; a loop in one says nothing about the others";
         return false;
     }
+    {
+        // Theorem B needs W's crossings c_0, ..., c_m pairwise distinct (NSI).
+        // Well-formedness asks only for distinct arcs and distinct anchors, and
+        // a strand that passes through a crossing twice has no transversal
+        // there, so V2 would have nothing to check.
+        std::vector<Int> c;
+        c.push_back(Desc_T::DarcTailCrossing(pd, mv.strand.front()));
+        for( Int da : mv.strand ) { c.push_back(Desc_T::DarcHeadCrossing(pd, da)); }
+        std::sort(c.begin(), c.end());
+        const auto dup = std::adjacent_find(c.begin(), c.end());
+        if( dup != c.end() )
+        {
+            why = "W passes through crossing " + std::to_string(*dup)
+                + " twice; Theorem B needs a strand whose crossings are distinct";
+            return false;
+        }
+    }
 
     const Int n_a = pd.MaxArcCount();
 
@@ -476,12 +493,11 @@ void CheckLabels(
     std::string v2, v3, v5;
 
     // ---- V2: the germs at W's interior crossings ----------------------------
-    std::vector<char> W_interior (Z(pd.MaxCrossingCount()), char(0));
-    for( std::size_t i = 1; i < mv.strand.size(); ++i )
-    {
-        W_interior[Z(Desc_T::DarcHeadCrossing(pd, mv.strand[i-1]))] = char(1);
-    }
-
+    // A germ constrains the piece incident to its crossing and nothing else
+    // (Theorem B's (G1)). A crossed arc running between two interior crossings
+    // of W -- a chord -- has its halves on opposite sides, each bound only by
+    // its own germ; the rule that one germ forced both halves was a surplus
+    // constraint, withdrawn 2026-09-14.
     for( std::size_t i = 1; i < mv.strand.size(); ++i )
     {
         const Int  x = Desc_T::DarcHeadCrossing(pd, mv.strand[i-1]);
@@ -496,32 +512,16 @@ void CheckLabels(
 
         for( Int key : { W_underQ ? k[2] : k[0], W_underQ ? k[3] : k[1] } )
         {
-            // A crossed arc running between two interior crossings of W is a
-            // chord: one physical arc, so a germ at either end forces both of
-            // its halves (middlestrands' Feasibility::ForcedPieces).
-            const Int  a      = key / Int(3);
-            const bool chordQ = S.in_route[Z(a)]
-                             && W_interior[Z(pd.Arcs()(a, PD_T::Tail))]
-                             && W_interior[Z(pd.Arcs()(a, PD_T::Head))];
+            if( S.side_of[Z(key)] != s ) { continue; }   // the other side's germ
 
-            std::vector<Int> forced;
-            if( chordQ ) { forced = { PieceKey(a,0), PieceKey(a,1) }; }
-            else         { forced = { key }; }
+            ++r.germ_count;
+            const char lab = label_of(key);
+            if( ((want == 'a') ? (lab == 'a') : belowQ(lab)) || !v2.empty() ) { continue; }
 
-            for( Int f : forced )
-            {
-                if( S.side_of[Z(f)] != s ) { continue; }   // the other side's germ
-
-                ++r.germ_count;
-                const char lab = label_of(f);
-                if( ((want == 'a') ? (lab == 'a') : belowQ(lab)) || !v2.empty() ) { continue; }
-
-                v2 = "at crossing " + std::to_string(x) + " of W the transversal passes "
-                   + (want == 'a' ? "over" : "under") + " W, so " + name_of(f)
-                   + (chordQ ? " (a chord of W)" : "") + " must be "
-                   + (want == 'a' ? "above" : "below") + ", but its class is ="
-                   + lab + " (V2)";
-            }
+            v2 = "at crossing " + std::to_string(x) + " of W the transversal passes "
+               + (want == 'a' ? "over" : "under") + " W, so " + name_of(key)
+               + " must be " + (want == 'a' ? "above" : "below") + ", but its class is ="
+               + lab + " (V2)";
         }
     }
 

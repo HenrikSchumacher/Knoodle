@@ -47,7 +47,8 @@ namespace Knoodle
 
         // kind=middlepass: identical grammar, per-crossing tags allowed
         // (check 5 dropped). Well-formedness only; soundness of a middlepass
-        // needs the quotient-simplicity witness, which is not checked here.
+        // needs the feasibility witness (#feas/#fvar, tools/witness_check.hpp),
+        // which is not checked here.
         bool middlepassQ = false;
 
         //======================================================================

@@ -375,8 +375,8 @@ Two distinct predicates apply to a record, and tools split along them:
   witness its kind requires, and the witness checks out. Only verifiers
   (knoodleprove) demand this, and only for records that advance the
   diagram. For `redraw` the witness is the embedding+rotation (above); for
-  `middlepass` it is the feasibility witness, whose checks are specified but
-  whose soundness theorem is not yet ratified — see below.
+  `middlepass` it is the feasibility witness, whose soundness theorem
+  (middlestrands' Theorem B) was ratified on 2026-09-14 — see below.
 
 ## Step kind: `middlepass`
 
@@ -402,9 +402,9 @@ corridor was said not to be allowed to revisit a class of that quotient. That
 requirement is **withdrawn**, and it should never have been written down here:
 middlestrands retracted the mechanism behind it in
 `ROUND-2-RESPONSE.md` after their own poster fixture for it turned out to
-apply soundly while revisiting the quotient four times. Their guard stays on
-for conservatism, but "quotient-revisit ⟹ unrealizable" is an open question,
-not a soundness condition, and this spec canonized it by mistake.
+apply soundly while revisiting the quotient four times. Theorem B (below)
+settles the question: its hypothesis has no quotient-simplicity in it, and
+middlestrands removed their realization guard on 2026-09-14 (`ROUND-8.md`).
 
 ### The feasibility witness: `#feas` / `#fvar` (normative)
 
@@ -456,8 +456,8 @@ are what make them true.
 |---|---|---|
 | V0 | rebuild both sides from the snapshot and the descriptor; `disk=` equals side `s`'s interior crossings, and the classes name exactly side `s`'s pieces | `knoodledraw --verify`: `disk (V0)` |
 | V1 | at each interior crossing, each strand's two pieces share a class (a strand pair containing a W arc is skipped) | emitter; implied by V4 |
-| V2 | at each interior crossing of W, the transversal's side-`s` piece is `a` if the transversal passes over W, and below (`b`, or `f` after the fill) if under. A crossed arc running between two interior crossings of W (a *chord*) is one physical arc, so the germ at either end applies to both of its halves | emitter; `knoodledraw --verify`: `labels (V2/V3/V5)` |
-| V3 | at each interior crossing, never under = `a` with over below, after the fill. At an anchor one strand runs along W's end arc, which carries no piece; the ordering still binds whatever non-W pieces the two strands have there. (A check that skips anchors accepts witnesses whose moves change the knot: synthetic examples take unknot diagrams to determinants 29 and 5.) | emitter's solver; `knoodledraw --verify`: `labels (V2/V3/V5)` |
+| V2 | at each interior crossing of W, the transversal's side-`s` piece — the one incident to that crossing — is `a` if the transversal passes over W, and below (`b`, or `f` after the fill) if under. A germ constrains that piece and nothing else: a crossed arc running between two interior crossings of W (a *chord*) has one half on each side, each bound only by its own germ. (Until 2026-09-14 a germ at either end of a chord forced both halves; Theorem B makes that coupling a surplus constraint, and it was withdrawn in `ROUND-8.md`.) | emitter; `knoodledraw --verify`: `labels (V2/V3/V5)` |
+| V3 | at each interior crossing, never under = `a` with over below, after the fill. At an anchor one strand runs along W's end arc, which carries no piece; the ordering still binds whatever non-W pieces the two strands have there. This is Theorem B's (G3) at the anchor, which is an ordinary interior crossing of its side. (A check that skips anchors accepts witnesses whose moves change the knot: synthetic examples take unknot diagrams to determinants 29 and 5.) | emitter's solver; `knoodledraw --verify`: `labels (V2/V3/V5)` |
 | V4 | the classes are exactly the unions of V1's equalities: no merge that no chain forces, and no split | `knoodledraw --verify`: `classes (V4)` |
 | V5 | for each `cross=DA:tag`, tag `o` ⟺ the side-`s` half of that arc is below, after the fill | emitter; `knoodledraw --verify`: `labels (V2/V3/V5)` |
 
@@ -473,12 +473,38 @@ the rule above puts it); exactly two regions remain. V0 reports `UNCHECKED`
 rather than guessing when W is a single arc, the diagram is split, or the
 corridor visits a face twice.
 
-**What a passing witness proves.** That the §G constraint system of this
-(W, corridor, side) is satisfied by the emitted labelling, and nothing more.
-That the reroute is then an isotopy is middlestrands' Theorem B (§G-feasible +
-the anchor condition + chain-consistent ⟹ a spanning disk), drafted 2026-08-14
-and awaiting review. Until it is ratified, the `middlepass` verifier tier checks
-witnesses but does not certify soundness.
+**What a passing witness proves.** An isotopy. Middlestrands' Theorem B
+(`cpp-design/slide-realization-theorem.md` in their repository, ratified by JHC
+on 2026-09-14): let D be a connected diagram, W a strand whose crossings
+c_0, …, c_m are pairwise distinct, and the corridor an embedded path from the
+interior of W's first arc to the interior of its last, crossing other arcs
+transversally. If the side-`s` constraint system is feasible, and the tags are
+read off that same assignment, then the rerouted diagram is ambient isotopic to
+D — knots and links alike, with no quotient-simplicity hypothesis and no anchor
+condition.
+
+In witness terms: V0 fixes the side, its pieces and its disk; V1 with V4, V2
+and V3 are the theorem's (G2), (G1) and (G3), so a labelling that passes them is
+a feasible assignment; and V5 says the record's tags are read off that
+labelling by (G4). The theorem is applied to the witness itself, so it does not
+matter which assignment the emitter used to choose its tags — V5 is what ties
+the tags to the witness.
+
+The theorem's other hypotheses, and where each is established:
+
+| hypothesis | where |
+|---|---|
+| D connected | V0 reports `UNCHECKED` on a split diagram |
+| W's crossings pairwise distinct | V0 reports `UNCHECKED` when W passes through a crossing twice |
+| the corridor embedded | checks 1–3 (arc-disjoint, a face chain); V0 reports `UNCHECKED` when the corridor visits a face twice |
+| the corridor attached inside W's end arcs, transversally | check 4 (`depart` and `land` are darcs of W's first and last arcs) |
+
+So a well-formed `middlepass` record whose witness passes V0–V5, with V0
+`VERIFIED` rather than `UNCHECKED`, prescribes an isotopy. The theorem is about
+the move, not about an applier: the `result`, `drawing` and `trace` checks are
+still what ties a record's snapshots to its move. The theorem covers a single
+arc W, but V0 reports `UNCHECKED` there; that is a limit of the reconstruction,
+not of the theorem.
 
 Emitter guidance: recommended canonical `depart`/`land` darcs are the
 strand-flank darcs at the anchors (they pin the emerging flank even when a
