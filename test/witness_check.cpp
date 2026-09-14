@@ -417,6 +417,26 @@ int main()
                       "conflict: flipping " + half_name + " is caught by its own germ (V2)");
                 std::printf("      %s\n", rf.labels_okQ ? "(passed)" : rf.labels_why.c_str());
             }
+
+            // Deleting W heals the chord into the transversal at one of its
+            // ends, and the corridor crosses both: one healed arc crossed
+            // twice. AfterDiagram used to refuse that; it must now apply the
+            // move, and (Theorem B) keep the determinant.
+            OrthoDraw_T H (*conflict.pd, Int(-1), OrthoDraw_T::Settings_T{});
+            Deco_T deco (H, Int(2));
+            std::vector<Int> freed;
+            std::string awhy;
+            const PD_T after = deco.AfterDiagram(*conflict.pd, conflict.mv, awhy, freed);
+
+            const Int P  = 1000003;
+            const Int d0 = DeterminantModP(*conflict.pd);
+            const Int d1 = awhy.empty() ? DeterminantModP(after) : Int(0);
+            const bool sameQ = awhy.empty() && after.CheckAll()
+                            && ((d0 == d1) || ((d0 + d1) % P == 0));
+            check(sameQ, "conflict: AfterDiagram applies a healed arc crossed twice, det kept");
+            std::printf("      %s\n", !awhy.empty() ? awhy.c_str()
+                : ("det " + std::to_string(std::min(d0, P - d0)) + " -> "
+                   + std::to_string(std::min(d1, P - d1))).c_str());
         }
 
         Loaded_T sound;

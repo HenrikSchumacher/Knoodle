@@ -154,7 +154,9 @@ proven_minimalQ = 0
 // L7a5_1 (a 7-crossing link), side 1; the corridor crosses chord arc 5, whose two germs
 // disagree. Witness solved IGNORING the chord rule. Until 2026-09-14 V2 refused it; with
 // the chord rule withdrawn (Theorem B: it was a surplus constraint) it passes V0-V5.
-// AfterDiagram cannot apply it: the corridor crosses one healed arc twice.
+// Once W is deleted, the corridor crosses one healed arc twice (the chord and a
+// transversal arc at its end); AfterDiagram orders the two crossings along it by the
+// healing chain, and the move keeps the determinant.
 static const char * witness_rec_chord_conflict = R"TRACE(#trace v=1
 #step n=0 summand=0
 #comment SYNTHETIC chord fixture (conflict): L7a5_1.tsv side 1, chord arc 5; witness from a scratch solver that IGNORES the chord rule

@@ -1512,7 +1512,11 @@ namespace Knoodle
             }
 
             // -- healed-arc representatives (a transversal can chain) --------
-            std::vector<Int> rep_of(static_cast<std::size_t>(m_a), PD_T::Uninitialized);
+            // `chain_pos` is an arc's place along its healed arc, counted from
+            // the chain start: the healed arc runs through its pieces in that
+            // order, so it is also the order of anything that lies on them.
+            std::vector<Int> rep_of   (static_cast<std::size_t>(m_a), PD_T::Uninitialized);
+            std::vector<Int> chain_pos(static_cast<std::size_t>(m_a), PD_T::Uninitialized);
             {
                 std::vector<bool> is_second(static_cast<std::size_t>(m_a), false);
                 for( Int a = 0; a < m_a; ++a )
@@ -1527,9 +1531,11 @@ namespace Knoodle
                 {
                     if( is_second[static_cast<std::size_t>(a)] ) { continue; }
                     Int cur = a;
+                    Int pos = 0;
                     while( cur != PD_T::Uninitialized )
                     {
-                        rep_of[static_cast<std::size_t>(cur)] = a;
+                        rep_of   [static_cast<std::size_t>(cur)] = a;
+                        chain_pos[static_cast<std::size_t>(cur)] = pos++;
                         cur = heal_next[static_cast<std::size_t>(cur)];
                     }
                 }
@@ -1626,21 +1632,29 @@ namespace Knoodle
             Aend(p[0],Int(0)) = T;
             Aend(p[static_cast<std::size_t>(k)],Int(1)) = H;
 
-            std::vector<bool> split_seen(static_cast<std::size_t>(m_a), false);
+            // The corridor may cross one healed arc more than once -- on two of
+            // the pieces it was healed from, e.g. a chord of W and a transversal
+            // arc at one of its ends. The order of those crossings along the
+            // healed arc is the order of their pieces in the chain (check 1
+            // makes the crossed arcs distinct, so there is at most one crossing
+            // per piece). Each split below cuts the healed arc's CURRENT head
+            // end, so splitting in decreasing chain position lays the crossings
+            // down in chain order from the tail.
+            std::vector<Int> order (static_cast<std::size_t>(k));
+            for( Int j = 0; j < k; ++j ) { order[static_cast<std::size_t>(j)] = j; }
+            std::stable_sort( order.begin(), order.end(),
+                [&]( Int i, Int j )
+                {
+                    return chain_pos[static_cast<std::size_t>(PassMove_T::ArcOf(mv.cross[static_cast<std::size_t>(i)]))]
+                         > chain_pos[static_cast<std::size_t>(PassMove_T::ArcOf(mv.cross[static_cast<std::size_t>(j)]))];
+                }
+            );
 
-            for( Int j = 0; j < k; ++j )
+            for( Int j : order )
             {
                 const Int y  = n_c + j;
                 const Int b0 = PassMove_T::ArcOf(mv.cross[static_cast<std::size_t>(j)]);
                 const Int b  = rep_of[static_cast<std::size_t>(b0)];
-
-                if( split_seen[static_cast<std::size_t>(b)] )
-                {
-                    return fail("the corridor crosses one healed arc twice (arc "
-                        + std::to_string(b) + "); the order of the two crossings"
-                        " along it is not determined by the descriptor");
-                }
-                split_seen[static_cast<std::size_t>(b)] = true;
 
                 const Int qj       = q[static_cast<std::size_t>(j)];
                 const Int old_head = Aend(b,Int(1));

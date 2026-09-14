@@ -3312,10 +3312,8 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                 std::vector<Int> freed;
                 PD_T ad = dv.AfterDiagram(dia, mvv, vwhy, freed);
 
-                // Our surgery cannot carry out every well-formed move (e.g. a
-                // corridor that crosses one healed arc twice, where the order
-                // of the two crossings is not in the descriptor). That is a
-                // limit of the checker, not a fault in the record: the claims
+                // Our surgery may not carry out every well-formed move. That
+                // is a limit of the checker, not a fault in the record: the claims
                 // that need the after-diagram go UNCHECKED, and the witness is
                 // still checked. A malformed descriptor still aborts, when the
                 // record is drawn below.
