@@ -660,6 +660,54 @@ static void RunFoundPassTests( const char * name, const PD_T & pd,
 // renumbered everything. It replaced the MacLeod code, which does not exist
 // for links, so it had better be right about both what it accepts and what it
 // refuses.
+// A corridor that turns into its dot right beside the anchor stub's corner puts
+// a dot, a plain corner and two corridor corners in one 2x2 block. The dot and
+// the '+' each still need one arm, and the only neighbours that can supply it
+// are each other -- but a corridor corner whose arms point elsewhere, and a
+// stroke lying across with nothing beyond it, are not blank either. Counting
+// those as candidates left both cells deadlocked at degree 1 (found on
+// juhasz-veryhard-177). The canvas below is that drawing exactly: the "after"
+// view of its disagreeing-chord move (`--pass-view=after`), whose head dot is
+// the '*' at cell (22,11), with the corridor's ']' and '{' to its upper left and
+// the stub's '+' above it.
+static void RunInferenceDeadlockTests()
+{
+    const std::string canvas = R"CANVAS(                                             
+                                             
+      +-->+                                  
+      ^   v                                  
+  +<---<--|<--------------+                  
+  |   ^   v               ^                  
+  |   +<---<--+   +<-------<----------+      
+  |       v   ^   v       ^           ^      
+  |       +--*|   |       |       +-->--->+  
+  |          ;^   |       ^       ^   ^   |  
+  |          {|=>==>=]+-->|-->--->--->+   |  
+  |           |   v  {*   ^       ^       |  
+  |           |   +-->--->+       |       |  
+  v           |                   |       |  
+  +---------->|------>--->+       |       |  
+              ^           v       |       |  
+              |           |       |       |  
+              |           v       |       v  
+              +<-----------<------|<------+  
+                          v       ^          
+                          +------>+          
+                                             
+                                             
+)CANVAS";
+
+    auto R = Extract_T::Extract(canvas, Int(46), Int(23));
+
+    const bool passQ = R.okQ && (R.pd.CrossingCount() > Int(0));
+
+    std::printf("  inference: dot and corner beside a corridor corner  %s\n",
+        passQ ? "parsed"
+              : (R.okQ ? "*** wrong parse ***" : ("*** " + R.why + " ***").c_str()));
+
+    if( passQ ) { ++checks_passed; } else { ok = false; }
+}
+
 static void RunIsomorphismTests()
 {
     auto build = []( std::vector<Int> code ) -> PD_T
@@ -868,6 +916,8 @@ int main()
     RunFoundPassTests("L10n104", l10a,  Int(7),  Int(4));
 
     std::printf("=== unrooted isomorphism (what --verify's trace check uses) ===\n");
+    RunInferenceDeadlockTests();
+
     RunIsomorphismTests();
 
     std::printf("=== the oracle must be able to fail ===\n");

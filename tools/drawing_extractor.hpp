@@ -327,6 +327,32 @@ namespace KnoodleDrawIO
                 // forced -- there is no other way to reach 2. Deliberately
                 // conservative: with more candidates than it needs, nothing is
                 // deduced and the consistency check below will report it.
+                //
+                // "Could still supply one" has to mean exactly that, not merely
+                // "is not blank". Arms only ever appear on inference cells and
+                // on straight strokes promoted to crossings, so a corridor
+                // corner ({ } [ ]) whose fixed arms miss this cell never will,
+                // and a stroke lying across the direction can become a
+                // crossing only if there is something beyond it for the strand
+                // to continue into. Counting either anyway overshoots 2 and
+                // deadlocks: a corridor that turns into its dot right beside
+                // the anchor stub's corner leaves the dot and that corner at
+                // degree 1, each waiting on the other (juhasz-veryhard-177).
+                auto could_point_back = [&]( Int x, Int y, int d ) -> bool
+                {
+                    const Int nx = x + DirDX[d], ny = y + DirDY[d];
+                    if( !inQ(nx,ny) ) { return false; }
+                    const std::size_t j = idx(nx,ny);
+                    if( !fullQ[j] ) { return false; }
+                    if( inferQ[j] ) { return true; }
+                    if( strokeQ[j] && !crossQ[j] )
+                    {
+                        const Int fx = nx + DirDX[d], fy = ny + DirDY[d];
+                        return inQ(fx,fy) && fullQ[idx(fx,fy)];
+                    }
+                    return false;
+                };
+
                 for( Int y = 0; y < n_y; ++y )
                 for( Int x = 0; x < wide; ++x )
                 {
@@ -341,9 +367,7 @@ namespace KnoodleDrawIO
                     for( int d = 0; d < 4; ++d )
                     {
                         if( hasarm(i,d) ) { continue; }
-                        const Int nx = x + DirDX[d], ny = y + DirDY[d];
-                        if( !inQ(nx,ny) ) { continue; }
-                        if( fullQ[idx(nx,ny)] ) { ++cand; }
+                        if( could_point_back(x,y,d) ) { ++cand; }
                     }
 
                     if( deg + cand != 2 ) { continue; }
@@ -351,9 +375,7 @@ namespace KnoodleDrawIO
                     for( int d = 0; d < 4; ++d )
                     {
                         if( hasarm(i,d) ) { continue; }
-                        const Int nx = x + DirDX[d], ny = y + DirDY[d];
-                        if( !inQ(nx,ny) ) { continue; }
-                        if( fullQ[idx(nx,ny)] ) { setarm(i,d); }
+                        if( could_point_back(x,y,d) ) { setarm(i,d); }
                     }
                 }
 
