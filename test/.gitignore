@@ -40,3 +40,9 @@ cluster/cluster.conf
 cluster/*.local
 local_moves_check
 intersection3d_check
+move_trace_check
+orthodecorate_check
+pass_view_check
+oracle_vs_reroute
+ordering_probe
+witness_check

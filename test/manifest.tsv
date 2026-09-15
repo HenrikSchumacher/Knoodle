@@ -77,3 +77,9 @@ run_tests	script	-	run_tests.py	--smoke-only	-	[1-9][0-9]*/[1-9][0-9]* passed
 simplify_config_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)
 plantri_check	test	homfly	-	--up-to-crossing=6	--up-to-crossing=7	tested=[1-9][0-9]*
 reapr_corner_probe	tool	plain	-	-	-	-
+move_trace_check	test	plain	-	-	-	MOVE TRACE CHECK OK \([1-9][0-9]* checks passed\)
+orthodecorate_check	test	plain	-	-	-	PROBE OK \([1-9][0-9]* checks passed\)
+pass_view_check	test	plain	-	-	-	PASS VIEW CHECK OK \([1-9][0-9]* checks passed\)
+oracle_vs_reroute	tool	plain	-	-	-	-
+ordering_probe	tool	plain	-	-	-	-
+witness_check	test	plain	-	-	-	WITNESS CHECK OK \([1-9][0-9]* checks passed\)

@@ -21,13 +21,20 @@
 //#define KNOODLE_USE_BOOST_UNORDERED // Support for faster associative containers in Reapr.
 
 #include "knoodle_io.hpp"
+#include "../src/OrthoDecorate.hpp"
+#include "../src/MoveTrace.hpp"
+#include "pass_view.hpp"
+#include "find_pass.hpp"
+#include "witness_check.hpp"
 
+#include <charconv>     // ParsePassMove
 #include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <limits>
 #include <map>
 #include <set>
+#include <string_view>  // ParsePassMove
 
 //==============================================================================
 // Configuration
@@ -48,6 +55,8 @@ struct Config
     std::vector<std::string> highlight_specs;  // raw "--highlight=..." values
     bool randomize_projection = false;
     bool ascii_mode           = false;
+    bool mono_mode            = false;  // --mono : no ANSI; weight carries meaning
+    bool verify_trace         = false;  // --verify : check each move against the next snapshot
     bool wolfram_mode         = false;  // --format=wl : emit WL geometry association
     bool help_requested       = false;
     bool label_crossings      = false;
@@ -78,9 +87,36 @@ struct Config
     std::optional<bool> dual_simplex;
 
     bool checkerboard_coloring = false;
+
+    // Pass-move overlay (docs/move-descriptor.md): descriptor text from
+    // --move=..., e.g. "kind=pass strand=11 depart=7 cross=7:u land=1".
+    std::optional<std::string> move_spec;
+
+    // --find-pass=A,B : name the strand's first and last arc and let Knoodle's
+    // own shortest-rerouting search supply the corridor, so the move drawn is
+    // inside PassSimplifier::Reroute's contract by construction.
+    std::optional<std::pair<Int,Int>> find_pass;
+
+    // Which of the two-deletions views to draw (with --move):
+    //   "both"   -- the superposition: diagram + strand W + corridor (default)
+    //   "before" -- delete the corridor: the input diagram, dots marked
+    //   "after"  -- delete W: the diagram the move produces, in the frozen
+    //               before-layout (W erased beyond the dots, transversals
+    //               healed, corridor attached through the shared stubs)
+    std::string pass_view = "both";
+
+    // --pass-disk : shade the region the strand sweeps as it slides to the
+    // corridor, the way --checkerboard-coloring shades faces.
+    bool pass_disk = false;
+
+    // Trace mode (--trace): input is a move-trace stream of
+    // #step/#move/#view-headed PD records per docs/move-descriptor.md.
+    bool trace_mode = false;
 };
 
-enum class HighlightType : uint8_t { None = 0, Arc = 1, Crossing = 2, Face = 3 };
+// HighlightType, PadCanvas, StampPassOverlay and ApplyAfterView live in
+// tools/pass_view.hpp so that the tests can build the very same canvas.
+using namespace KnoodlePassView;
 
 struct HighlightSet {
     std::set<Int> arcs;
@@ -123,9 +159,50 @@ void PrintUsage()
     std::cerr << "\n";
     std::cerr << "Output options:\n";
     std::cerr << "  --ascii                     Use plain ASCII output (default: Unicode box-drawing)\n";
+    std::cerr << "  --mono                      No ANSI color: the rerouted strand W and the new\n";
+    std::cerr << "                              corridor are drawn in heavy strokes and labelled\n";
+    std::cerr << "                              'w' / 'p' instead (for files, docs, and anything\n";
+    std::cerr << "                              that strips escape codes)\n";
     std::cerr << "  --highlight=ELEMENTS        Highlight elements (a=arc, c=crossing, f=face)\n";
     std::cerr << "                              e.g. --highlight=\"a0,c3,f2\"; multiple flags allowed\n";
     std::cerr << "  --checkerboard-coloring     Highlight alternating faces (checkerboard pattern)\n";
+    std::cerr << "  --move=DESCRIPTOR           Overlay a pass move (docs/move-descriptor.md):\n";
+    std::cerr << "                              \"strand=DA[,DA..] depart=DA [cross=DA:u|o,..] land=DA\"\n";
+    std::cerr << "                              darc DA = 2*arc+d (Tail=0/Head=1); corridor drawn in\n";
+    std::cerr << "                              heavy gold strokes, anchors in red; rejected\n";
+    std::cerr << "                              descriptors report the failed check and exit nonzero\n";
+    std::cerr << "  --find-pass=A,B             Name the strand's FIRST and LAST arc and let\n";
+    std::cerr << "                              Knoodle's own FindShortestRerouting supply the\n";
+    std::cerr << "                              corridor. The move drawn is then inside\n";
+    std::cerr << "                              PassSimplifier::Reroute's contract (a shortest\n";
+    std::cerr << "                              path) by construction, which --move cannot\n";
+    std::cerr << "                              promise. If no shorter route exists, that is\n";
+    std::cerr << "                              reported and the strand is drawn highlighted\n";
+    std::cerr << "                              with no corridor -- not an error.\n";
+    std::cerr << "  --pass-disk                 Shade the region the strand sweeps as it slides\n";
+    std::cerr << "                              to the corridor -- the disk bounded by W and the\n";
+    std::cerr << "                              corridor between the two dots. Shaded like\n";
+    std::cerr << "                              --checkerboard-coloring ('.' in --ascii). If the\n";
+    std::cerr << "                              two cross, the loop is not simple and the largest\n";
+    std::cerr << "                              enclosed piece is shaded.\n";
+    std::cerr << "  --pass-view=VIEW            With --move or --find-pass: which of the\n";
+    std::cerr << "                              two-deletions views to\n";
+    std::cerr << "                              draw. 'both' (default) superposes strand W and its\n";
+    std::cerr << "                              corridor, branching at the dots; 'before' deletes\n";
+    std::cerr << "                              the corridor (the input diagram, dots marked);\n";
+    std::cerr << "                              'after' deletes W (the diagram the move produces,\n";
+    std::cerr << "                              in the frozen before-layout)\n";
+    std::cerr << "  --trace                     Input is a move-trace stream (#step/#move/#view headed\n";
+    std::cerr << "  --verify                    With --trace: check each pass move two ways.\n";
+    std::cerr << "                              'drawing' checks the two deletions inside one\n";
+    std::cerr << "                              record -- each view is rendered, parsed back and\n";
+    std::cerr << "                              compared port-by-port to the diagram it should be.\n";
+    std::cerr << "                              'trace' checks that what the move produces is the\n";
+    std::cerr << "                              NEXT record's snapshot (isomorphism, since a PD\n";
+    std::cerr << "                              code renumbers). Both report VERIFIED / MISMATCH\n";
+    std::cerr << "                              per move; a mismatch exits nonzero.\n";
+    std::cerr << "                              PD records, docs/move-descriptor.md): each record is\n";
+    std::cerr << "                              drawn under its echoed headers, pass moves as overlays\n";
     std::cerr << "\n";
     std::cerr << "Algorithm options:\n";
     std::cerr << "  --bend-method=METHOD        mcf (default), clp\n";
@@ -272,6 +349,18 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.ascii_mode = true;
         }
+        else if (arg == "--mono")
+        {
+            config.mono_mode = true;
+        }
+        else if (arg == "--verify")
+        {
+            config.verify_trace = true;
+        }
+        else if (arg == "--trace")
+        {
+            config.trace_mode = true;
+        }
         // Output format: unicode (default), ascii, or wl (Wolfram geometry association)
         else if (arg.starts_with("--format="))
         {
@@ -393,6 +482,47 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.highlight_specs.emplace_back(arg.substr(12));
         }
+        // Pass-move overlay descriptor
+        else if (arg.starts_with("--move="))
+        {
+            config.move_spec = arg.substr(7);
+        }
+        // Find a pass move between two arcs, rather than spelling one out
+        else if (arg.starts_with("--find-pass="))
+        {
+            const std::string val{arg.substr(12)};
+            const auto comma = val.find(',');
+            std::optional<int> fa, fb;
+            if (comma != std::string::npos)
+            {
+                fa = ParseNonNegativeInt(val.substr(0, comma));
+                fb = ParseNonNegativeInt(val.substr(comma + 1));
+            }
+            if (!fa || !fb)
+            {
+                std::cerr << "Error: --find-pass wants two arc indices,"
+                             " as --find-pass=A,B (got '" << val << "')\n";
+                return std::nullopt;
+            }
+            config.find_pass = std::make_pair(static_cast<Int>(*fa),
+                                              static_cast<Int>(*fb));
+        }
+        else if (arg == "--pass-disk")
+        {
+            config.pass_disk = true;
+        }
+        // Two-deletions view selection (with --move)
+        else if (arg.starts_with("--pass-view="))
+        {
+            config.pass_view = arg.substr(12);
+            if (config.pass_view != "both" && config.pass_view != "before"
+                && config.pass_view != "after")
+            {
+                std::cerr << "Error: --pass-view wants both, before or after"
+                             " (got '" << config.pass_view << "')\n";
+                return std::nullopt;
+            }
+        }
         // Short combinable flags: -c, -a, -f, -caf, -ac, etc.
         else if (arg.starts_with("-") && !arg.starts_with("--") && arg.size() > 1)
         {
@@ -460,6 +590,35 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         }
     }
 
+    // A view selection is meaningless without a move to view.
+    if (config.pass_view != "both" && !config.move_spec && !config.find_pass
+        && !config.trace_mode)
+    {
+        std::cerr << "Error: --pass-view needs a --move descriptor,"
+                     " --find-pass=A,B, or --trace to select a view of\n";
+        return std::nullopt;
+    }
+
+    // The disk is bounded by the strand and the corridor, so there has to be
+    // a move for it to be the disk OF.
+    if (config.pass_disk && !config.move_spec && !config.find_pass
+        && !config.trace_mode)
+    {
+        std::cerr << "Error: --pass-disk needs a --move descriptor,"
+                     " --find-pass=A,B, or --trace -- the disk is the region"
+                     " between a strand and its corridor\n";
+        return std::nullopt;
+    }
+
+    // --move spells the corridor out; --find-pass asks for one. Taking both
+    // would mean silently ignoring one of them.
+    if (config.move_spec && config.find_pass)
+    {
+        std::cerr << "Error: --move and --find-pass both name a pass move;"
+                     " use one or the other\n";
+        return std::nullopt;
+    }
+
     // Debug preset enables all labels (before auto-sizing so grid adapts)
     if (config.quality_preset && *config.quality_preset == "debug")
     {
@@ -514,7 +673,8 @@ bool ConnectsVertically(char c)
 std::string UnicodeifyDiagram(const std::string& ascii,
                                const std::vector<HighlightType>* hl_mask = nullptr,
                                Int n_x = 0,
-                               const std::vector<Int>* comp_map = nullptr)
+                               const std::vector<Int>* comp_map = nullptr,
+                               bool mono = false)
 {
     // Parse into lines
     std::vector<std::string> lines;
@@ -544,6 +704,8 @@ std::string UnicodeifyDiagram(const std::string& ascii,
     static const char* COLOR_ARC      = "\033[38;5;111m";  // blue-warmer
     static const char* COLOR_CROSSING = "\033[38;5;203m";  // red
     static const char* COLOR_FACE     = "\033[48;5;234m";  // bg-dim
+    static const char* COLOR_PASS     = "\033[38;5;220m";  // gold (new corridor)
+    static const char* COLOR_STRAND   = "\033[38;5;80m";   // cyan (strand W)
     static const char* COLOR_RESET    = "\033[0m";
 
     // Component palette (Modus Vivendi distinct colors)
@@ -569,15 +731,59 @@ std::string UnicodeifyDiagram(const std::string& ascii,
             char ch = lines[r][c];
             std::string char_out;
 
+            // Which of the two rerouting actors, if either, owns this cell.
+            // In --mono there is no colour to say so, and the difference is
+            // carried by stroke weight instead: W and the corridor are drawn
+            // heavy, the rest of the diagram light. In colour mode everything
+            // is drawn with the diagram's own light strokes and the colour
+            // does the talking.
+            HighlightType ht_here = HighlightType::None;
+            if ((n_x > 0) && hl_mask)
+            {
+                auto m = r * static_cast<std::size_t>(n_x) + c;
+                if (m < hl_mask->size()) { ht_here = (*hl_mask)[m]; }
+            }
+            const bool heavyQ = mono
+                && ((ht_here == HighlightType::Strand)
+                 || (ht_here == HighlightType::Pass));
+
             switch (ch)
             {
-                case '-': char_out = "\xe2\x94\x80"; break; // ─ U+2500
-                case '|': char_out = "\xe2\x94\x82"; break; // │ U+2502
+                case '-': char_out = heavyQ ? "\xe2\x94\x81"  // ━ U+2501
+                                            : "\xe2\x94\x80"; // ─ U+2500
+                          break;
+                case '|': char_out = heavyQ ? "\xe2\x94\x83"  // ┃ U+2503
+                                            : "\xe2\x94\x82"; // │ U+2502
+                          break;
                 case '<': char_out = "\xe2\x86\x90"; break; // ← U+2190
                 case '>': char_out = "\xe2\x86\x92"; break; // → U+2192
                 case '^': char_out = "\xe2\x86\x91"; break; // ↑ U+2191
                 case 'v': char_out = "\xe2\x86\x93"; break; // ↓ U+2193
                 case '.': char_out = "\xc2\xb7";     break; // · U+00B7
+
+                // Pass-move corridor strokes, stamped by StampPassOverlay and
+                // never emitted by DiagramString itself. They take the same
+                // light glyphs as the diagram (colour tells them apart) unless
+                // --mono asked for weight instead.
+                case '=': char_out = mono ? "\xe2\x94\x81"  // ━
+                                          : "\xe2\x94\x80"; // ─
+                          break;
+                case ';': char_out = mono ? "\xe2\x94\x83"  // ┃
+                                          : "\xe2\x94\x82"; // │
+                          break;
+                case '{': char_out = mono ? "\xe2\x94\x97"  // ┗ (N+E)
+                                          : "\xe2\x95\xb0"; // ╰
+                          break;
+                case '}': char_out = mono ? "\xe2\x94\x9b"  // ┛ (N+W)
+                                          : "\xe2\x95\xaf"; // ╯
+                          break;
+                case '[': char_out = mono ? "\xe2\x94\x8f"  // ┏ (S+E)
+                                          : "\xe2\x95\xad"; // ╭
+                          break;
+                case ']': char_out = mono ? "\xe2\x94\x93"  // ┓ (S+W)
+                                          : "\xe2\x95\xae"; // ╮
+                          break;
+                case '*': char_out = "\xe2\x97\x8f"; break; // ● U+25CF (dot: corridor/strand branch point)
 
                 case '+':
                 {
@@ -588,20 +794,41 @@ std::string UnicodeifyDiagram(const std::string& ascii,
 
                     int bits = (left ? 8 : 0) | (right ? 4 : 0) | (up ? 2 : 0) | (down ? 1 : 0);
 
-                    switch (bits)
+                    if (heavyQ)
                     {
-                        case 0b0101: char_out = "\xe2\x95\xad"; break; // ╭ right+down
-                        case 0b1001: char_out = "\xe2\x95\xae"; break; // ╮ left+down
-                        case 0b0110: char_out = "\xe2\x95\xb0"; break; // ╰ right+up
-                        case 0b1010: char_out = "\xe2\x95\xaf"; break; // ╯ left+up
-                        case 0b1101: char_out = "\xe2\x94\xac"; break; // ┬ left+right+down
-                        case 0b1110: char_out = "\xe2\x94\xb4"; break; // ┴ left+right+up
-                        case 0b0111: char_out = "\xe2\x94\x9c"; break; // ├ up+down+right
-                        case 0b1011: char_out = "\xe2\x94\xa4"; break; // ┤ up+down+left
-                        case 0b1111: char_out = "\xe2\x94\xbc"; break; // ┼ all four
-                        case 0b1100: char_out = "\xe2\x94\x80"; break; // ─ left+right
-                        case 0b0011: char_out = "\xe2\x94\x82"; break; // │ up+down
-                        default:     char_out = "+";            break; // fallback
+                        switch (bits)
+                        {
+                            case 0b0101: char_out = "\xe2\x94\x8f"; break; // ┏ right+down
+                            case 0b1001: char_out = "\xe2\x94\x93"; break; // ┓ left+down
+                            case 0b0110: char_out = "\xe2\x94\x97"; break; // ┗ right+up
+                            case 0b1010: char_out = "\xe2\x94\x9b"; break; // ┛ left+up
+                            case 0b1101: char_out = "\xe2\x94\xb3"; break; // ┳ left+right+down
+                            case 0b1110: char_out = "\xe2\x94\xbb"; break; // ┻ left+right+up
+                            case 0b0111: char_out = "\xe2\x94\xa3"; break; // ┣ up+down+right
+                            case 0b1011: char_out = "\xe2\x94\xab"; break; // ┫ up+down+left
+                            case 0b1111: char_out = "\xe2\x95\x8b"; break; // ╋ all four
+                            case 0b1100: char_out = "\xe2\x94\x81"; break; // ━ left+right
+                            case 0b0011: char_out = "\xe2\x94\x83"; break; // ┃ up+down
+                            default:     char_out = "+";            break; // fallback
+                        }
+                    }
+                    else
+                    {
+                        switch (bits)
+                        {
+                            case 0b0101: char_out = "\xe2\x95\xad"; break; // ╭ right+down
+                            case 0b1001: char_out = "\xe2\x95\xae"; break; // ╮ left+down
+                            case 0b0110: char_out = "\xe2\x95\xb0"; break; // ╰ right+up
+                            case 0b1010: char_out = "\xe2\x95\xaf"; break; // ╯ left+up
+                            case 0b1101: char_out = "\xe2\x94\xac"; break; // ┬ left+right+down
+                            case 0b1110: char_out = "\xe2\x94\xb4"; break; // ┴ left+right+up
+                            case 0b0111: char_out = "\xe2\x94\x9c"; break; // ├ up+down+right
+                            case 0b1011: char_out = "\xe2\x94\xa4"; break; // ┤ up+down+left
+                            case 0b1111: char_out = "\xe2\x94\xbc"; break; // ┼ all four
+                            case 0b1100: char_out = "\xe2\x94\x80"; break; // ─ left+right
+                            case 0b0011: char_out = "\xe2\x94\x82"; break; // │ up+down
+                            default:     char_out = "+";            break; // fallback
+                        }
                     }
                     break;
                 }
@@ -611,8 +838,10 @@ std::string UnicodeifyDiagram(const std::string& ascii,
                     break;
             }
 
-            // Apply coloring: highlight takes priority over component color
-            if (n_x > 0)
+            // Apply coloring: highlight takes priority over component color.
+            // --mono emits no escape codes at all: weight and the w/p markers
+            // carry everything colour would have.
+            if ((n_x > 0) && !mono)
             {
                 auto mi = r * static_cast<std::size_t>(n_x) + c;
 
@@ -646,6 +875,8 @@ std::string UnicodeifyDiagram(const std::string& ascii,
                         case HighlightType::Arc:      color = COLOR_ARC;      break;
                         case HighlightType::Crossing: color = COLOR_CROSSING; break;
                         case HighlightType::Face:     color = COLOR_FACE;     break;
+                        case HighlightType::Pass:     color = COLOR_PASS;     break;
+                        case HighlightType::Strand:   color = COLOR_STRAND;   break;
                         default: break;
                     }
                     result += color;
@@ -1715,6 +1946,143 @@ HighlightSet ParseHighlightSpecs(const std::vector<std::string>& specs,
  * - Crossings: marks the crossing cell and adjacent body chars (- or |).
  * - Faces: marks space cells owned by highlighted faces.
  */
+/**
+ * @brief Mark the cells drawn for a set of arcs with a highlight type.
+ *
+ * Shared by `--highlight=a<i>` (type Arc) and by a `--move` descriptor's
+ * strand W (type Strand). When `marker` is non-zero the midpoint of every
+ * sufficiently long straight run is overwritten with it in `diagram`, which
+ * is how W is labelled in `--mono` output (no colour to distinguish it).
+ */
+void MarkArcCells(
+    OrthoDraw_T& H, std::string& diagram,
+    Int n_x, Int n_y,
+    const std::vector<Int>& arcs,
+    std::vector<HighlightType>& mask,
+    HighlightType type,
+    char marker = '\0')
+{
+    auto idx = [n_x, n_y](Int x, Int y) -> std::size_t {
+        return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y));
+    };
+
+    auto in_bounds = [n_x, n_y](Int x, Int y) -> bool {
+        return x >= 0 && x < n_x - 1 && y >= 0 && y < n_y;
+    };
+
+    auto is_edge_char = [](char c) -> bool {
+        return c == '-' || c == '|' || c == '<' || c == '>'
+            || c == '^' || c == 'v';
+    };
+
+    const auto& A_E = H.ArcEdges();
+    const auto& A_V = H.ArcVertices();
+    const auto& E_V = H.Edges();
+    const auto& V_coords = H.VertexCoordinates();
+    const auto& E_dir = H.EdgeDirections();
+
+    // A marker is placed at most once per arc, on the longest straight run,
+    // so a short arc does not lose its only stroke to a label. If no arc of the
+    // set had a long enough run, the best cell seen anywhere gets one, so W is
+    // never left entirely unlabelled.
+    constexpr Int min_run_for_marker = 3;
+
+    Int overall_len = 0;
+    std::size_t overall_cell = 0;
+    bool overall_have = false;
+    bool placed_any = false;
+
+    for (Int a : arcs)
+    {
+        if (!H.EdgeActiveQ(a)) continue;
+
+        Int best_len = 0;
+        std::size_t best_cell = 0;
+        bool have_cell = false;
+
+        auto consider = [&](Int len, Int x, Int y)
+        {
+            if ((len < Int(1)) || !in_bounds(x, y)) { return; }
+
+            if ((len >= min_run_for_marker) && (len > best_len))
+            {
+                best_len  = len;
+                best_cell = idx(x, y);
+                have_cell = true;
+            }
+            if (len > overall_len)
+            {
+                overall_len  = len;
+                overall_cell = idx(x, y);
+                overall_have = true;
+            }
+        };
+
+        auto edges = A_E[a];
+        for (auto it = edges.begin(); it != edges.end(); ++it)
+        {
+            Int e = *it;
+            if (!H.EdgeActiveQ(e)) continue;
+
+            Int v_0 = E_V(e, 0);
+            Int v_1 = E_V(e, 1);
+            Int x0 = V_coords(v_0, 0), y0 = V_coords(v_0, 1);
+            Int x1 = V_coords(v_1, 0), y1 = V_coords(v_1, 1);
+
+            auto dir = E_dir[e];
+
+            if (dir == OrthoDraw_T::East || dir == OrthoDraw_T::West)
+            {
+                Int lo_x = std::min(x0, x1);
+                Int hi_x = std::max(x0, x1);
+                Int y = y0;
+                for (Int x = lo_x + 1; x <= hi_x - 1; ++x)
+                {
+                    if (!in_bounds(x, y)) continue;
+                    auto i = idx(x, y);
+                    if (is_edge_char(diagram[i])) mask[i] = type;
+                }
+                consider(hi_x - lo_x - 1, (lo_x + hi_x) / 2, y);
+            }
+            else if (dir == OrthoDraw_T::North || dir == OrthoDraw_T::South)
+            {
+                Int lo_y = std::min(y0, y1);
+                Int hi_y = std::max(y0, y1);
+                Int x = x0;
+                for (Int y = lo_y + 1; y <= hi_y - 1; ++y)
+                {
+                    if (!in_bounds(x, y)) continue;
+                    auto i = idx(x, y);
+                    if (is_edge_char(diagram[i])) mask[i] = type;
+                }
+                consider(hi_y - lo_y - 1, x, (lo_y + hi_y) / 2);
+            }
+        }
+
+        auto verts = A_V[a];
+        for (auto it = verts.begin(); it != verts.end(); ++it)
+        {
+            Int v = *it;
+            Int x = V_coords(v, 0);
+            Int y = V_coords(v, 1);
+            if (!in_bounds(x, y)) continue;
+            auto i = idx(x, y);
+            if (diagram[i] == '+') mask[i] = type;
+        }
+
+        if (marker && have_cell && (mask[best_cell] == type))
+        {
+            diagram[best_cell] = marker;
+            placed_any = true;
+        }
+    }
+
+    if (marker && !placed_any && overall_have && (mask[overall_cell] == type))
+    {
+        diagram[overall_cell] = marker;
+    }
+}
+
 std::vector<HighlightType> BuildHighlightMask(
     OrthoDraw_T& H, const std::string& diagram,
     Int n_x, Int n_y,
@@ -2213,6 +2581,38 @@ void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out)
     out << "}|>\n";
 }
 
+//==============================================================================
+// Pass-Move Overlay (--move=..., docs/move-descriptor.md)
+//==============================================================================
+
+using Deco_T = Knoodle::OrthoDecorate<PD_T>;
+using PS_T   = Knoodle::PassSimplifier<Int>;
+
+/**
+ * @brief Parse a pass-move descriptor per docs/move-descriptor.md.
+ *
+ * Accepts the payload of a `#move` header line (a leading "#move" token and
+ * a "kind=pass" token are both optional; any other kind is an error):
+ *
+ *     [#move] [kind=pass] strand=DA[,DA...] depart=DA
+ *             [cross=DA:u|o[,DA:u|o...]] land=DA
+ *
+ * All references are darcs (da = 2*arc + d, Tail=0/Head=1) against the
+ * diagram being drawn. Returns false with a message in `err` on bad syntax.
+ */
+/**
+ * @brief Parse a --move descriptor.
+ *
+ * The grammar and every check now live on the descriptor type itself
+ * (src/PassDescriptor.hpp), so knoodledraw, the unit tests and anything else
+ * that wants to read one all go through the same code.
+ */
+bool ParsePassMove(const std::string& spec, Deco_T::PassMove_T& mv,
+                   std::string& err)
+{
+    return Deco_T::PassMove_T::Parse(spec, mv, err);
+}
+
 /**
  * @brief Draw all summands of a knot to stdout.
  *
@@ -2240,18 +2640,53 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
                    || config.label_faces || config.label_components;
     bool has_highlights = !config.highlight_specs.empty() || config.checkerboard_coloring;
 
+    // Pass-move overlay: parse the descriptor once; it is then tried against
+    // each summand (darc references only validate on the one it belongs to).
+    Deco_T::PassMove_T move;
+    bool move_requested = config.move_spec.has_value();
+    bool move_applied   = false;
+    std::string move_why;
+
+    if (move_requested)
+    {
+        std::string perr;
+        if (!ParsePassMove(*config.move_spec, move, perr))
+        {
+            std::cerr << "knoodledraw: bad --move descriptor: " << perr << "\n";
+            return false;
+        }
+    }
+
+    // --find-pass=A,B names the strand's ends and lets Knoodle's own search
+    // supply the corridor. Unlike a rejected --move, finding no rerouting is
+    // NOT a failure -- it is a fact about the diagram, and often the one you
+    // were asking about. In that case we say so and still draw, with the
+    // strand you named highlighted.
+    const bool find_requested = config.find_pass.has_value();
+
+    // A rejected --move must leave no drawing behind. The descriptor is tried
+    // against every summand (its darcs only resolve on the one it belongs to)
+    // and can still fail on routing after that, so whether it applied is not
+    // known until the loop is done -- buffer until then and emit nothing if it
+    // never applied. Without a --move there is nothing to withhold, so the
+    // ordinary path keeps writing straight through, unbuffered.
+    std::ostringstream move_buffer;
+    std::ostream & out = move_requested
+                       ? static_cast<std::ostream &>(move_buffer)
+                       : static_cast<std::ostream &>(std::cout);
+
     for (std::size_t i = 0; i < summands.size(); ++i)
     {
         if (i > 0 && !config.wolfram_mode)
         {
-            std::cout << "s\n";
+            out << "s\n";
         }
 
         OrthoDraw_T H(summands[i], config.exterior_face ? *config.exterior_face : Int(-1), settings);
 
         if (config.wolfram_mode)
         {
-            EmitWolframGeometry(H, summands[i], std::cout);
+            EmitWolframGeometry(H, summands[i], out);
             continue;
         }
 
@@ -2369,6 +2804,204 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
             }
         }
 
+        // --find-pass: ask Knoodle for the corridor rather than being told it.
+        // Only the summand the two arcs actually live on can answer.
+        bool drew_moveQ = move_requested;
+
+        if (find_requested)
+        {
+            const Int fa = config.find_pass->first;
+            const Int fb = config.find_pass->second;
+
+            std::string fwhy;
+            Deco_T::PassMove_T found;
+
+            if (KnoodleFindPass::FindPassDescriptor<PD_T,PDC_T,PS_T,
+                    Deco_T::PassMove_T>(summands[i], fa, fb, found, fwhy))
+            {
+                move       = found;
+                drew_moveQ = true;
+                std::cerr << "knoodledraw: --find-pass=" << fa << "," << fb
+                          << ": " << move.ToString() << "\n";
+            }
+            else
+            {
+                drew_moveQ = false;
+
+                // Not a failure: say what was asked and what came back, then
+                // draw the strand anyway -- "there is no shorter route for
+                // this strand" is a picture worth having.
+                std::cerr << "knoodledraw: no reducing pass from arc " << fa
+                          << " to arc " << fb << " (" << fwhy << ")\n";
+
+                std::vector<Int> strand_arcs;
+                std::string swhy;
+                if (KnoodleFindPass::StrandArcs(summands[i], fa, fb,
+                                                strand_arcs, swhy))
+                {
+                    if (n_x == 0)
+                    {
+                        n_x = H.Width()  * config.x_grid_size + 2;
+                        n_y = H.Height() * config.y_grid_size + 1;
+                    }
+                    if (mask.empty())
+                    {
+                        mask.assign(static_cast<std::size_t>(n_x * n_y),
+                                    HighlightType::None);
+                    }
+
+                    const bool no_colorQ = config.mono_mode || config.ascii_mode;
+                    MarkArcCells(H, diagram, n_x, n_y, strand_arcs, mask,
+                                 HighlightType::Strand,
+                                 no_colorQ ? 'w' : '\0');
+                }
+            }
+        }
+
+        // Pass-move overlay: stamped after labels so the corridor wins any
+        // cell conflicts. The descriptor is tried on every summand; its darc
+        // references only validate on the summand they belong to.
+        if (drew_moveQ)
+        {
+            if (n_x == 0)
+            {
+                n_x = H.Width()  * config.x_grid_size + 2;
+                n_y = H.Height() * config.y_grid_size + 1;
+            }
+
+            // Margin lets corridors through the drawn exterior face route
+            // around the diagram (see PadCanvas).
+            constexpr Int move_margin = 2;
+
+            Deco_T deco(H, move_margin);
+            auto pass_route = deco.RoutePassMove(summands[i], move);
+            if (pass_route.validQ)
+            {
+                const bool before_viewQ = (config.pass_view == "before");
+                const bool after_viewQ  = (config.pass_view == "after");
+
+                // Mark the strand W before padding, while the mask and the
+                // drawing still share OrthoDraw's coordinates. W keeps the
+                // diagram's own strokes; only its colour (or, in --mono, its
+                // weight and a 'w' marker) sets it apart from the corridor.
+                // In the after view W is erased, so there is nothing to mark.
+                if (!after_viewQ)
+                {
+                    std::vector<Int> strand_arcs;
+                    strand_arcs.reserve(move.strand.size());
+                    for (Int da : move.strand)
+                    {
+                        strand_arcs.push_back(PD_T::ArcOfDarc(da));
+                    }
+
+                    if (mask.empty())
+                    {
+                        mask.assign(static_cast<std::size_t>(n_x * n_y),
+                                    HighlightType::None);
+                    }
+
+                    // --ascii has no colour either, so it gets the markers
+                    // too; it just has no heavy strokes to go with them.
+                    // Only the `both` view needs them: the marker letters
+                    // exist to tell W apart from the corridor, and the
+                    // single-deletion views draw only one of the two, so
+                    // there the letters are noise that also corrupts the
+                    // strokes for anything parsing the drawing back.
+                    const bool no_colorQ = (config.mono_mode || config.ascii_mode)
+                                        && (config.pass_view == "both");
+
+                    MarkArcCells(H, diagram, n_x, n_y, strand_arcs, mask,
+                                 HighlightType::Strand,
+                                 no_colorQ ? 'w' : '\0');
+                }
+
+                PadCanvas<PD_T>(diagram, mask, component_map,
+                                n_x, n_y, move_margin);
+
+                // Shade the swept disk first, so W and the corridor keep
+                // their own colours on top of it. Only blank cells are
+                // shaded, exactly as --checkerboard-coloring does, which is
+                // what lets arcs crossing the disk stay legible.
+                if (config.pass_disk)
+                {
+                    auto disk = KnoodlePassView::PassDiskCells<PD_T>(
+                        H, move, pass_route, move_margin, n_x, n_y);
+
+                    if (disk.empty())
+                    {
+                        std::cerr << "knoodledraw: --pass-disk: the strand and"
+                                     " the corridor enclose nothing in this"
+                                     " layout\n";
+                    }
+                    else
+                    {
+                        if (mask.empty())
+                        {
+                            mask.assign(static_cast<std::size_t>(n_x * n_y),
+                                        HighlightType::None);
+                        }
+                        for (std::size_t c = 0;
+                             c < disk.size() && c < mask.size()
+                             && c < diagram.size(); ++c)
+                        {
+                            if (disk[c] && diagram[c] == ' ')
+                            {
+                                mask[c] = HighlightType::Face;
+                            }
+                        }
+
+                        // The ASCII pass over the mask happens further up,
+                        // before the move is even routed, so the shading has
+                        // to be rendered here. (Unicode mode reads the mask
+                        // at the very end and needs nothing extra.) The
+                        // corridor is stamped after this and wins any cell
+                        // it lands on -- though it cannot land on the disk,
+                        // being part of the loop that bounds it.
+                        if (config.ascii_mode)
+                        {
+                            ApplyHighlightASCII(diagram, mask);
+                        }
+                    }
+                }
+
+                auto cells = deco.RenderPassRoute(pass_route);
+
+                if (after_viewQ)
+                {
+                    // Delete W: erase it beyond the dots, heal the
+                    // transversals; the corridor then attaches through the
+                    // shared stubs and the drawing is the after-diagram in
+                    // the frozen before-layout.
+                    ApplyAfterView<PD_T>(H, diagram, mask, n_x, n_y,
+                                         move_margin, move, pass_route);
+                }
+                else if (before_viewQ)
+                {
+                    // Delete the corridor: the input diagram, with only the
+                    // dots (and anchor emphasis) marking where the move
+                    // would branch off.
+                    std::erase_if(cells, [](const Deco_T::OverlayCell_T& c)
+                    {
+                        return (c.kind != Deco_T::OverlayKind::Dot)
+                            && (c.kind != Deco_T::OverlayKind::Anchor);
+                    });
+                }
+
+                // Marker letters only in the `both` view -- see the 'w'
+                // marker above: in a single-deletion view there is nothing
+                // to tell the corridor apart from, so 'p' is only noise.
+                StampPassOverlay<PD_T>(diagram, mask, n_x, n_y, cells,
+                                       ((config.mono_mode || config.ascii_mode)
+                                        && (config.pass_view == "both"))
+                                           ? 'p' : '\0');
+                move_applied = true;
+            }
+            else
+            {
+                move_why = pass_route.why;
+            }
+        }
+
         if (!config.ascii_mode)
         {
             const std::vector<HighlightType>* m_ptr =
@@ -2377,32 +3010,497 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
                 !component_map.empty() ? &component_map : nullptr;
 
             if (m_ptr || c_ptr)
-                diagram = UnicodeifyDiagram(diagram, m_ptr, n_x, c_ptr);
+                diagram = UnicodeifyDiagram(diagram, m_ptr, n_x, c_ptr,
+                                            config.mono_mode);
             else
                 diagram = UnicodeifyDiagram(diagram);
         }
 
-        std::cout << diagram << "\n";
+        out << diagram << "\n";
     }
 
     if (config.wolfram_mode)
     {
         for (Int color : unknot_colors)
         {
-            std::cout << "<|\"Unknot\"->True";
+            out << "<|\"Unknot\"->True";
             if (color != PD_T::Uninitialized)
             {
                 // `color` here is the raw wire color, so emit it under "Color"
                 // too -- this makes the unknot marker agree with arc records on
                 // what "Color" means, while "Component" stays for older
                 // consumers that keyed off it.
-                std::cout << ",\"Component\"->" << color
-                          << ",\"Color\"->" << color;
+                out << ",\"Component\"->" << color
+                    << ",\"Color\"->" << color;
             }
-            std::cout << "|>\n";
+            out << "|>\n";
         }
     }
 
+    // Fail loud if a requested pass-move overlay applied to no summand: a
+    // rejected descriptor is exactly what this mode exists to diagnose.
+    // --find-pass is exempt: "no reducing pass exists" is an answer, not a
+    // rejection, and the drawing that comes with it is the point.
+    if (move_requested && !move_applied)
+    {
+        std::cerr << "knoodledraw: --move descriptor rejected: "
+                  << (move_why.empty() ? "no drawable summands" : move_why)
+                  << "\n";
+        return false;   // move_buffer is dropped: no drawing for a rejected move
+    }
+
+    if (move_requested) { std::cout << move_buffer.str(); }
+
+    return true;
+}
+
+/**
+ * @brief Seed the correspondence between two claimed results of one move.
+ *
+ * Both sides keep every crossing the move promised not to touch at its
+ * original index -- `AfterDiagram` because it rebuilds in place from the
+ * before-diagram's arrays, an applier because it edits in place -- so on
+ * exactly those crossings the correspondence is the IDENTITY, and propagation
+ * forces everything else. Crossings created by the corridor are deliberately
+ * left unseeded: neither side owes the other a numbering for them.
+ *
+ * This is the whole point of carrying the snapshot as internal state rather
+ * than a PD code. A PD code renumbers, so the strongest question one could
+ * ask of a cross-process result was "is it the same knot"; here a
+ * disagreement names a crossing and a port.
+ */
+bool BuildSurvivorSeeds(const PD_T& before,
+                        const Deco_T::PassMove_T& mv,
+                        const PD_T& d1,
+                        const PD_T& d2,
+                        std::vector<std::array<Int,2>>& seeds,
+                        std::string& why)
+{
+    seeds.clear();
+
+    const Int n_c = before.MaxCrossingCount();
+    std::vector<char> interiorQ(static_cast<std::size_t>(n_c), char(0));
+
+    const Int L = static_cast<Int>(mv.strand.size());
+    for (Int i = 1; i < L; ++i)
+    {
+        const Int x = Deco_T::PassMove_T::DarcHeadCrossing(
+            before, mv.strand[static_cast<std::size_t>(i-1)]);
+        if ((x >= Int(0)) && (x < n_c))
+        {
+            interiorQ[static_cast<std::size_t>(x)] = char(1);
+        }
+    }
+
+    for (Int c = 0; c < n_c; ++c)
+    {
+        if (!before.CrossingActiveQ(c)) continue;
+        if (interiorQ[static_cast<std::size_t>(c)]) continue;
+
+        const bool in1 = (c < d1.MaxCrossingCount()) && d1.CrossingActiveQ(c);
+        const bool in2 = (c < d2.MaxCrossingCount()) && d2.CrossingActiveQ(c);
+
+        if (in1 != in2)
+        {
+            why = "crossing " + std::to_string(c) + " is untouched by the move"
+                  " but survives in only one of the two results (ours: "
+                + std::string(in1 ? "active" : "gone") + ", theirs: "
+                + std::string(in2 ? "active" : "gone") + ")";
+            return false;
+        }
+        if (in1) { seeds.push_back({c,c}); }
+    }
+
+    if (seeds.empty())
+    {
+        why = "the move touches every crossing, so there is no untouched"
+              " crossing to seed the correspondence with";
+        return false;
+    }
+    return true;
+}
+
+//==============================================================================
+// Trace Streams (--trace, docs/move-descriptor.md)
+//==============================================================================
+
+/**
+ * @brief Render a move-trace stream: a sequence of records, each a block of
+ * `#`-headed lines carrying a snapshot, ended by a blank line. The grammar
+ * and both snapshot carriers (v0's PD code, v1's `#state` internal-state
+ * block) live in `Knoodle::MoveTrace`; this function is only the renderer and
+ * the verifier.
+ *
+ * Every header line is echoed above its drawing (the trace is
+ * self-captioning). A `#move kind=pass ...` header becomes a corridor
+ * overlay on that record's snapshot -- the descriptor applies to the diagram
+ * in the SAME record, per the spec, so no lookahead is needed. A
+ * `#view exterior=<da>` header pins OrthoDraw's exterior face to L(da),
+ * resolved via ArcFaces. `#embedding` blocks (redraw witnesses) are skipped
+ * with a note; other kinds and `#faces` annotations are echoed unrendered.
+ *
+ * Fail-loud: malformed records, unresolvable `#view` darcs, and rejected
+ * pass descriptors abort with a message and nonzero exit.
+ */
+bool ProcessTraceStream(std::istream& input, const Config& config)
+{
+    using Trace_T = Knoodle::MoveTrace<PD_T>;
+
+    typename Trace_T::Reader reader (input);
+
+    std::size_t records_drawn = 0;
+
+    // --verify makes three separate claims good, and they are worth keeping
+    // apart because they answer to different things:
+    //
+    //   DRAWING   the two deletions of docs/move-descriptor.md. Delete the
+    //             corridor from this record's picture and it is this record's
+    //             snapshot; delete the strand and it is what the move
+    //             produces. Both live entirely inside one record, and both are
+    //             checked by rendering the view and PARSING IT BACK, compared
+    //             port-by-port against a correspondence read off the grid.
+    //
+    //   RESULT    that the emitter's own applier produced what the descriptor
+    //             says it should (`#result`, v1 only). Port-by-port, seeded
+    //             with the identity on the crossings the move promised not to
+    //             touch -- a label-preserving snapshot is what makes that
+    //             possible across two processes.
+    //
+    //   TRACE     that what the move produces really is the NEXT record's
+    //             snapshot. This needs one record of lookahead. Under v0 there
+    //             was no shared labelling to appeal to, so it asks the weaker
+    //             question of whether the two are isomorphic at all; that
+    //             stays as it is, since it must also work on v0 streams.
+    //
+    // We carry the pending claim forward rather than buffering the stream.
+    std::optional<PD_T> pending_after;   // what the previous move should produce
+    std::string pending_label;
+    bool verify_failed = false;
+
+    typename Trace_T::Record rec;
+    std::string why;
+
+    for(;;)
+    {
+        const auto status = reader.Next(rec,why);
+
+        if (status == Trace_T::Status::Eof) { break; }
+
+        if (status == Trace_T::Status::Error)
+        {
+            std::cerr << "knoodledraw: trace line " << reader.LineNo()
+                      << ": " << why << "\n";
+            return false;
+        }
+
+        for (const auto& h : rec.headers) std::cout << h << "\n";
+
+        if (!rec.state)
+        {
+            std::cout << "(0-crossing summand: nothing to draw)\n\n";
+            ++records_drawn;
+            continue;
+        }
+
+        PD_T dia = std::move(*rec.state);
+
+        if (dia.CrossingCount() <= Int(0))
+        {
+            std::cerr << "knoodledraw: trace line " << rec.line
+                      << ": snapshot did not parse into a valid diagram\n";
+            return false;
+        }
+
+        // A record carrying both snapshot carriers must have them reconciled,
+        // and the reconciliation is UP TO RELABELLING: a PD code renumbers on
+        // the way out, so the annotation cannot be compared to the state byte
+        // for byte even when both are right. Identifying the diagram up to
+        // relabelling is all the annotation is asked to do -- and it is enough
+        // to catch a record whose two carriers describe different diagrams.
+        if (!rec.pd_rows.empty() && !rec.state_from_pd)
+        {
+            const Int rows = static_cast<Int>(rec.pd_rows.size()) / Int(5);
+            PD_T annotated = PD_T::FromSignedPDCode(rec.pd_rows.data(), rows);
+
+            std::string awhy;
+            if (annotated.CrossingCount() <= Int(0))
+            {
+                awhy = "the annotation did not parse into a valid diagram";
+            }
+            else if (DiagramsIsomorphicQ(dia, annotated, awhy))
+            {
+                awhy.clear();
+            }
+
+            if (!awhy.empty())
+            {
+                std::cerr << "knoodledraw: in the record beginning at trace"
+                             " line " << rec.line << ": the '#pd' annotation"
+                             " and the '#state' block describe different"
+                             " diagrams -- " << awhy << "\n";
+                return false;
+            }
+
+            if (config.verify_trace)
+            {
+                std::cout << "#verify step " << records_drawn
+                          << " pd: VERIFIED (the annotation is this snapshot,"
+                             " up to relabelling)\n";
+            }
+        }
+
+        Config rc = config;
+
+        if (rec.move
+            && (rec.move->find("kind=pass") != std::string::npos
+                || rec.move->find("kind=middlepass") != std::string::npos))
+        {
+            rc.move_spec = *rec.move;
+        }
+
+        if (rec.exterior_da)
+        {
+            const Int da = *rec.exterior_da;
+            const Int a  = da / Int(2);
+            if (da < Int(0) || a >= dia.MaxArcCount())
+            {
+                std::cerr << "knoodledraw: trace line " << rec.line
+                          << ": #view exterior darc " << da
+                          << " is out of range\n";
+                return false;
+            }
+            // ArcFaces()(a,d) = face left of darc 2a+d
+            rc.exterior_face = dia.ArcFaces()(a, da % Int(2));
+        }
+
+        if (config.verify_trace && pending_after)
+        {
+            const PD_T & claimed = dia;         // this record's snapshot
+            PD_T expected = std::move(*pending_after);
+            pending_after.reset();
+
+            std::string vwhy;
+            const bool okQ = DiagramsIsomorphicQ(expected, claimed, vwhy);
+
+            std::cout << "#verify " << pending_label << " trace: "
+                      << (okQ ? "VERIFIED" : "MISMATCH")
+                      << " (" << expected.CrossingCount() << " crossings expected, "
+                      << claimed.CrossingCount() << " found)";
+            if (!okQ) { std::cout << " -- " << vwhy; }
+            std::cout << "\n";
+
+            if (!okQ) { verify_failed = true; }
+        }
+
+        if (config.verify_trace && rc.move_spec)
+        {
+            // AfterDiagram works from the descriptor alone, never calling
+            // the applier, so everything below is independent of whatever
+            // produced the trace.
+            OrthoDraw_T Hv(dia, rc.exterior_face ? *rc.exterior_face : Int(-1),
+                           BuildSettings(rc));
+            constexpr Int verify_margin = Int(2);
+            Deco_T dv(Hv, verify_margin);
+
+            Deco_T::PassMove_T mvv;
+            std::string perr, vwhy;
+            if (Deco_T::PassMove_T::Parse(*rc.move_spec, mvv, perr))
+            {
+                // The reporting overload: a pass move can split a
+                // crossingless component off, and that is an outcome, not
+                // an error. The drawing has to account for the same
+                // number of freed loops, which is what CheckBothDeletions
+                // compares below.
+                std::vector<Int> freed;
+                PD_T ad = dv.AfterDiagram(dia, mvv, vwhy, freed);
+
+                // Our surgery may not carry out every well-formed move. That
+                // is a limit of the checker, not a fault in the record: the claims
+                // that need the after-diagram go UNCHECKED, and the witness is
+                // still checked. A malformed descriptor still aborts, when the
+                // record is drawn below.
+                const bool afterQ = vwhy.empty();
+                if (!afterQ)
+                {
+                    std::cout << "#verify step " << records_drawn
+                              << " result/drawing/trace: UNCHECKED (AfterDiagram"
+                                 " cannot build what the move produces: "
+                              << vwhy << ")\n";
+                }
+                if (!freed.empty())
+                {
+                    std::cout << "#verify step " << records_drawn
+                              << " split: " << freed.size()
+                              << " crossingless component(s) came free"
+                                 " (colours";
+                    for (Int c : freed) { std::cout << " " << c; }
+                    std::cout << ")\n";
+                }
+
+                // A `#spinoffs` header is the emitter's account of the same
+                // thing. Neither side can hold a crossingless component beside
+                // crossings, so both report rather than represent -- and the
+                // two reports have to agree.
+                if (afterQ && rec.spinoffs)
+                {
+                    const Int mine   = static_cast<Int>(freed.size());
+                    const bool sameQ = (*rec.spinoffs == mine);
+
+                    std::cout << "#verify step " << records_drawn
+                              << " spinoffs: " << (sameQ ? "VERIFIED" : "MISMATCH")
+                              << " (" << *rec.spinoffs << " reported, "
+                              << mine << " from the surgery)\n";
+
+                    if (!sameQ) { verify_failed = true; }
+                }
+
+                // The applier's own result, compared port by port.
+                if (afterQ && rec.result)
+                {
+                    std::vector<std::array<Int,2>> seeds;
+                    std::string swhy;
+
+                    bool okQ = BuildSurvivorSeeds(dia, mvv, ad, *rec.result,
+                                                  seeds, swhy);
+                    if (okQ)
+                    {
+                        okQ = DiagramsAgreeQ(ad, *rec.result, seeds, swhy);
+                    }
+
+                    std::cout << "#verify step " << records_drawn
+                              << " result: "
+                              << (okQ ? "VERIFIED (port-by-port against the"
+                                        " applier)"
+                                      : "MISMATCH");
+                    if (!okQ) { std::cout << " -- " << swhy; }
+                    std::cout << "\n";
+
+                    if (!okQ) { verify_failed = true; }
+                }
+
+                // The two deletions, checked in this record's own drawing.
+                auto prv = dv.RoutePassMove(dia, mvv);
+                if (!afterQ)
+                {
+                    // Already reported: the second deletion needs the
+                    // after-diagram.
+                }
+                else if (!prv.validQ)
+                {
+                    std::cout << "#verify step " << records_drawn
+                              << " drawing: UNCHECKED (the move does not"
+                                 " route in this layout: "
+                              << prv.why << ")\n";
+                }
+                else
+                {
+                    const bool drawnQ =
+                        KnoodlePassView::CheckBothDeletions<PD_T>(
+                            Hv, dv, dia, mvv, prv, ad, verify_margin, vwhy,
+                            static_cast<Int>(freed.size()));
+
+                    std::cout << "#verify step " << records_drawn
+                              << " drawing: "
+                              << (drawnQ ? "VERIFIED (both deletions)"
+                                         : "MISMATCH");
+                    if (!drawnQ) { std::cout << " -- " << vwhy; }
+                    std::cout << "\n";
+
+                    if (!drawnQ) { verify_failed = true; }
+                }
+
+                // The feasibility witness, when the record carries one. V0
+                // rebuilds the disk and the pieces on the witness's side from
+                // the snapshot and the descriptor alone; V4 demands the
+                // classes be exactly the same-strand unions at the disk's
+                // crossings. (V1/V2/V3/V5 are the emitter's own gate.)
+                if (rec.feas)
+                {
+                    const auto wr = KnoodleWitness::CheckWitness<PD_T>(
+                        dia, mvv, *rec.feas);
+
+                    std::cout << "#verify step " << records_drawn << " disk (V0): ";
+                    if (!wr.v0_checkedQ)
+                    {
+                        std::cout << "UNCHECKED (" << wr.v0_why << ")\n";
+                    }
+                    else if (wr.v0_okQ)
+                    {
+                        std::cout << "VERIFIED (side " << rec.feas->side << ": "
+                                  << wr.disk_size << " interior crossings, "
+                                  << wr.piece_count << " pieces)\n";
+                    }
+                    else
+                    {
+                        std::cout << "MISMATCH -- " << wr.v0_why << "\n";
+                        verify_failed = true;
+                    }
+
+                    std::cout << "#verify step " << records_drawn << " classes (V4): ";
+                    if (!wr.v4_checkedQ)
+                    {
+                        std::cout << "UNCHECKED (" << wr.v4_why << ")\n";
+                    }
+                    else if (wr.v4_okQ)
+                    {
+                        std::cout << "VERIFIED (" << wr.class_count
+                                  << " classes, exactly the same-strand unions)\n";
+                    }
+                    else
+                    {
+                        std::cout << "MISMATCH -- " << wr.v4_why << "\n";
+                        verify_failed = true;
+                    }
+
+                    std::cout << "#verify step " << records_drawn
+                              << " labels (V2/V3/V5): ";
+                    if (!wr.labels_checkedQ)
+                    {
+                        std::cout << "UNCHECKED (" << wr.labels_why << ")\n";
+                    }
+                    else if (wr.labels_okQ)
+                    {
+                        std::cout << "VERIFIED (" << wr.germ_count << " germs, "
+                                  << wr.order_count << " orderings, "
+                                  << wr.tag_count << " tags)\n";
+                    }
+                    else
+                    {
+                        std::cout << "MISMATCH -- " << wr.labels_why << "\n";
+                        verify_failed = true;
+                    }
+                }
+
+                // A `#candidate` was evaluated and NOT applied, so the stream's
+                // diagram does not advance across it and its claim must not be
+                // carried into the next record's trace check.
+                if (afterQ && !rec.candidateQ)
+                {
+                    pending_after = std::move(ad);
+                    pending_label = "step " + std::to_string(records_drawn);
+                }
+            }
+        }
+
+        std::vector<PD_T> summands;
+        summands.push_back(std::move(dia));
+        if (!DrawKnot(summands, rc)) return false;
+
+        ++records_drawn;
+    }
+
+    if (config.verify_trace && pending_after)
+    {
+        std::cout << "#verify " << pending_label
+                  << " trace: UNCHECKED (no following record to compare"
+                     " against; its drawing was still checked)\n";
+    }
+    if (verify_failed) { return false; }
+
+    if (records_drawn == 0)
+    {
+        std::cerr << "knoodledraw: warning: trace stream contained no records\n";
+    }
     return true;
 }
 
@@ -2418,6 +3516,11 @@ bool ProcessStream(std::istream& input,
                    const Config& config,
                    Knoodle::PRNG_T& rng)
 {
+    if (config.trace_mode)
+    {
+        return ProcessTraceStream(input, config);
+    }
+
     bool reached_eof = false;
     bool any_drawn = false;
 
