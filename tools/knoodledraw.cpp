@@ -21,6 +21,8 @@
 //#define KNOODLE_USE_BOOST_UNORDERED // Support for faster associative containers in Reapr.
 
 #include "knoodle_io.hpp"
+#include "../src/OrthoDecorate.hpp"
+#include "../src/MoveTrace.hpp"
 #include "pass_view.hpp"
 #include "find_pass.hpp"
 #include "witness_check.hpp"

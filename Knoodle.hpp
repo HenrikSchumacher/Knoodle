@@ -76,7 +76,6 @@ namespace Knoodle
     template<IntQ Int> class PassOracle;
     template<FloatQ Real, IntQ Int, FloatQ BReal> class Reapr;
     template<typename PD_T> class OrthoDraw;
-    template<typename PD_T> class OrthoDecorate;
 }
 
 #include "src/PlanarDiagramComplex/LoopRemover.hpp"
@@ -85,11 +84,12 @@ namespace Knoodle
 
 #include "src/PlanarDiagram.hpp"
 #include "src/PlanarDiagramComplex.hpp"
-#include "src/PassDescriptor.hpp"
-#include "src/MoveTrace.hpp"
+
+// Not included here, to keep compile times down; include them after this file
+// where they are used: src/PassDescriptor.hpp, src/MoveTrace.hpp,
+// src/OrthoDecorate.hpp (the last pulls in PassDescriptor.hpp).
 
 #include "src/OrthoDraw.hpp"
-#include "src/OrthoDecorate.hpp"
 #include "src/Reapr.hpp"
 
 #include "src/KnotInvariants/AlexanderStrandMatrix.hpp"

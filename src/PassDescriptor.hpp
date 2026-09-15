@@ -1,5 +1,7 @@
 #pragma once
 
+// Not included by Knoodle.hpp: include it after Knoodle.hpp where it is used.
+
 namespace Knoodle
 {
     /*!@brief A pass move, named relative to a `PlanarDiagram`.

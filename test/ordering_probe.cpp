@@ -29,6 +29,7 @@
 // is gated on the control passing here.
 
 #include "../Knoodle.hpp"
+#include "../src/PassDescriptor.hpp"
 #include "pass_fixtures.hpp"
 
 #include <cstdio>

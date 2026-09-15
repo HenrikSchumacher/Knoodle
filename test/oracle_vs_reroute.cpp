@@ -45,6 +45,7 @@
 // so the picture and the check cannot disagree about what was found.
 
 #include "../Knoodle.hpp"
+#include "../src/OrthoDecorate.hpp"
 #include "pass_oracle.hpp"
 #include "../tools/diagram_agreement.hpp"
 #include "../tools/drawing_extractor.hpp"

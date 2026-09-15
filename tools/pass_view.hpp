@@ -7,13 +7,14 @@
  * tests can build the exact same drawing canvas in-process instead of
  * re-implementing (and drifting from) the tool's pipeline.
  *
- * This header assumes `Knoodle.hpp` (and hence `src/OrthoDraw.hpp` /
- * `src/OrthoDecorate.hpp`) has already been included by the includer, which is
- * how the other headers in this repo behave.
+ * This header assumes `Knoodle.hpp` has already been included by the includer,
+ * which is how the other headers in this repo behave. `src/OrthoDecorate.hpp`
+ * is not part of `Knoodle.hpp`, so it is included here.
  */
 
 #pragma once
 
+#include "../src/OrthoDecorate.hpp"
 #include "diagram_agreement.hpp"
 #include "drawing_extractor.hpp"
 

@@ -14,6 +14,7 @@
 // Build: `make orthodecorate_check` in test/ (a row in test/manifest.tsv).
 
 #include "../Knoodle.hpp"
+#include "../src/OrthoDecorate.hpp"
 
 #include <array>
 #include <cstdint>

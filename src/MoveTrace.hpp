@@ -1,5 +1,7 @@
 #pragma once
 
+// Not included by Knoodle.hpp: include it after Knoodle.hpp where it is used.
+
 #include <charconv>
 #include <cstddef>
 #include <istream>

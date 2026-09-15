@@ -1,5 +1,9 @@
 #pragma once
 
+// Not included by Knoodle.hpp: include it after Knoodle.hpp where it is used.
+
+#include "PassDescriptor.hpp"
+
 #include <queue>
 #include <numeric>   // std::lcm
 #include <algorithm> // std::min, std::max

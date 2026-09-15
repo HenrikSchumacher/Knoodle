@@ -22,6 +22,7 @@
 // Build: `make move_trace_check` in test/ (a row in test/manifest.tsv).
 
 #include "../Knoodle.hpp"
+#include "../src/MoveTrace.hpp"
 
 #include <array>
 #include <cstdio>

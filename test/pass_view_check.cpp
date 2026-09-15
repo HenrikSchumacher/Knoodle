@@ -28,6 +28,7 @@
 // Build: `make pass_view_check` in test/ (a row in test/manifest.tsv).
 
 #include "../Knoodle.hpp"
+#include "../src/OrthoDecorate.hpp"
 
 #include <algorithm>
 #include <array>

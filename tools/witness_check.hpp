@@ -64,6 +64,9 @@
  * least two arcs, a connected diagram, a corridor that visits each face once.
  */
 
+#include "../src/PassDescriptor.hpp"
+#include "../src/MoveTrace.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cstddef>

@@ -18,6 +18,8 @@
 // Build: `make witness_check` in test/ (a row in test/manifest.tsv).
 
 #include "../Knoodle.hpp"
+#include "../src/OrthoDecorate.hpp"
+#include "../src/MoveTrace.hpp"
 #include "../tools/witness_check.hpp"
 #include "witness_fixtures.hpp"
 #include "knot_determinant.hpp"
