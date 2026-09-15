@@ -24,9 +24,14 @@ namespace Knoodle
      * This lives in `src/`, not in a tool, for one reason: it is a
      * **contract between two programs**, and the whole class of bug it has to
      * rule out is two implementations of the same grammar disagreeing. A
-     * writer and a reader that call the same header get that for free. Any
-     * simplifier -- `PassSimplifier`, a downstream one, one merged in later --
-     * should emit through this, never through its own printf.
+     * writer and a reader that call the same header get that for free.
+     *
+     * So far only half of that is here: the writer side is `WriteStateBlock`,
+     * which emits the `#state`/`#result` blocks (the label-preserving part,
+     * and the part a hand-rolled writer is most likely to get wrong). Record
+     * headers and move descriptors are still written by each emitter, and
+     * are held to the grammar by reading them back through `Reader`. A full
+     * record writer belongs here when a second simplifier starts emitting.
      *
      * ## The two carriers
      *
