@@ -122,6 +122,82 @@ uses; `wl`/`svg`/`tikz` are additional renderers over `ArcLines()`/
   `ArcLines()` and let WL round. Rounding radius lives in the `Plotting.hpp`
   settings (`x_rounding_radius`/`y_rounding_radius`).
 
+## Pass moves and trace streams (added 2026-09-16)
+
+Until 2026-09-16 `--format=wl` was silently incompatible with the pass-move
+flags: the wl branch in `DrawKnot` returned before the overlay code ever ran,
+so `--move` and `--trace` died with "`--move` descriptor rejected: no drawable
+summands" (the fail-loud guard firing on a move that was never *tried*), and
+`--find-pass` was a silent no-op. All three now work.
+
+### `"Pass"` — a routed pass move, as geometry
+
+When a move routes, the diagram's association carries one extra member:
+
+```
+"Pass"-><| "Kind"->"pass"|"middlepass", "View"->"both"|"before"|"after",
+           "Strand"->{da,..}, "Depart"->da, "Land"->da,
+           "Corridor"-><|"Points"->{{x,y},..},
+                         "Crossings"->{<|"Id"->i,"Pos"->{x,y},
+                                         "Darc"->da,"Over"->True|False|>,..}|>,
+           "Dots"->{{x,y},{x,y}}, "Anchors"->{{x,y},{x,y}},
+           "Disk"->{{x,y},..} |>
+```
+
+The key is **absent** when no move routed, so test for it rather than for a
+flag. `"Disk"` appears only under `--pass-disk`.
+
+The ASCII backend rasterizes the corridor into character cells
+(`RenderPassRoute` → `OverlayCell_T` → `StampPassOverlay`); wl emits the route's
+own polyline instead — the same data, one abstraction level up.
+
+**Two things to know before rendering:**
+
+1. **Corridor points may fall outside `"BoundingBox"`.** `OrthoDecorate` routes
+   inside a free margin ring around the drawing, and a corridor through the
+   exterior face uses it, so coordinates can be negative or exceed `w`/`h`. Fit
+   to the union of the diagram and the corridor, not to `"BoundingBox"`.
+   (Everything is in one space: `OrthoDecorate` works in drawing coordinates
+   shifted by its margin — `src/OrthoDecorate.hpp`, "drawing coords = grid
+   coords − Margin()" — and the margin comes off in the emitter.)
+2. **`"View"` is a record of what was asked, not something applied to the
+   geometry.** The ASCII backend renders `after` by deleting the strand and
+   healing the arcs behind it (`ApplyAfterView`) — real surgery on the drawing.
+   The wl path emits the full before-geometry plus the whole corridor in every
+   view and leaves the composition to the consumer, who has the strand darcs
+   and the corridor and can do it faithfully.
+
+   **This is a design choice, not a missing feature** (JHC, 2026-09-16). ASCII
+   has to do the surgery inside `knoodledraw` because ASCII *is* the endpoint —
+   there is no consumer downstream to do it. `wl` has one, and this is the same
+   principle as "emit geometry, not `Graphics`" above: the exporter ships
+   unstyled, uncomposed data and the consumer owns what is made of it. A
+   renderer that wants the after-view has strictly more to work with than a
+   pre-composed one would give it — it can cross-fade the strand into the
+   corridor rather than cut, which is exactly what the animation work needs
+   (see the tension-morph design in `docs/move-descriptor.md`). Revisit only if
+   a consumer turns out to want the composed view and nothing else.
+
+### `--trace --format=wl`
+
+One association per record, one per line, each self-contained — so the trace is
+consumed exactly like ordinary wl output. The record's context is folded into
+the same association it describes:
+
+```
+<|"Step"->n,"Headers"->{".."},"Move"->"kind=pass ..","Exterior"->da,
+  "Candidate"->True, "BoundingBox"->.., "Arcs"->.., "Pass"->.. |>
+```
+
+A 0-crossing record emits `<|"Step"->n,..,"Unknot"->True|>`.
+
+**Everything else goes to stderr in wl mode** — echoed `#`-headers and all
+`--verify` output. Commentary interleaved with geometry is what made the old
+output unparseable, and the paclet's reader (`runGeometry`, which keeps only
+lines matching `StringStartsQ["<|"]`) already assumed it would not be there.
+So stdout is pure WL, and `--verify` still reports to the terminal and still
+exits nonzero on a mismatch.
+
 ## Open questions / TODO checklist
 
 - [ ] Confirm the per-crossing over/under + sign are reachable from

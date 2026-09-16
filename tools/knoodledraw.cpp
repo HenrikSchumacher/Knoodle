@@ -58,6 +58,12 @@ struct Config
     bool mono_mode            = false;  // --mono : no ANSI; weight carries meaning
     bool verify_trace         = false;  // --verify : check each move against the next snapshot
     bool wolfram_mode         = false;  // --format=wl : emit WL geometry association
+
+    // Extra members to open the wl association with, already serialized and
+    // comma-terminated. --trace uses it to fold a record's context (step
+    // number, headers, move) into the very association it describes, so that
+    // stdout stays one self-contained association per line.
+    std::optional<std::string> wl_prefix;
     bool embedding_mode       = false;  // --embedding : emit a 3D embedding, not a 2D drawing
     bool help_requested       = false;
     bool label_crossings      = false;
@@ -176,7 +182,16 @@ void PrintUsage()
     std::cerr << "                              polyline per link component. Arcs carry Component\n";
     std::cerr << "                              and Color so the renderer owns all styling: the\n";
     std::cerr << "                              label and highlight flags below are not applied to\n";
-    std::cerr << "                              wl output. See docs/knoodledraw-wl-graphics.md.\n";
+    std::cerr << "                              wl output. A routed pass move (--move, --find-pass,\n";
+    std::cerr << "                              or a --trace record) adds a \"Pass\" member carrying\n";
+    std::cerr << "                              the corridor as geometry; its points can fall\n";
+    std::cerr << "                              OUTSIDE \"BoundingBox\", since a corridor may route\n";
+    std::cerr << "                              through the margin around the drawing. --pass-view\n";
+    std::cerr << "                              is recorded there but NOT applied to the geometry.\n";
+    std::cerr << "                              With --trace it is one association per record, with\n";
+    std::cerr << "                              the record's headers and move folded in; echoed\n";
+    std::cerr << "                              headers and --verify reports go to stderr so stdout\n";
+    std::cerr << "                              stays parseable. See docs/knoodledraw-wl-graphics.md.\n";
     std::cerr << "\n";
     std::cerr << "Output options:\n";
     std::cerr << "  --ascii                     Use plain ASCII output (alias for --format=ascii;\n";
@@ -2530,6 +2545,145 @@ bool ValidateSettingsCombinations(const OrthoDraw_T::Settings_T& settings)
 // Drawing
 //==============================================================================
 
+// Declared here rather than beside the pass-move overlay below, because
+// --format=wl emits a routed move as geometry and so needs these types first.
+using Deco_T = Knoodle::OrthoDecorate<PD_T>;
+using PS_T   = Knoodle::PassSimplifier<Int>;
+
+/**
+ * @brief Everything --format=wl needs to describe a routed pass move.
+ *
+ * The ASCII backend rasterizes the corridor into character cells
+ * (RenderPassRoute -> OverlayCell_T -> StampPassOverlay). A geometry consumer
+ * wants the corridor itself, so this carries the route's own polyline rather
+ * than its rasterization: the same data, one abstraction level up.
+ *
+ * `disk` is already in drawing coordinates; everything reached through `move`
+ * and `route` is in OrthoDecorate's grid coordinates and is converted on the
+ * way out (see EmitWolframPass).
+ */
+struct WLPassOverlay
+{
+    const Deco_T::PassMove_T  * move   = nullptr;
+    const Deco_T::PassRoute_T * route  = nullptr;
+    Int                         margin = 0;
+    std::string                 view   = "both";
+    std::vector<std::array<Int,2>> disk;   // empty unless --pass-disk
+};
+
+/**
+ * @brief Emit the "Pass" member of a diagram's association:
+ *
+ *   "Pass"-><| "Kind"->"pass"|"middlepass", "View"->"both"|"before"|"after",
+ *              "Strand"->{da,..}, "Depart"->da, "Land"->da,
+ *              "Corridor"-><|"Points"->{{x,y},..},
+ *                            "Crossings"->{<|"Index"->i,"Pos"->{x,y},
+ *                                            "Darc"->da,"Over"->True|False|>,..}|>,
+ *              "Dots"->{{x,y},{x,y}}, "Anchors"->{{x,y},{x,y}},
+ *              "Disk"->{{x,y},..} |>
+ *
+ * COORDINATES. Every point here is in the same space as the enclosing
+ * association's "Arcs"/"Crossings"/"Faces" -- OrthoDraw's integer grid. What
+ * OrthoDecorate hands us is that grid shifted by its free margin ring
+ * (src/OrthoDecorate.hpp: "drawing coords = grid coords - Margin()"), so the
+ * margin comes back off here and nowhere else.
+ *
+ * Consequence worth knowing downstream: corridor points may legitimately fall
+ * OUTSIDE "BoundingBox" -- negative, or past w/h -- because a route through the
+ * exterior face uses that margin ring. A renderer must fit to the union of the
+ * diagram and the corridor, not to "BoundingBox" alone.
+ *
+ * "Index" indexes "Points", so the crossing's position is redundant with
+ * Points[[Index+1]]; it is emitted anyway so a consumer can style crossings
+ * without walking the polyline.
+ *
+ * WHAT THIS DELIBERATELY DOES NOT DO: the `before`/`after` views are NOT
+ * applied to the geometry. The ASCII backend renders `after` by deleting the
+ * strand and healing the arcs it left behind (ApplyAfterView), which is real
+ * surgery on the drawing. Here the full before-geometry plus the whole
+ * corridor goes out in every view, and "View" records which one was ASKED for,
+ * leaving the composition to the consumer -- who has the strand darcs and the
+ * corridor and can do it faithfully.
+ *
+ * That asymmetry is the point, not a shortfall (JHC, 2026-09-16): ASCII must
+ * compose in-process because ASCII IS the endpoint, with no consumer
+ * downstream; wl has one. It is the same principle as emitting geometry rather
+ * than a ready-made Graphics -- ship unstyled, uncomposed data and let the
+ * consumer own what is made of it. A consumer handed both views' ingredients
+ * can also cross-fade between them instead of cutting, which a pre-composed
+ * view could not offer (docs/move-descriptor.md, "Layout transitions").
+ */
+void EmitWolframPass(const WLPassOverlay & p, std::ostream & out)
+{
+    const auto & mv = *p.move;
+    const auto & pr = *p.route;
+    const Int    m  = p.margin;
+
+    auto pt = [&](const Deco_T::Point_T & c)
+    {
+        out << "{" << (c[0] - m) << "," << (c[1] - m) << "}";
+    };
+
+    out << ",\"Pass\"-><|\"Kind\"->\""
+        << (mv.middlepassQ ? "middlepass" : "pass")
+        << "\",\"View\"->\"" << p.view << "\",\"Strand\"->{";
+
+    for (std::size_t i = 0; i < mv.strand.size(); ++i)
+    {
+        out << (i ? "," : "") << mv.strand[i];
+    }
+
+    out << "},\"Depart\"->" << mv.depart
+        << ",\"Land\"->"    << mv.land
+        << ",\"Corridor\"-><|\"Points\"->{";
+
+    const auto & path = pr.route.path;
+    for (std::size_t i = 0; i < path.size(); ++i)
+    {
+        if (i) { out << ","; }
+        pt(path[i]);
+    }
+
+    out << "},\"Crossings\"->{";
+
+    // crossing_indices[j] indexes `path`; the darc crossed there is cross[j]
+    // and the over/under bit over[j] (src/OrthoDecorate.hpp, MultiRoute_T).
+    const auto & xi = pr.route.crossing_indices;
+    for (std::size_t j = 0; j < xi.size(); ++j)
+    {
+        if (j) { out << ","; }
+
+        const auto i = static_cast<std::size_t>(xi[j]);
+
+        out << "<|\"Index\"->" << xi[j] << ",\"Pos\"->";
+        if (i < path.size()) { pt(path[i]); } else { out << "{}"; }
+        out << ",\"Darc\"->"
+            << ((j < mv.cross.size()) ? mv.cross[j] : Int(-1))
+            << ",\"Over\"->"
+            << (((j < pr.over.size()) && pr.over[j]) ? "True" : "False")
+            << "|>";
+    }
+
+    out << "}|>,\"Dots\"->{";
+    pt(pr.tail_dot); out << ","; pt(pr.head_dot);
+    out << "},\"Anchors\"->{";
+    pt(pr.tail_anchor); out << ","; pt(pr.head_anchor);
+    out << "}";
+
+    if (!p.disk.empty())
+    {
+        out << ",\"Disk\"->{";
+        for (std::size_t i = 0; i < p.disk.size(); ++i)
+        {
+            if (i) { out << ","; }
+            out << "{" << p.disk[i][0] << "," << p.disk[i][1] << "}";
+        }
+        out << "}";
+    }
+
+    out << "|>";
+}
+
 /**
  * @brief Emit one diagram's OrthoDraw layout as a Wolfram Language association:
  *        <| "BoundingBox"->{w,h},
@@ -2558,16 +2712,24 @@ bool ValidateSettingsCombinations(const OrthoDraw_T::Settings_T& settings)
  * gap inset is correct for drawing broken strands, but would leave a notch in
  * a filled face polygon at every crossing.
  *
+ * When `pass` is given, a routed pass move is carried in an additional "Pass"
+ * member (EmitWolframPass), in these same coordinates. The key is absent
+ * whenever no move routed, so a consumer tests for it rather than for a flag.
+ *
  * Parses via ToExpression.
  */
-void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out)
+void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out,
+                         const WLPassOverlay* pass = nullptr,
+                         const std::string* prefix = nullptr)
 {
     const auto& A_lines  = H.ArcLines();
     const auto& A_verts  = H.ArcVertices();
     const auto& V_coords = H.VertexCoordinates();
     const Int*  comp     = pd.ArcLinkComponents().data();
 
-    out << "<|\"BoundingBox\"->{" << H.Width() << "," << H.Height() << "},\"Arcs\"->{";
+    out << "<|";
+    if (prefix) { out << *prefix; }
+    out << "\"BoundingBox\"->{" << H.Width() << "," << H.Height() << "},\"Arcs\"->{";
 
     bool first_arc = true;
     for (Int a = 0; a < H.MaxArcCount(); ++a)
@@ -2713,7 +2875,13 @@ void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out)
         }
         out << "}|>";
     }
-    out << "}|>\n";
+    out << "}";
+
+    // A routed pass move rides inside the same association, in the same
+    // coordinates, so one line describes one whole picture.
+    if (pass) { EmitWolframPass(*pass, out); }
+
+    out << "|>\n";
 }
 
 //==============================================================================
@@ -3057,8 +3225,7 @@ bool EmbedKnot(const std::vector<PD_T>& summands,
 // Pass-Move Overlay (--move=..., docs/move-descriptor.md)
 //==============================================================================
 
-using Deco_T = Knoodle::OrthoDecorate<PD_T>;
-using PS_T   = Knoodle::PassSimplifier<Int>;
+// (Deco_T / PS_T are declared up in the Drawing section: --format=wl needs them.)
 
 /**
  * @brief Parse a pass-move descriptor per docs/move-descriptor.md.
@@ -3158,7 +3325,99 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
 
         if (config.wolfram_mode)
         {
-            EmitWolframGeometry(H, summands[i], out);
+            // Everything below this branch is character-cell work, which is
+            // why wl skips it. A pass move is NOT that: the corridor is
+            // geometry in its own right, so it is routed here and emitted
+            // beside the arcs rather than rasterized into the drawing.
+            const std::string* wl_prefix =
+                config.wl_prefix ? &*config.wl_prefix : nullptr;
+
+            Deco_T::PassMove_T wmove = move;
+            bool wdrawQ = move_requested;
+
+            if (find_requested)
+            {
+                const Int fa = config.find_pass->first;
+                const Int fb = config.find_pass->second;
+
+                std::string fwhy;
+                Deco_T::PassMove_T found;
+
+                if (KnoodleFindPass::FindPassDescriptor<PD_T,PDC_T,PS_T,
+                        Deco_T::PassMove_T>(summands[i], fa, fb, found, fwhy))
+                {
+                    wmove  = found;
+                    wdrawQ = true;
+                    std::cerr << "knoodledraw: --find-pass=" << fa << "," << fb
+                              << ": " << wmove.ToString() << "\n";
+                }
+                else
+                {
+                    // Same contract as the drawn path: "no reducing pass
+                    // exists" is an answer, not a failure. The geometry still
+                    // goes out, carrying no "Pass".
+                    wdrawQ = false;
+                    std::cerr << "knoodledraw: no reducing pass from arc " << fa
+                              << " to arc " << fb << " (" << fwhy << ")\n";
+                }
+            }
+
+            if (wdrawQ)
+            {
+                constexpr Int move_margin = 2;
+
+                Deco_T deco(H, move_margin);
+                auto pass_route = deco.RoutePassMove(summands[i], wmove);
+
+                if (pass_route.validQ)
+                {
+                    WLPassOverlay overlay;
+                    overlay.move   = &wmove;
+                    overlay.route  = &pass_route;
+                    overlay.margin = move_margin;
+                    overlay.view   = config.pass_view;
+
+                    if (config.pass_disk)
+                    {
+                        const Int dn_x = deco.GridWidth();
+                        const Int dn_y = deco.GridHeight();
+
+                        auto disk = KnoodlePassView::PassDiskCells<PD_T>(
+                            H, wmove, pass_route, move_margin, dn_x, dn_y);
+
+                        // Same cell indexing PassDiskCells fills in, converted
+                        // to drawing coordinates on the way out.
+                        for (Int y = 0; y < dn_y; ++y)
+                        {
+                            for (Int x = 0; x < dn_x; ++x)
+                            {
+                                const auto k = static_cast<std::size_t>(
+                                    x + dn_x * (dn_y - Int(1) - y));
+                                if (k < disk.size() && disk[k])
+                                {
+                                    overlay.disk.push_back(
+                                        {x - move_margin, y - move_margin});
+                                }
+                            }
+                        }
+
+                        if (overlay.disk.empty())
+                        {
+                            std::cerr << "knoodledraw: --pass-disk: the strand"
+                                         " and the corridor enclose nothing in"
+                                         " this layout\n";
+                        }
+                    }
+
+                    move_applied = true;
+                    EmitWolframGeometry(H, summands[i], out, &overlay, wl_prefix);
+                    continue;
+                }
+
+                move_why = pass_route.why;
+            }
+
+            EmitWolframGeometry(H, summands[i], out, nullptr, wl_prefix);
             continue;
         }
 
@@ -3614,9 +3873,63 @@ bool BuildSurvivorSeeds(const PD_T& before,
  * Fail-loud: malformed records, unresolvable `#view` darcs, and rejected
  * pass descriptors abort with a message and nonzero exit.
  */
+/**
+ * @brief WL-escape a string for emission between double quotes.
+ */
+std::string WLEscape(const std::string& s)
+{
+    std::string out;
+    out.reserve(s.size() + 8);
+
+    for (char c : s)
+    {
+        if      (c == '\\' || c == '"') { out += '\\'; out += c; }
+        else if (c == '\n')             { out += "\\n"; }
+        else if (c == '\t')             { out += "\\t"; }
+        else                            { out += c; }
+    }
+    return out;
+}
+
+/**
+ * @brief One trace record's context, as comma-terminated WL members.
+ *
+ * Folded into the very association that record describes (Config::wl_prefix),
+ * so --trace --format=wl is one self-contained association per line and a
+ * consumer never has to correlate a picture with a caption printed elsewhere.
+ * "Headers" keeps the echoed header lines verbatim for captioning; they also
+ * go to stderr for the human, since in wl mode they must not reach stdout.
+ */
+std::string WLTracePrefix(const Knoodle::MoveTrace<PD_T>::Record& rec,
+                          std::size_t step)
+{
+    std::ostringstream s;
+
+    s << "\"Step\"->" << step << ",\"Headers\"->{";
+    for (std::size_t i = 0; i < rec.headers.size(); ++i)
+    {
+        s << (i ? "," : "") << "\"" << WLEscape(rec.headers[i]) << "\"";
+    }
+    s << "}";
+
+    if (rec.move)        { s << ",\"Move\"->\"" << WLEscape(*rec.move) << "\""; }
+    if (rec.exterior_da) { s << ",\"Exterior\"->" << *rec.exterior_da; }
+    if (rec.candidateQ)  { s << ",\"Candidate\"->True"; }
+    if (rec.spinoffs)    { s << ",\"Spinoffs\"->" << *rec.spinoffs; }
+
+    s << ",";
+    return s.str();
+}
+
 bool ProcessTraceStream(std::istream& input, const Config& config)
 {
     using Trace_T = Knoodle::MoveTrace<PD_T>;
+
+    // Headers and --verify reports are commentary, not geometry. In wl mode
+    // stdout has to stay one association per line -- the paclet's reader keeps
+    // only lines starting with "<|" -- so commentary goes to stderr, where it
+    // is still in front of whoever ran the command.
+    std::ostream & vout = config.wolfram_mode ? std::cerr : std::cout;
 
     typename Trace_T::Reader reader (input);
 
@@ -3665,11 +3978,22 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
             return false;
         }
 
-        for (const auto& h : rec.headers) std::cout << h << "\n";
+        for (const auto& h : rec.headers) vout << h << "\n";
 
         if (!rec.state)
         {
-            std::cout << "(0-crossing summand: nothing to draw)\n\n";
+            if (config.wolfram_mode)
+            {
+                // Still a record, so it still gets a line of its own: a
+                // consumer stepping through a trace must not have to infer
+                // that a step went missing.
+                std::cout << "<|" << WLTracePrefix(rec, records_drawn)
+                          << "\"Unknot\"->True|>\n";
+            }
+            else
+            {
+                vout << "(0-crossing summand: nothing to draw)\n\n";
+            }
             ++records_drawn;
             continue;
         }
@@ -3715,7 +4039,7 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
 
             if (config.verify_trace)
             {
-                std::cout << "#verify step " << records_drawn
+                vout << "#verify step " << records_drawn
                           << " pd: VERIFIED (the annotation is this snapshot,"
                              " up to relabelling)\n";
             }
@@ -3754,12 +4078,12 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
             std::string vwhy;
             const bool okQ = DiagramsIsomorphicQ(expected, claimed, vwhy);
 
-            std::cout << "#verify " << pending_label << " trace: "
+            vout << "#verify " << pending_label << " trace: "
                       << (okQ ? "VERIFIED" : "MISMATCH")
                       << " (" << expected.CrossingCount() << " crossings expected, "
                       << claimed.CrossingCount() << " found)";
-            if (!okQ) { std::cout << " -- " << vwhy; }
-            std::cout << "\n";
+            if (!okQ) { vout << " -- " << vwhy; }
+            vout << "\n";
 
             if (!okQ) { verify_failed = true; }
         }
@@ -3794,19 +4118,19 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                 const bool afterQ = vwhy.empty();
                 if (!afterQ)
                 {
-                    std::cout << "#verify step " << records_drawn
+                    vout << "#verify step " << records_drawn
                               << " result/drawing/trace: UNCHECKED (AfterDiagram"
                                  " cannot build what the move produces: "
                               << vwhy << ")\n";
                 }
                 if (!freed.empty())
                 {
-                    std::cout << "#verify step " << records_drawn
+                    vout << "#verify step " << records_drawn
                               << " split: " << freed.size()
                               << " crossingless component(s) came free"
                                  " (colours";
-                    for (Int c : freed) { std::cout << " " << c; }
-                    std::cout << ")\n";
+                    for (Int c : freed) { vout << " " << c; }
+                    vout << ")\n";
                 }
 
                 // A `#spinoffs` header is the emitter's account of the same
@@ -3818,7 +4142,7 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                     const Int mine   = static_cast<Int>(freed.size());
                     const bool sameQ = (*rec.spinoffs == mine);
 
-                    std::cout << "#verify step " << records_drawn
+                    vout << "#verify step " << records_drawn
                               << " spinoffs: " << (sameQ ? "VERIFIED" : "MISMATCH")
                               << " (" << *rec.spinoffs << " reported, "
                               << mine << " from the surgery)\n";
@@ -3839,13 +4163,13 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                         okQ = DiagramsAgreeQ(ad, *rec.result, seeds, swhy);
                     }
 
-                    std::cout << "#verify step " << records_drawn
+                    vout << "#verify step " << records_drawn
                               << " result: "
                               << (okQ ? "VERIFIED (port-by-port against the"
                                         " applier)"
                                       : "MISMATCH");
-                    if (!okQ) { std::cout << " -- " << swhy; }
-                    std::cout << "\n";
+                    if (!okQ) { vout << " -- " << swhy; }
+                    vout << "\n";
 
                     if (!okQ) { verify_failed = true; }
                 }
@@ -3859,7 +4183,7 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                 }
                 else if (!prv.validQ)
                 {
-                    std::cout << "#verify step " << records_drawn
+                    vout << "#verify step " << records_drawn
                               << " drawing: UNCHECKED (the move does not"
                                  " route in this layout: "
                               << prv.why << ")\n";
@@ -3871,12 +4195,12 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                             Hv, dv, dia, mvv, prv, ad, verify_margin, vwhy,
                             static_cast<Int>(freed.size()));
 
-                    std::cout << "#verify step " << records_drawn
+                    vout << "#verify step " << records_drawn
                               << " drawing: "
                               << (drawnQ ? "VERIFIED (both deletions)"
                                          : "MISMATCH");
-                    if (!drawnQ) { std::cout << " -- " << vwhy; }
-                    std::cout << "\n";
+                    if (!drawnQ) { vout << " -- " << vwhy; }
+                    vout << "\n";
 
                     if (!drawnQ) { verify_failed = true; }
                 }
@@ -3891,54 +4215,54 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                     const auto wr = KnoodleWitness::CheckWitness<PD_T>(
                         dia, mvv, *rec.feas);
 
-                    std::cout << "#verify step " << records_drawn << " disk (V0): ";
+                    vout << "#verify step " << records_drawn << " disk (V0): ";
                     if (!wr.v0_checkedQ)
                     {
-                        std::cout << "UNCHECKED (" << wr.v0_why << ")\n";
+                        vout << "UNCHECKED (" << wr.v0_why << ")\n";
                     }
                     else if (wr.v0_okQ)
                     {
-                        std::cout << "VERIFIED (side " << rec.feas->side << ": "
+                        vout << "VERIFIED (side " << rec.feas->side << ": "
                                   << wr.disk_size << " interior crossings, "
                                   << wr.piece_count << " pieces)\n";
                     }
                     else
                     {
-                        std::cout << "MISMATCH -- " << wr.v0_why << "\n";
+                        vout << "MISMATCH -- " << wr.v0_why << "\n";
                         verify_failed = true;
                     }
 
-                    std::cout << "#verify step " << records_drawn << " classes (V4): ";
+                    vout << "#verify step " << records_drawn << " classes (V4): ";
                     if (!wr.v4_checkedQ)
                     {
-                        std::cout << "UNCHECKED (" << wr.v4_why << ")\n";
+                        vout << "UNCHECKED (" << wr.v4_why << ")\n";
                     }
                     else if (wr.v4_okQ)
                     {
-                        std::cout << "VERIFIED (" << wr.class_count
+                        vout << "VERIFIED (" << wr.class_count
                                   << " classes, exactly the same-strand unions)\n";
                     }
                     else
                     {
-                        std::cout << "MISMATCH -- " << wr.v4_why << "\n";
+                        vout << "MISMATCH -- " << wr.v4_why << "\n";
                         verify_failed = true;
                     }
 
-                    std::cout << "#verify step " << records_drawn
+                    vout << "#verify step " << records_drawn
                               << " labels (V2/V3/V5): ";
                     if (!wr.labels_checkedQ)
                     {
-                        std::cout << "UNCHECKED (" << wr.labels_why << ")\n";
+                        vout << "UNCHECKED (" << wr.labels_why << ")\n";
                     }
                     else if (wr.labels_okQ)
                     {
-                        std::cout << "VERIFIED (" << wr.germ_count << " germs, "
+                        vout << "VERIFIED (" << wr.germ_count << " germs, "
                                   << wr.order_count << " orderings, "
                                   << wr.tag_count << " tags)\n";
                     }
                     else
                     {
-                        std::cout << "MISMATCH -- " << wr.labels_why << "\n";
+                        vout << "MISMATCH -- " << wr.labels_why << "\n";
                         verify_failed = true;
                     }
                 }
@@ -3954,6 +4278,13 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
             }
         }
 
+        // The record's context rides inside the association DrawKnot is about
+        // to emit, rather than being printed around it.
+        if (config.wolfram_mode)
+        {
+            rc.wl_prefix = WLTracePrefix(rec, records_drawn);
+        }
+
         std::vector<PD_T> summands;
         summands.push_back(std::move(dia));
         if (!DrawKnot(summands, rc)) return false;
@@ -3963,7 +4294,7 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
 
     if (config.verify_trace && pending_after)
     {
-        std::cout << "#verify " << pending_label
+        vout << "#verify " << pending_label
                   << " trace: UNCHECKED (no following record to compare"
                      " against; its drawing was still checked)\n";
     }
