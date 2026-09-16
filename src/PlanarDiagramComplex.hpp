@@ -749,6 +749,28 @@ namespace Knoodle
         {
             return GetPassSimplifier(strategy).FindShortestRerouting( pd_list[idx], a, b, max_dist );
         }
+
+        /*!@brief As above, but with the corridor budget exposed: `min_saving` is the least number of crossings the rerouting must remove. `min_saving = 2` reproduces the overload above exactly; `min_saving = 1` also reports the corridors that remove a single crossing, which is what `SimplifyPasses` searches for internally. See `PassSimplifier::FindShortestRerouting` for the guards.
+         *
+         *  @param idx Index of the subdiagram in which the path shall be found.
+         *
+         *  @param a The first arc of the input strand.
+         *
+         *  @param b The last arc of the input strand (included).
+         *
+         *  @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
+         *
+         *  @param min_saving The least number of crossings the rerouting must remove. Must be >= 1.
+         *
+         *  @param strategy The search strategy.
+         */
+        PassSimplifier_T::Path_T FindShortestRerouting(
+            const Int idx, const Int a, const Int b, const Int max_dist,
+            const Int min_saving, const Dijkstra_T strategy
+        )
+        {
+            return GetPassSimplifier(strategy).FindShortestRerouting( pd_list[idx], a, b, max_dist, min_saving );
+        }
        
     public:
         
