@@ -521,13 +521,139 @@ face touches an anchor twice); any darc naming the correct face is legal.
 - `#comment <free text>` headers are echoed verbatim by renderers and
   ignored by verifiers: telemetry, rejection reasons, implication chains.
 
+## Step kind: `r1` (curl removal)
+
+An R1 step removes a curl: a loop arc, together with the crossing it closes on.
+It is **not** a pass move, and the pass grammar refuses it by name — check 4's
+distinct-anchors clause exists precisely to exclude "an R_I curl at the end of a
+strand, and its relatives". So it gets its own kind, and a simpler contract.
+
+```
+#move kind=r1 loop=<da>
+```
+
+One field. `loop` is a darc `2a + d`; `a` is the loop arc, and by the
+face-on-the-left convention of "Inherited conventions" **`L(loop)` is the
+monogon face that collapses**. Naming the loop as a *darc* rather than an arc is
+what makes the collapsing side unambiguous without a second field, and it keeps
+the grammar consistent with `pass`, whose every field is a darc.
+
+Everything else derives, and a consumer must derive it the way the applier does
+(`src/PlanarDiagramComplex/LoopRemover.hpp`):
+
+- `c = Arcs()(a,Head)` — the crossing that dies;
+- `a_prev = NextArc(a,!d,c)` and `a_next = NextArc(a,d,c)` — the surviving ends.
+
+### Local validation (every consumer must check)
+
+1. `a = loop/2` is active, and `Arcs()(a,Head) == Arcs()(a,Tail) == c` with `c`
+   active. This is the loop test, and it is the one the applier makes.
+2. `L(loop)` is a **monogon**: `FaceDarcs()[L(loop)]` is exactly the single darc
+   `loop`. This is what pins which side collapses.
+3. If `a_prev == a_next`, the record MUST carry `#spinoffs 1` (below).
+
+Checks 1 and 2 are not independent in practice: a loop arc bounds exactly one
+monogon, and every monogon is bounded by a loop arc. Measured over 43 raw
+projections (2026-09-16): **537 monogons, 537 loop arcs, a perfect bijection,
+none bounding two monogons.** Check 2 is kept anyway, because it is what makes
+`L(loop)` meaningful as *the* collapsing face, and it is O(1).
+
+**Removal only.** `kind=r1` denotes removal of an existing curl. The inverse is
+a perfectly good isotopy and is simply not expressible here — the descriptor
+names a loop that must already be in the snapshot. This mirrors check 6 for pass
+moves, and is stated now so it does not become an open question later.
+
+**Which label survives.** `LoopRemover` heals with `Reconnect(a_next,!d,a_prev)`,
+which keeps **`a_next`** alive; `a`, `a_prev` and `c` are deactivated. A verifier
+seeding the identity on surviving labels (as the `result` check does) needs this.
+
+**Spinoffs.** When `a_prev == a_next` the whole component was a single curl — an
+8-shaped unlink — and the applier frees a crossingless component
+(`CreateUnlinkFromArc`). That is exactly what `#spinoffs` already describes for
+pass moves, so the same header is reused verbatim with no new machinery. Rare
+(0 of the 537 loops above) but real.
+
+**No witness.** Unlike `middlepass`, an `r1` needs nothing beyond its local
+checks: a well-formed `r1` is sound. For this kind the two conformance tiers
+coincide.
+
+### What an R1 picture claims (one deletion, not two)
+
+A pass move superposes two states because it **adds** a corridor. An R1 adds
+nothing, so "The two deletions" does not apply; it is replaced by something
+weaker and simpler:
+
+- the **before** view is the input drawing itself, with the loop arc marked and
+  the monogon shaded — there is nothing to delete to recover the snapshot;
+- the **after** view deletes the loop arc and heals the crossing, and parsed
+  back it must be the diagram the move produces.
+
+Exactly one checkable claim, rather than two.
+
+**The healed crossing is a corner, and which corner is forced.** The loop's two
+ends at `c` are rotationally adjacent — that is what it means for `L(loop)` to be
+a monogon. So the two surviving ends are adjacent too, and the healed strand
+cannot run straight through `c`: it must turn. It turns **away from the
+monogon**, occupying the quadrant diagonally opposite the collapsing face. A
+renderer reads the monogon's quadrant at `c` and stamps the opposite corner; it
+never has to search.
+
+### Renderer guidance
+
+The monogon is the R1 analogue of a pass move's swept disk, and it is cheaper:
+that disk is not a face of the diagram (hence `PassDiskCells`), whereas **the R1
+disk *is* a face**, named directly by `L(loop)`. Shading it needs no new
+geometry — the same face machinery `--checkerboard-coloring` already uses.
+
+Of the three things an R1 overlay draws, two are existing primitives:
+
+| element | how |
+|---|---|
+| monogon shading | face highlight at `L(loop)` |
+| the loop arc | strand marking, as `W` is marked for a pass move |
+| the dying crossing | a NEW overlay kind (`Collapse`) — a pass move's anchors *survive*; this crossing does not |
+
+In a structured-geometry backend (`knoodledraw --format=wl`) an R1 record carries
+an `"R1"` member, a **sibling** of `"Pass"` rather than a variant under a shared
+key: the payloads have no schema in common, so the presence of the key is the
+discriminator and a `Kind` tag over them would be a union in name only.
+
+```
+"R1"-><|"Kind"->"r1","View"->"both"|"before"|"after",
+        "Loop"->da,"Arc"->a,"Crossing"->c,
+        "Monogon"->f,
+        "Survivor"->a_next,"Absorbed"->a_prev,
+        "Corner"-><|"Pos"->{x,y},"Kind"->"CornerSW"|>,
+        "Spinoff"->True|False|>
+```
+
+`"Monogon"` is an **id into the association's own `"Faces"` list**, not
+duplicated geometry — the consumer already holds that boundary polyline. As with
+`"Pass"`, `"View"` records what was asked for and is deliberately not applied to
+the geometry: shrinking the loop away is the animator's job, and this gives it
+the boundary it needs to do it.
+
+At most one move key appears per record, matching the one `#move` line a record
+may carry. Sibling keys make that a convention rather than a shape; emitters
+must not write two.
+
 ## Other step kinds (reserved, args to be specified when instrumented)
 
-- `kind=r1`, `kind=r2`, `kind=r3` — Reidemeister moves; small darc-based arg
-  lists, to be pinned down when Simplify instrumentation lands. Locally
-  checkable, proof-grade.
+- `kind=r2`, `kind=r3` — **not needed as kinds of their own.** A reducing R2 *is*
+  a pass move with an empty cross list: `k = 0` with `L = 3`, so the net crossing
+  change is `k - (L-1) = -2`. Check 3 already carries that case explicitly ("or
+  `= L(depart)` if `k = 0`"), checks 1 and 5 are vacuous when nothing is crossed,
+  and check 6 holds. An R3 is a pass move that is not reducing (`k = L-1`),
+  expressible for the same reason, with no reason to search for one. Verified
+  2026-09-16: six R2s found on six raw projections, each written as a `kind=pass`
+  k=0 record and each drawn with `drawing: VERIFIED (both deletions)`.
 - `kind=split parent=<sid>` — a summand-splitting event (connect-sum or
-  split-link separation). Structural, checkable.
+  split-link separation). Structural, checkable. Under **two** doubts, both
+  recorded in "Open questions": it is probably a *stream-level* concern rather
+  than a drawable payload (a split forks the record stream into two summand
+  timelines, which a renderer drawing records in sequence has no notion of),
+  and it may not belong here at all, being the one candidate kind that is not
+  an isotopy — the diagram does not change, only its description.
 - `kind=redraw` — a re-embedding step (Reapr). Fully specified below; with
   its payload it is **computationally checkable** (a heavier verification
   kernel than the combinatorial kinds, but not a trust-me jump).
@@ -774,10 +900,25 @@ and any seeded choice an emitter makes must be recorded in the stream.
 
 ## Open questions
 
-- Exact arg schemas for `r1`/`r2`/`r3` (decide when instrumenting Simplify).
-- Split bookkeeping details: whether the parent's terminal record or the
-  children's initial records carry the `split` descriptor, and how unknot
-  eliminations are recorded.
+- ~~Exact arg schemas for `r1`/`r2`/`r3`.~~ **Settled 2026-09-16.** `r1` is
+  specified above; `r2` and `r3` need no kind of their own, both being pass
+  moves (see "Other step kinds"). The instrumentation target has also moved:
+  it is NOT Simplify. Simplify stays uninstrumented by design — it performs
+  millions of moves reducing hundred-million-crossing inputs, where a trace is
+  neither storable nor watchable, and where recording would tax a hot loop for
+  a purpose unrelated to it. The traced simplifier is the verified one being
+  prototyped in middlestrands.
+- **Is `split` a move at all, and should a verified simplifier ever split?**
+  Splitting is a PERFORMANCE device — work the pieces separately — and neither
+  proving nor drawing obviously benefits from it. It is also the one candidate
+  kind that is **not an isotopy**: unlike every other kind the diagram does not
+  change, only its description does, which makes `#move kind=split` a category
+  error rather than merely an awkward fit. Two ways out, both open: drop
+  splitting from the verified simplifier altogether (the trace is then one
+  linear chain per component, and no renderer ever needs concurrent summand
+  timelines), or keep it as a stream-level header that is not a move. Note that
+  a crossingless component coming free is a DIFFERENT event, already handled by
+  `#spinoffs`, and is unaffected by this question.
 - Whether `#faces` should also carry per-face canonical names for the WL
   side's convenience, or WL derives them (leaning: derive).
 - `redraw` instrumentation: whether Reapr exposes (or can be made to expose,
