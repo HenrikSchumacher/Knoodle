@@ -142,16 +142,51 @@ def test_a_non_loop_arc_is_refused():
     check("not a loop arc" in err, "the refusal says it is not a loop arc", err)
 
 
-def test_wl_fails_loud_for_now():
-    """Not implemented -- but refused, never silently dropped.
+def test_wl_emits_r1():
+    """The "R1" member: a sibling of "Pass", never a variant under one key.
 
-    When the "R1" emitter lands this flips to asserting the member is present.
+    This replaced an earlier test that asserted the path FAILED LOUD while the
+    emitter was unwritten. The flip is deliberate: a deferred feature that
+    quietly starts passing its own not-implemented test is how a gap gets
+    forgotten.
     """
     pd = bare_pd()
     rc, out, err = run(["--format=wl", "--move=" + R1_GOOD], pd)
-    check(rc != 0, f"--format=wl with an r1 fails loud (rc={rc})", out)
-    check("<|" not in out, "no geometry is emitted with the move missing", out)
-    check("R1" in err, "the refusal names what is missing", err)
+    if not check(rc == 0, f"--format=wl with an r1 exits 0 (rc={rc})", err):
+        return
+
+    lines = [ln for ln in out.split("\n") if ln.strip()]
+    if not check(len(lines) == 1, f"one association, got {len(lines)}", out):
+        return
+    line = lines[0]
+
+    check('"R1"' in line, "the association carries an R1 member", line)
+    check('"Pass"' not in line, "and no Pass member: the two are siblings", line)
+
+    for key in ("Kind", "View", "Loop", "Arc", "Crossing", "Monogon",
+                "Survivor", "Absorbed", "Spinoff"):
+        check(f'"{key}"' in line, f"R1 carries {key}", line)
+
+    # The monogon is an id into this association's own Faces list, so the id
+    # has to actually be one of the faces emitted beside it.
+    check('"Monogon"->6' in line, "Monogon names the fixture's face 6", line)
+    # Match the FACE shape, not a bare Id: arcs are numbered independently, so
+    # '"Id"->6' alone is satisfied by arc 6 and proves nothing about Faces.
+    # The whole point of naming rather than duplicating the monogon is that the
+    # id resolves in this association's own Faces list.
+    check('"Id"->6,"Exterior"->' in line,
+          "and face 6 really is present in Faces", line)
+
+    # LoopRemover keeps a_next alive and absorbs a_prev.
+    check('"Survivor"->5' in line, "a_next survives", line)
+    check('"Absorbed"->3' in line, "a_prev is absorbed", line)
+    check('"Spinoff"->False' in line, "this curl frees no component", line)
+
+    # The healed corner, computed because a geometry consumer has no
+    # Unicodeifier to derive it from connectivity. The ASCII after-view of this
+    # fixture renders the corner as a box glyph with arms east and south.
+    check('"Corner"' in line, "R1 names the healed corner", line)
+    check('"CornerSE"' in line, "and it is the corner facing away from the monogon", line)
 
 
 def test_trace_draws_an_r1_record():
@@ -182,7 +217,7 @@ def main():
     test_monogon_shading_is_opt_in()
     test_the_other_darc_is_refused()
     test_a_non_loop_arc_is_refused()
-    test_wl_fails_loud_for_now()
+    test_wl_emits_r1()
     test_trace_draws_an_r1_record()
 
     status = "R1 DRAW CHECK OK" if fails == 0 else "R1 DRAW CHECK FAILED"

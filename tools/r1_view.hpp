@@ -393,4 +393,90 @@ void ApplyR1AfterView(Knoodle::OrthoDraw<PD_T>& H, std::string& diagram,
     }
 }
 
+//==============================================================================
+// The healed corner, named
+//==============================================================================
+
+template<class Int_>
+struct R1Corner_T
+{
+    using Int = Int_;
+
+    Int         x = Int(-1);
+    Int         y = Int(-1);
+    std::string kind;        // CornerNE | CornerNW | CornerSE | CornerSW
+    bool        validQ = false;
+};
+
+/*!@brief Which corner the healed strand turns at the dead crossing.
+ *
+ * The ASCII backend never needs this: it stamps '+' and UnicodeifyDiagram
+ * resolves the glyph from which neighbours are still connected. A geometry
+ * consumer has no such renderer, so the answer has to be computed -- and it is
+ * computed the same way, by asking which neighbours survive.
+ *
+ * The loop's two ends leave `c` in two rotationally ADJACENT directions (that
+ * is what makes L(loop) a monogon), so the two that remain are adjacent too and
+ * name a corner rather than a straight run. Opposite survivors would mean the
+ * strand runs straight through, which a monogon makes impossible; if it is ever
+ * seen the result is returned invalid rather than guessed at.
+ *
+ * Directions follow RenderPassRoute: N = +y, E = +x. The name lists the
+ * vertical arm first, matching OverlayKind (CornerNE = arms N+E).
+ */
+template<class PD_T>
+R1Corner_T<typename PD_T::Int> R1Corner(
+    Knoodle::OrthoDraw<PD_T>& H, const R1Resolved<PD_T>& r)
+{
+    using Int = typename PD_T::Int;
+
+    R1Corner_T<Int> out;
+    if (!r.validQ || !H.EdgeActiveQ(r.a)) { return out; }
+
+    const auto cc = CrossingCell<PD_T>(H, r.c);
+    out.x = cc[0];
+    out.y = cc[1];
+
+    static const Int  dx[] = { Int(0), Int(1), Int(0), Int(-1) };
+    static const Int  dy[] = { Int(1), Int(0), Int(-1), Int(0) };
+    static const char nm[] = { 'N', 'E', 'S', 'W' };
+
+    bool loop_dirQ[4] = { false, false, false, false };
+
+    // ArcWalkCells is gapless (ArcVertices + VertexCoordinates, never
+    // ArcLines), so the cell one step from the crossing along each of the
+    // loop's two ends really is part of the walk.
+    for (const auto& cell : KnoodlePassView::ArcWalkCells<PD_T>(H, r.a, Int(0)))
+    {
+        for (int k = 0; k < 4; ++k)
+        {
+            if ((cell.x == cc[0] + dx[k]) && (cell.y == cc[1] + dy[k]))
+            {
+                loop_dirQ[k] = true;
+            }
+        }
+    }
+
+    int surv[4] = {-1,-1,-1,-1};
+    int n_surv = 0;
+    for (int k = 0; k < 4; ++k)
+    {
+        if (!loop_dirQ[k] && (n_surv < 4)) { surv[n_surv++] = k; }
+    }
+    if (n_surv != 2) { return out; }
+
+    const int p = surv[0];
+    const int q = surv[1];
+    if (((p + 2) % 4) == q) { return out; }   // opposite: not a corner
+
+    const bool p_verticalQ = ((p == 0) || (p == 2));
+
+    out.kind = std::string("Corner");
+    out.kind += p_verticalQ ? nm[p] : nm[q];
+    out.kind += p_verticalQ ? nm[q] : nm[p];
+    out.validQ = true;
+
+    return out;
+}
+
 } // namespace KnoodleR1View

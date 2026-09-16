@@ -178,6 +178,46 @@ own polyline instead — the same data, one abstraction level up.
    (see the tension-morph design in `docs/move-descriptor.md`). Revisit only if
    a consumer turns out to want the composed view and nothing else.
 
+### `"R1"` — a curl removal, as geometry
+
+A sibling of `"Pass"`, not a variant under a shared key: the two payloads have
+no schema in common, so the presence of the key is the discriminator and a
+`Kind` tag over them would be a union in name only.
+
+```
+"R1"-><| "Kind"->"r1", "View"->"both"|"before"|"after",
+         "Loop"->da, "Arc"->a, "Crossing"->c,
+         "Monogon"->f,
+         "Survivor"->a_next, "Absorbed"->a_prev,
+         "Corner"-><|"Pos"->{x,y},"Kind"->"CornerSE"|>,
+         "Spinoff"->True|False |>
+```
+
+**`"Monogon"` is an id into this association's own `"Faces"` list**, not
+duplicated geometry — the consumer already holds that boundary polyline. This is
+where an R1 is cheaper than a pass move: a swept disk is not a face of the
+diagram and has to be computed cell by cell (hence `"Disk"`'s raster), whereas
+the face an R1 collapses is a real face and can simply be named.
+
+**`"Corner"` is the healed crossing.** Deleting the curl leaves `a_prev` and
+`a_next` meeting at the dead crossing, and they are rotationally adjacent, so
+the strand must turn there — away from the monogon, into the diagonally opposite
+quadrant. The ASCII backend never computes this (it stamps `+` and lets the
+Unicodeifier resolve the glyph from connectivity); a geometry consumer has no
+such renderer, so the direction is computed and named here, in the same
+`CornerNE`/`NW`/`SE`/`SW` vocabulary `OverlayKind` uses, with the vertical arm
+first.
+
+**`"Survivor"`/`"Absorbed"`** record which arc label lives: `LoopRemover` heals
+with `Reconnect(a_next,!d,a_prev)`, keeping `a_next` and deactivating `a`,
+`a_prev` and the crossing. **`"Spinoff"`** is the 8-shaped unlink — `a_prev ==
+a_next`, the whole component was a single curl, and a crossingless component
+comes free.
+
+As with `"Pass"`, `"View"` records what was asked for and is **not** applied to
+the geometry: shrinking the curl away is the animator's job, and naming the
+monogon and the corner is what lets it do that.
+
 ### `--trace --format=wl`
 
 One association per record, one per line, each self-contained — so the trace is

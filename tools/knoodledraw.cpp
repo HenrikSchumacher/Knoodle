@@ -189,6 +189,10 @@ void PrintUsage()
     std::cerr << "                              OUTSIDE \"BoundingBox\", since a corridor may route\n";
     std::cerr << "                              through the margin around the drawing. --pass-view\n";
     std::cerr << "                              is recorded there but NOT applied to the geometry.\n";
+    std::cerr << "                              A curl removal (kind=r1) adds an \"R1\" member\n";
+    std::cerr << "                              instead: the collapsing monogon is an id into\n";
+    std::cerr << "                              \"Faces\" rather than duplicated geometry, and the\n";
+    std::cerr << "                              healed crossing is named as a Corner.\n";
     std::cerr << "                              With --trace it is one association per record, with\n";
     std::cerr << "                              the record's headers and move folded in; echoed\n";
     std::cerr << "                              headers and --verify reports go to stderr so stdout\n";
@@ -2698,6 +2702,71 @@ void EmitWolframPass(const WLPassOverlay & p, std::ostream & out)
 }
 
 /**
+ * @brief Everything --format=wl needs to describe a curl removal.
+ *
+ * Far less than a pass move needs, and deliberately so. The face an R1
+ * collapses is a real face of the diagram, so it is NAMED (an id into the
+ * association's own "Faces" list) rather than rasterized the way a pass move's
+ * swept disk has to be. What does have to be computed is the corner, because a
+ * geometry consumer has no Unicodeifier to derive it from connectivity.
+ */
+struct WLR1Overlay
+{
+    const KnoodleR1View::R1Resolved<PD_T> * r = nullptr;
+    KnoodleR1View::R1Corner_T<Int>          corner;
+    std::string                             view = "both";
+};
+
+/**
+ * @brief Emit the "R1" member of a diagram's association:
+ *
+ *   "R1"-><| "Kind"->"r1", "View"->"both"|"before"|"after",
+ *            "Loop"->da, "Arc"->a, "Crossing"->c, "Monogon"->f,
+ *            "Survivor"->a_next, "Absorbed"->a_prev,
+ *            "Corner"-><|"Pos"->{x,y},"Kind"->"CornerSE"|>,
+ *            "Spinoff"->True|False |>
+ *
+ * A SIBLING of "Pass", never a variant under a shared key: the two payloads
+ * have no schema in common, so the presence of the key is the discriminator.
+ *
+ * COORDINATES. "Corner"'s position is a crossing cell, so it is in the same
+ * space as "Crossings"->"Pos" -- OrthoDraw's integer grid. Unlike a corridor an
+ * R1 never routes outside the drawing, so unlike "Pass" nothing here can fall
+ * outside "BoundingBox".
+ *
+ * "Survivor"/"Absorbed" say which arc label lives: LoopRemover heals with
+ * Reconnect(a_next,!d,a_prev), keeping a_next while a, a_prev and the crossing
+ * are deactivated. A consumer seeding an identity on surviving labels needs it.
+ *
+ * As with "Pass", "View" records what was ASKED for and is not applied to the
+ * geometry; shrinking the curl away is the animator's job, and naming the
+ * monogon and the corner is what lets it do that.
+ */
+void EmitWolframR1(const WLR1Overlay & p, std::ostream & out)
+{
+    const auto & r = *p.r;
+
+    out << ",\"R1\"-><|\"Kind\"->\"r1\",\"View\"->\"" << p.view << "\""
+        << ",\"Loop\"->"     << r.loop
+        << ",\"Arc\"->"      << r.a
+        << ",\"Crossing\"->" << r.c
+        << ",\"Monogon\"->"  << r.monogon
+        << ",\"Survivor\"->" << r.a_next
+        << ",\"Absorbed\"->" << r.a_prev;
+
+    // Absent rather than wrong: a monogon forces the survivors to be adjacent,
+    // so an invalid corner means the layout disagreed with the combinatorics,
+    // and a consumer is better served by a missing key than a guessed one.
+    if (p.corner.validQ)
+    {
+        out << ",\"Corner\"-><|\"Pos\"->{" << p.corner.x << "," << p.corner.y
+            << "},\"Kind\"->\"" << p.corner.kind << "\"|>";
+    }
+
+    out << ",\"Spinoff\"->" << (r.spinoffQ ? "True" : "False") << "|>";
+}
+
+/**
  * @brief Emit one diagram's OrthoDraw layout as a Wolfram Language association:
  *        <| "BoundingBox"->{w,h},
  *           "Arcs"->{ <|"Id"->a,"Component"->c,"Color"->k,"Points"->{{x,y},..}|>, .. },
@@ -2733,7 +2802,8 @@ void EmitWolframPass(const WLPassOverlay & p, std::ostream & out)
  */
 void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out,
                          const WLPassOverlay* pass = nullptr,
-                         const std::string* prefix = nullptr)
+                         const std::string* prefix = nullptr,
+                         const WLR1Overlay* r1 = nullptr)
 {
     const auto& A_lines  = H.ArcLines();
     const auto& A_verts  = H.ArcVertices();
@@ -2890,9 +2960,11 @@ void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out,
     }
     out << "}";
 
-    // A routed pass move rides inside the same association, in the same
-    // coordinates, so one line describes one whole picture.
+    // A move rides inside the same association, in the same coordinates, so
+    // one line describes one whole picture. The two are siblings and mutually
+    // exclusive -- a record carries at most one move.
     if (pass) { EmitWolframPass(*pass, out); }
+    if (r1)   { EmitWolframR1(*r1, out);     }
 
     out << "|>\n";
 }
@@ -3386,15 +3458,27 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
         {
             if (r1_requested)
             {
-                // Not yet implemented -- and refused rather than ignored. The
-                // "R1" member is specified (docs/move-descriptor.md) but the
-                // emitter is not written, and emitting geometry with the move
-                // silently missing is exactly the bug --find-pass had on this
-                // path until 2026-09-16.
-                std::cerr << "knoodledraw: --format=wl cannot yet emit r1"
-                             " geometry; the \"R1\" member is specified in"
-                             " docs/move-descriptor.md but not implemented\n";
-                return false;
+                const std::string* wl_pfx =
+                    config.wl_prefix ? &*config.wl_prefix : nullptr;
+
+                if (r1res.validQ)
+                {
+                    WLR1Overlay r1overlay;
+                    r1overlay.r      = &r1res;
+                    r1overlay.corner = KnoodleR1View::R1Corner<PD_T>(H, r1res);
+                    r1overlay.view   = config.pass_view;
+
+                    EmitWolframGeometry(H, summands[i], out, nullptr, wl_pfx,
+                                        &r1overlay);
+                }
+                else
+                {
+                    // The curl is not on THIS summand. Its geometry still goes
+                    // out, carrying no "R1"; a descriptor matching no summand
+                    // at all is caught by the fail-loud guard below.
+                    EmitWolframGeometry(H, summands[i], out, nullptr, wl_pfx);
+                }
+                continue;
             }
 
             // Everything below this branch is character-cell work, which is
