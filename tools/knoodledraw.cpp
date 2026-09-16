@@ -25,6 +25,7 @@
 #include "../src/MoveTrace.hpp"
 #include "pass_view.hpp"
 #include "find_pass.hpp"
+#include "r1_view.hpp"
 #include "witness_check.hpp"
 
 #include <charconv>     // ParsePassMove
@@ -203,8 +204,20 @@ void PrintUsage()
     std::cerr << "  --highlight=ELEMENTS        Highlight elements (a=arc, c=crossing, f=face)\n";
     std::cerr << "                              e.g. --highlight=\"a0,c3,f2\"; multiple flags allowed\n";
     std::cerr << "  --checkerboard-coloring     Highlight alternating faces (checkerboard pattern)\n";
-    std::cerr << "  --move=DESCRIPTOR           Overlay a pass move (docs/move-descriptor.md):\n";
+    std::cerr << "  --move=DESCRIPTOR           Overlay a move (docs/move-descriptor.md). Two\n";
+    std::cerr << "                              grammars, told apart by the kind token:\n";
+    std::cerr << "                                a pass move (the default kind)\n";
     std::cerr << "                              \"strand=DA[,DA..] depart=DA [cross=DA:u|o,..] land=DA\"\n";
+    std::cerr << "                                a curl removal\n";
+    std::cerr << "                              \"kind=r1 loop=DA\"    (kind=r1 is required)\n";
+    std::cerr << "                              An r1 names the curl by a DARC: L(loop) is the\n";
+    std::cerr << "                              monogon face that collapses, which is what picks\n";
+    std::cerr << "                              the side with no second field. Naming the arc's\n";
+    std::cerr << "                              other darc is refused, and says so. For an r1\n";
+    std::cerr << "                              --pass-view=both and =before coincide (an R1 adds\n";
+    std::cerr << "                              nothing, so there is nothing to superpose), =after\n";
+    std::cerr << "                              deletes the curl and heals the crossing to a\n";
+    std::cerr << "                              corner, and --pass-disk shades the monogon.\n";
     std::cerr << "                              darc DA = 2*arc+d (Tail=0/Head=1); corridor drawn in\n";
     std::cerr << "                              heavy gold strokes, anchors in red; rejected\n";
     std::cerr << "                              descriptors report the failed check and exit nonzero\n";
@@ -3253,6 +3266,19 @@ bool ParsePassMove(const std::string& spec, Deco_T::PassMove_T& mv,
 }
 
 /**
+ * @brief Is this descriptor an r1 rather than a pass move?
+ *
+ * The dispatch has to happen BEFORE PassDescriptor::Parse, which refuses any
+ * kind it does not know -- and it refuses `kind=r1` by name. An r1 descriptor
+ * is required to say `kind=r1` (tools/r1_view.hpp says why it is demanded
+ * rather than inferred), so looking for that token is the whole test.
+ */
+bool R1DescriptorQ(const std::string& spec)
+{
+    return spec.find("kind=r1") != std::string::npos;
+}
+
+/**
  * @brief Draw all summands of a knot to stdout.
  *
  * unknot_colors has one entry per bare unknot (0-crossing) summand that
@@ -3277,19 +3303,40 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
 
     bool has_labels = config.label_crossings || config.label_arcs
                    || config.label_faces || config.label_components;
-    bool has_highlights = !config.highlight_specs.empty() || config.checkerboard_coloring;
+    // An r1's monogon shades through the ordinary face-highlight path, so
+    // --pass-disk on an r1 has to switch that machinery on. That the
+    // collapsing face IS a face of the diagram is exactly what makes it
+    // cheaper than a pass move's swept disk, which has to be computed cell by
+    // cell because it is not a face.
+    const bool r1_disk_requested = config.pass_disk && config.move_spec
+                                && R1DescriptorQ(*config.move_spec);
+
+    bool has_highlights = !config.highlight_specs.empty()
+                       || config.checkerboard_coloring
+                       || r1_disk_requested;
 
     // Pass-move overlay: parse the descriptor once; it is then tried against
     // each summand (darc references only validate on the one it belongs to).
     Deco_T::PassMove_T move;
+    KnoodleR1View::R1Descriptor<Int> r1_move;
+
     bool move_requested = config.move_spec.has_value();
+    const bool r1_requested = move_requested && R1DescriptorQ(*config.move_spec);
     bool move_applied   = false;
     std::string move_why;
 
     if (move_requested)
     {
         std::string perr;
-        if (!ParsePassMove(*config.move_spec, move, perr))
+
+        // Two grammars behind one flag: `kind=r1` is an r1 descriptor, anything
+        // else a pass descriptor. The dispatch must precede the pass parser,
+        // which refuses `kind=r1` by name.
+        const bool parsedQ = r1_requested
+            ? KnoodleR1View::R1Descriptor<Int>::Parse(*config.move_spec, r1_move, perr)
+            : ParsePassMove(*config.move_spec, move, perr);
+
+        if (!parsedQ)
         {
             std::cerr << "knoodledraw: bad --move descriptor: " << perr << "\n";
             return false;
@@ -3323,8 +3370,33 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
 
         OrthoDraw_T H(summands[i], config.exterior_face ? *config.exterior_face : Int(-1), settings);
 
+        // An r1 resolves against the diagram once per summand: its loop darc
+        // only names a curl on the summand it belongs to, exactly as a pass
+        // descriptor's darcs only resolve on theirs. A summand it does not
+        // name leaves `why` behind for the fail-loud report below.
+        KnoodleR1View::R1Resolved<PD_T> r1res;
+        if (r1_requested)
+        {
+            r1res = KnoodleR1View::ResolveR1<PD_T>(summands[i], r1_move.loop);
+            if (r1res.validQ)            { move_applied = true;   }
+            else if (move_why.empty())   { move_why = r1res.why;  }
+        }
+
         if (config.wolfram_mode)
         {
+            if (r1_requested)
+            {
+                // Not yet implemented -- and refused rather than ignored. The
+                // "R1" member is specified (docs/move-descriptor.md) but the
+                // emitter is not written, and emitting geometry with the move
+                // silently missing is exactly the bug --find-pass had on this
+                // path until 2026-09-16.
+                std::cerr << "knoodledraw: --format=wl cannot yet emit r1"
+                             " geometry; the \"R1\" member is specified in"
+                             " docs/move-descriptor.md but not implemented\n";
+                return false;
+            }
+
             // Everything below this branch is character-cell work, which is
             // why wl skips it. A pass move is NOT that: the corridor is
             // geometry in its own right, so it is routed here and emitted
@@ -3449,6 +3521,15 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
                     H.MaxArcCount(), H.MaxCrossingCount(), H.FaceCount());
             }
 
+            // The r1 monogon. It is a real face of the diagram, so it shades
+            // through the very same path as --checkerboard-coloring, with no
+            // geometry computed -- the whole reason an R1 disk is cheaper than
+            // a pass move's.
+            if (r1_disk_requested && r1res.validQ)
+            {
+                highlights.faces.insert(r1res.monogon);
+            }
+
             // Add checkerboard face highlights
             if (config.checkerboard_coloring)
             {
@@ -3537,7 +3618,9 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
 
         // --find-pass: ask Knoodle for the corridor rather than being told it.
         // Only the summand the two arcs actually live on can answer.
-        bool drew_moveQ = move_requested;
+        // An r1 is NOT a pass move and must not fall into the corridor path
+        // below: that would route a default-constructed pass descriptor.
+        bool drew_moveQ = move_requested && !r1_requested;
 
         if (find_requested)
         {
@@ -3730,6 +3813,40 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
             else
             {
                 move_why = pass_route.why;
+            }
+        }
+
+        // The r1 overlay, stamped after labels so the curl and the healed
+        // corner win any cell they land on -- the same rule the pass overlay
+        // follows. Unlike it there is no corridor, hence no margin and no
+        // PadCanvas: every cell an r1 touches is already on the canvas.
+        //
+        // `both` and `before` coincide here. A pass move's `both` superposes
+        // two states because it ADDS a corridor; an R1 adds nothing, so there
+        // is only the curl to show or to delete. That is the one-deletion
+        // contract of docs/move-descriptor.md surfacing in the CLI.
+        if (r1_requested && r1res.validQ)
+        {
+            if (n_x == 0)
+            {
+                n_x = H.Width()  * config.x_grid_size + 2;
+                n_y = H.Height() * config.y_grid_size + 1;
+            }
+
+            if (config.pass_view == "after")
+            {
+                KnoodleR1View::ApplyR1AfterView<PD_T>(
+                    H, diagram, mask, n_x, n_y, r1res);
+            }
+            else
+            {
+                // --mono and --ascii have no colour to tell the curl apart
+                // with, so it gets a marker letter instead.
+                const bool no_colorQ = config.mono_mode || config.ascii_mode;
+
+                KnoodleR1View::MarkR1<PD_T>(
+                    H, diagram, n_x, n_y, mask, r1res,
+                    no_colorQ ? 'r' : '\0');
             }
         }
 
@@ -4049,7 +4166,8 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
 
         if (rec.move
             && (rec.move->find("kind=pass") != std::string::npos
-                || rec.move->find("kind=middlepass") != std::string::npos))
+                || rec.move->find("kind=middlepass") != std::string::npos
+                || rec.move->find("kind=r1") != std::string::npos))
         {
             rc.move_spec = *rec.move;
         }
