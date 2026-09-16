@@ -162,8 +162,25 @@ void PrintUsage()
     std::cerr << "  -f, --label-faces           Show face numbers (0-based)\n";
     std::cerr << "  -l, --label-components      Color/label link components\n";
     std::cerr << "\n";
+    std::cerr << "Output formats:\n";
+    std::cerr << "  --format=FORMAT             How the result is serialized:\n";
+    std::cerr << "                                unicode  Box-drawing characters (default)\n";
+    std::cerr << "                                ascii    Plain ASCII (same as --ascii)\n";
+    std::cerr << "                                wl       Wolfram Language association of the\n";
+    std::cerr << "                                         geometry, ToExpression-ready\n";
+    std::cerr << "                              With --format=wl a 2D drawing is emitted as one\n";
+    std::cerr << "                              <|\"BoundingBox\",\"Arcs\",\"Crossings\",\"Faces\"|>\n";
+    std::cerr << "                              association per summand, 0-crossing summands as\n";
+    std::cerr << "                              <|\"Unknot\"->True|> markers; with --embedding it is\n";
+    std::cerr << "                              <|\"Components\"->{..}|> instead, one closed 3D\n";
+    std::cerr << "                              polyline per link component. Arcs carry Component\n";
+    std::cerr << "                              and Color so the renderer owns all styling: the\n";
+    std::cerr << "                              label and highlight flags below are not applied to\n";
+    std::cerr << "                              wl output. See docs/knoodledraw-wl-graphics.md.\n";
+    std::cerr << "\n";
     std::cerr << "Output options:\n";
-    std::cerr << "  --ascii                     Use plain ASCII output (default: Unicode box-drawing)\n";
+    std::cerr << "  --ascii                     Use plain ASCII output (alias for --format=ascii;\n";
+    std::cerr << "                              default: Unicode box-drawing)\n";
     std::cerr << "  --mono                      No ANSI color: the rerouted strand W and the new\n";
     std::cerr << "                              corridor are drawn in heavy strokes and labelled\n";
     std::cerr << "                              'w' / 'p' instead (for files, docs, and anything\n";
@@ -198,6 +215,8 @@ void PrintUsage()
     std::cerr << "                              'after' deletes W (the diagram the move produces,\n";
     std::cerr << "                              in the frozen before-layout)\n";
     std::cerr << "  --trace                     Input is a move-trace stream (#step/#move/#view headed\n";
+    std::cerr << "                              PD records, docs/move-descriptor.md): each record is\n";
+    std::cerr << "                              drawn under its echoed headers, pass moves as overlays\n";
     std::cerr << "  --verify                    With --trace: check each pass move two ways.\n";
     std::cerr << "                              'drawing' checks the two deletions inside one\n";
     std::cerr << "                              record -- each view is rendered, parsed back and\n";
@@ -206,8 +225,6 @@ void PrintUsage()
     std::cerr << "                              NEXT record's snapshot (isomorphism, since a PD\n";
     std::cerr << "                              code renumbers). Both report VERIFIED / MISMATCH\n";
     std::cerr << "                              per move; a mismatch exits nonzero.\n";
-    std::cerr << "                              PD records, docs/move-descriptor.md): each record is\n";
-    std::cerr << "                              drawn under its echoed headers, pass moves as overlays\n";
     std::cerr << "\n";
     std::cerr << "3D embedding output:\n";
     std::cerr << "  --embedding                 Emit a 3D embedding instead of a 2D drawing.\n";
@@ -258,6 +275,7 @@ void PrintUsage()
     std::cerr << "  knoodledraw diagram.tsv\n";
     std::cerr << "  knoodledraw --quality=fast --ascii diagram.tsv\n";
     std::cerr << "  knoodledraw --quality=debug --ascii diagram.tsv\n";
+    std::cerr << "  knoodledraw --format=wl diagram.tsv\n";
     std::cerr << "  knoodledraw --embedding diagram.tsv > link.kndlxyz\n";
     std::cerr << "  knoodledraw --embedding --format=wl diagram.tsv\n";
 }
