@@ -326,29 +326,29 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         // Reapr energy flag
         else if (arg.starts_with("--reapr-energy="))
         {
-            std::string energy_str = ToLower(arg.substr(15));
+            const std::string_view energy_str = arg.substr(15);
 
-            if (energy_str == "tv")
+            if (TokenIs(energy_str, "tv"))
             {
                 config.reapr_energy = Energy_T::TV;
             }
-            else if (energy_str == "dirichlet")
+            else if (TokenIs(energy_str, "dirichlet"))
             {
                 config.reapr_energy = Energy_T::Dirichlet;
             }
-            else if (energy_str == "bending")
+            else if (TokenIs(energy_str, "bending"))
             {
                 config.reapr_energy = Energy_T::Bending;
             }
-            else if (energy_str == "height")
+            else if (TokenIs(energy_str, "height"))
             {
                 config.reapr_energy = Energy_T::Height;
             }
-            else if (energy_str == "tv_clp")
+            else if (TokenIs(energy_str, "tv_clp"))
             {
                 config.reapr_energy = Energy_T::TV_CLP;
             }
-            else if (energy_str == "tv_mcf")
+            else if (TokenIs(energy_str, "tv_mcf"))
             {
                 config.reapr_energy = Energy_T::TV_MCF;
             }
@@ -374,10 +374,10 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         }
         else if (arg.starts_with("--dijkstra-strategy="))
         {
-            std::string v = ToLower(arg.substr(20));
-            if      (v == "unidirectional") config.dijkstra_strategy = Knoodle::DijkstraStrategy_T::Unidirectional;
-            else if (v == "alternating")    config.dijkstra_strategy = Knoodle::DijkstraStrategy_T::Alternating;
-            else if (v == "bidirectional")  config.dijkstra_strategy = Knoodle::DijkstraStrategy_T::Bidirectional;
+            const std::string_view v = arg.substr(20);
+            if      (TokenIs(v, "unidirectional")) config.dijkstra_strategy = Knoodle::DijkstraStrategy_T::Unidirectional;
+            else if (TokenIs(v, "alternating"))    config.dijkstra_strategy = Knoodle::DijkstraStrategy_T::Alternating;
+            else if (TokenIs(v, "bidirectional"))  config.dijkstra_strategy = Knoodle::DijkstraStrategy_T::Bidirectional;
             else
             {
                 LogError("Unknown dijkstra-strategy: '" + std::string(arg.substr(20)) + "'");
@@ -432,13 +432,13 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg == "--no-randomize-virtual-edges") { config.randomize_virtual_edges = false; }
         else if (arg.starts_with("--compaction-method="))
         {
-            std::string v = ToLower(arg.substr(20));
-            if      (v == "unknown")               config.compaction_method = PDC_T::Compaction_T::Unknown;
-            else if (v == "topological-numbering") config.compaction_method = PDC_T::Compaction_T::TopologicalNumbering;
-            else if (v == "topological-ordering")  config.compaction_method = PDC_T::Compaction_T::TopologicalOrdering;
-            else if (v == "length-mcf")            config.compaction_method = PDC_T::Compaction_T::Length_MCF;
-            else if (v == "length-clp")            config.compaction_method = PDC_T::Compaction_T::Length_CLP;
-            else if (v == "area-length-clp")       config.compaction_method = PDC_T::Compaction_T::AreaAndLength_CLP;
+            const std::string_view v = arg.substr(20);
+            if      (TokenIs(v, "unknown"))               config.compaction_method = PDC_T::Compaction_T::Unknown;
+            else if (TokenIs(v, "topological-numbering")) config.compaction_method = PDC_T::Compaction_T::TopologicalNumbering;
+            else if (TokenIs(v, "topological-ordering"))  config.compaction_method = PDC_T::Compaction_T::TopologicalOrdering;
+            else if (TokenIs(v, "length-mcf"))            config.compaction_method = PDC_T::Compaction_T::Length_MCF;
+            else if (TokenIs(v, "length-clp"))            config.compaction_method = PDC_T::Compaction_T::Length_CLP;
+            else if (TokenIs(v, "area-length-clp"))       config.compaction_method = PDC_T::Compaction_T::AreaAndLength_CLP;
             else
             {
                 LogError("Unknown compaction-method: '" + std::string(arg.substr(20)) + "'");
@@ -491,7 +491,7 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg.starts_with("--format="))
         {
             std::string val(arg.substr(9));
-            if (val != "pdc")
+            if (!TokenIs(val, "pdc"))
             {
                 std::cerr << "Error: Unknown --format value: " << val << "\n";
                 std::cerr << "  Valid: pdc (PlanarDiagramComplex's own native serialization,\n";

@@ -320,6 +320,63 @@ def test_flag_spellings():
             rc, out, err = run([tool, spelling, "--help"])
             check(rc != 0, f"{name} still rejects {spelling}")
 
+    # A flag whose value comes from a FIXED VOCABULARY takes the same tolerance
+    # as the flag name: --format=WL is as clear as --format=wl. Open-ended
+    # values -- paths, PD descriptors, numbers -- are matched verbatim instead,
+    # since dropping '-' from a path or a negative number changes its meaning.
+    value_accepted = [
+        (SIMPLIFY, ["--format=PDC", "--reapr-energy=TV-CLP",
+                    "--dijkstra-strategy=BiDirectional",
+                    "--compaction-method=AREA_LENGTH_CLP"]),
+        (DRAW, ["--format=WL", "--quality=DEBUG", "--bend-method=MCF",
+                "--compaction=LENGTH_MCF", "--reapr-energy=TV_CLP",
+                "--pass-view=Before"]),
+    ]
+
+    value_rejected = [
+        (SIMPLIFY, ["--format=tsv", "--dijkstra-strategy=sideways"]),
+        (DRAW, ["--format=bogus", "--quality=turbo", "--pass-view=sideways"]),
+    ]
+
+    for tool, spellings in value_accepted:
+        name = os.path.basename(tool)
+        if not os.path.exists(tool):
+            print(f"  SKIP  {name} is not built")
+            continue
+        for spelling in spellings:
+            rc, out, err = run([tool, spelling, "--help"])
+            check(rc == 0, f"{name} accepts {spelling}")
+
+    for tool, spellings in value_rejected:
+        name = os.path.basename(tool)
+        if not os.path.exists(tool):
+            continue
+        for spelling in spellings:
+            rc, out, err = run([tool, spelling, "--help"])
+            check(rc != 0, f"{name} still rejects {spelling}")
+
+
+def test_every_test_runs():
+    """A test function nobody calls is not a test.
+
+    test_flag_spellings sat here fully written and never registered, so its
+    checks read as green while never executing once -- the check count was the
+    only tell. Cheap to prevent, expensive to notice.
+    """
+    section("every test is registered")
+
+    import inspect
+
+    module = sys.modules[__name__]
+    defined = {name for name, _ in inspect.getmembers(module, inspect.isfunction)
+               if name.startswith("test_")}
+    body = inspect.getsource(main)
+    uncalled = sorted(n for n in defined if f"{n}()" not in body)
+
+    check(not uncalled,
+          f"every test_* function is called by main() "
+          f"(uncalled: {', '.join(uncalled) if uncalled else 'none'})")
+
 
 def test_draw_is_a_filter():
     section("knoodledraw as a Unix filter")
@@ -353,7 +410,9 @@ def main():
     test_column_counts()
     test_failure_looks_like_failure()
     test_help()
+    test_flag_spellings()
     test_draw_is_a_filter()
+    test_every_test_runs()
 
     print(f"\n{'CLI CONTRACT CHECK OK' if fails == 0 else 'CLI CONTRACT CHECK FAILED'}"
           f" ({checks} checks, {fails} failed)")

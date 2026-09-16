@@ -454,9 +454,9 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg.starts_with("--format="))
         {
             std::string val(arg.substr(9));
-            if (val == "wl" || val == "wolfram") { config.wolfram_mode = true; }
-            else if (val == "ascii")             { config.ascii_mode = true; }
-            else if (val == "unicode")           { /* default (Unicode box-drawing) */ }
+            if (TokenIs(val, "wl") || TokenIs(val, "wolfram")) { config.wolfram_mode = true; }
+            else if (TokenIs(val, "ascii"))                    { config.ascii_mode = true; }
+            else if (TokenIs(val, "unicode"))                  { /* default (Unicode box-drawing) */ }
             else
             {
                 std::cerr << "Error: Unknown --format value: " << val << "\n";
@@ -473,13 +473,13 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         // Reapr energy flag (--embedding only); spelled as in knoodlesimplify
         else if (arg.starts_with("--reapr-energy="))
         {
-            std::string val = ToLower(std::string(arg.substr(15)));
-            if      (val == "tv")        { config.reapr_energy = Energy_T::TV;        }
-            else if (val == "dirichlet") { config.reapr_energy = Energy_T::Dirichlet; }
-            else if (val == "bending")   { config.reapr_energy = Energy_T::Bending;   }
-            else if (val == "height")    { config.reapr_energy = Energy_T::Height;    }
-            else if (val == "tv_clp")    { config.reapr_energy = Energy_T::TV_CLP;    }
-            else if (val == "tv_mcf")    { config.reapr_energy = Energy_T::TV_MCF;    }
+            std::string val(arg.substr(15));
+            if      (TokenIs(val, "tv"))        { config.reapr_energy = Energy_T::TV;        }
+            else if (TokenIs(val, "dirichlet")) { config.reapr_energy = Energy_T::Dirichlet; }
+            else if (TokenIs(val, "bending"))   { config.reapr_energy = Energy_T::Bending;   }
+            else if (TokenIs(val, "height"))    { config.reapr_energy = Energy_T::Height;    }
+            else if (TokenIs(val, "tv_clp"))    { config.reapr_energy = Energy_T::TV_CLP;    }
+            else if (TokenIs(val, "tv_mcf"))    { config.reapr_energy = Energy_T::TV_MCF;    }
             else
             {
                 std::cerr << "Error: Unknown --reapr-energy value: " << val << "\n";
@@ -521,22 +521,24 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         // Quality preset
         else if (arg.starts_with("--quality="))
         {
-            std::string val(arg.substr(10));
-            if (val != "fast" && val != "default" && val != "best" && val != "debug")
+            constexpr std::string_view presets[] = {"fast", "default", "best", "debug"};
+            const std::string_view preset = MatchToken(arg.substr(10), presets);
+            if (preset.empty())
             {
-                std::cerr << "Error: Unknown quality preset: " << val << "\n";
+                std::cerr << "Error: Unknown quality preset: " << arg.substr(10) << "\n";
                 std::cerr << "  Valid presets: fast, default, best, debug\n";
                 return std::nullopt;
             }
-            config.quality_preset = val;
+            // Store the preferred spelling: the preset is compared again later.
+            config.quality_preset = std::string(preset);
         }
         // Bend method
         else if (arg.starts_with("--bend-method="))
         {
             std::string val(arg.substr(14));
-            if (val == "mcf")
+            if (TokenIs(val, "mcf"))
                 config.bend_method = OrthoDraw_T::BendMethod_T::Bends_MCF;
-            else if (val == "clp")
+            else if (TokenIs(val, "clp"))
                 config.bend_method = OrthoDraw_T::BendMethod_T::Bends_CLP;
             else
             {
@@ -549,15 +551,15 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg.starts_with("--compaction="))
         {
             std::string val(arg.substr(13));
-            if (val == "topo-number")
+            if (TokenIs(val, "topo-number"))
                 config.compaction_method = OrthoDraw_T::CompactionMethod_T::TopologicalNumbering;
-            else if (val == "topo-order")
+            else if (TokenIs(val, "topo-order"))
                 config.compaction_method = OrthoDraw_T::CompactionMethod_T::TopologicalOrdering;
-            else if (val == "length-mcf")
+            else if (TokenIs(val, "length-mcf"))
                 config.compaction_method = OrthoDraw_T::CompactionMethod_T::Length_MCF;
-            else if (val == "length-clp")
+            else if (TokenIs(val, "length-clp"))
                 config.compaction_method = OrthoDraw_T::CompactionMethod_T::Length_CLP;
-            else if (val == "area-clp")
+            else if (TokenIs(val, "area-clp"))
                 config.compaction_method = OrthoDraw_T::CompactionMethod_T::AreaAndLength_CLP;
             else
             {
@@ -635,14 +637,16 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         // Two-deletions view selection (with --move)
         else if (arg.starts_with("--pass-view="))
         {
-            config.pass_view = arg.substr(12);
-            if (config.pass_view != "both" && config.pass_view != "before"
-                && config.pass_view != "after")
+            constexpr std::string_view views[] = {"both", "before", "after"};
+            const std::string_view view = MatchToken(arg.substr(12), views);
+            if (view.empty())
             {
                 std::cerr << "Error: --pass-view wants both, before or after"
-                             " (got '" << config.pass_view << "')\n";
+                             " (got '" << arg.substr(12) << "')\n";
                 return std::nullopt;
             }
+            // Store the preferred spelling: the view is compared again later.
+            config.pass_view = std::string(view);
         }
         // Short combinable flags: -c, -a, -f, -caf, -ac, etc.
         else if (arg.starts_with("-") && !arg.starts_with("--") && arg.size() > 1)

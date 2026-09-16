@@ -819,7 +819,7 @@ void LogError(const std::string& msg)
 }
 
 /**
- * @brief Canonical form of a command-line flag NAME, for tolerant matching.
+ * @brief Canonical form of a command-line token, for tolerant matching.
  *
  * Lowercase, with '-' and '_' dropped, so that every spelling that differs only
  * in case or separators folds together:
@@ -829,8 +829,14 @@ void LogError(const std::string& msg)
  *
  * A user who types any of those has said unambiguously what they want, so the
  * tools serve them rather than complain about the spelling.
+ *
+ * Used for flag NAMES (CanonicalizeFlagSpelling) and for the values of flags
+ * with a fixed vocabulary (TokenIs / MatchToken) -- --format=WL and
+ * --compaction=LENGTH_MCF are as clear as their preferred spellings. It is
+ * never applied to open-ended values: dropping '-' from a path, a PD
+ * descriptor or a negative number would change what they mean.
  */
-[[maybe_unused]] std::string CanonicalFlagName(std::string_view name)
+[[maybe_unused]] std::string CanonicalToken(std::string_view name)
 {
     std::string result;
     result.reserve(name.size());
@@ -871,11 +877,11 @@ template<typename FlagList>
     if (!arg.starts_with("--")) { return std::string(arg); }
 
     const auto eq = arg.find('=');
-    const std::string canon = CanonicalFlagName(arg.substr(0, eq));
+    const std::string canon = CanonicalToken(arg.substr(0, eq));
 
     for (std::string_view flag : known)
     {
-        if (CanonicalFlagName(flag) != canon) { continue; }
+        if (CanonicalToken(flag) != canon) { continue; }
 
         std::string result(flag);
         if (eq != std::string_view::npos) { result += std::string(arg.substr(eq)); }
@@ -883,6 +889,41 @@ template<typename FlagList>
     }
 
     return std::string(arg);
+}
+
+/**
+ * @brief Does `value` name the vocabulary token `token`, in any spelling?
+ *
+ * For flags whose value is drawn from a fixed vocabulary (--format=wl,
+ * --bend-method=mcf, --compaction=length-mcf). Case and '-'/'_' separators are
+ * ignored, so --compaction=LENGTH_MCF and --reapr-energy=TV-CLP are served.
+ *
+ * Only ever call this where the vocabulary IS fixed. A path, a PD descriptor
+ * or a number must be compared verbatim.
+ */
+[[maybe_unused]] bool TokenIs(std::string_view value, std::string_view token)
+{
+    return CanonicalToken(value) == CanonicalToken(token);
+}
+
+/**
+ * @brief Find the preferred spelling of the vocabulary token `value` names.
+ *
+ * Returns the matching entry of `tokens` -- the preferred spelling, as --help
+ * documents it -- or an empty view if `value` names none of them. Use this
+ * rather than TokenIs where the value is STORED and compared again later, so
+ * that what gets stored is the canonical token and every downstream comparison
+ * keeps working unchanged.
+ */
+template<typename TokenList>
+[[maybe_unused]] std::string_view MatchToken(
+    std::string_view value, const TokenList & tokens)
+{
+    for (std::string_view token : tokens)
+    {
+        if (TokenIs(value, token)) { return token; }
+    }
+    return std::string_view{};
 }
 
 /**
