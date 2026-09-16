@@ -247,14 +247,14 @@ void PrintUsage()
     std::cerr << "  --exterior-face=N           Face to lay out as the unbounded exterior region\n";
     std::cerr << "                              (0-based; default: auto, the largest face)\n";
     std::cerr << "\n";
-    std::cerr << "Boolean tuning (--flag / --no-flag):\n";
-    std::cerr << "  redistribute-bends (on)     Redistribute bends after optimization\n";
-    std::cerr << "  turn-regularize (on)        Regularize turns\n";
-    std::cerr << "  saturate-regions (on)       Saturate regions\n";
-    std::cerr << "  saturate-exterior (on)      Saturate exterior region\n";
-    std::cerr << "  filter-saturating-edges (on) Filter saturating edges\n";
-    std::cerr << "  randomize-virtual-edges (off) Randomize virtual edges\n";
-    std::cerr << "  dual-simplex (off)          Use dual simplex method\n";
+    std::cerr << "Boolean tuning (each also has a --no- form, e.g. --no-turn-regularize):\n";
+    std::cerr << "  --redistribute-bends (on)   Redistribute bends after optimization\n";
+    std::cerr << "  --turn-regularize (on)      Regularize turns\n";
+    std::cerr << "  --saturate-regions (on)     Saturate regions\n";
+    std::cerr << "  --saturate-exterior (on)    Saturate exterior region\n";
+    std::cerr << "  --filter-saturating-edges (on) Filter saturating edges\n";
+    std::cerr << "  --randomize-virtual-edges (off) Randomize virtual edges\n";
+    std::cerr << "  --dual-simplex (off)        Use dual simplex method\n";
     std::cerr << "\n";
     std::cerr << "Input formats:\n";
     std::cerr << "  4 columns: unsigned PD code (4 arc labels per crossing)\n";
@@ -342,13 +342,64 @@ int MatchBoolFlag(std::string_view arg, std::string_view name)
 /**
  * @brief Parse command-line arguments into a Config struct.
  */
+// Every flag knoodledraw accepts, in the preferred spelling --help documents.
+// CanonicalizeFlagSpelling maps case and separator variants onto these, so the
+// matching below only ever has to know the one form. A flag added to the parser
+// belongs here and in PrintUsage(); test/cli_contract_check.py checks all three
+// agree.
+constexpr std::string_view kKnownFlags[] = {
+    "--help",
+    "--x-grid-size",
+    "--y-grid-size",
+    "--x-gap-size",
+    "--y-gap-size",
+    "--x-rounding-radius",
+    "--y-rounding-radius",
+    "--label-crossings",
+    "--label-arcs",
+    "--label-faces",
+    "--label-components",
+    "--format",
+    "--ascii",
+    "--mono",
+    "--highlight",
+    "--checkerboard-coloring",
+    "--move",
+    "--find-pass",
+    "--pass-disk",
+    "--pass-view",
+    "--trace",
+    "--verify",
+    "--embedding",
+    "--reapr-energy",
+    "--reapr-scaling",
+    "--bend-method",
+    "--compaction",
+    "--randomize-bends",
+    "--exterior-face",
+    "--quality",
+    "--randomize-projection",
+    "--redistribute-bends",       "--no-redistribute-bends",
+    "--turn-regularize",          "--no-turn-regularize",
+    "--saturate-regions",         "--no-saturate-regions",
+    "--saturate-exterior",        "--no-saturate-exterior",
+    "--filter-saturating-edges",  "--no-filter-saturating-edges",
+    "--randomize-virtual-edges",  "--no-randomize-virtual-edges",
+    "--dual-simplex",             "--no-dual-simplex",
+};
+
 std::optional<Config> ParseArguments(int argc, char* argv[])
 {
     Config config;
 
     for (int i = 1; i < argc; ++i)
     {
-        std::string_view arg(argv[i]);
+        // Serve any spelling of a documented flag that differs only in case or
+        // in '-'/'_' separators, by rewriting it to the spelling --help names.
+        // Values, short flags and filenames pass through untouched.
+        const std::string arg_text = CanonicalizeFlagSpelling(
+            std::string_view(argv[i]), kKnownFlags);
+        std::string_view arg(arg_text);
 
         // Help
         if (arg == "-h" || arg == "--help")
@@ -543,7 +594,7 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             config.exterior_face = static_cast<Int>(*val);
         }
         // Checkerboard coloring
-        else if (arg == "--checkerboard-coloring" || arg == "--checkerboardcoloring")
+        else if (arg == "--checkerboard-coloring")
         {
             config.checkerboard_coloring = true;
         }

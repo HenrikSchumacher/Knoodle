@@ -166,13 +166,35 @@ std::optional<Int> ParseInt(std::string_view s)
     return value;
 }
 
+// Every flag knoodleidentify accepts, in the preferred spelling PrintUsage()
+// documents. CanonicalizeFlagSpelling maps case and separator variants onto
+// these. A flag added to the parser belongs here and in PrintUsage();
+// test/cli_contract_check.py checks all three agree.
+constexpr std::string_view kKnownFlags[] = {
+    "--help",
+    "--data-dir",
+    "--max-crossings",
+    "--escalation-rounds",
+    "--escalation-band",
+    "--rotation-trials",
+    "--expanded",
+    "--tsv",
+    "--quiet",
+    "--randomize-projection",
+};
+
 std::optional<Config> ParseArguments(int argc, char* argv[])
 {
     Config config;
 
     for (int i = 1; i < argc; ++i)
     {
-        std::string_view arg(argv[i]);
+        // Serve any spelling of a documented flag that differs only in case or
+        // in '-'/'_' separators, by rewriting it to the spelling --help names.
+        // Values, short flags and filenames pass through untouched.
+        const std::string arg_text = CanonicalizeFlagSpelling(
+            std::string_view(argv[i]), kKnownFlags);
+        std::string_view arg(arg_text);
 
         if (arg == "-h" || arg == "--help")
         {

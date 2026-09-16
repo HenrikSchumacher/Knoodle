@@ -28,6 +28,22 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.join(HERE, "..", "tools")
 SIMPLIFY = os.path.join(TOOLS, "knoodlesimplify")
 DRAW = os.path.join(TOOLS, "knoodledraw")
+IDENTIFY = os.path.join(TOOLS, "knoodleidentify")
+
+# (binary, parser source, flags deliberately kept out of --help).
+#
+# The contract: --help documents ONE preferred spelling of every flag the
+# parser accepts, and the parser accepts every case/separator variant of that
+# spelling. The flag list is read from the parser itself, so adding a flag
+# without documenting it fails here rather than going unnoticed -- which is how
+# --reapr-rotation-trials came to be mis-remembered as --rotation-trials while
+# writing simplify_config_check, and how --format went undocumented in
+# knoodledraw's --help.
+FLAG_SOURCES = [
+    (SIMPLIFY, "knoodlesimplify_config.hpp", {"--debug-print-simplify-args"}),
+    (DRAW,     "knoodledraw.cpp",            set()),
+    (IDENTIFY, "knoodleidentify.cpp",        set()),
+]
 
 checks = 0
 fails = 0
@@ -159,41 +175,150 @@ def test_failure_looks_like_failure():
         check(out.strip() == "", f"{flag}: writes nothing to stdout")
 
 
-def test_help():
-    section("--help")
-
-    rc, out, err = run([SIMPLIFY, "--help"])
-    text = out + err
-    check(rc == 0, "--help exits 0")
-    check("Usage:" in text, "--help prints a usage line")
-
-    # Every flag the parser accepts should be documented. The flag list is read
-    # from the parser itself, so adding a flag without documenting it fails here
-    # rather than going unnoticed -- which is how --reapr-rotation-trials came
-    # to be mis-remembered as --rotation-trials while writing
-    # simplify_config_check.
-    cfg = os.path.join(TOOLS, "knoodlesimplify_config.hpp")
+def parser_flags(path):
+    """Long flags the parser's own comparisons accept."""
     flags = set()
-    with open(cfg) as f:
+    with open(path) as f:
         for line in f:
+            # knoodledraw spells its boolean pairs as MatchBoolFlag(arg, "name"),
+            # which stands for both --name and --no-name.
+            if "MatchBoolFlag(arg," in line:
+                pieces = line.split('"')
+                if len(pieces) >= 2:
+                    flags.add("--" + pieces[1])
+                    flags.add("--no-" + pieces[1])
+                continue
             if "arg ==" not in line and "starts_with(" not in line:
                 continue
             for piece in line.split('"'):
-                if piece.startswith("--"):
+                # "--" and "--no-" are prefix tests inside MatchBoolFlag itself,
+                # not flags.
+                if piece.startswith("--") and len(piece) > 2 and piece != "--no-":
                     flags.add(piece.rstrip("="))
+    return flags
 
-    # Deliberately undocumented: a debugging aid, not an interface.
-    hidden = {"--debug-print-simplify-args"}
 
-    check(len(flags) > 15, f"found {len(flags)} flags in the parser to check")
-    undocumented = sorted(f for f in flags - hidden if f not in text)
-    check(not undocumented,
-          f"--help documents every flag the parser accepts "
-          f"(missing: {', '.join(undocumented) if undocumented else 'none'})")
+def table_flags(path):
+    """Flags listed in the parser's kKnownFlags table."""
+    flags = set()
+    inside = False
+    with open(path) as f:
+        for line in f:
+            if "kKnownFlags[] = {" in line:
+                inside = True
+                continue
+            if not inside:
+                continue
+            if "}" in line and '"' not in line:
+                break
+            for piece in line.split('"'):
+                if piece.startswith("--") and len(piece) > 2:
+                    flags.add(piece.rstrip("="))
+    return flags
 
-    # And the hidden one really is hidden.
-    for h in hidden:
-        check(h not in text, f"{h} stays out of --help")
+
+def documented(flag, text):
+    """Does --help describe `flag`?
+
+    The preferred spelling has to appear verbatim -- that spelling IS the
+    contract, and the parser's tolerance for case and separator variants is
+    what spares users from having to match it exactly.
+
+    The one concession is the --no- forms of boolean flags. A tool may either
+    spell both out (knoodlesimplify's "--canonicalize / --no-canonicalize") or
+    document the positive form and state the convention once in a section
+    header (knoodledraw's seven pairs). Demanding all fourteen long negated
+    spellings verbatim would bloat the help for no gain.
+    """
+    if flag in text:
+        return True
+    if flag.startswith("--no-"):
+        return ("--" + flag[len("--no-"):]) in text and "--no-" in text
+    return False
+
+
+def test_help():
+    section("--help")
+
+    for tool, source, hidden in FLAG_SOURCES:
+        name = os.path.basename(tool)
+        if not os.path.exists(tool):
+            print(f"  SKIP  {name} is not built")
+            continue
+
+        rc, out, err = run([tool, "--help"])
+        text = out + err
+        check(rc == 0, f"{name} --help exits 0")
+        check("Usage:" in text, f"{name} --help prints a usage line")
+
+        src = os.path.join(TOOLS, source)
+        flags = parser_flags(src)
+        table = table_flags(src)
+
+        check(len(flags) > 8, f"{name}: found {len(flags)} flags in the parser")
+
+        undocumented = sorted(f for f in flags - hidden if not documented(f, text))
+        check(not undocumented,
+              f"{name} --help documents every flag the parser accepts "
+              f"(missing: {', '.join(undocumented) if undocumented else 'none'})")
+
+        # The canonicalizing table is what makes variant spellings work, so a
+        # flag missing from it silently loses that tolerance.
+        missing = sorted(flags - table)
+        extra = sorted(table - flags)
+        check(not missing and not extra,
+              f"{name}: kKnownFlags matches the parser "
+              f"(missing: {', '.join(missing) or 'none'}; "
+              f"stale: {', '.join(extra) or 'none'})")
+
+        for h in hidden:
+            check(h not in text, f"{name}: {h} stays out of --help")
+
+
+def test_flag_spellings():
+    section("flag spelling is forgiving")
+
+    # A user who types --CheckerboardColoring or --checkerboard_coloring has
+    # said unambiguously what they want, so the tools serve it rather than
+    # complain. --help documents one preferred spelling; the parser accepts
+    # every case/separator variant of it.
+    #
+    # Probing with a trailing --help keeps this free of data files and of KLUT
+    # tables: the variant has to parse before --help ends the loop.
+    accepted = [
+        (SIMPLIFY, ["--Streaming-Mode", "--streamingmode", "--STREAMING_MODE"]),
+        (DRAW, ["--CheckerboardColoring", "--checkerboard_coloring",
+                "--CHECKERBOARD-COLORING"]),
+        (IDENTIFY, ["--Randomize-Projection", "--randomizeprojection",
+                    "--RANDOMIZE_PROJECTION"]),
+    ]
+
+    # Abbreviations and single-dash long flags stay rejected: every accepted
+    # spelling has to map to exactly one documented flag, so that adding a flag
+    # can never change how an existing spelling parses.
+    rejected = [
+        (SIMPLIFY, ["--streaming", "-streaming-mode"]),
+        (DRAW, ["--checker", "-checkerboard-coloring"]),
+        (IDENTIFY, ["--randomize", "-randomize-projection"]),
+    ]
+
+    for tool, spellings in accepted:
+        name = os.path.basename(tool)
+        if not os.path.exists(tool):
+            print(f"  SKIP  {name} is not built")
+            continue
+        for spelling in spellings:
+            rc, out, err = run([tool, spelling, "--help"])
+            check(rc == 0 and "Unknown option" not in (out + err),
+                  f"{name} accepts {spelling}")
+
+    for tool, spellings in rejected:
+        name = os.path.basename(tool)
+        if not os.path.exists(tool):
+            continue
+        for spelling in spellings:
+            rc, out, err = run([tool, spelling, "--help"])
+            check(rc != 0, f"{name} still rejects {spelling}")
 
 
 def test_draw_is_a_filter():

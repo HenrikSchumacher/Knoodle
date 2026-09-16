@@ -819,6 +819,73 @@ void LogError(const std::string& msg)
 }
 
 /**
+ * @brief Canonical form of a command-line flag NAME, for tolerant matching.
+ *
+ * Lowercase, with '-' and '_' dropped, so that every spelling that differs only
+ * in case or separators folds together:
+ *
+ *   --checkerboard-coloring  --CheckerboardColoring  --checkerboard_coloring
+ *       all canonicalize to  "checkerboardcoloring"
+ *
+ * A user who types any of those has said unambiguously what they want, so the
+ * tools serve them rather than complain about the spelling.
+ */
+[[maybe_unused]] std::string CanonicalFlagName(std::string_view name)
+{
+    std::string result;
+    result.reserve(name.size());
+    for (char c : name)
+    {
+        if (c == '-' || c == '_') { continue; }
+        result += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+    return result;
+}
+
+/**
+ * @brief Rewrite one argv entry to the PREFERRED spelling of the flag it names.
+ *
+ * `known` lists a tool's documented flags in their preferred spelling (the one
+ * and only form --help describes). If `arg` names one of them in any spelling
+ * that canonicalizes the same, the preferred spelling is substituted; anything
+ * else is handed back untouched. Run over argv before matching, this buys the
+ * whole parser variant-spelling tolerance without a single comparison site
+ * having to know about it -- and because the substituted name has the preferred
+ * spelling's exact length, offsets into the rewritten argument stay valid.
+ *
+ * Only the flag NAME is folded. Everything right of the first '=' is a value --
+ * a path, a PD descriptor, a highlight list -- where case and punctuation carry
+ * meaning, so it is copied verbatim. Single-dash arguments are left alone too:
+ * they are short flags (-calf) or filenames, not long-flag spellings.
+ *
+ * Deliberately NOT accepted: abbreviations (--checker) and single-dash long
+ * flags (-format=wl). Every accepted spelling maps to exactly one documented
+ * flag, so the mapping is unambiguous today and adding a flag tomorrow cannot
+ * change how an existing spelling parses. An unknown flag comes back verbatim,
+ * so the parser's own error message quotes what the user actually typed.
+ */
+template<typename FlagList>
+[[maybe_unused]] std::string CanonicalizeFlagSpelling(
+    std::string_view arg, const FlagList & known)
+{
+    if (!arg.starts_with("--")) { return std::string(arg); }
+
+    const auto eq = arg.find('=');
+    const std::string canon = CanonicalFlagName(arg.substr(0, eq));
+
+    for (std::string_view flag : known)
+    {
+        if (CanonicalFlagName(flag) != canon) { continue; }
+
+        std::string result(flag);
+        if (eq != std::string_view::npos) { result += std::string(arg.substr(eq)); }
+        return result;
+    }
+
+    return std::string(arg);
+}
+
+/**
  * @brief Trim leading and trailing whitespace from a string.
  */
 std::string Trim(std::string_view s)

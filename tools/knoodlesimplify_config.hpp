@@ -217,6 +217,47 @@ std::optional<int> ParseSimplifyLevel(std::string_view arg)
 /**
  * @brief Parse command-line arguments into a Config struct.
  */
+// Every long flag knoodlesimplify accepts, in the preferred spelling
+// PrintUsage() documents. CanonicalizeFlagSpelling maps case and separator
+// variants onto these, so the matching below only ever has to know the one
+// form. A flag added to the parser belongs here and in PrintUsage();
+// test/cli_contract_check.py checks all three agree. (The short flags -s=N,
+// -q and -h are matched verbatim and are not canonicalized.)
+constexpr std::string_view kKnownFlags[] = {
+    "--help",
+    "--simplify-level",
+    "--max-reapr-attempts",
+    "--no-compaction",
+    "--reapr-energy",
+    "--compress-initial",         "--no-compress-initial",
+    "--local-opt-level",
+    "--dijkstra-strategy",
+    "--start-max-dist",
+    "--final-max-dist",
+    "--reroute",                  "--no-reroute",
+    "--disconnect",               "--no-disconnect",
+    "--compress",                 "--no-compress",
+    "--compression-threshold",
+    "--reapr-rotation-trials",
+    "--reapr-permute-random",     "--no-reapr-permute-random",
+    "--reapr-scaling",
+    "--randomize-bends",
+    "--randomize-virtual-edges",  "--no-randomize-virtual-edges",
+    "--compaction-method",
+    "--canonicalize",             "--no-canonicalize",
+    "--split",
+    "--unite",
+    "--input",
+    "--streaming-mode",
+    "--randomize-projection",
+    "--output",
+    "--quiet",
+    "--format",
+    // Deliberately undocumented: a debugging aid, not an interface. It lives
+    // here so its spelling is as forgiving as every other flag's.
+    "--debug-print-simplify-args",
+};
+
 std::optional<Config> ParseArguments(int argc, char* argv[])
 {
     Config config;
@@ -224,7 +265,12 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
 
     for (int i = 1; i < argc; ++i)
     {
-        std::string_view arg(argv[i]);
+        // Serve any spelling of a documented flag that differs only in case or
+        // in '-'/'_' separators, by rewriting it to the spelling --help names.
+        // Values, short flags and filenames pass through untouched.
+        const std::string arg_text = CanonicalizeFlagSpelling(
+            std::string_view(argv[i]), kKnownFlags);
+        std::string_view arg(arg_text);
 
         // Help
         if (arg == "-h" || arg == "--help")
