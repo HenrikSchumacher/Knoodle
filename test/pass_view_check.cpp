@@ -583,8 +583,9 @@ static void RunDiskTests( const char * name, const PD_T & pd,
 // and its drawings must satisfy the two deletions like any other.
 //
 // Finding nothing is a legitimate answer, not a failure: FindShortestRerouting
-// caps the corridor at L-2, so a strand with no strictly shorter route through
-// the faces simply has none. Only what it DOES return is checked here.
+// budgets the search at L-2, which admits only corridors saving two crossings
+// or more, so a strand with no such route simply has none. Only what it DOES
+// return is checked here.
 static void RunFoundPassTests( const char * name, const PD_T & pd,
                                Int first_arc, Int last_arc )
 {
@@ -599,14 +600,26 @@ static void RunFoundPassTests( const char * name, const PD_T & pd,
         return;
     }
 
-    // The corridor came from the shortest-path search, so it must shorten:
-    // FindShortestRerouting caps at L-2, i.e. k <= L-2.
+    // The corridor came from the shortest-path search, so it must shorten --
+    // and by TWO, not one. The budget and the crossing count differ by one, so
+    // spell the chain out rather than re-deriving it wrongly (this bound read
+    // `k <= L-2` until 2026-09-17, which is the budget, not the count):
+    //
+    //   FindShortestRerouting   max_dist = Ramp(L-2)
+    //   the search succeeds     only with path length k' <= max_dist
+    //   the returned Path_T     Size() == k'+1, CrossingCount() == Size()-2
+    //   FromPassAndPath         copies the INTERIOR entries, so
+    //                           mv.cross.size() == CrossingCount() == k'-1
+    //
+    // hence k <= (L-2) - 1 == L-3. (L == 2 cannot reach here at all: its budget
+    // is Ramp(0) == 0 while success needs k' >= 1, so no path is returned and
+    // FindPassDescriptor has already failed above.)
     const Int L = static_cast<Int>(mv.strand.size());
     const Int k = static_cast<Int>(mv.cross.size());
-    if( k > L - Int(2) )
+    if( k > L - Int(3) )
     {
-        std::printf("  found %-16s k=%lld exceeds the L-2 = %lld cap\n",
-            name, (long long)k, (long long)(L - Int(2)));
+        std::printf("  found %-16s k=%lld exceeds the L-3 = %lld cap\n",
+            name, (long long)k, (long long)(L - Int(3)));
         ok = false;
         return;
     }
