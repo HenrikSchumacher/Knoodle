@@ -376,7 +376,68 @@ Two distinct predicates apply to a record, and tools split along them:
   (knoodleprove) demand this, and only for records that advance the
   diagram. For `redraw` the witness is the embedding+rotation (above); for
   `middlepass` it is the feasibility witness, whose soundness theorem
-  (middlestrands' Theorem B) was ratified on 2026-09-14 — see below.
+  (middlestrands' Theorem B) was ratified on 2026-09-14 — see below. For
+  `pass` and `r1` the required witness is **none**: see immediately below.
+
+### Kinds for which well-formed implies sound
+
+For two kinds the two tiers coincide, so a verifier has nothing to demand
+beyond the local checks.
+
+- **`r1`** — a curl removal carries no witness; its local checks are the whole
+  story. Stated with the kind, below.
+- **`pass`** — **a well-formed `kind=pass` record is sound.** Check 5 is what
+  does the work: requiring W's tags to be uniform and equal to its own role at
+  its interior crossings is exactly the hypothesis under which the rerouting is
+  an isotopy, for a corridor of any length and on either side of W.
+
+  *Proposition C, middlestrands `cpp-design/slide-realization-theorem.md` §5.1
+  ("Uniform passes: feasible always, and without variables"), ratified
+  2026-09-16. The proof is not reproduced here.*
+
+  Two boundaries worth stating, because "well-formed implies sound" invites
+  being read more broadly than it is meant.
+
+  1. It is about `pass`, not `middlepass`. Mixed tags are exactly what the
+     proposition does not cover, and are why the feasibility witness exists.
+  2. It does not settle whether an anchor may coincide with an interior
+     crossing; uniformity does not imply that, and it remains a separate
+     hypothesis on the emitter's side.
+
+  **Proposition C′** (*ibid.* §5.2, "Uniform passes with an unrestricted
+  corridor", ratified 2026-09-16) is stronger, and drops two hypotheses that are
+  worth keeping apart: that the crossed arcs avoid W, and that they are pairwise
+  distinct. (The crossing *points* remain distinct; it is the *arcs* that may
+  repeat.) Check 1 forbids both today, in two separate clauses — and the two are
+  at quite different stages.
+
+  **A corridor that crosses W.** Check 1's "no crossed arc belongs to the
+  strand" forbids naming such an arc. This is not an exotic case:
+  `FindShortestPath` **hides** W while searching, which is exactly what lets a
+  corridor step between the two faces flanking a strand arc at no cost, so
+  W-crossing corridors are the search's ordinary output — middlestrands measure
+  59.3% of the corridors with `k ≥ 1` on raw projections. The consequence today
+  is that neither side can write down what the search returned: no W arc is
+  named, so check 1 passes vacuously and **check 2** fails instead, its face
+  chain broken by a merge that exists only once W is gone. `knoodledraw
+  --find-pass` loses these corridors for exactly this reason. Relaxing the
+  clause is proposed in `handoff/middlepass-descriptor-emission/` ROUND-11, and
+  C′ is what licenses it.
+
+  **The same arc crossed twice.** Here C′'s permission does *not* simply
+  transfer, and the clause divides:
+
+  - a repeated **surviving** arc stays forbidden. The first crossing splits it,
+    so a later step naming it again addresses a changed extent — the aliasing
+    hazard check 1's own rationale describes. C′ says the topology is fine; it
+    does not make an applier able to carry the move out.
+  - a repeated **W** arc carries no such hazard, that arc being deleted rather
+    than split. Whether distinctness should therefore be stated as constraining
+    surviving crossings only is **open**, and it arises only once W arcs may be
+    named at all. ROUND-11 asks for a measurement before it is settled.
+
+  So C′'s role here is to establish that check 1's clauses are *applier*
+  constraints rather than topological ones — not to license removing them.
 
 ## Step kind: `middlepass`
 
