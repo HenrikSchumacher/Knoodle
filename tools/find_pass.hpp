@@ -18,9 +18,17 @@
 //
 // `FindShortestRerouting` is Henrik's own public search, and its doc comment
 // says it "is only meant for the visualization of a few paths" -- which is
-// precisely what we are doing. It caps the corridor at `L-2`, so what it
-// returns is both optimal and strictly simplifying. It does NOT reroute: it
-// returns a `Path_T` and leaves the diagram alone.
+// precisely what we are doing. It does NOT reroute: it returns a `Path_T` and
+// leaves the diagram alone.
+//
+// It budgets the search at `max_dist = Ramp(L-2)`, which is NOT a bound on the
+// number of arcs crossed -- the two differ by one, and conflating them is easy:
+// a returned path of length k' carries k'-1 crossings, so crossed <= L-3. The
+// consequence worth remembering is the one in that currency: **it only reports
+// corridors that remove at least two crossings.** What it returns is therefore
+// optimal and strictly simplifying, but corridors removing exactly one are real
+// and simply not reported -- production's own `SimplifyPasses` takes those,
+// searching with `L-1` instead. Exposing that budget is an open ask upstream.
 
 #include <string>
 #include <vector>
@@ -117,8 +125,9 @@ namespace KnoodleFindPass
         {
             why = "FindShortestRerouting found no rerouting of the strand from"
                   " arc " + std::to_string(a) + " to arc " + std::to_string(b)
-                + " (it caps the corridor at L-2, so a strand with no strictly"
-                  " shorter route through the faces has none to report)";
+                + " (it only reports corridors that remove at least two"
+                  " crossings, so a strand whose best rerouting saves one or"
+                  " none has nothing to report)";
             return false;
         }
 
