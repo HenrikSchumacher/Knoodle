@@ -722,6 +722,145 @@ static void RunInferenceDeadlockTests()
     if( passQ ) { ++checks_passed; } else { ok = false; }
 }
 
+// A dot whose stub runs straight into its anchor, with a healed transversal
+// on the dot's other side: `*` between two `|`. The anchor is promoted to a
+// crossing earlier in the round than the dot's counting rule runs, and the
+// counting rule used to ignore a neighbour that was ALREADY a crossing -- so
+// it saw one candidate where there were two, and "forced" the dot onto the
+// transversal. That pulled the corridor stroke beside it into a phantom
+// crossing and the parse failed. Canvas: the after view of the W-crossing
+// experiment (raw_37, second instance), grid 2x2, where the dot at (21,16)
+// sits between the healed transversal (20,16) and its anchor (22,16).
+static void RunCrossingNeighbourCountTests()
+{
+    const std::string canvas = R"CANVAS(                                 
+                                 
+          +<----------------+    
+          |                 ^    
+          |   +<------------|<+  
+          v   v             ^ ^  
+        +<|<---<----------+ | |  
+        | |   |           ^ | |  
+        | |   |     +<+   | | |  
+        | |   v     v ^   | | |  
+        | | +<|<----|<-<+ | | |  
+        | v v v     | ^ ^ | | |  
+        | +>->->+   | | | | | |  
+        |   v *==>=]| | | | | |  
+        | +>|>->|>+v| | | | | |  
+        | ^ |   v v;v | | | | |  
+        | | |   | |;|*|>+ | | |  
+        | | |   | |{=}^   | | |  
+        | | |   | | +>|-->->+ |  
+        v | v   v v   ^   ^   |  
+    +-->->|>|-->|>|-->+   |   |  
+    ^   v ^ v   v v       |   |  
+  +>--->|>+ +-->->|------>+   |  
+  ^ ^   |       v v           |  
+  | |   |       +>|---------->+  
+  | |   v         v              
+  | | +<-<--------+              
+  | | v v                        
+  +<|<-<+                        
+    ^ v                          
+    +<+                          
+                                 
+                                 
+)CANVAS";
+
+    auto R = Extract_T::Extract(canvas, Int(34), Int(33));
+
+    const bool passQ = R.okQ && (R.pd.CrossingCount() == Int(28));
+
+    std::printf("  inference: dot between its anchor and a healed transversal  %s\n",
+        passQ ? "parsed"
+              : (R.okQ ? ("*** wrong parse: " + std::to_string(R.pd.CrossingCount())
+                          + " crossings, expected 28 ***").c_str()
+                       : ("*** " + R.why + " ***").c_str()));
+
+    if( passQ ) { ++checks_passed; } else { ok = false; }
+}
+
+// A corridor that crosses its own strand W. The crossing goes WITH W: in the
+// after view W is erased and the corridor runs straight through the cell, and
+// `AfterDiagram` makes no crossing for that `cross` entry. Both used to get it
+// wrong (ROUND-14): a CrossUnder cell stamped nothing and left a gap in the
+// corridor, and `AfterDiagram` split an arc it had just retired, producing 29
+// crossings where the move leaves 28.
+//
+// Check 1's membership clause (no crossed arc on the strand) binds
+// `middlepass` only: Proposition C′ licenses a W-crossing corridor for a
+// uniform `pass`, and nothing corresponding is proved for mixed tags. So each
+// case is asserted both ways -- as `kind=pass` it must be well formed and pass
+// the full two-deletions check at every grid; as `kind=middlepass` it must be
+// refused, and by that clause specifically. raw_37 is a 30-crossing random
+// projection; instance 1 is an under-strand with the corridor crossing W arc
+// 38 (darc 77), instance 2 an over-strand crossing W arc 16 (darc 33).
+static void RunStrandCrossingTests()
+{
+    const std::vector<Int> code = {
+        26,0,27,59,1, 9,1,10,0,1, 28,1,29,2,-1,
+        21,2,22,3,-1, 12,3,13,4,-1, 39,5,40,4,1,
+        5,14,6,15,-1, 51,7,52,6,1, 7,24,8,25,-1,
+        8,44,9,43,1, 10,28,11,27,1, 20,11,21,12,-1,
+        38,14,39,13,1, 40,15,41,16,-1, 57,16,58,17,-1,
+        17,54,18,55,-1, 55,18,56,19,-1, 19,56,20,57,-1,
+        37,23,38,22,1, 50,24,51,23,1, 25,43,26,42,1,
+        29,48,30,49,-1, 35,31,36,30,1, 31,45,32,44,1,
+        45,33,46,32,1, 33,47,34,46,1, 47,35,48,34,1,
+        49,36,50,37,-1, 52,42,53,41,1, 58,53,59,54,-1
+    };
+    const PD_T pd = PD_T::FromSignedPDCode(code.data(), Int(30));
+
+    const Case_T cases[] = {
+        { "raw_37 W-cross u", &pd,
+          "strand=75,77,79,81,83 depart=75 cross=44:u,77:u,12:u land=82" },
+        { "raw_37 W-cross o", &pd,
+          "strand=27,29,31,33,35 depart=27 cross=8:o,33:o,116:o land=34" },
+    };
+
+    for( const auto & kase : cases )
+    {
+        Deco_T::PassMove_T mv;
+        std::string err;
+        if( !Deco_T::PassMove_T::Parse(kase.spec, mv, err) )
+        {
+            std::printf("  %-18s descriptor did not parse: %s\n", kase.name, err.c_str());
+            ok = false;
+            continue;
+        }
+
+        if( !mv.WellFormedQ(pd, err) )
+        {
+            std::printf("  %-18s *** kind=pass refused: %s ***\n",
+                kase.name, err.c_str());
+            ok = false;
+            continue;
+        }
+
+        for( Int g : {2, 3, 4, 6} ) { RunCase(kase, g, g); }
+
+        // The same corridor as a middlepass: the membership clause stands.
+        const std::string mp_spec = std::string("kind=middlepass ") + kase.spec;
+        Deco_T::PassMove_T mp;
+        if( !Deco_T::PassMove_T::Parse(mp_spec, mp, err) )
+        {
+            std::printf("  %-18s middlepass descriptor did not parse: %s\n",
+                kase.name, err.c_str());
+            ok = false;
+            continue;
+        }
+        const bool refusedQ = !mp.WellFormedQ(pd, err)
+            && (err.find("corridor crosses its own strand") != std::string::npos);
+        std::printf("  %-18s kind=middlepass  %s\n", kase.name,
+            refusedQ ? "refused by the membership clause"
+                     : ("*** not refused by the membership clause: "
+                        + (err.empty() ? std::string("well formed") : err)
+                        + " ***").c_str());
+        if( refusedQ ) { ++checks_passed; } else { ok = false; }
+    }
+}
+
 static void RunIsomorphismTests()
 {
     auto build = []( std::vector<Int> code ) -> PD_T
@@ -931,6 +1070,8 @@ int main()
 
     std::printf("=== unrooted isomorphism (what --verify's trace check uses) ===\n");
     RunInferenceDeadlockTests();
+    RunCrossingNeighbourCountTests();
+    RunStrandCrossingTests();
 
     RunIsomorphismTests();
 

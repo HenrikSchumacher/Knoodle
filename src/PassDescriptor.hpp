@@ -171,14 +171,25 @@ namespace Knoodle
                     }
                 }
             }
-            for( std::size_t i = 0; i < k; ++i )
+            // The membership clause -- no crossed arc belongs to the strand --
+            // binds `middlepass` only. For a uniform `pass`, Proposition C′
+            // (middlestrands slide-realization-theorem §5.2, ratified
+            // 2026-09-16) shows a corridor crossing W is still an isotopy: that
+            // crossing simply goes with W. Nothing corresponding is proved for
+            // mixed tags, so a middlepass keeps the clause.
+            if( middlepassQ )
             {
-                for( std::size_t j = 0; j < m; ++j )
+                for( std::size_t i = 0; i < k; ++i )
                 {
-                    if( ArcOf(cross[i]) == ArcOf(strand[j]) )
+                    for( std::size_t j = 0; j < m; ++j )
                     {
-                        return fail("corridor crosses its own strand at arc "
-                            + Tools::ToString(ArcOf(cross[i])) + " (check 1)");
+                        if( ArcOf(cross[i]) == ArcOf(strand[j]) )
+                        {
+                            return fail("corridor crosses its own strand at arc "
+                                + Tools::ToString(ArcOf(cross[i]))
+                                + " (check 1; allowed for kind=pass, not for"
+                                  " kind=middlepass)");
+                        }
                     }
                 }
             }
