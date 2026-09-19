@@ -722,6 +722,65 @@ static void RunInferenceDeadlockTests()
     if( passQ ) { ++checks_passed; } else { ok = false; }
 }
 
+// A dot whose stub runs straight into its anchor, with a healed transversal
+// on the dot's other side: `*` between two `|`. The anchor is promoted to a
+// crossing earlier in the round than the dot's counting rule runs, and the
+// counting rule used to ignore a neighbour that was ALREADY a crossing -- so
+// it saw one candidate where there were two, and "forced" the dot onto the
+// transversal. That pulled the corridor stroke beside it into a phantom
+// crossing and the parse failed. Canvas: the after view of the W-crossing
+// experiment (raw_37, second instance), grid 2x2, where the dot at (21,16)
+// sits between the healed transversal (20,16) and its anchor (22,16).
+static void RunCrossingNeighbourCountTests()
+{
+    const std::string canvas = R"CANVAS(                                 
+                                 
+          +<----------------+    
+          |                 ^    
+          |   +<------------|<+  
+          v   v             ^ ^  
+        +<|<---<----------+ | |  
+        | |   |           ^ | |  
+        | |   |     +<+   | | |  
+        | |   v     v ^   | | |  
+        | | +<|<----|<-<+ | | |  
+        | v v v     | ^ ^ | | |  
+        | +>->->+   | | | | | |  
+        |   v *==>=]| | | | | |  
+        | +>|>->|>+v| | | | | |  
+        | ^ |   v v;v | | | | |  
+        | | |   | |;|*|>+ | | |  
+        | | |   | |{=}^   | | |  
+        | | |   | | +>|-->->+ |  
+        v | v   v v   ^   ^   |  
+    +-->->|>|-->|>|-->+   |   |  
+    ^   v ^ v   v v       |   |  
+  +>--->|>+ +-->->|------>+   |  
+  ^ ^   |       v v           |  
+  | |   |       +>|---------->+  
+  | |   v         v              
+  | | +<-<--------+              
+  | | v v                        
+  +<|<-<+                        
+    ^ v                          
+    +<+                          
+                                 
+                                 
+)CANVAS";
+
+    auto R = Extract_T::Extract(canvas, Int(34), Int(33));
+
+    const bool passQ = R.okQ && (R.pd.CrossingCount() == Int(28));
+
+    std::printf("  inference: dot between its anchor and a healed transversal  %s\n",
+        passQ ? "parsed"
+              : (R.okQ ? ("*** wrong parse: " + std::to_string(R.pd.CrossingCount())
+                          + " crossings, expected 28 ***").c_str()
+                       : ("*** " + R.why + " ***").c_str()));
+
+    if( passQ ) { ++checks_passed; } else { ok = false; }
+}
+
 static void RunIsomorphismTests()
 {
     auto build = []( std::vector<Int> code ) -> PD_T
@@ -931,6 +990,7 @@ int main()
 
     std::printf("=== unrooted isomorphism (what --verify's trace check uses) ===\n");
     RunInferenceDeadlockTests();
+    RunCrossingNeighbourCountTests();
 
     RunIsomorphismTests();
 

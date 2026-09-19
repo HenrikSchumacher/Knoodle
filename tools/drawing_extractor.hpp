@@ -344,6 +344,13 @@ namespace KnoodleDrawIO
                     if( !inQ(nx,ny) ) { return false; }
                     const std::size_t j = idx(nx,ny);
                     if( !fullQ[j] ) { return false; }
+                    // Already pointing back -- typically a stroke promoted to
+                    // a crossing earlier in THIS round, after the
+                    // accumulation pass had run. Leaving it out undercounts,
+                    // and the rule then "forces" the one remaining candidate:
+                    // a dot between its anchor and a healed transversal takes
+                    // the transversal (wcross_named2 at grid 2).
+                    if( hasarm(j,DirOpp(d)) ) { return true; }
                     if( inferQ[j] ) { return true; }
                     if( strokeQ[j] && !crossQ[j] )
                     {
