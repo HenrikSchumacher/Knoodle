@@ -193,8 +193,16 @@ entirely over or entirely under everything it crosses.
 ### Local validation (every consumer must check)
 
 1. `strand` darcs are consecutive: head of each = tail of the next; all arcs
-   active and pairwise distinct; no crossed arc belongs to the strand; and the
-   crossed arcs are pairwise distinct — the corridor is **arc-disjoint**.
+   active and pairwise distinct; and the crossed arcs are pairwise distinct —
+   the corridor is **arc-disjoint**.
+
+   For `pass`, a crossed arc **may** belong to the strand: the corridor may
+   cross W. That crossing goes with W — deleting W leaves nothing there to
+   cross, so the after-diagram has no crossing for that entry and the corridor
+   runs straight through. Proposition C′ (below) is what licenses this. For
+   `middlepass` it is still forbidden (the *membership clause*: no crossed arc
+   belongs to the strand), because nothing corresponding is proved for mixed
+   tags.
 
    Arc-disjointness is not a stylistic preference. Crossing one arc twice is
    not something an applier can carry out: the first crossing splits the arc,
@@ -420,9 +428,15 @@ beyond the local checks.
   is that neither side can write down what the search returned: no W arc is
   named, so check 1 passes vacuously and **check 2** fails instead, its face
   chain broken by a merge that exists only once W is gone. `knoodledraw
-  --find-pass` loses these corridors for exactly this reason. Relaxing the
-  clause is proposed in `handoff/middlepass-descriptor-emission/` ROUND-11, and
-  C′ is what licenses it.
+  --find-pass` loses these corridors for exactly this reason.
+
+  **Decided 2026-09-19 (JHC): the clause is relaxed for `pass` and kept for
+  `middlepass`.** C′ covers uniform passes and nothing else; the mixed-tag
+  analogue is unproved, so a `middlepass` still may not name a W arc. The
+  relaxation was proposed in `handoff/middlepass-descriptor-emission/` ROUND-11.
+  It needed renderer and applier work first, since those paths had never run:
+  ROUND-14 and ROUND-16 record what broke, and `test/pass_view_check.cpp`
+  (`RunStrandCrossingTests`) asserts both halves of the rule.
 
   **The same arc crossed twice.** Here C′'s permission does *not* simply
   transfer, and the clause divides:
@@ -436,15 +450,20 @@ beyond the local checks.
     surviving crossings only is **open**, and it arises only once W arcs may be
     named at all. ROUND-11 asks for a measurement before it is settled.
 
-  So C′'s role here is to establish that check 1's clauses are *applier*
-  constraints rather than topological ones — not to license removing them.
+  So for the repeated-arc clause, C′'s role is to establish that it is an
+  *applier* constraint rather than a topological one — not to license removing
+  it. The membership clause was different: once our own applier
+  (`AfterDiagram`) and renderer handled a W arc correctly, the applier
+  constraint was gone and C′ settled the topology.
 
 ## Step kind: `middlepass`
 
 Middlestrands' `MiddleStrandSimplifier` moves (see
 `handoff/middlepass-descriptor-emission/`): identical grammar and checks
 1–4 as `pass`, but the over/under tags are **per-crossing** — check 5 is
-dropped. This is the majority move class in practice (67% of applied moves
+dropped. One difference inside check 1: a `middlepass` keeps the **membership
+clause** — no crossed arc may belong to the strand — which `pass` has dropped
+under Proposition C′. There is no mixed-tag analogue of C′. This is the majority move class in practice (67% of applied moves
 in the first shakedown), not an edge case.
 
 ```

@@ -788,10 +788,12 @@ static void RunCrossingNeighbourCountTests()
 // corridor, and `AfterDiagram` split an arc it had just retired, producing 29
 // crossings where the move leaves 28.
 //
-// GATED: check 1's membership clause still rejects any descriptor whose
-// `cross` names a strand arc, so today these cases stop at `WellFormedQ` and
-// are reported as gated rather than run. Relax the clause and they run -- and
-// then must pass the full two-deletions check. raw_37 is a 30-crossing random
+// Check 1's membership clause (no crossed arc on the strand) binds
+// `middlepass` only: Proposition C′ licenses a W-crossing corridor for a
+// uniform `pass`, and nothing corresponding is proved for mixed tags. So each
+// case is asserted both ways -- as `kind=pass` it must be well formed and pass
+// the full two-deletions check at every grid; as `kind=middlepass` it must be
+// refused, and by that clause specifically. raw_37 is a 30-crossing random
 // projection; instance 1 is an under-strand with the corridor crossing W arc
 // 38 (darc 77), instance 2 an over-strand crossing W arc 16 (darc 33).
 static void RunStrandCrossingTests()
@@ -830,21 +832,32 @@ static void RunStrandCrossingTests()
 
         if( !mv.WellFormedQ(pd, err) )
         {
-            // The ONLY acceptable refusal is check 1's membership clause.
-            if( err.find("corridor crosses its own strand") != std::string::npos )
-            {
-                std::printf("  %-18s gated: %s\n", kase.name, err.c_str());
-            }
-            else
-            {
-                std::printf("  %-18s *** refused for another reason: %s ***\n",
-                    kase.name, err.c_str());
-                ok = false;
-            }
+            std::printf("  %-18s *** kind=pass refused: %s ***\n",
+                kase.name, err.c_str());
+            ok = false;
             continue;
         }
 
         for( Int g : {2, 3, 4, 6} ) { RunCase(kase, g, g); }
+
+        // The same corridor as a middlepass: the membership clause stands.
+        const std::string mp_spec = std::string("kind=middlepass ") + kase.spec;
+        Deco_T::PassMove_T mp;
+        if( !Deco_T::PassMove_T::Parse(mp_spec, mp, err) )
+        {
+            std::printf("  %-18s middlepass descriptor did not parse: %s\n",
+                kase.name, err.c_str());
+            ok = false;
+            continue;
+        }
+        const bool refusedQ = !mp.WellFormedQ(pd, err)
+            && (err.find("corridor crosses its own strand") != std::string::npos);
+        std::printf("  %-18s kind=middlepass  %s\n", kase.name,
+            refusedQ ? "refused by the membership clause"
+                     : ("*** not refused by the membership clause: "
+                        + (err.empty() ? std::string("well formed") : err)
+                        + " ***").c_str());
+        if( refusedQ ) { ++checks_passed; } else { ok = false; }
     }
 }
 
