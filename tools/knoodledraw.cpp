@@ -3871,7 +3871,8 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
                     // shared stubs and the drawing is the after-diagram in
                     // the frozen before-layout.
                     ApplyAfterView<PD_T>(H, diagram, mask, n_x, n_y,
-                                         move_margin, move, pass_route);
+                                         move_margin, move, pass_route,
+                                         cells);
                 }
                 else if (before_viewQ)
                 {

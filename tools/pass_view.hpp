@@ -226,6 +226,13 @@ void StampPassOverlay(std::string& diagram, std::vector<HighlightType>& mask,
  * strand runs STRAIGHT through a crossing in an orthogonal drawing, so the
  * healed transversal is the perpendicular stroke through that cell.
  *
+ * The corridor can cross W itself (a `cross` entry naming a strand arc). That
+ * crossing goes with W: once W is gone there is nothing left there to cross,
+ * so the corridor runs straight through the cell. `cells` is the corridor's
+ * overlay from RenderPassRoute, and each such crossing cell is rewritten
+ * in place to a plain stroke. Left alone, a CrossUnder there would stamp
+ * nothing and leave a gap in the corridor where W used to be.
+ *
  * Coordinates are padded-canvas coordinates: OrthoDraw vertex coordinates
  * plus `margin`, the same system the routed corridor uses. The corridor is
  * stamped separately (StampPassOverlay) after this runs.
@@ -307,10 +314,44 @@ void ApplyAfterView(Knoodle::OrthoDraw<PD_T>& H, std::string& diagram,
                     typename PD_T::Int n_x, typename PD_T::Int n_y,
                     typename PD_T::Int margin,
                     const typename Knoodle::OrthoDecorate<PD_T>::PassMove_T& move,
-                    const typename Knoodle::OrthoDecorate<PD_T>::PassRoute_T& pr)
+                    const typename Knoodle::OrthoDecorate<PD_T>::PassRoute_T& pr,
+                    std::vector<
+                        typename Knoodle::OrthoDecorate<PD_T>::OverlayCell_T
+                    >& cells_overlay)
 {
     using Int    = typename PD_T::Int;
     using Deco_T = Knoodle::OrthoDecorate<PD_T>;
+
+    // Corridor crossings on W vanish with W. `cells_overlay` is index-aligned
+    // with `pr.route.path` (RenderPassRoute appends its two anchor cells after
+    // the path), and `crossing_indices[j]` is where the corridor crosses
+    // `move.cross[j]`.
+    {
+        const auto & path = pr.route.path;
+        const auto & xi   = pr.route.crossing_indices;
+
+        for (std::size_t j = 0; j < xi.size() && j < move.cross.size(); ++j)
+        {
+            const Int b = Deco_T::PassMove_T::ArcOf(move.cross[j]);
+
+            bool on_strandQ = false;
+            for (const auto & s : move.strand)
+            {
+                if (Deco_T::PassMove_T::ArcOf(s) == b) { on_strandQ = true; break; }
+            }
+            if (!on_strandQ) continue;
+
+            const auto i = static_cast<std::size_t>(xi[j]);
+            if (i == 0 || i + 1 >= path.size() || i >= cells_overlay.size())
+                continue;   // a crossing is never a corridor endpoint
+
+            // Portal crossings are perpendicular, so the corridor is straight
+            // here and either neighbour gives its direction.
+            const bool horizontalQ = (path[i - 1][1] == path[i][1]);
+            cells_overlay[i].kind = horizontalQ ? Deco_T::OverlayKind::Horizontal
+                                                : Deco_T::OverlayKind::Vertical;
+        }
+    }
 
     auto idx = [n_x, n_y](Int x, Int y) -> std::size_t {
         return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y));
@@ -475,7 +516,8 @@ Canvas_T<PD_T> RenderPassView(
 
     if (view == PassViewKind::After)
     {
-        ApplyAfterView<PD_T>(H, diagram, mask, n_x, n_y, margin, move, pr);
+        ApplyAfterView<PD_T>(H, diagram, mask, n_x, n_y, margin, move, pr,
+                             cells);
     }
     else if (view == PassViewKind::Before)
     {

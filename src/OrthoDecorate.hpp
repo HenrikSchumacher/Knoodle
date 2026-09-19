@@ -1591,9 +1591,28 @@ namespace Knoodle
             for( Int x : interior ) { CS[static_cast<std::size_t>(x)] = CrossingState_T::Inactive; }
 
             // -- the corridor -----------------------------------------------
+            // A `cross` entry can name an arc of W itself. That crossing
+            // goes with W: the rerouted strand does not meet the strand it
+            // replaces, so there is nothing left there to cross. Only the
+            // entries on arcs that SURVIVE the move become crossings. Their
+            // slots keep their original index `n_c + j` (so a drawing's
+            // corridor crossing `j` still names crossing `n_c + j`); the
+            // slots of W's entries simply stay inactive.
+            std::vector<Int> live;          // indices j into mv.cross, in order
+            for( Int j = 0; j < k; ++j )
+            {
+                const Int b = PassMove_T::ArcOf(mv.cross[static_cast<std::size_t>(j)]);
+                if( std::find(w.begin(), w.end(), b) == w.end() )
+                {
+                    live.push_back(j);
+                }
+            }
+            const Int k_live = static_cast<Int>(live.size());
+
             // The move frees W's arcs and every transversal half it healed
             // away; between those and the slots the array grew by there is
-            // always room for the k+1 corridor arcs and the k split pieces.
+            // always room for the k_live+1 corridor arcs and the k_live split
+            // pieces.
             std::vector<Int> free_labels;
             for( Int a = 0; a < m_a; ++a )
             {
@@ -1602,21 +1621,21 @@ namespace Knoodle
                     free_labels.push_back(a);
                 }
             }
-            if( static_cast<Int>(free_labels.size()) < Int(2)*k + Int(1) )
+            if( static_cast<Int>(free_labels.size()) < Int(2)*k_live + Int(1) )
             {
                 return fail("not enough arc slots for the corridor: need "
-                    + std::to_string(Int(2)*k + Int(1)) + ", have "
+                    + std::to_string(Int(2)*k_live + Int(1)) + ", have "
                     + std::to_string(free_labels.size()));
             }
 
             std::size_t next_free = 0;
-            std::vector<Int> p (static_cast<std::size_t>(k+1));
-            for( Int j = 0; j <= k; ++j ) { p[static_cast<std::size_t>(j)] = free_labels[next_free++]; }
-            std::vector<Int> q (static_cast<std::size_t>(k));
-            for( Int j = 0; j < k; ++j ) { q[static_cast<std::size_t>(j)] = free_labels[next_free++]; }
+            std::vector<Int> p (static_cast<std::size_t>(k_live+1));
+            for( Int e = 0; e <= k_live; ++e ) { p[static_cast<std::size_t>(e)] = free_labels[next_free++]; }
+            std::vector<Int> q (static_cast<std::size_t>(k_live));
+            for( Int e = 0; e < k_live; ++e ) { q[static_cast<std::size_t>(e)] = free_labels[next_free++]; }
 
             const Int color = pd.ArcColors()[w[0]];
-            for( Int j = 0; j <= k; ++j )
+            for( Int j = 0; j <= k_live; ++j )
             {
                 AS[static_cast<std::size_t>(p[static_cast<std::size_t>(j)])] = ArcState_T::Active;
                 AC[static_cast<std::size_t>(p[static_cast<std::size_t>(j)])] = color;
@@ -1628,13 +1647,13 @@ namespace Knoodle
                     + " does not mention the strand's first arc");
             }
             if( !repoint(H, w[static_cast<std::size_t>(L-1)],
-                            p[static_cast<std::size_t>(k)]) )
+                            p[static_cast<std::size_t>(k_live)]) )
             {
                 return fail("head anchor " + std::to_string(H)
                     + " does not mention the strand's last arc");
             }
             Aend(p[0],Int(0)) = T;
-            Aend(p[static_cast<std::size_t>(k)],Int(1)) = H;
+            Aend(p[static_cast<std::size_t>(k_live)],Int(1)) = H;
 
             // The corridor may cross one healed arc more than once -- on two of
             // the pieces it was healed from, e.g. a chord of W and a transversal
@@ -1644,23 +1663,32 @@ namespace Knoodle
             // per piece). Each split below cuts the healed arc's CURRENT head
             // end, so splitting in decreasing chain position lays the crossings
             // down in chain order from the tail.
-            std::vector<Int> order (static_cast<std::size_t>(k));
-            for( Int j = 0; j < k; ++j ) { order[static_cast<std::size_t>(j)] = j; }
+            //
+            // `order` holds positions e along the LIVE corridor crossings;
+            // `live[e]` is the descriptor entry each one came from.
+            std::vector<Int> order (static_cast<std::size_t>(k_live));
+            for( Int e = 0; e < k_live; ++e ) { order[static_cast<std::size_t>(e)] = e; }
+            auto cross_arc = [&]( Int e ) -> Int
+            {
+                return PassMove_T::ArcOf(mv.cross[static_cast<std::size_t>(
+                    live[static_cast<std::size_t>(e)])]);
+            };
             std::stable_sort( order.begin(), order.end(),
                 [&]( Int i, Int j )
                 {
-                    return chain_pos[static_cast<std::size_t>(PassMove_T::ArcOf(mv.cross[static_cast<std::size_t>(i)]))]
-                         > chain_pos[static_cast<std::size_t>(PassMove_T::ArcOf(mv.cross[static_cast<std::size_t>(j)]))];
+                    return chain_pos[static_cast<std::size_t>(cross_arc(i))]
+                         > chain_pos[static_cast<std::size_t>(cross_arc(j))];
                 }
             );
 
-            for( Int j : order )
+            for( Int e : order )
             {
+                const Int j  = live[static_cast<std::size_t>(e)];
                 const Int y  = n_c + j;
                 const Int b0 = PassMove_T::ArcOf(mv.cross[static_cast<std::size_t>(j)]);
                 const Int b  = rep_of[static_cast<std::size_t>(b0)];
 
-                const Int qj       = q[static_cast<std::size_t>(j)];
+                const Int qj       = q[static_cast<std::size_t>(e)];
                 const Int old_head = Aend(b,Int(1));
 
                 AS[static_cast<std::size_t>(qj)] = ArcState_T::Active;
@@ -1674,8 +1702,8 @@ namespace Knoodle
                 }
                 Aend(b,Int(1)) = y;
 
-                const Int a_in  = p[static_cast<std::size_t>(j)];
-                const Int a_out = p[static_cast<std::size_t>(j+1)];
+                const Int a_in  = p[static_cast<std::size_t>(e)];
+                const Int a_out = p[static_cast<std::size_t>(e+1)];
                 Aend(a_in ,Int(1)) = y;
                 Aend(a_out,Int(0)) = y;
 
@@ -1701,7 +1729,7 @@ namespace Knoodle
                 }
             }
 
-            if( k == Int(0) ) { Aend(p[0],Int(1)) = H; }
+            if( k_live == Int(0) ) { Aend(p[0],Int(1)) = H; }
 
             why.clear();
 
