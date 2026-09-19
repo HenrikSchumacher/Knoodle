@@ -73,6 +73,7 @@ tools/ExampleKnot_simplified.tsv
 tools/knoodlesimplify
 tools/knoodledraw
 tools/knoodleidentify
+tools/knoodleprove
 tools/*.d
 test/*.d
 tools/knoodlesimplify.log

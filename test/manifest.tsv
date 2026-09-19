@@ -85,3 +85,4 @@ ordering_probe	tool	plain	-	-	-	-
 witness_check	test	plain	-	-	-	WITNESS CHECK OK \([1-9][0-9]* checks passed\)
 draw_trace_check	script	-	draw_trace_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 r1_draw_check	script	-	r1_draw_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
+prove_check	script	-	prove_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)

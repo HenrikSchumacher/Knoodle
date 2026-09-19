@@ -1284,11 +1284,15 @@ namespace Knoodle
          * The three-argument overload is for callers that do not expect a
          * split. It FAILS rather than quietly hand back a diagram that is
          * missing a component.
+         *
+         * Static: it reads nothing but the diagram and the descriptor, and a
+         * caller that only wants the after-diagram (knoodleprove) must not
+         * have to lay out a drawing to get it.
          */
-        PD_T AfterDiagram(
+        static PD_T AfterDiagram(
             cref<PD_T> pd, const PassMove_T & mv, mref<std::string> why,
             mref<std::vector<Int>> freed
-        ) const
+        )
         {
             freed.clear();
 
@@ -1718,9 +1722,9 @@ namespace Knoodle
          * that is quietly missing it. A caller that gets `PD_T()` and a `why`
          * mentioning split components wants the four-argument overload.
          */
-        PD_T AfterDiagram(
+        static PD_T AfterDiagram(
             cref<PD_T> pd, const PassMove_T & mv, mref<std::string> why
-        ) const
+        )
         {
             std::vector<Int> freed;
             PD_T after = AfterDiagram(pd,mv,why,freed);

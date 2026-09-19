@@ -27,6 +27,7 @@
 #include "find_pass.hpp"
 #include "r1_view.hpp"
 #include "witness_check.hpp"
+#include "trace_verify.hpp"
 
 #include <charconv>     // ParsePassMove
 #include <cmath>
@@ -3986,72 +3987,6 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
     return true;
 }
 
-/**
- * @brief Seed the correspondence between two claimed results of one move.
- *
- * Both sides keep every crossing the move promised not to touch at its
- * original index -- `AfterDiagram` because it rebuilds in place from the
- * before-diagram's arrays, an applier because it edits in place -- so on
- * exactly those crossings the correspondence is the IDENTITY, and propagation
- * forces everything else. Crossings created by the corridor are deliberately
- * left unseeded: neither side owes the other a numbering for them.
- *
- * This is the whole point of carrying the snapshot as internal state rather
- * than a PD code. A PD code renumbers, so the strongest question one could
- * ask of a cross-process result was "is it the same knot"; here a
- * disagreement names a crossing and a port.
- */
-bool BuildSurvivorSeeds(const PD_T& before,
-                        const Deco_T::PassMove_T& mv,
-                        const PD_T& d1,
-                        const PD_T& d2,
-                        std::vector<std::array<Int,2>>& seeds,
-                        std::string& why)
-{
-    seeds.clear();
-
-    const Int n_c = before.MaxCrossingCount();
-    std::vector<char> interiorQ(static_cast<std::size_t>(n_c), char(0));
-
-    const Int L = static_cast<Int>(mv.strand.size());
-    for (Int i = 1; i < L; ++i)
-    {
-        const Int x = Deco_T::PassMove_T::DarcHeadCrossing(
-            before, mv.strand[static_cast<std::size_t>(i-1)]);
-        if ((x >= Int(0)) && (x < n_c))
-        {
-            interiorQ[static_cast<std::size_t>(x)] = char(1);
-        }
-    }
-
-    for (Int c = 0; c < n_c; ++c)
-    {
-        if (!before.CrossingActiveQ(c)) continue;
-        if (interiorQ[static_cast<std::size_t>(c)]) continue;
-
-        const bool in1 = (c < d1.MaxCrossingCount()) && d1.CrossingActiveQ(c);
-        const bool in2 = (c < d2.MaxCrossingCount()) && d2.CrossingActiveQ(c);
-
-        if (in1 != in2)
-        {
-            why = "crossing " + std::to_string(c) + " is untouched by the move"
-                  " but survives in only one of the two results (ours: "
-                + std::string(in1 ? "active" : "gone") + ", theirs: "
-                + std::string(in2 ? "active" : "gone") + ")";
-            return false;
-        }
-        if (in1) { seeds.push_back({c,c}); }
-    }
-
-    if (seeds.empty())
-    {
-        why = "the move touches every crossing, so there is no untouched"
-              " crossing to seed the correspondence with";
-        return false;
-    }
-    return true;
-}
-
 //==============================================================================
 // Trace Streams (--trace, docs/move-descriptor.md)
 //==============================================================================
@@ -4158,10 +4093,10 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
     //             question of whether the two are isomorphic at all; that
     //             stays as it is, since it must also work on v0 streams.
     //
-    // We carry the pending claim forward rather than buffering the stream.
-    std::optional<PD_T> pending_after;   // what the previous move should produce
-    std::string pending_label;
-    bool verify_failed = false;
+    // The picture-independent claims (everything but DRAWING) live in
+    // tools/trace_verify.hpp, shared with knoodleprove; it carries the pending
+    // trace claim forward rather than buffering the stream.
+    KnoodleTraceVerify::TraceVerifier<PD_T> verifier(vout);
 
     typename Trace_T::Record rec;
     std::string why;
@@ -4214,22 +4149,9 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
         // for byte even when both are right. Identifying the diagram up to
         // relabelling is all the annotation is asked to do -- and it is enough
         // to catch a record whose two carriers describe different diagrams.
-        if (!rec.pd_rows.empty() && !rec.state_from_pd)
         {
-            const Int rows = static_cast<Int>(rec.pd_rows.size()) / Int(5);
-            PD_T annotated = PD_T::FromSignedPDCode(rec.pd_rows.data(), rows);
-
             std::string awhy;
-            if (annotated.CrossingCount() <= Int(0))
-            {
-                awhy = "the annotation did not parse into a valid diagram";
-            }
-            else if (DiagramsIsomorphicQ(dia, annotated, awhy))
-            {
-                awhy.clear();
-            }
-
-            if (!awhy.empty())
+            if (!KnoodleTraceVerify::AnnotationAgreesQ<PD_T>(rec, dia, awhy))
             {
                 std::cerr << "knoodledraw: in the record beginning at trace"
                              " line " << rec.line << ": the '#pd' annotation"
@@ -4238,11 +4160,10 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                 return false;
             }
 
-            if (config.verify_trace)
+            if (config.verify_trace && !rec.pd_rows.empty()
+                && !rec.state_from_pd)
             {
-                vout << "#verify step " << records_drawn
-                          << " pd: VERIFIED (the annotation is this snapshot,"
-                             " up to relabelling)\n";
+                verifier.ReportAnnotation(records_drawn);
             }
         }
 
@@ -4271,119 +4192,26 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
             rc.exterior_face = dia.ArcFaces()(a, da % Int(2));
         }
 
-        if (config.verify_trace && pending_after)
-        {
-            const PD_T & claimed = dia;         // this record's snapshot
-            PD_T expected = std::move(*pending_after);
-            pending_after.reset();
-
-            std::string vwhy;
-            const bool okQ = DiagramsIsomorphicQ(expected, claimed, vwhy);
-
-            vout << "#verify " << pending_label << " trace: "
-                      << (okQ ? "VERIFIED" : "MISMATCH")
-                      << " (" << expected.CrossingCount() << " crossings expected, "
-                      << claimed.CrossingCount() << " found)";
-            if (!okQ) { vout << " -- " << vwhy; }
-            vout << "\n";
-
-            if (!okQ) { verify_failed = true; }
-        }
+        if (config.verify_trace) { verifier.BeginRecord(dia); }
 
         if (config.verify_trace && rc.move_spec)
         {
-            // AfterDiagram works from the descriptor alone, never calling
-            // the applier, so everything below is independent of whatever
-            // produced the trace.
-            OrthoDraw_T Hv(dia, rc.exterior_face ? *rc.exterior_face : Int(-1),
-                           BuildSettings(rc));
-            constexpr Int verify_margin = Int(2);
-            Deco_T dv(Hv, verify_margin);
+            auto m = verifier.BeginMove(rec, dia, *rc.move_spec, records_drawn);
 
-            Deco_T::PassMove_T mvv;
-            std::string perr, vwhy;
-            if (Deco_T::PassMove_T::Parse(*rc.move_spec, mvv, perr))
+            // The two deletions, checked in this record's own drawing. This
+            // is the one claim that is ABOUT THE PICTURE, so it stays here
+            // rather than in trace_verify.hpp. (If the after-diagram could not
+            // be built, BeginMove has already said so.)
+            if (m.parsedQ && m.afterQ)
             {
-                // The reporting overload: a pass move can split a
-                // crossingless component off, and that is an outcome, not
-                // an error. The drawing has to account for the same
-                // number of freed loops, which is what CheckBothDeletions
-                // compares below.
-                std::vector<Int> freed;
-                PD_T ad = dv.AfterDiagram(dia, mvv, vwhy, freed);
+                OrthoDraw_T Hv(dia, rc.exterior_face ? *rc.exterior_face
+                                                     : Int(-1),
+                               BuildSettings(rc));
+                constexpr Int verify_margin = Int(2);
+                Deco_T dv(Hv, verify_margin);
 
-                // Our surgery may not carry out every well-formed move. That
-                // is a limit of the checker, not a fault in the record: the claims
-                // that need the after-diagram go UNCHECKED, and the witness is
-                // still checked. A malformed descriptor still aborts, when the
-                // record is drawn below.
-                const bool afterQ = vwhy.empty();
-                if (!afterQ)
-                {
-                    vout << "#verify step " << records_drawn
-                              << " result/drawing/trace: UNCHECKED (AfterDiagram"
-                                 " cannot build what the move produces: "
-                              << vwhy << ")\n";
-                }
-                if (!freed.empty())
-                {
-                    vout << "#verify step " << records_drawn
-                              << " split: " << freed.size()
-                              << " crossingless component(s) came free"
-                                 " (colours";
-                    for (Int c : freed) { vout << " " << c; }
-                    vout << ")\n";
-                }
-
-                // A `#spinoffs` header is the emitter's account of the same
-                // thing. Neither side can hold a crossingless component beside
-                // crossings, so both report rather than represent -- and the
-                // two reports have to agree.
-                if (afterQ && rec.spinoffs)
-                {
-                    const Int mine   = static_cast<Int>(freed.size());
-                    const bool sameQ = (*rec.spinoffs == mine);
-
-                    vout << "#verify step " << records_drawn
-                              << " spinoffs: " << (sameQ ? "VERIFIED" : "MISMATCH")
-                              << " (" << *rec.spinoffs << " reported, "
-                              << mine << " from the surgery)\n";
-
-                    if (!sameQ) { verify_failed = true; }
-                }
-
-                // The applier's own result, compared port by port.
-                if (afterQ && rec.result)
-                {
-                    std::vector<std::array<Int,2>> seeds;
-                    std::string swhy;
-
-                    bool okQ = BuildSurvivorSeeds(dia, mvv, ad, *rec.result,
-                                                  seeds, swhy);
-                    if (okQ)
-                    {
-                        okQ = DiagramsAgreeQ(ad, *rec.result, seeds, swhy);
-                    }
-
-                    vout << "#verify step " << records_drawn
-                              << " result: "
-                              << (okQ ? "VERIFIED (port-by-port against the"
-                                        " applier)"
-                                      : "MISMATCH");
-                    if (!okQ) { vout << " -- " << swhy; }
-                    vout << "\n";
-
-                    if (!okQ) { verify_failed = true; }
-                }
-
-                // The two deletions, checked in this record's own drawing.
-                auto prv = dv.RoutePassMove(dia, mvv);
-                if (!afterQ)
-                {
-                    // Already reported: the second deletion needs the
-                    // after-diagram.
-                }
-                else if (!prv.validQ)
+                auto prv = dv.RoutePassMove(dia, m.mv);
+                if (!prv.validQ)
                 {
                     vout << "#verify step " << records_drawn
                               << " drawing: UNCHECKED (the move does not"
@@ -4392,10 +4220,11 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                 }
                 else
                 {
+                    std::string vwhy;
                     const bool drawnQ =
                         KnoodlePassView::CheckBothDeletions<PD_T>(
-                            Hv, dv, dia, mvv, prv, ad, verify_margin, vwhy,
-                            static_cast<Int>(freed.size()));
+                            Hv, dv, dia, m.mv, prv, m.after, verify_margin,
+                            vwhy, static_cast<Int>(m.freed.size()));
 
                     vout << "#verify step " << records_drawn
                               << " drawing: "
@@ -4404,80 +4233,12 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                     if (!drawnQ) { vout << " -- " << vwhy; }
                     vout << "\n";
 
-                    if (!drawnQ) { verify_failed = true; }
-                }
-
-                // The feasibility witness, when the record carries one. V0
-                // rebuilds the disk and the pieces on the witness's side from
-                // the snapshot and the descriptor alone; V4 demands the
-                // classes be exactly the same-strand unions at the disk's
-                // crossings. (V1/V2/V3/V5 are the emitter's own gate.)
-                if (rec.feas)
-                {
-                    const auto wr = KnoodleWitness::CheckWitness<PD_T>(
-                        dia, mvv, *rec.feas);
-
-                    vout << "#verify step " << records_drawn << " disk (V0): ";
-                    if (!wr.v0_checkedQ)
-                    {
-                        vout << "UNCHECKED (" << wr.v0_why << ")\n";
-                    }
-                    else if (wr.v0_okQ)
-                    {
-                        vout << "VERIFIED (side " << rec.feas->side << ": "
-                                  << wr.disk_size << " interior crossings, "
-                                  << wr.piece_count << " pieces)\n";
-                    }
-                    else
-                    {
-                        vout << "MISMATCH -- " << wr.v0_why << "\n";
-                        verify_failed = true;
-                    }
-
-                    vout << "#verify step " << records_drawn << " classes (V4): ";
-                    if (!wr.v4_checkedQ)
-                    {
-                        vout << "UNCHECKED (" << wr.v4_why << ")\n";
-                    }
-                    else if (wr.v4_okQ)
-                    {
-                        vout << "VERIFIED (" << wr.class_count
-                                  << " classes, exactly the same-strand unions)\n";
-                    }
-                    else
-                    {
-                        vout << "MISMATCH -- " << wr.v4_why << "\n";
-                        verify_failed = true;
-                    }
-
-                    vout << "#verify step " << records_drawn
-                              << " labels (V2/V3/V5): ";
-                    if (!wr.labels_checkedQ)
-                    {
-                        vout << "UNCHECKED (" << wr.labels_why << ")\n";
-                    }
-                    else if (wr.labels_okQ)
-                    {
-                        vout << "VERIFIED (" << wr.germ_count << " germs, "
-                                  << wr.order_count << " orderings, "
-                                  << wr.tag_count << " tags)\n";
-                    }
-                    else
-                    {
-                        vout << "MISMATCH -- " << wr.labels_why << "\n";
-                        verify_failed = true;
-                    }
-                }
-
-                // A `#candidate` was evaluated and NOT applied, so the stream's
-                // diagram does not advance across it and its claim must not be
-                // carried into the next record's trace check.
-                if (afterQ && !rec.candidateQ)
-                {
-                    pending_after = std::move(ad);
-                    pending_label = "step " + std::to_string(records_drawn);
+                    if (!drawnQ) { verifier.Fail(); }
                 }
             }
+
+            verifier.CheckWitness(rec, dia, m, records_drawn);
+            verifier.EndMove(rec, m, records_drawn);
         }
 
         // The record's context rides inside the association DrawKnot is about
@@ -4494,13 +4255,8 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
         ++records_drawn;
     }
 
-    if (config.verify_trace && pending_after)
-    {
-        vout << "#verify " << pending_label
-                  << " trace: UNCHECKED (no following record to compare"
-                     " against; its drawing was still checked)\n";
-    }
-    if (verify_failed) { return false; }
+    if (config.verify_trace) { verifier.Finish(); }
+    if (verifier.FailedQ()) { return false; }
 
     if (records_drawn == 0)
     {
