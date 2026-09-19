@@ -373,6 +373,13 @@ foundation for a spec that is link-capable throughout. Nothing uses it now.
 
 Two distinct predicates apply to a record, and tools split along them:
 
+The tools split along the same line, and each reports only its own half:
+`knoodledraw --trace --verify` reports `drawing:` and nothing else (the two
+deletions, checked by rendering each view and parsing it back), while
+`knoodleprove` reports every claim that needs no drawing — `pd`, `trace`,
+`split`, `spinoffs`, `result`, and the witness — and never builds a layout.
+The checks they share live in `tools/trace_verify.hpp`.
+
 - **Well-formed** (= renderable): the descriptor passes its kind's local
   checks against the snapshot. Renderers (knoodledraw) draw ANY well-formed
   record — explicitly including moves that are topologically infeasible.

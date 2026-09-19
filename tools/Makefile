@@ -156,9 +156,9 @@ knoodledraw: knoodledraw.cpp $(SHARED_DEPS)
 	$(CXX) $(CXXFLAGS) $(DEPFLAGS) $(CPPFLAGS) knoodledraw.cpp $(LDFLAGS) -o $@
 	@echo "✓ knoodledraw compiled successfully"
 
-# The picture-independent half of `knoodledraw --trace --verify` (the claims in
-# trace_verify.hpp), with no layout per record. Not installed yet: whether it
-# ships, and under which name, is the knoodleprove-split decision.
+# The picture-independent claims of a move trace (the checks in
+# trace_verify.hpp), with no layout per record. `knoodledraw --trace --verify`
+# keeps the one claim that IS about a picture: the two deletions.
 knoodleprove: knoodleprove.cpp $(SHARED_DEPS)
 	@echo "=== Building knoodleprove on $(UNAME_S) ==="
 	@echo "Compiling knoodleprove.cpp..."
@@ -196,6 +196,7 @@ install: all
 	install -m 755 knoodlesimplify $(DESTDIR)$(BINDIR)/
 	install -m 755 knoodledraw $(DESTDIR)$(BINDIR)/
 	install -m 755 knoodleidentify $(DESTDIR)$(BINDIR)/
+	install -m 755 knoodleprove $(DESTDIR)$(BINDIR)/
 	@echo ""
 	@echo "NOTE: the KLUT tables were NOT installed. knoodleidentify installed to"
 	@echo "      $(DESTDIR)$(BINDIR) will look for them at ../share/knoodle/Klut"

@@ -250,14 +250,16 @@ void PrintUsage()
     std::cerr << "  --trace                     Input is a move-trace stream (#step/#move/#view headed\n";
     std::cerr << "                              PD records, docs/move-descriptor.md): each record is\n";
     std::cerr << "                              drawn under its echoed headers, pass moves as overlays\n";
-    std::cerr << "  --verify                    With --trace: check each pass move two ways.\n";
-    std::cerr << "                              'drawing' checks the two deletions inside one\n";
-    std::cerr << "                              record -- each view is rendered, parsed back and\n";
-    std::cerr << "                              compared port-by-port to the diagram it should be.\n";
-    std::cerr << "                              'trace' checks that what the move produces is the\n";
-    std::cerr << "                              NEXT record's snapshot (isomorphism, since a PD\n";
-    std::cerr << "                              code renumbers). Both report VERIFIED / MISMATCH\n";
-    std::cerr << "                              per move; a mismatch exits nonzero.\n";
+    std::cerr << "  --verify                    With --trace: check THE DRAWING of each pass move --\n";
+    std::cerr << "                              the two deletions, inside one record. Each view is\n";
+    std::cerr << "                              rendered, parsed back and compared port-by-port to\n";
+    std::cerr << "                              the diagram it should be. Reports VERIFIED /\n";
+    std::cerr << "                              MISMATCH / UNCHECKED per move; a mismatch exits\n";
+    std::cerr << "                              nonzero. The claims that do NOT depend on a drawing\n";
+    std::cerr << "                              (#pd, #result, #spinoffs, the #feas witness, and\n";
+    std::cerr << "                              whether a move produces the next record's snapshot)\n";
+    std::cerr << "                              belong to knoodleprove, which checks them without\n";
+    std::cerr << "                              laying out anything.\n";
     std::cerr << "\n";
     std::cerr << "3D embedding output:\n";
     std::cerr << "  --embedding                 Emit a 3D embedding instead of a 2D drawing.\n";
@@ -4094,10 +4096,13 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
     //             question of whether the two are isomorphic at all; that
     //             stays as it is, since it must also work on v0 streams.
     //
-    // The picture-independent claims (everything but DRAWING) live in
-    // tools/trace_verify.hpp, shared with knoodleprove; it carries the pending
-    // trace claim forward rather than buffering the stream.
-    KnoodleTraceVerify::TraceVerifier<PD_T> verifier(vout);
+    // --verify checks THE DRAWING: the two deletions of
+    // docs/move-descriptor.md, inside one record. Everything else a record
+    // claims -- that its #pd annotation is its snapshot, that #result is what
+    // the descriptor produces, that the move's result is the next record's
+    // snapshot, #spinoffs, the #feas witness -- is picture-independent and
+    // belongs to `knoodleprove`, which checks it without laying out anything.
+    bool verify_failed = false;
 
     typename Trace_T::Record rec;
     std::string why;
@@ -4161,11 +4166,10 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                 return false;
             }
 
-            if (config.verify_trace && !rec.pd_rows.empty()
-                && !rec.state_from_pd)
-            {
-                verifier.ReportAnnotation(records_drawn);
-            }
+            // The VERDICT on the annotation is knoodleprove's to report; the
+            // abort above is not a verdict but self-defence, since drawing a
+            // record whose two carriers disagree would draw one of them and
+            // caption it with the other.
         }
 
         Config rc = config;
@@ -4193,53 +4197,69 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
             rc.exterior_face = dia.ArcFaces()(a, da % Int(2));
         }
 
-        if (config.verify_trace) { verifier.BeginRecord(dia); }
-
         if (config.verify_trace && rc.move_spec)
         {
-            auto m = verifier.BeginMove(rec, dia, *rc.move_spec, records_drawn);
+            // The two deletions, checked in this record's own drawing.
+            // AfterDiagram works from the descriptor alone, never calling the
+            // applier, so this is independent of whatever produced the trace.
+            // (A descriptor that does not parse is refused when the record is
+            // drawn, below, which is the renderer's business and not a verdict.)
+            Deco_T::PassMove_T mvv;
+            std::string perr;
 
-            // The two deletions, checked in this record's own drawing. This
-            // is the one claim that is ABOUT THE PICTURE, so it stays here
-            // rather than in trace_verify.hpp. (If the after-diagram could not
-            // be built, BeginMove has already said so.)
-            if (m.parsedQ && m.afterQ)
+            if (Deco_T::PassMove_T::Parse(*rc.move_spec, mvv, perr))
             {
-                OrthoDraw_T Hv(dia, rc.exterior_face ? *rc.exterior_face
-                                                     : Int(-1),
-                               BuildSettings(rc));
-                constexpr Int verify_margin = Int(2);
-                Deco_T dv(Hv, verify_margin);
+                // The reporting overload: a pass move can split a crossingless
+                // component off, and the drawing has to account for the same
+                // number of freed loops.
+                std::vector<Int> freed;
+                std::string vwhy;
+                PD_T ad = mvv.AfterDiagram(dia, vwhy, freed);
 
-                auto prv = dv.RoutePassMove(dia, m.mv);
-                if (!prv.validQ)
+                constexpr Int verify_margin = Int(2);
+
+                if (!vwhy.empty())
                 {
+                    // Our surgery does not carry out every well-formed move.
+                    // That is a limit of the checker, not a fault in the
+                    // record, and the second deletion needs the after-diagram.
                     vout << "#verify step " << records_drawn
-                              << " drawing: UNCHECKED (the move does not"
-                                 " route in this layout: "
-                              << prv.why << ")\n";
+                         << " drawing: UNCHECKED (AfterDiagram cannot build"
+                            " what the move produces: " << vwhy << ")\n";
                 }
                 else
                 {
-                    std::string vwhy;
-                    const bool drawnQ =
-                        KnoodlePassView::CheckBothDeletions<PD_T>(
-                            Hv, dv, dia, m.mv, prv, m.after, verify_margin,
-                            vwhy, static_cast<Int>(m.freed.size()));
+                    OrthoDraw_T Hv(dia, rc.exterior_face ? *rc.exterior_face
+                                                         : Int(-1),
+                                   BuildSettings(rc));
+                    Deco_T dv(Hv, verify_margin);
 
-                    vout << "#verify step " << records_drawn
-                              << " drawing: "
-                              << (drawnQ ? "VERIFIED (both deletions)"
-                                         : "MISMATCH");
-                    if (!drawnQ) { vout << " -- " << vwhy; }
-                    vout << "\n";
+                    auto prv = dv.RoutePassMove(dia, mvv);
 
-                    if (!drawnQ) { verifier.Fail(); }
+                    if (!prv.validQ)
+                    {
+                        vout << "#verify step " << records_drawn
+                             << " drawing: UNCHECKED (the move does not route"
+                                " in this layout: " << prv.why << ")\n";
+                    }
+                    else
+                    {
+                        const bool drawnQ =
+                            KnoodlePassView::CheckBothDeletions<PD_T>(
+                                Hv, dv, dia, mvv, prv, ad, verify_margin,
+                                vwhy, static_cast<Int>(freed.size()));
+
+                        vout << "#verify step " << records_drawn
+                             << " drawing: "
+                             << (drawnQ ? "VERIFIED (both deletions)"
+                                        : "MISMATCH");
+                        if (!drawnQ) { vout << " -- " << vwhy; }
+                        vout << "\n";
+
+                        if (!drawnQ) { verify_failed = true; }
+                    }
                 }
             }
-
-            verifier.CheckWitness(rec, dia, m, records_drawn);
-            verifier.EndMove(rec, m, records_drawn);
         }
 
         // The record's context rides inside the association DrawKnot is about
@@ -4256,8 +4276,7 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
         ++records_drawn;
     }
 
-    if (config.verify_trace) { verifier.Finish(); }
-    if (verifier.FailedQ()) { return false; }
+    if (verify_failed) { return false; }
 
     if (records_drawn == 0)
     {

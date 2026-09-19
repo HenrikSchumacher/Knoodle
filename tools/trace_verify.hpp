@@ -31,12 +31,19 @@
  *   EndMove      -> carry this move's claim to the next record
  *   Finish       -> the last move's trace claim goes UNCHECKED
  *
+ * Nothing here touches a drawing. This header does not include
+ * `OrthoDecorate.hpp` (the pass-overlay drawing code), and nothing below
+ * builds a layout: `knoodleprove` never constructs an `OrthoDraw`, which is
+ * the point -- middlepass's diagrams run to 30,000 crossings. (`Knoodle.hpp`
+ * still pulls in `OrthoDraw.hpp` for its own reasons; what matters here is
+ * that no layout is ever computed.)
+ *
  * This header assumes `Knoodle.hpp` has already been included by the includer.
  */
 
 #pragma once
 
-#include "../src/OrthoDecorate.hpp"
+#include "../src/PassDescriptor.hpp"
 #include "../src/MoveTrace.hpp"
 #include "diagram_agreement.hpp"
 #include "witness_check.hpp"
@@ -102,14 +109,14 @@ bool AnnotationAgreesQ(
 template<class PD_T>
 bool BuildSurvivorSeeds(
     const PD_T & before,
-    const typename Knoodle::OrthoDecorate<PD_T>::PassMove_T & mv,
+    const Knoodle::PassDescriptor<typename PD_T::Int> & mv,
     const PD_T & d1,
     const PD_T & d2,
     std::vector<std::array<typename PD_T::Int,2>> & seeds,
     std::string & why )
 {
     using Int    = typename PD_T::Int;
-    using Deco_T = Knoodle::OrthoDecorate<PD_T>;
+    using Move_T = Knoodle::PassDescriptor<Int>;
 
     seeds.clear();
 
@@ -119,7 +126,7 @@ bool BuildSurvivorSeeds(
     const Int L = static_cast<Int>(mv.strand.size());
     for (Int i = 1; i < L; ++i)
     {
-        const Int x = Deco_T::PassMove_T::DarcHeadCrossing(
+        const Int x = Move_T::DarcHeadCrossing(
             before, mv.strand[static_cast<std::size_t>(i-1)]);
         if ((x >= Int(0)) && (x < n_c))
         {
@@ -167,8 +174,7 @@ class TraceVerifier
 public:
 
     using Int      = typename PD_T::Int;
-    using Deco_T   = Knoodle::OrthoDecorate<PD_T>;
-    using Move_T   = typename Deco_T::PassMove_T;
+    using Move_T   = Knoodle::PassDescriptor<Int>;
     using Record_T = typename Knoodle::MoveTrace<PD_T>::Record;
 
     /// What BeginMove learned, for the caller's drawing check and for EndMove.
@@ -235,7 +241,7 @@ public:
 
         // The reporting overload: a pass move can split a crossingless
         // component off, and that is an outcome, not an error.
-        m.after  = Deco_T::AfterDiagram(dia, m.mv, m.why, m.freed);
+        m.after  = m.mv.AfterDiagram(dia, m.why, m.freed);
         m.afterQ = m.why.empty();
 
         // Our surgery may not carry out every well-formed move. That is a

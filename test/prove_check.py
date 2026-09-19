@@ -3,14 +3,14 @@
 
 Build: a kind=script row in test/manifest.tsv (runs the real binaries).
 
-knoodleprove checks the claims in tools/trace_verify.hpp -- the ones that need
-no drawing -- and knoodledraw --trace --verify checks the same claims plus the
-two deletions. Both call the same code, so this asserts three things:
+The two tools split the claims of a record between them, and the split is the
+thing to protect:
 
-  * AGREEMENT. On every fixture, knoodleprove's `#verify` lines are exactly
-    knoodledraw's minus its `drawing:` lines (and minus the wording of the one
-    line that says what was still checked). If the two ever drift, a
-    certificate would pass one tool and fail the other.
+  * THE SPLIT. knoodledraw --trace --verify reports `drawing:` and nothing
+    else -- the two deletions are the one claim about a picture. knoodleprove
+    reports everything else and never a `drawing:` line. Neither tool may
+    quietly grow the other's half: a claim that moved would otherwise be a
+    claim nobody makes.
   * IT CAN FAIL. A witness that lies (witness_rec_anchor_lie), a snapshot that
     is not what the move produces, a descriptor that does not parse: each must
     be a MISMATCH and exit 1. A checker that cannot fail proves nothing.
@@ -71,26 +71,23 @@ def read(path):
         return f.read()
 
 
-# -- agreement with knoodledraw --------------------------------------------
+# -- the split ---------------------------------------------------------------
 
-def expected_from_draw(stream):
-    """knoodledraw's report, reduced to the claims knoodleprove makes."""
-    rc, out, err = run(DRAW, ["--trace", "--verify"], stream)
-    lines = [ln.replace("its drawing was still checked",
-                        "nothing follows it in the stream")
-             for ln in verify_lines(out + err) if " drawing: " not in ln]
-    return rc, lines
+def check_split(name, stream):
+    """Each tool reports its own half, and only its own half."""
+    _, dout, derr = run(DRAW, ["--trace", "--verify"], stream)
+    draw_claims = verify_lines(dout + derr)
+    stray = [ln for ln in draw_claims if " drawing: " not in ln]
+    check(not stray, f"{name}: knoodledraw --verify reports only `drawing:`",
+          "\n".join(stray))
 
-
-def check_agreement(name, stream):
-    drc, want = expected_from_draw(stream)
-    prc, out, err = run(PROVE, [], stream)
-    got = [ln for ln in verify_lines(out) if " move: UNCHECKED" not in ln]
-    check(got == want, f"{name}: knoodleprove reports what knoodledraw reports",
-          "want:\n  " + "\n  ".join(want) + "\ngot:\n  " + "\n  ".join(got))
-    check(prc == drc, f"{name}: same exit status as knoodledraw ({drc})",
-          f"knoodleprove exited {prc}\n{err}")
-    return prc, out
+    prc, pout, perr = run(PROVE, [], stream)
+    stray = [ln for ln in verify_lines(pout) if " drawing: " in ln]
+    check(not stray, f"{name}: knoodleprove reports no `drawing:` claim",
+          "\n".join(stray))
+    check("#verify" not in perr,
+          f"{name}: knoodleprove's report goes to stdout", perr)
+    return prc, pout
 
 
 trace_example = read(TRACE_EXAMPLE)
@@ -99,12 +96,20 @@ records = witness_records()
 check(len(records) >= 8, "witness_fixtures.hpp yields its records",
       f"found {len(records)}")
 
-check_agreement("trace_example", trace_example)
-check_agreement("r1_example", r1_example)
+check_split("trace_example", trace_example)
+check_split("r1_example", r1_example)
 for name, body in records:
-    check_agreement(name, body)
+    check_split(name, body)
 
 # -- verdicts ---------------------------------------------------------------
+
+# The claims knoodledraw no longer makes, which must therefore be knoodleprove's.
+rc, out, _ = run(PROVE, [], records[0][1])
+for claim in ("disk (V0)", "classes (V4)", "labels (V2/V3/V5)"):
+    check(f"{claim}: VERIFIED" in out,
+          f"the witness claim `{claim}` is knoodleprove's", out)
+_, dout, derr = run(DRAW, ["--trace", "--verify"], records[0][1])
+check("V0" not in dout + derr, "knoodledraw makes no witness claim", dout + derr)
 
 rc, out, _ = run(PROVE, [TRACE_EXAMPLE])
 check(rc == 0, "trace_example (as a FILE argument): exit 0", out)
