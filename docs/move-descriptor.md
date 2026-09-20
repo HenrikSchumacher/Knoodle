@@ -1104,6 +1104,28 @@ and any seeded choice an emitter makes must be recorded in the stream.
 
 ## Open questions
 
+- **Curve-moving re-embedding: OUT OF SCOPE, deliberately (JHC, 2026-09-20).**
+  A step that deforms the curve in 3-space — Reapr tightening — is not a
+  `redraw` under the contract above, and the difference is structural rather
+  than about tolerances: a verifier *derives* `R·E` and so never has to believe
+  an assertion, whereas a recorder supplying its own second curve asserts an
+  isotopy that the endpoint checks cannot test. (Hand it two unrelated knots
+  and `project(E₁) ≅ D₁`, `project(E₂) ≅ D₂` both pass.) Note that a
+  translation, or a uniform positive scaling, is NOT this case: projection
+  commutes with both, the diagram is unchanged, and such a step passes
+  trivially and needs no witness.
+
+  It is left unspecified because we do not currently want it, not because it
+  is hard: re-embedding measured *less effective than expected* (it inflates
+  big diagrams — 75/75 worse in the plateau-walk experiments). If it is ever
+  revived, the machinery is already on branch `reapr-bfacf-gyration`
+  (`src/LatticeLink/Moves.hpp`, `docs/lattice-bfacf-design.md`, plus Reapr's
+  opt-in integer-lattice mode), and the right shape is a recorded sequence of
+  elementary lattice moves — each local, integer-exact and an isotopy by
+  construction, so the verifier REPLAYS them rather than trusting two
+  endpoints. Same principle as restricting `redraw` to two rotations: derive,
+  do not assert.
+
 - ~~Exact arg schemas for `r1`/`r2`/`r3`.~~ **Settled 2026-09-16.** `r1` is
   specified above; `r2` and `r3` need no kind of their own, both being pass
   moves (see "Other step kinds"). The instrumentation target has also moved:
