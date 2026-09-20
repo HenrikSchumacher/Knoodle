@@ -22,6 +22,96 @@ Path_T FindShortestPath( mref<PD_T> pd_input, const Int a, const Int b, const In
     return successQ ? p : Path_T();
 }
 
+/*!@brief Like `FindShortestRerouting` below, but with the corridor budget exposed to the caller, and with the preconditions of that routine actually checked.
+ *
+ * The 3-argument overload caps the search at `Ramp(arc_count - 2)`, so it only
+ * ever reports corridors that remove at least TWO crossings, whereas
+ * `SimplifyPasses` searches internally with `arc_count - 1` and so also takes
+ * the ones that remove exactly one. This overload lets a caller say which of
+ * the two it wants, in the currency it actually cares about.
+ *
+ * `min_saving` is the least number of crossings the rerouting must remove. A
+ * returned path crosses at most `max_dist - 1` arcs and the strand has
+ * `arc_count - 1` interior crossings, so a saving of at least `s` needs a
+ * budget of `arc_count - s`. Hence `min_saving = 2` reproduces the 3-argument
+ * overload exactly, and `min_saving = 1` matches what `SimplifyPasses` does.
+ *
+ * The guards are the point of this entry point rather than an afterthought:
+ * it is meant to be safe to call from outside, not to be fast. In particular
+ * `a` and `b` must lie on the SAME link component -- the precondition the
+ * 3-argument overload documents in a CAUTION and `MarkArcs` carries a TODO
+ * about. Without it `MarkArcs` walks `a`'s whole component, terminates, and
+ * returns an `arc_count` that has nothing to do with the requested strand,
+ * which then silently sizes the budget. `ArcLinkComponents()` is cached, so
+ * the check costs one lookup after a single pass.
+ *
+ * @param a The first arc of the input strand.
+ *
+ * @param b The last arc of the input strand (included).
+ *
+ * @param max_dist The caller's own cap on the path length; the effective budget never exceeds it.
+ *
+ * @param min_saving The least number of crossings the rerouting must remove. Must be >= 1: a corridor that removes none cannot be applied by `Reroute`.
+ */
+
+Path_T FindShortestRerouting(
+    mref<PD_T> pd_input, const Int a, const Int b,
+    const Int max_dist, const Int min_saving
+)
+{
+    auto tag = [](){ return MethodName("FindShortestRerouting"); };
+
+    if( min_saving < Int(1) )
+    {
+        eprint( tag() + ": min_saving = " + ToString(min_saving) + " is less than 1. A rerouting that removes no crossing cannot be applied." );
+        return Path_T();
+    }
+
+    const Int max_arc_count = pd_input.MaxArcCount();
+
+    if( (a < Int(0)) || (a >= max_arc_count) || (b < Int(0)) || (b >= max_arc_count) )
+    {
+        eprint( tag() + ": arc index out of range (a = " + ToString(a) + ", b = " + ToString(b) + ", MaxArcCount() = " + ToString(max_arc_count) + ")." );
+        return Path_T();
+    }
+
+    if( !pd_input.ArcActiveQ(a) || !pd_input.ArcActiveQ(b) )
+    {
+        eprint( tag() + ": arc " + ToString( pd_input.ArcActiveQ(a) ? b : a ) + " is inactive." );
+        return Path_T();
+    }
+
+    if( a == b )
+    {
+        wprint( tag() + ": strand is trivial: a == b." );
+        return Path_T();
+    }
+
+    {
+        cptr<Int> A_lc = pd_input.ArcLinkComponents().data();
+
+        if( A_lc[a] != A_lc[b] )
+        {
+            eprint( tag() + ": arcs " + ToString(a) + " and " + ToString(b) + " lie on different link components, so they bound no strand." );
+            return Path_T();
+        }
+    }
+
+    LoadDiagram(pd_input);
+    const Int arc_count = MarkArcs(a,b);
+
+    // Capped from both sides: by what the caller asked for, and by what can
+    // still yield the requested saving. `Ramp` handles a `min_saving` larger
+    // than the strand by collapsing the budget to 0, so no path is reported.
+    const Int max_dist_0 = Min(Ramp(arc_count - min_saving),max_dist);
+
+    Path_T p;
+    const bool successQ = FindShortestPath(a,b,max_dist_0,p);
+    Cleanup();
+
+    return successQ ? p : Path_T();
+}
+
 /*!@brief Attempts to find the arcs that make up a minimally rerouted strand, neglecting the arcs from `a` to `b` when traversed in natural order.. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow! (It has to find and mark a the currect path between `a` and `b`, if existent.
  *
  * CAUTION: This assumes that `a` and `b` lie on the same link component!
