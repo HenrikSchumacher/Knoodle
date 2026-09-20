@@ -1,0 +1,83 @@
+#trace v=1
+#knoodle version=v1.0.6-140-g97f640c7
+
+#step n=0 summand=0
+#comment A LINK record: two components, so the colours have something to say.
+#comment Step 1's move closes a transversal into a crossingless loop, reported
+#comment in #spinoffs by COLOUR here, not merely by count -- a PlanarDiagram
+#comment cannot hold a crossingless component beside crossings.
+#comment
+#comment PROVENANCE: ours, from the trace-v1 roundtrip fixture builder
+#comment (handoff/.../make_roundtrip_fixture.cpp, ROUND-5, 2026-08-13),
+#comment carried here verbatim so prove_check has a committed multi-colour
+#comment record with a #result. The step-1 move is deliberately NOT sound --
+#comment 10 crossings to 4 is no isotopy -- which is fine: it exercises the
+#comment bookkeeping, not the topology. Do not hand-edit a #state block.
+#candidate
+#comment the k=1 sibling of the move below, over the same snapshot
+#view exterior=0
+#move kind=middlepass strand=9,11,13,15,17,19,21,23 depart=8 cross=32:u land=22
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 10
+crossing_count = 10
+max_arc_count = 20
+arc_count = 20
+C_arcs = {{{9,0},{3,8}},{{1,6},{5,0}},{{5,2},{1,4}},{{3,10},{9,2}},{{17,4},{19,16}},{{7,14},{13,6}},{{15,8},{7,14}},{{11,16},{15,10}},{{12,19},{18,11}},{{18,13},{12,17}}}
+C_state = {-1,-1,-1,-1,-1,-1,-1,-1,1,1}
+A_cross = {{0,1},{1,2},{2,3},{3,0},{4,2},{2,1},{1,5},{5,6},{6,0},{0,3},{3,7},{7,8},{8,9},{9,5},{5,6},{6,7},{7,4},{4,9},{9,8},{8,4}}
+A_state = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+A_color = {0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+last_color_deactivated = -1
+proven_minimalQ = 0
+
+#step n=1 summand=0
+#comment L10a11_0: deleting the strand closes a transversal into a crossingless loop
+#comment well-formed and routable, NOT sound -- 10 crossings to 4 is no isotopy
+#view exterior=0
+#move kind=middlepass strand=9,11,13,15,17,19,21 depart=8 land=20
+#spinoffs colors=0
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 10
+crossing_count = 10
+max_arc_count = 20
+arc_count = 20
+C_arcs = {{{9,0},{3,8}},{{1,6},{5,0}},{{5,2},{1,4}},{{3,10},{9,2}},{{17,4},{19,16}},{{7,14},{13,6}},{{15,8},{7,14}},{{11,16},{15,10}},{{12,19},{18,11}},{{18,13},{12,17}}}
+C_state = {-1,-1,-1,-1,-1,-1,-1,-1,1,1}
+A_cross = {{0,1},{1,2},{2,3},{3,0},{4,2},{2,1},{1,5},{5,6},{6,0},{0,3},{3,7},{7,8},{8,9},{9,5},{5,6},{6,7},{7,4},{4,9},{9,8},{8,4}}
+A_state = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+A_color = {0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+last_color_deactivated = -1
+proven_minimalQ = 0
+#result lines=12
+PlanarDiagram<I64>
+max_crossing_count = 10
+crossing_count = 4
+max_arc_count = 20
+arc_count = 8
+C_arcs = {{{9,0},{3,8}},{{1,6},{5,0}},{{5,2},{1,4}},{{3,10},{9,2}},{{17,0},{19,16}},{{7,14},{13,6}},{{15,8},{7,14}},{{11,16},{13,0}},{{12,19},{18,11}},{{18,13},{12,17}}}
+C_state = {0,0,0,0,-1,0,0,-1,1,1}
+A_cross = {{4,7},{1,2},{2,3},{3,0},{4,2},{2,1},{1,5},{5,6},{6,0},{0,3},{3,7},{7,8},{8,9},{9,7},{5,6},{6,7},{7,4},{4,9},{9,8},{8,4}}
+A_state = {1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,1,1,1,1}
+A_color = {1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+last_color_deactivated = -1
+proven_minimalQ = 0
+
+#step n=2 summand=0
+#comment terminal: what step 1 produced. The freed component is NOT in these bytes -- it is in the #spinoffs above.
+#view exterior=0
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 10
+crossing_count = 4
+max_arc_count = 20
+arc_count = 8
+C_arcs = {{{9,0},{3,8}},{{1,6},{5,0}},{{5,2},{1,4}},{{3,10},{9,2}},{{17,0},{19,16}},{{7,14},{13,6}},{{15,8},{7,14}},{{11,16},{13,0}},{{12,19},{18,11}},{{18,13},{12,17}}}
+C_state = {0,0,0,0,-1,0,0,-1,1,1}
+A_cross = {{4,7},{1,2},{2,3},{3,0},{4,2},{2,1},{1,5},{5,6},{6,0},{0,3},{3,7},{7,8},{8,9},{9,7},{5,6},{6,7},{7,4},{4,9},{9,8},{8,4}}
+A_state = {1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,1,1,1,1}
+A_color = {1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+last_color_deactivated = -1
+proven_minimalQ = 0
+

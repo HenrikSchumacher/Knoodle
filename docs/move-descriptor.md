@@ -375,10 +375,38 @@ Two distinct predicates apply to a record, and tools split along them:
 
 The tools split along the same line, and each reports only its own half:
 `knoodledraw --trace --verify` reports `drawing:` and nothing else (the two
-deletions, checked by rendering each view and parsing it back), while
-`knoodleprove` reports every claim that needs no drawing — `pd`, `trace`,
-`split`, `spinoffs`, `result`, and the witness — and never builds a layout.
-The checks they share live in `tools/trace_verify.hpp`.
+deletions for a pass, the single deletion for an r1, checked by rendering each
+view and parsing it back), while `knoodleprove` reports every claim that needs
+no drawing — `pd`, `r1`, `trace`, `split`, `spinoffs`, `result`, `colors`, and
+the witness — and never builds a layout. The checks they share live in
+`tools/trace_verify.hpp`.
+
+### Component colours are part of the claim
+
+On a link, a move must get the **colours** right as well as the diagram, and
+the two can fail independently: a result whose structure is perfect but whose
+components are renumbered is a different labelling of the link, and colour is
+what tells the components apart. So `knoodleprove` makes colour its own
+verdict rather than folding it into `result:`.
+
+- **`result:`** compares structure port-by-port.
+- **`colors:`** compares, over the very correspondence that check built, the
+  colour of every matched arc. They must be EQUAL, not merely consistently
+  renamed: both diagrams descend from the same snapshot, so a component's
+  colour is a label both sides inherited rather than one either may choose.
+  The rule a mover must respect is: survivors keep their colour, the new
+  corridor arcs take W's, and an arc split by a corridor crossing keeps the
+  colour of the arc it was split from.
+- **`spinoffs:`** compares the freed components. `#spinoffs` has two
+  spellings, and they are not equally strong: `n=<count>` says how many came
+  free, `colors=<list>` says WHICH. When the emitter gives the list, the list
+  is what is compared — freeing the right *number* of components while naming
+  the wrong one is exactly the confusion colours exist to prevent.
+
+This is also where the crossingless components go. A `PlanarDiagram` cannot
+hold one beside crossings (`AnelloQ` is a whole-diagram state), so a freed
+component is REPORTED, by colour, rather than represented — and its colour is
+the only record that it was ever there.
 
 - **Well-formed** (= renderable): the descriptor passes its kind's local
   checks against the snapshot. Renderers (knoodledraw) draw ANY well-formed

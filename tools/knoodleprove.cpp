@@ -59,6 +59,7 @@ void PrintUsage()
         "  split     crossingless components the move frees (reported)\n"
         "  spinoffs  the '#spinoffs' count agrees with the surgery\n"
         "  result    '#result' agrees port-by-port with the descriptor's surgery\n"
+        "  colors    ... and agrees about which COMPONENT each arc belongs to\n"
         "  V0/V4/V2-V5  the '#feas' feasibility witness\n"
         "\n"
         "Each is VERIFIED, MISMATCH or UNCHECKED. Move kinds checked: pass,\n"

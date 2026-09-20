@@ -52,8 +52,10 @@
 #include "diagram_agreement.hpp"
 #include "witness_check.hpp"
 
+#include <algorithm>
 #include <array>
 #include <optional>
+#include <set>
 #include <ostream>
 #include <string>
 #include <vector>
@@ -189,6 +191,53 @@ bool BuildSurvivorSeeds(
     return BuildSurvivorSeeds(before, touchedQ, d1, d2, seeds, why);
 }
 
+
+/*!@brief Do two results agree about which component every arc belongs to?
+ *
+ * Structure is not the whole claim a move makes. Both diagrams descend from
+ * the same snapshot, and a component carries its color across a move: survivors
+ * keep theirs, the new corridor arcs take W's, and each arc split by a corridor
+ * crossing keeps the color of the arc it was split from. So under the
+ * correspondence the port-by-port check already built, matched arcs must carry
+ * EQUAL colors -- not merely a consistent renaming. An applier that renumbers
+ * components has changed the link's labelling where the pictures agree, and on
+ * a link that is a real error: it is what tells the two components apart.
+ *
+ * This matters exactly when there is more than one component to confuse; on a
+ * knot every arc is color 0 and the check is free.
+ */
+template<class PD_T>
+bool ColorsAgreeQ(
+    const PD_T & ours, const PD_T & theirs,
+    const DiagramMatch_T<typename PD_T::Int> & M,
+    std::string & why )
+{
+    using Int = typename PD_T::Int;
+
+    for( Int a = 0; a < ours.MaxArcCount(); ++a )
+    {
+        if( !ours.ArcActiveQ(a) ) { continue; }
+
+        const Int b = M.amap[static_cast<std::size_t>(a)];
+        if( b == DiagramMatch_T<Int>::None ) { continue; }
+        if( (b < Int(0)) || (b >= theirs.MaxArcCount()) ) { continue; }
+
+        const Int c1 = ours.ArcColors()[a];
+        const Int c2 = theirs.ArcColors()[b];
+
+        if( c1 != c2 )
+        {
+            why = "arc " + std::to_string(a) + " is colour "
+                + std::to_string(c1) + " in the diagram the descriptor"
+                  " produces, but the applier's arc " + std::to_string(b)
+                + " (the same arc) is colour " + std::to_string(c2)
+                + ": the two disagree about which component it belongs to";
+            return false;
+        }
+    }
+    return true;
+}
+
 /**
  * @brief Checks one trace stream's picture-independent claims, record by
  * record, writing one `#verify` line per claim to `out`.
@@ -321,30 +370,21 @@ public:
         // Neither side can hold a crossingless component beside crossings, so
         // both report rather than represent -- and the two reports have to
         // agree.
-        if( m.afterQ && rec.spinoffs )
-        {
-            const Int mine   = static_cast<Int>(m.freed.size());
-            const bool sameQ = (*rec.spinoffs == mine);
-
-            out_ << "#verify step " << step
-                 << " spinoffs: " << (sameQ ? "VERIFIED" : "MISMATCH")
-                 << " (" << *rec.spinoffs << " reported, "
-                 << mine << " from the surgery)\n";
-
-            if( !sameQ ) { failedQ_ = true; }
-        }
+        if( m.afterQ ) { ReportSpinoffs(rec, m.freed, step); }
 
         // The applier's own result, compared port by port.
         if( m.afterQ && rec.result )
         {
             std::vector<std::array<Int,2>> seeds;
             std::string swhy;
+            DiagramMatch_T<Int> M( dia.MaxCrossingCount(), dia.MaxArcCount(),
+                                   dia.MaxCrossingCount(), dia.MaxArcCount() );
 
             bool okQ = BuildSurvivorSeeds<PD_T>(dia, m.mv, m.after,
                                                 *rec.result, seeds, swhy);
             if( okQ )
             {
-                okQ = DiagramsAgreeQ(m.after, *rec.result, seeds, swhy);
+                okQ = DiagramsAgreeQ(m.after, *rec.result, seeds, swhy, &M);
             }
 
             out_ << "#verify step " << step
@@ -355,6 +395,7 @@ public:
             out_ << "\n";
 
             if( !okQ ) { failedQ_ = true; }
+            else        { ReportColors(dia, m.after, *rec.result, M, step); }
         }
 
         return m;
@@ -436,18 +477,7 @@ public:
             out_ << ")\n";
         }
 
-        if( rec.spinoffs )
-        {
-            const Int mine   = static_cast<Int>(m.freed.size());
-            const bool sameQ = (*rec.spinoffs == mine);
-
-            out_ << "#verify step " << step
-                 << " spinoffs: " << (sameQ ? "VERIFIED" : "MISMATCH")
-                 << " (" << *rec.spinoffs << " reported, "
-                 << mine << " from the surgery)\n";
-
-            if( !sameQ ) { failedQ_ = true; }
-        }
+        ReportSpinoffs(rec, m.freed, step);
 
         if( rec.result )
         {
@@ -460,12 +490,14 @@ public:
 
             std::vector<std::array<Int,2>> seeds;
             std::string swhy;
+            DiagramMatch_T<Int> M( dia.MaxCrossingCount(), dia.MaxArcCount(),
+                                   dia.MaxCrossingCount(), dia.MaxArcCount() );
 
             bool okQ = BuildSurvivorSeeds<PD_T>(dia, touchedQ, m.after,
                                                 *rec.result, seeds, swhy);
             if( okQ )
             {
-                okQ = DiagramsAgreeQ(m.after, *rec.result, seeds, swhy);
+                okQ = DiagramsAgreeQ(m.after, *rec.result, seeds, swhy, &M);
             }
 
             out_ << "#verify step " << step << " result: "
@@ -475,6 +507,7 @@ public:
             out_ << "\n";
 
             if( !okQ ) { failedQ_ = true; }
+            else        { ReportColors(dia, m.after, *rec.result, M, step); }
         }
 
         return m;
@@ -584,6 +617,103 @@ public:
 
     /// Mark a failure found by a check that lives outside this class.
     void Fail() { failedQ_ = true; }
+
+private:
+
+    /*!@brief The `spinoffs:` verdict.
+     *
+     * `#spinoffs` comes in two spellings, `n=<count>` and `colors=<list>`, and
+     * they are not equally strong. A count says how many components came free;
+     * the list says WHICH, and on a link that is the part worth checking --
+     * freeing the right number of components while naming the wrong one is
+     * exactly the confusion colours exist to prevent. When the emitter gives
+     * the list, compare the list.
+     */
+    void ReportSpinoffs( const Record_T & rec,
+                         const std::vector<Int> & freed, std::size_t step )
+    {
+        if( !rec.spinoffs ) { return; }
+
+        const Int mine = static_cast<Int>(freed.size());
+
+        if( !rec.spinoff_colors.empty() )
+        {
+            std::vector<Int> theirs = rec.spinoff_colors;
+            std::vector<Int> ours   = freed;
+            std::sort(theirs.begin(), theirs.end());
+            std::sort(ours.begin(),   ours.end());
+
+            const bool sameQ = (theirs == ours);
+
+            auto list = []( const std::vector<Int> & v ) -> std::string
+            {
+                std::string s;
+                for( std::size_t i = 0; i < v.size(); ++i )
+                {
+                    if( i ) { s += ","; }
+                    s += std::to_string(v[i]);
+                }
+                return s.empty() ? std::string("none") : s;
+            };
+
+            out_ << "#verify step " << step
+                 << " spinoffs: " << (sameQ ? "VERIFIED" : "MISMATCH")
+                 << " (colours " << list(theirs) << " reported, "
+                 << list(ours) << " from the surgery)\n";
+
+            if( !sameQ ) { failedQ_ = true; }
+            return;
+        }
+
+        const bool sameQ = (*rec.spinoffs == mine);
+
+        out_ << "#verify step " << step
+             << " spinoffs: " << (sameQ ? "VERIFIED" : "MISMATCH")
+             << " (" << *rec.spinoffs << " reported, "
+             << mine << " from the surgery)\n";
+
+        if( !sameQ ) { failedQ_ = true; }
+    }
+
+    /*!@brief The `colors:` verdict: do we and the applier agree about which
+     * component each arc belongs to?
+     *
+     * Reported only when a `#result` was compared, because it is a claim about
+     * the applier's output. `n_components` is named so that a reader can see
+     * at a glance whether the check had anything to distinguish: on a knot
+     * there is one colour and the verdict is free.
+     */
+    void ReportColors( const PD_T & before, const PD_T & ours,
+                       const PD_T & theirs,
+                       const DiagramMatch_T<Int> & M, std::size_t step )
+    {
+        std::string cwhy;
+        const bool okQ = ColorsAgreeQ(ours, theirs, M, cwhy);
+
+        std::set<Int> colors;
+        for( Int a = 0; a < before.MaxArcCount(); ++a )
+        {
+            if( before.ArcActiveQ(a) ) { colors.insert(before.ArcColors()[a]); }
+        }
+
+        out_ << "#verify step " << step << " colors: "
+             << (okQ ? "VERIFIED" : "MISMATCH");
+        if( okQ )
+        {
+            out_ << " (" << colors.size() << " component colour"
+                 << ((colors.size() == std::size_t(1)) ? "" : "s")
+                 << " carried through the move)";
+        }
+        else
+        {
+            out_ << " -- " << cwhy;
+        }
+        out_ << "\n";
+
+        if( !okQ ) { failedQ_ = true; }
+    }
+
+public:
 
 private:
 

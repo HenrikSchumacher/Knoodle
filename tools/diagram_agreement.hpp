@@ -38,8 +38,14 @@
 // strongest available -- it verifies not just that the drawing depicts a
 // correct diagram, but that it depicts it in the expected place.
 //
-// Colors are deliberately NOT compared: they are labels of exactly the kind
-// this routine exists to see past, and a parser assigns its own.
+// Colors are deliberately NOT compared HERE: against a diagram parsed out of a
+// drawing they are meaningless, since the parser assigns its own. But between
+// two internal states that both descend from the same snapshot -- ours and an
+// applier's `#result` -- colors ARE a claim: a component keeps its color across
+// a move, and an applier that renumbers components has changed the link even
+// where the diagram is right. So `DiagramsAgreeQ` can hand back the
+// correspondence it built (`out_match`), and a caller with two real states
+// compares colors over it. tools/trace_verify.hpp does exactly that.
 
 #include <array>
 #include <string>
@@ -212,7 +218,8 @@ template<typename PD_T>
 bool DiagramsAgreeQ(
     const PD_T & d1, const PD_T & d2,
     const std::vector<std::array<typename PD_T::Int,2>> & seeds,
-    std::string & why )
+    std::string & why,
+    DiagramMatch_T<typename PD_T::Int> * out_match = nullptr )
 {
     using Int = typename PD_T::Int;
 
@@ -256,6 +263,8 @@ bool DiagramsAgreeQ(
                 " different, or a component with no seed)");
         }
     }
+
+    if( out_match != nullptr ) { *out_match = std::move(M); }
 
     why.clear();
     return true;
@@ -356,5 +365,6 @@ bool DiagramsAgreeQ(
     std::string & why )
 {
     using Int = typename PD_T::Int;
-    return DiagramsAgreeQ(d1, d2, std::vector<std::array<Int,2>>{{seed,seed}}, why);
+    return DiagramsAgreeQ(d1, d2, std::vector<std::array<Int,2>>{{seed,seed}},
+                          why, nullptr);
 }

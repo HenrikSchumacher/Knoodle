@@ -38,6 +38,7 @@ TRACE_EXAMPLE = os.path.join(HERE, "trace_example.txt")
 R1_EXAMPLE = os.path.join(HERE, "r1_example.txt")
 R1_TRACE = os.path.join(HERE, "r1_trace_example.txt")
 R1_SPINOFF = os.path.join(HERE, "r1_spinoff_example.txt")
+LINK_RESULT = os.path.join(HERE, "link_result_example.trace")
 WITNESS_HPP = os.path.join(HERE, "witness_fixtures.hpp")
 
 checks = 0
@@ -198,6 +199,48 @@ for name, body in records:
         check(rc == 0, f"{name}: exit 0", out)
         for claim in ("disk (V0)", "classes (V4)", "labels (V2/V3/V5)"):
             check(f"{claim}: VERIFIED" in out, f"{name}: {claim} VERIFIED", out)
+
+# -- colours ------------------------------------------------------------------
+
+# Structure is not the whole claim: on a link, a component carries its colour
+# across a move, and an applier that renumbers components has changed the
+# labelling that tells the components apart. The fixture is a 2-component link
+# with a #result and a #spinoffs colour list.
+link = read(LINK_RESULT)
+rc, out, _ = run(PROVE, [LINK_RESULT])
+check(rc == 0, "link_result_example: exit 0", out)
+check("colors: VERIFIED (2 component colours carried through the move)" in out,
+      "link: the colours are checked, and the count of them is reported", out)
+check("spinoffs: VERIFIED (colours 0 reported, 0 from the surgery)" in out,
+      "link: #spinoffs colors= is compared as a LIST, not just a count", out)
+
+# Recolour one arc of the applier's #result: the structure is untouched, so
+# `result:` must still pass and `colors:` must catch it. That split is the
+# point -- a diagram can be right while its components are mislabelled.
+# rsplit: the fixture's own provenance comment mentions "#result" too, and the
+# block we want is the header line, which comes last.
+head, result_block = link.rsplit("#result", 1)
+m = re.search(r"A_color = \{([^}]*)\}", result_block)
+vals = m.group(1).split(",")
+i = next(k for k, v in enumerate(vals) if v.strip() == "1")
+vals[i] = "0"
+recoloured = (head + "#result" + result_block[:m.start(1)] + ",".join(vals)
+              + result_block[m.end(1):])
+check(recoloured != link, "colour tamper: the substitution applied")
+rc, out, _ = run(PROVE, [], recoloured)
+check(rc == 1, "a recoloured #result: exit 1", out)
+check("result: VERIFIED" in out,
+      "a recoloured #result: the STRUCTURE still agrees", out)
+check("colors: MISMATCH" in out and "which component it belongs to" in out,
+      "a recoloured #result: the colours do not, and the arc is named", out)
+
+# A #spinoffs colour list naming the wrong component.
+wrong_spin = link.replace("#spinoffs colors=0", "#spinoffs colors=1")
+check(wrong_spin != link, "spinoff colour tamper: the substitution applied")
+rc, out, _ = run(PROVE, [], wrong_spin)
+check(rc == 1, "#spinoffs naming the wrong colour: exit 1", out)
+check("spinoffs: MISMATCH (colours 1 reported, 0 from the surgery)" in out,
+      "#spinoffs naming the wrong colour: caught, with both lists", out)
 
 # -- it can fail ------------------------------------------------------------
 
