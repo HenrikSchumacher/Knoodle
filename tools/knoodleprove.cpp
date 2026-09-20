@@ -54,13 +54,15 @@ void PrintUsage()
         "Writes one '#verify' line per claim to stdout:\n"
         "\n"
         "  pd        the '#pd' annotation is the '#state' snapshot, up to relabelling\n"
+        "  r1        a curl removal's local checks (for r1 these ARE soundness)\n"
         "  trace     what a move produces is the NEXT record's snapshot\n"
         "  split     crossingless components the move frees (reported)\n"
         "  spinoffs  the '#spinoffs' count agrees with the surgery\n"
         "  result    '#result' agrees port-by-port with the descriptor's surgery\n"
         "  V0/V4/V2-V5  the '#feas' feasibility witness\n"
         "\n"
-        "Each is VERIFIED, MISMATCH or UNCHECKED. A move kind with no checker is\n"
+        "Each is VERIFIED, MISMATCH or UNCHECKED. Move kinds checked: pass,\n"
+        "middlepass, r1. A move kind with no checker is\n"
         "reported UNCHECKED, never skipped silently. The drawing claims (the two\n"
         "deletions) belong to 'knoodledraw --trace --verify'.\n"
         "\n"
@@ -156,11 +158,24 @@ bool Prove( std::istream & input, const char * source )
                 verifier.CheckWitness(rec, dia, m, step);
                 verifier.EndMove(rec, m, step);
             }
+            else if( kind == "r1" )
+            {
+                auto m = verifier.BeginR1(rec, dia, *rec.move, step);
+
+                if( !m.parsedQ )
+                {
+                    std::cout << "#verify step " << step
+                              << " descriptor: MISMATCH -- " << m.why << "\n";
+                    verifier.Fail();
+                }
+
+                verifier.EndR1(rec, m, step);
+            }
             else
             {
-                // No checker for this kind yet (r1 is the next one due). Say
-                // so: a certificate checker that passes over a step it cannot
-                // check has not checked the certificate.
+                // No checker for this kind yet. Say so: a certificate checker
+                // that passes over a step it cannot check has not checked the
+                // certificate.
                 std::cout << "#verify step " << step << " move: UNCHECKED"
                              " (no checker for kind=" << kind << " yet)\n";
             }

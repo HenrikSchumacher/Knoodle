@@ -1,0 +1,44 @@
+#trace v=1
+#comment Two records, so that an r1's `trace:` claim can be checked: record 0
+#comment carries the move, record 1 the diagram it should produce.
+#comment
+#comment PROVENANCE. Record 0 is test/r1_example.txt's diagram (a 5-crossing
+#comment raw projection with one curl, from knoodlesimplify -s=0 --unite on
+#comment data/diagrams/childrensgame/gukov-03.tsv), carried as #state so the
+#comment labels survive. Record 1 was produced by the LIBRARY's applier --
+#comment Knoodle::LoopRemover, one Step() on darc 9 -- and NOT by
+#comment tools/r1_move.hpp's R1AfterDiagram, which is what knoodleprove uses.
+#comment So the trace check compares two independent implementations. They
+#comment were also compared port-by-port when this was generated (2026-09-19).
+#comment Do not hand-edit a #state block.
+#step n=0 summand=0
+#move kind=r1 loop=9
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 5
+crossing_count = 5
+max_arc_count = 10
+arc_count = 10
+C_arcs = {{{3,0},{9,2}},{{8,1},{0,7}},{{2,7},{6,1}},{{4,5},{4,3}},{{9,6},{5,8}}}
+C_state = {1,-1,-1,1,1}
+A_cross = {{0,1},{1,2},{2,0},{0,3},{3,3},{3,4},{4,2},{2,1},{1,4},{4,0}}
+A_state = {1,1,1,1,1,1,1,1,1,1}
+A_color = {0,0,0,0,0,0,0,0,0,0}
+last_color_deactivated = -1
+proven_minimalQ = 0
+
+#step n=1 summand=0
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 5
+crossing_count = 4
+max_arc_count = 10
+arc_count = 8
+C_arcs = {{{5,0},{9,2}},{{8,1},{0,7}},{{2,7},{6,1}},{{4,5},{4,3}},{{9,6},{5,8}}}
+C_state = {1,-1,-1,0,1}
+A_cross = {{0,1},{1,2},{2,0},{0,3},{3,3},{0,4},{4,2},{2,1},{1,4},{4,0}}
+A_state = {1,1,1,0,0,1,1,1,1,1}
+A_color = {0,0,0,0,0,0,0,0,0,0}
+last_color_deactivated = 0
+proven_minimalQ = 0
+

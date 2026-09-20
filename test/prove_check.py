@@ -14,8 +14,12 @@ thing to protect:
   * IT CAN FAIL. A witness that lies (witness_rec_anchor_lie), a snapshot that
     is not what the move produces, a descriptor that does not parse: each must
     be a MISMATCH and exit 1. A checker that cannot fail proves nothing.
-  * HONEST COVERAGE. A move kind with no checker (redraw, r1) is reported
+  * HONEST COVERAGE. A move kind with no checker (redraw) is reported
     UNCHECKED, never skipped in silence.
+
+r1 has a checker of its own, and for r1 the local checks ARE soundness (there
+is no witness to demand), so this also exercises the curl fixtures: the
+ordinary case, the spinoff, and a `loop` that does not name a loop arc.
 
 Fixtures are the committed ones: test/trace_example.txt, test/r1_example.txt,
 and the real witnessed middlepass records embedded in test/witness_fixtures.hpp
@@ -32,6 +36,8 @@ PROVE = os.path.join(HERE, "..", "tools", "knoodleprove")
 DRAW = os.path.join(HERE, "..", "tools", "knoodledraw")
 TRACE_EXAMPLE = os.path.join(HERE, "trace_example.txt")
 R1_EXAMPLE = os.path.join(HERE, "r1_example.txt")
+R1_TRACE = os.path.join(HERE, "r1_trace_example.txt")
+R1_SPINOFF = os.path.join(HERE, "r1_spinoff_example.txt")
 WITNESS_HPP = os.path.join(HERE, "witness_fixtures.hpp")
 
 checks = 0
@@ -120,8 +126,58 @@ check("#verify step 1 move: UNCHECKED (no checker for kind=redraw yet)" in out,
 
 rc, out, _ = run(PROVE, ["-"], r1_example)
 check(rc == 0, "r1_example (stdin via '-'): exit 0", out)
-check("move: UNCHECKED (no checker for kind=r1 yet)" in out,
-      "r1_example: r1 is reported UNCHECKED, not skipped", out)
+check("#verify step 0 r1: VERIFIED (loop arc 4 at crossing 3" in out,
+      "r1_example: the curl's local checks pass, and name the loop", out)
+
+# -- r1 -----------------------------------------------------------------------
+
+# The two-record fixtures: record 1 was produced by the LIBRARY's LoopRemover,
+# so `trace: VERIFIED` is two independent implementations agreeing.
+rc, out, _ = run(PROVE, [R1_TRACE])
+check(rc == 0, "r1_trace_example: exit 0", out)
+check("#verify step 0 trace: VERIFIED" in out,
+      "r1_trace_example: the surgery produces the next snapshot", out)
+
+rc, out, _ = run(PROVE, [R1_SPINOFF])
+check(rc == 0, "r1_spinoff_example: exit 0", out)
+check("the component comes free" in out,
+      "r1_spinoff_example: the spinoff is named in the r1 verdict", out)
+check("split: 1 crossingless component(s) came free" in out,
+      "r1_spinoff_example: the freed component is reported", out)
+check("spinoffs: VERIFIED (1 reported, 1 from the surgery)" in out,
+      "r1_spinoff_example: #spinoffs agrees with the surgery", out)
+check("#verify step 0 trace: VERIFIED" in out,
+      "r1_spinoff_example: the surgery produces the next snapshot", out)
+
+# A `loop` darc that is not a loop arc must be caught, not waved through.
+r1_bad = r1_example.replace("#move kind=r1 loop=9", "#move kind=r1 loop=1")
+check(r1_bad != r1_example, "r1: the substitution applied")
+rc, out, _ = run(PROVE, [], r1_bad)
+check(rc == 1, "r1 with a non-loop arc: exit 1", out)
+check("#verify step 0 r1: MISMATCH" in out and "not a loop arc" in out,
+      "r1 with a non-loop arc: MISMATCH, and says why", out)
+
+# The other side of `loop` is not a monogon, so naming it must fail too.
+r1_other = r1_example.replace("#move kind=r1 loop=9", "#move kind=r1 loop=8")
+rc, out, _ = run(PROVE, [], r1_other)
+check(rc == 1, "r1 naming the non-monogon side: exit 1", out)
+check("#verify step 0 r1: MISMATCH" in out and "monogon" in out,
+      "r1 naming the non-monogon side: MISMATCH about the monogon", out)
+
+# An r1 whose next snapshot is not what the move produces: keep the curl
+# record, but follow it with the OTHER fixture's result (a trefoil, 3
+# crossings, where this move leaves 4).
+def records_of(text):
+    return [b for b in text.split("\n\n") if b.strip()]
+
+spliced = (records_of(read(R1_TRACE))[0] + "\n\n"
+           + records_of(read(R1_SPINOFF))[1] + "\n")
+rc, out, _ = run(PROVE, [], spliced)
+check(rc == 1, "r1 followed by the wrong snapshot: exit 1", out)
+check("#verify step 0 trace: MISMATCH" in out,
+      "r1 followed by the wrong snapshot: the trace claim fails", out)
+check("4 crossings expected, 3 found" in out,
+      "r1 followed by the wrong snapshot: the counts are named", out)
 
 for name, body in records:
     rc, out, _ = run(PROVE, [], body)

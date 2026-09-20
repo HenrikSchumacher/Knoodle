@@ -15,7 +15,10 @@
  *   split     crossingless components the surgery frees (reported, not judged);
  *   spinoffs  the emitter's `#spinoffs` count agrees with the surgery's;
  *   result    the emitter's `#result` agrees port-by-port with `AfterDiagram`;
- *   V0/V4/V2-V5  the `#feas` witness (tools/witness_check.hpp).
+ *   V0/V4/V2-V5  the `#feas` witness (tools/witness_check.hpp);
+ *   r1        a curl removal's local checks, which for `r1` are the whole of
+ *             soundness -- the spec's "well-formed implies sound" (there is no
+ *             witness to demand), so `ResolveR1` passing IS the verdict.
  *
  * The report lines are the ones `knoodledraw --verify` has always printed,
  * byte for byte, so a consumer grepping for `#verify ... VERIFIED` sees no
@@ -45,6 +48,7 @@
 
 #include "../src/PassDescriptor.hpp"
 #include "../src/MoveTrace.hpp"
+#include "r1_move.hpp"
 #include "diagram_agreement.hpp"
 #include "witness_check.hpp"
 
@@ -105,39 +109,30 @@ bool AnnotationAgreesQ(
  * than a PD code. A PD code renumbers, so the strongest question one could
  * ask of a cross-process result was "is it the same knot"; here a
  * disagreement names a crossing and a port.
+ *
+ * `touchedQ[c]` marks the crossings the move is allowed to dispose of -- a
+ * pass move's interior crossings of W, an r1's dying crossing. Everything
+ * else must survive on both sides or neither.
  */
 template<class PD_T>
 bool BuildSurvivorSeeds(
     const PD_T & before,
-    const Knoodle::PassDescriptor<typename PD_T::Int> & mv,
+    const std::vector<char> & touchedQ,
     const PD_T & d1,
     const PD_T & d2,
     std::vector<std::array<typename PD_T::Int,2>> & seeds,
     std::string & why )
 {
-    using Int    = typename PD_T::Int;
-    using Move_T = Knoodle::PassDescriptor<Int>;
+    using Int = typename PD_T::Int;
 
     seeds.clear();
 
     const Int n_c = before.MaxCrossingCount();
-    std::vector<char> interiorQ(static_cast<std::size_t>(n_c), char(0));
-
-    const Int L = static_cast<Int>(mv.strand.size());
-    for (Int i = 1; i < L; ++i)
-    {
-        const Int x = Move_T::DarcHeadCrossing(
-            before, mv.strand[static_cast<std::size_t>(i-1)]);
-        if ((x >= Int(0)) && (x < n_c))
-        {
-            interiorQ[static_cast<std::size_t>(x)] = char(1);
-        }
-    }
 
     for (Int c = 0; c < n_c; ++c)
     {
         if (!before.CrossingActiveQ(c)) continue;
-        if (interiorQ[static_cast<std::size_t>(c)]) continue;
+        if (touchedQ[static_cast<std::size_t>(c)]) continue;
 
         const bool in1 = (c < d1.MaxCrossingCount()) && d1.CrossingActiveQ(c);
         const bool in2 = (c < d2.MaxCrossingCount()) && d2.CrossingActiveQ(c);
@@ -160,6 +155,38 @@ bool BuildSurvivorSeeds(
         return false;
     }
     return true;
+}
+
+/*!@brief `BuildSurvivorSeeds` for a pass move: W's interior crossings are the
+ * ones it may dispose of.
+ */
+template<class PD_T>
+bool BuildSurvivorSeeds(
+    const PD_T & before,
+    const Knoodle::PassDescriptor<typename PD_T::Int> & mv,
+    const PD_T & d1,
+    const PD_T & d2,
+    std::vector<std::array<typename PD_T::Int,2>> & seeds,
+    std::string & why )
+{
+    using Int    = typename PD_T::Int;
+    using Move_T = Knoodle::PassDescriptor<Int>;
+
+    const Int n_c = before.MaxCrossingCount();
+    std::vector<char> touchedQ(static_cast<std::size_t>(n_c), char(0));
+
+    const Int L = static_cast<Int>(mv.strand.size());
+    for (Int i = 1; i < L; ++i)
+    {
+        const Int x = Move_T::DarcHeadCrossing(
+            before, mv.strand[static_cast<std::size_t>(i-1)]);
+        if ((x >= Int(0)) && (x < n_c))
+        {
+            touchedQ[static_cast<std::size_t>(x)] = char(1);
+        }
+    }
+
+    return BuildSurvivorSeeds(before, touchedQ, d1, d2, seeds, why);
 }
 
 /**
@@ -306,6 +333,136 @@ public:
         }
 
         return m;
+    }
+
+    /// What BeginR1 learned.
+    struct R1Move
+    {
+        bool             parsedQ = false;
+        bool             validQ  = false;   // the local checks passed
+        KnoodleR1View::R1Resolved<PD_T> r;
+        PD_T             after;
+        std::vector<Int> freed;
+        std::string      why;
+    };
+
+    /**
+     * @brief A curl removal: local checks, the diagram it produces, and the
+     * claims about that diagram.
+     *
+     * For `r1` the two conformance tiers coincide (docs/move-descriptor.md,
+     * "Kinds for which well-formed implies sound"): there is no witness to
+     * demand, so the local checks ARE the verdict, and `ResolveR1` is where
+     * they live. It checks that the named darc is a loop arc whose crossing is
+     * active and that the face to its left is a monogon -- which is what pins
+     * down which side collapses.
+     *
+     * `R1AfterDiagram` then performs the surgery from the descriptor alone,
+     * never calling `LoopRemover`, so it can serve as an oracle against an
+     * applier -- Knoodle's own included.
+     */
+    R1Move BeginR1( const Record_T & rec, const PD_T & dia,
+                    const std::string & spec, std::size_t step )
+    {
+        using R1_T = KnoodleR1View::R1Descriptor<Int>;
+
+        R1Move m;
+
+        R1_T desc;
+        std::string perr;
+        if( !R1_T::Parse(spec, desc, perr) )
+        {
+            m.why = perr;
+            return m;
+        }
+        m.parsedQ = true;
+
+        m.r      = KnoodleR1View::ResolveR1<PD_T>(dia, desc.loop);
+        m.validQ = m.r.validQ;
+
+        out_ << "#verify step " << step << " r1: ";
+        if( !m.validQ )
+        {
+            out_ << "MISMATCH -- " << m.r.why << "\n";
+            failedQ_ = true;
+            return m;
+        }
+        out_ << "VERIFIED (loop arc " << m.r.a << " at crossing " << m.r.c
+             << "; face " << m.r.monogon << " is the monogon"
+             << (m.r.spinoffQ ? "; the component comes free" : "") << ")\n";
+
+        m.after = KnoodleR1View::R1AfterDiagram<PD_T>(dia, m.r, m.why, m.freed);
+
+        if( !m.why.empty() )
+        {
+            out_ << "#verify step " << step
+                 << " result/trace: UNCHECKED (the surgery cannot build what"
+                    " the move produces: " << m.why << ")\n";
+            m.validQ = false;
+            return m;
+        }
+
+        if( !m.freed.empty() )
+        {
+            out_ << "#verify step " << step
+                 << " split: " << m.freed.size()
+                 << " crossingless component(s) came free (colours";
+            for( Int c : m.freed ) { out_ << " " << c; }
+            out_ << ")\n";
+        }
+
+        if( rec.spinoffs )
+        {
+            const Int mine   = static_cast<Int>(m.freed.size());
+            const bool sameQ = (*rec.spinoffs == mine);
+
+            out_ << "#verify step " << step
+                 << " spinoffs: " << (sameQ ? "VERIFIED" : "MISMATCH")
+                 << " (" << *rec.spinoffs << " reported, "
+                 << mine << " from the surgery)\n";
+
+            if( !sameQ ) { failedQ_ = true; }
+        }
+
+        if( rec.result )
+        {
+            std::vector<char> touchedQ(
+                static_cast<std::size_t>(dia.MaxCrossingCount()), char(0));
+            if( (m.r.c >= Int(0)) && (m.r.c < dia.MaxCrossingCount()) )
+            {
+                touchedQ[static_cast<std::size_t>(m.r.c)] = char(1);
+            }
+
+            std::vector<std::array<Int,2>> seeds;
+            std::string swhy;
+
+            bool okQ = BuildSurvivorSeeds<PD_T>(dia, touchedQ, m.after,
+                                                *rec.result, seeds, swhy);
+            if( okQ )
+            {
+                okQ = DiagramsAgreeQ(m.after, *rec.result, seeds, swhy);
+            }
+
+            out_ << "#verify step " << step << " result: "
+                 << (okQ ? "VERIFIED (port-by-port against the applier)"
+                         : "MISMATCH");
+            if( !okQ ) { out_ << " -- " << swhy; }
+            out_ << "\n";
+
+            if( !okQ ) { failedQ_ = true; }
+        }
+
+        return m;
+    }
+
+    /// Carry an r1's claim forward, as EndMove does for a pass.
+    void EndR1( const Record_T & rec, R1Move & m, std::size_t step )
+    {
+        if( m.validQ && !rec.candidateQ )
+        {
+            pending_after_ = std::move(m.after);
+            pending_label_ = "step " + std::to_string(step);
+        }
     }
 
     /**

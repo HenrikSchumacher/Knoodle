@@ -400,7 +400,9 @@ For two kinds the two tiers coincide, so a verifier has nothing to demand
 beyond the local checks.
 
 - **`r1`** — a curl removal carries no witness; its local checks are the whole
-  story. Stated with the kind, below.
+  story. Stated with the kind, below. `knoodleprove` therefore reports `r1:
+  VERIFIED` on the local checks alone (`ResolveR1`, tools/r1_move.hpp), and
+  goes on to check what the removal produces against the next record.
 - **`pass`** — **a well-formed `kind=pass` record is sound.** Check 5 is what
   does the work: requiring W's tags to be uniform and equal to its own role at
   its interior crossings is exactly the hypothesis under which the rerouting is
