@@ -225,6 +225,19 @@ check(rc == 1, "unparseable descriptor: exit 1", out)
 check("#verify step 0 descriptor: MISMATCH" in out,
       "unparseable descriptor: reported as a MISMATCH", out)
 
+# A record carrying no diagram is the next STATE (a crossingless summand), so a
+# pending claim must be answered against it, not carried over it. Splice one in
+# after trace_example's pass move: the move claims 3 crossings, the stream says
+# the summand is crossingless, and that is a MISMATCH -- it used to be compared
+# against the record two steps later and reported VERIFIED.
+recs = [b for b in trace_example.split("\n\n") if b.strip()]
+crossingless = recs[0] + "\n\n#step n=9 summand=0\n\n" + "\n\n".join(recs[1:]) + "\n"
+rc, out, _ = run(PROVE, [], crossingless)
+check(rc == 1, "a crossingless record answers the pending claim: exit 1", out)
+check("trace: MISMATCH (3 crossings expected, and the next record carries no"
+      " diagram)" in out,
+      "a crossingless record answers the pending claim, not a later one", out)
+
 # A malformed stream is an error with a line number.
 rc, out, err = run(PROVE, [], "#trace v=1\n#state lines=2\nnot a diagram\n")
 check(rc == 1, "malformed stream: exit 1", out + err)

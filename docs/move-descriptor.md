@@ -682,15 +682,27 @@ pass views are — render, parse back with the drawing parser, compare
 port-by-port under the correspondence the grid dictates — by
 `KnoodleR1View::CheckR1View`, which `knoodledraw --trace --verify` reports as
 `drawing: VERIFIED (the deletion)` and `test/pass_view_check.cpp` exercises
-in process, negatives included. A healed corner joining the wrong pair of
-survivors draws a legal diagram of some knot, so only the geometric
-correspondence catches it.
+in process, negatives included.
 
-One limit worth stating: a **split** snapshot cannot be drawn at all
-(`OrthoDraw` lays out one connected picture), and an r1 spinoff produces one.
-So the drawing claim is unavailable exactly there, and `knoodledraw --trace`
-refuses such a record rather than drawing something else. The claims that need
-no drawing are still checked, by `knoodleprove`.
+**What that check is for**, since the corner itself is forced (above) and
+cannot be got wrong: that the cells erased are exactly the loop's, that the
+corner sits where the dead crossing was, that nothing else in the picture
+moved or vanished — which is the geometric correspondence's job, not mere
+isomorphism — and that the picture and `R1AfterDiagram` agree at every port,
+so a mismatch convicts one of the two and says where.
+
+**The spinoff case is never drawable, and that is not a renderer limitation.**
+`a_prev == a_next` means the loop's component is the curl and one other arc, so
+its only crossing is `c`. Any other crossing of the diagram belongs to a
+component this one never meets — so **the snapshot was already split before the
+move**, and a split diagram has no drawing: `OrthoDraw` lays out one connected
+picture, and `knoodledraw --trace` refuses such a record (it used to segfault).
+Contrapositive, worth having: **on a connected snapshot with two or more
+crossings an r1 spinoff cannot occur**; on a connected snapshot with exactly one
+crossing the move empties the diagram, and the next record carries no diagram at
+all. The claims that need no drawing are still checked, by `knoodleprove` —
+including that last one, where a record carrying no diagram answers the pending
+`trace:` claim rather than being skipped over.
 
 **The healed crossing is a corner, and which corner is forced.** The loop's two
 ends at `c` are rotationally adjacent — that is what it means for `L(loop)` to be

@@ -278,6 +278,13 @@ R1Resolved<PD_T> ResolveR1(const PD_T& pd, typename PD_T::Int loop)
  * component IS the loop, so removing the crossing leaves a crossingless
  * circle. A `PlanarDiagram` cannot hold one beside crossings, so its colour is
  * REPORTED in `freed`, exactly as a pass move's split-off loops are.
+ *
+ * That case only arises on a snapshot that is ALREADY SPLIT, or on one whose
+ * every crossing is this curl. The loop's component has exactly one crossing,
+ * so any other crossing belongs to a component it never meets. Hence: no
+ * spinoff on a connected diagram of two or more crossings, and no drawing of
+ * one either -- `OrthoDraw` lays out a connected picture, so the two-deletions
+ * machinery cannot reach this path even in principle.
  */
 template<class PD_T>
 PD_T R1AfterDiagram(

@@ -268,9 +268,19 @@ R1Corner_T<typename PD_T::Int> R1Corner(
 // drawing parser (which reads structure from the characters and never consults
 // the diagram it is checking), and compare port-by-port under the
 // correspondence the GRID dictates -- each parsed crossing matched to the
-// crossing whose cell it was read from. A healed corner that reconnected the
-// wrong pair of survivors draws a perfectly legal diagram, often of the right
-// knot, and only the geometric correspondence catches it.
+// crossing whose cell it was read from.
+//
+// WHAT THIS CATCHES, stated honestly. Not "the corner joins the wrong
+// survivors": there is only one pair to join. Two of `c`'s four ports are the
+// loop's own ends, and the monogon condition makes them rotationally adjacent,
+// so the survivors are the other two and the corner is forced -- which is why
+// the renderer stamps '+' and lets the glyph resolve itself. What is worth
+// checking is everything around that: that the cells erased are exactly the
+// loop's and nothing else's, that the corner cell is where the dead crossing
+// was, that no other crossing moved or vanished (the geometric correspondence,
+// not mere isomorphism), and -- since the comparison is against
+// `R1AfterDiagram` -- that the picture and the surgery agree at every port.
+// A mismatch means one of the two is wrong, and the drawing says where.
 //==============================================================================
 
 /*!@brief Build the plain ASCII canvas of the AFTER view.

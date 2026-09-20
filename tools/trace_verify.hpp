@@ -251,6 +251,31 @@ public:
     }
 
     /**
+     * @brief A record that carries no diagram: the summand is crossingless.
+     *
+     * It is still the next state, so a pending claim has to be answered HERE
+     * rather than carried across it. Carried across, a move claiming three
+     * crossings would be compared to whatever record came next and could be
+     * reported VERIFIED against a state two steps downstream.
+     */
+    void BeginRecordWithoutDiagram()
+    {
+        if( !pending_after_ ) { return; }
+
+        PD_T expected = std::move(*pending_after_);
+        pending_after_.reset();
+
+        const bool okQ = (expected.CrossingCount() == Int(0));
+
+        out_ << "#verify " << pending_label_ << " trace: "
+             << (okQ ? "VERIFIED" : "MISMATCH")
+             << " (" << expected.CrossingCount()
+             << " crossings expected, and the next record carries no diagram)\n";
+
+        if( !okQ ) { failedQ_ = true; }
+    }
+
+    /**
      * @brief Build what the move produces and check the claims about it.
      *
      * `AfterDiagram` works from the descriptor alone, never calling the

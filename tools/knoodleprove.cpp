@@ -108,8 +108,15 @@ bool Prove( std::istream & input, const char * source )
         }
 
         // Numbered exactly as knoodledraw numbers them, so the two tools'
-        // reports on one stream line up step for step.
-        if( !rec.state ) { ++step; continue; }
+        // reports on one stream line up step for step. A record with no
+        // diagram is a crossingless summand -- still a state, so a pending
+        // claim is answered against it rather than carried over it.
+        if( !rec.state )
+        {
+            verifier.BeginRecordWithoutDiagram();
+            ++step;
+            continue;
+        }
 
         PD_T dia = std::move(*rec.state);
 
