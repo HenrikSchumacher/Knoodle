@@ -253,4 +253,112 @@ R1Corner_T<typename PD_T::Int> R1Corner(
     return out;
 }
 
+//==============================================================================
+// The one deletion (what an R1 picture claims)
+//
+// A pass move superposes two states, because it ADDS a corridor: delete the
+// corridor and you have the diagram, delete the strand and you have what the
+// move produces. An R1 adds nothing, so there is only the second half. The
+// picture claims exactly one thing:
+//
+//   delete the monogon's single arc, and replace the crossing with the corner
+//   the survivors force, and what remains IS the diagram the move produces.
+//
+// Checked the way the pass views are: render it, parse it back with the
+// drawing parser (which reads structure from the characters and never consults
+// the diagram it is checking), and compare port-by-port under the
+// correspondence the GRID dictates -- each parsed crossing matched to the
+// crossing whose cell it was read from. A healed corner that reconnected the
+// wrong pair of survivors draws a perfectly legal diagram, often of the right
+// knot, and only the geometric correspondence catches it.
+//==============================================================================
+
+/*!@brief Build the plain ASCII canvas of the AFTER view.
+ *
+ * No labels, no colour, no marks -- just the strokes, so a parser can read the
+ * drawing back. Same pipeline knoodledraw uses, which is the point: the test
+ * parses the drawing the tool actually makes. No margin: an R1 never routes,
+ * so nothing can leave the canvas.
+ */
+template<class PD_T>
+KnoodlePassView::Canvas_T<PD_T> RenderR1AfterView(
+    Knoodle::OrthoDraw<PD_T> & H, const R1Resolved<PD_T> & r )
+{
+    using Int = typename PD_T::Int;
+
+    std::string diagram = H.DiagramString();
+
+    // Virtual edges are drawn as '.' by DiagramString(); they are not strokes.
+    std::replace(diagram.begin(), diagram.end(), '.', ' ');
+
+    const Int n_x = H.Width()  * H.Settings().x_grid_size + Int(2);
+    const Int n_y = H.Height() * H.Settings().y_grid_size + Int(1);
+
+    std::vector<HighlightType> mask;   // stays empty: no highlighting
+
+    ApplyR1AfterView<PD_T>(H, diagram, mask, n_x, n_y, r);
+
+    return KnoodlePassView::Canvas_T<PD_T>{ std::move(diagram), n_x, n_y };
+}
+
+/*!@brief The one deletion, checked against the diagram it should depict.
+ *
+ * `after` is what the move produces (`R1AfterDiagram`); `expect_free_loops` is
+ * how many crossingless components it reported freeing, which for an r1 is 1
+ * exactly in the spinoff case. The drawing has to account for the same number:
+ * when the curl's component IS the curl, deleting the loop leaves a circle
+ * with no crossings on the canvas, and a drawing that had lost it (or kept a
+ * crossing on it) would disagree.
+ */
+template<class PD_T>
+bool CheckR1View(
+    Knoodle::OrthoDraw<PD_T> & H,
+    const PD_T & pd,
+    const R1Resolved<PD_T> & r,
+    const PD_T & after,
+    std::string & why,
+    typename PD_T::Int expect_free_loops = 0 )
+{
+    using Int       = typename PD_T::Int;
+    using Extract_T = KnoodleDrawIO::DrawingExtractor<PD_T>;
+
+    if( !r.validQ )
+    {
+        why = r.why;
+        return false;
+    }
+
+    auto canvas = RenderR1AfterView<PD_T>(H, r);
+
+    auto R = Extract_T::Extract(canvas.chars, canvas.n_x, canvas.n_y);
+    if( !R.okQ )
+    {
+        why = "the drawing does not parse: " + R.why;
+        return false;
+    }
+
+    // The before-layout is the after-layout (an R1 moves nothing), so a parsed
+    // crossing is matched by its cell. There is no corridor, hence no route to
+    // consult and no margin: PassViewSeeds does the whole job with a null one.
+    std::vector<std::array<Int,2>> seeds;
+    if( !KnoodlePassView::PassViewSeeds<PD_T>(
+            R, pd, H, nullptr, Int(0), seeds, why) )
+    {
+        return false;
+    }
+
+    if( !DiagramsAgreeQ(R.pd, after, seeds, why) ) { return false; }
+
+    if( R.free_loops != expect_free_loops )
+    {
+        why = "the drawing has " + std::to_string(R.free_loops)
+            + " crossing-free closed curve(s) but the move accounts for "
+            + std::to_string(expect_free_loops);
+        return false;
+    }
+
+    why.clear();
+    return true;
+}
+
 } // namespace KnoodleR1View

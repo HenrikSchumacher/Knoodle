@@ -677,7 +677,20 @@ weaker and simpler:
 - the **after** view deletes the loop arc and heals the crossing, and parsed
   back it must be the diagram the move produces.
 
-Exactly one checkable claim, rather than two.
+Exactly one checkable claim, rather than two. It is checked the same way the
+pass views are — render, parse back with the drawing parser, compare
+port-by-port under the correspondence the grid dictates — by
+`KnoodleR1View::CheckR1View`, which `knoodledraw --trace --verify` reports as
+`drawing: VERIFIED (the deletion)` and `test/pass_view_check.cpp` exercises
+in process, negatives included. A healed corner joining the wrong pair of
+survivors draws a legal diagram of some knot, so only the geometric
+correspondence catches it.
+
+One limit worth stating: a **split** snapshot cannot be drawn at all
+(`OrthoDraw` lays out one connected picture), and an r1 spinoff produces one.
+So the drawing claim is unavailable exactly there, and `knoodledraw --trace`
+refuses such a record rather than drawing something else. The claims that need
+no drawing are still checked, by `knoodleprove`.
 
 **The healed crossing is a corner, and which corner is forced.** The loop's two
 ends at `c` are rotationally adjacent — that is what it means for `L(loop)` to be

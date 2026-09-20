@@ -133,10 +133,19 @@ check("#verify step 0 r1: VERIFIED (loop arc 4 at crossing 3" in out,
 
 # The two-record fixtures: record 1 was produced by the LIBRARY's LoopRemover,
 # so `trace: VERIFIED` is two independent implementations agreeing.
+_, dout, derr = run(DRAW, ["--trace", "--verify"], read(R1_TRACE))
+check("#verify step 0 drawing: VERIFIED (the deletion)" in dout + derr,
+      "r1: knoodledraw checks the ONE deletion of the r1 picture", dout + derr)
+
 rc, out, _ = run(PROVE, [R1_TRACE])
 check(rc == 0, "r1_trace_example: exit 0", out)
 check("#verify step 0 trace: VERIFIED" in out,
       "r1_trace_example: the surgery produces the next snapshot", out)
+
+drc, dout, derr = run(DRAW, ["--trace", "--verify"], read(R1_SPINOFF))
+check(drc == 1 and "diagram components" in derr,
+      "r1 spinoff: knoodledraw refuses a split snapshot (it cannot draw one)",
+      f"exit {drc}\n{derr}")
 
 rc, out, _ = run(PROVE, [R1_SPINOFF])
 check(rc == 0, "r1_spinoff_example: exit 0", out)

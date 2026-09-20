@@ -41,6 +41,7 @@
 #include "../tools/diagram_agreement.hpp"
 #include "../tools/drawing_extractor.hpp"
 #include "../tools/find_pass.hpp"
+#include "../tools/r1_view.hpp"
 #include "pass_fixtures.hpp"
 
 using Int         = std::int64_t;
@@ -861,6 +862,83 @@ static void RunStrandCrossingTests()
     }
 }
 
+// An R1's ONE deletion (docs/move-descriptor.md): erase the monogon's arc,
+// heal the dead crossing into the corner the survivors force, and what is left
+// must be the diagram the move produces. Same instrument as the pass views --
+// render, parse back, compare port-by-port under the correspondence the grid
+// dictates -- so the negatives matter as much as the positive: an oracle that
+// cannot fail proves nothing.
+static void RunR1DeletionTests()
+{
+    // test/r1_example.txt's diagram: a 5-crossing raw projection with one
+    // curl. Its loop arc is 4, at crossing 3, and darc 9 names the monogon.
+    const std::vector<Int> code = {
+        2,0,3,9,1,  0,7,1,8,-1,  6,1,7,2,-1,  3,5,4,4,1,  8,6,9,5,1
+    };
+    const PD_T pd = PD_T::FromSignedPDCode(code.data(), Int(5));
+
+    auto r = KnoodleR1View::ResolveR1<PD_T>(pd, Int(9));
+    if( !r.validQ )
+    {
+        std::printf("  r1 deletion      *** the fixture does not resolve: %s ***\n",
+            r.why.c_str());
+        ok = false;
+        return;
+    }
+
+    std::string why;
+    std::vector<Int> freed;
+    PD_T after = KnoodleR1View::R1AfterDiagram<PD_T>(pd, r, why, freed);
+    if( !why.empty() )
+    {
+        std::printf("  r1 deletion      *** the surgery failed: %s ***\n",
+            why.c_str());
+        ok = false;
+        return;
+    }
+
+    for( Int g : {2, 3, 4, 6} )
+    {
+        OrthoDraw_T H(pd, Int(-1), GridSettings(g,g));
+
+        const bool okQ = KnoodleR1View::CheckR1View<PD_T>(
+            H, pd, r, after, why, static_cast<Int>(freed.size()));
+
+        std::printf("  r1 deletion      %2lldx%-2lld  %s\n",
+            (long long)g, (long long)g,
+            okQ ? "the deletion OK" : ("*** " + why + " ***").c_str());
+
+        if( okQ ) { ++checks_passed; } else { ok = false; }
+    }
+
+    // Negatives, on one grid. Each must be REFUSED.
+    {
+        OrthoDraw_T H(pd, Int(-1), GridSettings(4,4));
+
+        // 1. compared against the diagram we started from: the curl is still
+        //    in it, so the drawing (which has lost it) must not match.
+        const bool n1 = !KnoodleR1View::CheckR1View<PD_T>(H, pd, r, pd, why, Int(0));
+        std::printf("  r1 negative      before-diagram  %s\n",
+            n1 ? "refused" : "*** ACCEPTED ***");
+        if( n1 ) { ++checks_passed; } else { ok = false; }
+
+        // 2. a freed component claimed where the drawing has none.
+        const bool n2 = !KnoodleR1View::CheckR1View<PD_T>(H, pd, r, after, why, Int(1));
+        std::printf("  r1 negative      phantom free loop  %s\n",
+            n2 ? "refused" : "*** ACCEPTED ***");
+        if( n2 ) { ++checks_passed; } else { ok = false; }
+
+        // 3. the OTHER darc of the loop arc: L(8) is not the monogon, so the
+        //    move is refused before any drawing is made.
+        auto r_other = KnoodleR1View::ResolveR1<PD_T>(pd, Int(8));
+        const bool n3 = !r_other.validQ
+            && !KnoodleR1View::CheckR1View<PD_T>(H, pd, r_other, after, why, Int(0));
+        std::printf("  r1 negative      non-monogon side  %s\n",
+            n3 ? "refused" : "*** ACCEPTED ***");
+        if( n3 ) { ++checks_passed; } else { ok = false; }
+    }
+}
+
 static void RunIsomorphismTests()
 {
     auto build = []( std::vector<Int> code ) -> PD_T
@@ -1072,6 +1150,7 @@ int main()
     RunInferenceDeadlockTests();
     RunCrossingNeighbourCountTests();
     RunStrandCrossingTests();
+    RunR1DeletionTests();
 
     RunIsomorphismTests();
 

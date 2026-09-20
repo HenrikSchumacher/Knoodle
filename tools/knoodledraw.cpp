@@ -250,8 +250,9 @@ void PrintUsage()
     std::cerr << "  --trace                     Input is a move-trace stream (#step/#move/#view headed\n";
     std::cerr << "                              PD records, docs/move-descriptor.md): each record is\n";
     std::cerr << "                              drawn under its echoed headers, pass moves as overlays\n";
-    std::cerr << "  --verify                    With --trace: check THE DRAWING of each pass move --\n";
-    std::cerr << "                              the two deletions, inside one record. Each view is\n";
+    std::cerr << "  --verify                    With --trace: check THE DRAWING of each move -- for a\n";
+    std::cerr << "                              pass move the two deletions, for an r1 the single\n"
+    "                              deletion, inside one record. Each view is\n";
     std::cerr << "                              rendered, parsed back and compared port-by-port to\n";
     std::cerr << "                              the diagram it should be. Reports VERIFIED /\n";
     std::cerr << "                              MISMATCH / UNCHECKED per move; a mismatch exits\n";
@@ -4149,6 +4150,24 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
             return false;
         }
 
+        // OrthoDraw refuses a diagram with several diagram components, and
+        // reaching it anyway SEGFAULTS -- knoodlesimplify guards the same
+        // thing defensively for the same reason. A record can carry one: an
+        // r1 spinoff leaves a circle split off from the rest, and the record
+        // BEFORE it already shows the two side by side. Refuse it here, where
+        // the line number is still in hand.
+        if (dia.DiagramComponentCount() > Int(1))
+        {
+            std::cerr << "knoodledraw: trace line " << rec.line
+                      << ": this snapshot has "
+                      << dia.DiagramComponentCount()
+                      << " diagram components, and a drawing is one connected"
+                         " picture -- OrthoDraw cannot lay it out. The claims"
+                         " that need no drawing are checkable with"
+                         " knoodleprove.\n";
+            return false;
+        }
+
         // A record carrying both snapshot carriers must have them reconciled,
         // and the reconciliation is UP TO RELABELLING: a PD code renumbers on
         // the way out, so the annotation cannot be compared to the state byte
@@ -4197,7 +4216,49 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
             rc.exterior_face = dia.ArcFaces()(a, da % Int(2));
         }
 
-        if (config.verify_trace && rc.move_spec)
+        if (config.verify_trace && rc.move_spec
+            && (rec.move->find("kind=r1") != std::string::npos))
+        {
+            // An R1's ONE deletion: erase the monogon's arc and heal the dead
+            // crossing into the corner the survivors force, and what is left
+            // must be the diagram the move produces. There is no second
+            // deletion -- an R1 adds nothing to the picture to delete back out.
+            KnoodleR1View::R1Descriptor<Int> r1;
+            std::string perr;
+
+            if (KnoodleR1View::R1Descriptor<Int>::Parse(*rc.move_spec, r1, perr))
+            {
+                auto rr = KnoodleR1View::ResolveR1<PD_T>(dia, r1.loop);
+
+                std::string vwhy;
+                std::vector<Int> freed;
+                PD_T ad = KnoodleR1View::R1AfterDiagram<PD_T>(dia, rr, vwhy, freed);
+
+                if (!vwhy.empty())
+                {
+                    vout << "#verify step " << records_drawn
+                         << " drawing: UNCHECKED (the surgery cannot build what"
+                            " the move produces: " << vwhy << ")\n";
+                }
+                else
+                {
+                    OrthoDraw_T Hv(dia, rc.exterior_face ? *rc.exterior_face
+                                                         : Int(-1),
+                                   BuildSettings(rc));
+
+                    const bool drawnQ = KnoodleR1View::CheckR1View<PD_T>(
+                        Hv, dia, rr, ad, vwhy, static_cast<Int>(freed.size()));
+
+                    vout << "#verify step " << records_drawn << " drawing: "
+                         << (drawnQ ? "VERIFIED (the deletion)" : "MISMATCH");
+                    if (!drawnQ) { vout << " -- " << vwhy; }
+                    vout << "\n";
+
+                    if (!drawnQ) { verify_failed = true; }
+                }
+            }
+        }
+        else if (config.verify_trace && rc.move_spec)
         {
             // The two deletions, checked in this record's own drawing.
             // AfterDiagram works from the descriptor alone, never calling the
