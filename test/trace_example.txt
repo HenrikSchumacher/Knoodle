@@ -8,7 +8,11 @@
 4	2	5	1	1
 
 #step n=1 summand=0
-#move kind=redraw rot=1,0,0,0,1,0,0,0,1
+#comment PLACEHOLDER WITNESS: the rot below is a real permitted rotation, but
+#comment the 3 #embedding rows are a grammar placeholder, not a curve whose
+#comment projection is this snapshot. Replace it when the projection checks
+#comment land -- see test/redraw_example.trace for an honest one.
+#move kind=redraw rot=0,0,1,1,0,0,0,1,0
 #embedding rows=3
 0.0	0.0	0.0
 1.0	0.0	0.5

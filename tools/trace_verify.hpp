@@ -16,6 +16,8 @@
  *   spinoffs  the emitter's `#spinoffs` count agrees with the surgery's;
  *   result    the emitter's `#result` agrees port-by-port with `AfterDiagram`;
  *   V0/V4/V2-V5  the `#feas` witness (tools/witness_check.hpp);
+ *   redraw    a re-projection's rotation is one of the two permitted lattice
+ *             rotations (the projection checks themselves are not built yet);
  *   r1        a curl removal's local checks, which for `r1` are the whole of
  *             soundness -- the spec's "well-formed implies sound" (there is no
  *             witness to demand), so `ResolveR1` passing IS the verdict.
@@ -49,6 +51,7 @@
 #include "../src/PassDescriptor.hpp"
 #include "../src/MoveTrace.hpp"
 #include "r1_move.hpp"
+#include "redraw_move.hpp"
 #include "diagram_agreement.hpp"
 #include "witness_check.hpp"
 
@@ -521,6 +524,52 @@ public:
             pending_after_ = std::move(m.after);
             pending_label_ = "step " + std::to_string(step);
         }
+    }
+
+    /**
+     * @brief A re-projection: check the rotation, and report honestly on what
+     * is not yet checked.
+     *
+     * `redraw` is restricted to the two cyclic axis permutations
+     * (docs/move-descriptor.md, "Why only two rotations"), so `R` is checked
+     * by EQUALITY against integer matrices -- no tolerance anywhere. The rest
+     * of the contract -- `project(E)` isomorphic to this snapshot,
+     * `project(R*E)` isomorphic to the next, and the component colours
+     * tracking through the rotation -- needs the projector and is NOT
+     * implemented yet; it is reported UNCHECKED rather than passed over.
+     */
+    void CheckRedraw( const Record_T & rec, const std::string & spec,
+                      std::size_t step )
+    {
+        using Redraw_T = KnoodleRedraw::RedrawDescriptor<Int>;
+
+        Redraw_T desc;
+        std::string err;
+
+        out_ << "#verify step " << step << " redraw: ";
+        if( !Redraw_T::Parse(spec, desc, err) )
+        {
+            out_ << "MISMATCH -- " << err << "\n";
+            failedQ_ = true;
+            return;
+        }
+        out_ << "VERIFIED (rotation " << desc.CycleName() << ")\n";
+
+        // The witness itself. Without it nothing downstream is checkable, and
+        // a record that omits it is not a redraw record, it is a claim.
+        out_ << "#verify step " << step << " projection: UNCHECKED (";
+        if( rec.embedding.empty() )
+        {
+            out_ << "the record carries no '#embedding' block, so there is no"
+                    " witness to project";
+        }
+        else
+        {
+            out_ << rec.embedding.size() / 3
+                 << " vertices carried; projecting E and R*E and comparing"
+                    " them to this and the next snapshot is not built yet";
+        }
+        out_ << ")\n";
     }
 
     /**

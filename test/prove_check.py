@@ -14,8 +14,9 @@ thing to protect:
   * IT CAN FAIL. A witness that lies (witness_rec_anchor_lie), a snapshot that
     is not what the move produces, a descriptor that does not parse: each must
     be a MISMATCH and exit 1. A checker that cannot fail proves nothing.
-  * HONEST COVERAGE. A move kind with no checker (redraw) is reported
-    UNCHECKED, never skipped in silence.
+  * HONEST COVERAGE. What is not checked says so. A redraw's rotation is
+    checked but its projection is not (yet), and the report distinguishes
+    them; a move kind with no checker at all is UNCHECKED, never skipped.
 
 r1 has a checker of its own, and for r1 the local checks ARE soundness (there
 is no witness to demand), so this also exercises the curl fixtures: the
@@ -37,6 +38,7 @@ DRAW = os.path.join(HERE, "..", "tools", "knoodledraw")
 TRACE_EXAMPLE = os.path.join(HERE, "trace_example.txt")
 R1_EXAMPLE = os.path.join(HERE, "r1_example.txt")
 R1_TRACE = os.path.join(HERE, "r1_trace_example.txt")
+REDRAW = os.path.join(HERE, "redraw_example.trace")
 R1_SPINOFF = os.path.join(HERE, "r1_spinoff_example.txt")
 LINK_RESULT = os.path.join(HERE, "link_result_example.trace")
 WITNESS_HPP = os.path.join(HERE, "witness_fixtures.hpp")
@@ -122,8 +124,10 @@ rc, out, _ = run(PROVE, [TRACE_EXAMPLE])
 check(rc == 0, "trace_example (as a FILE argument): exit 0", out)
 check("#verify step 0 trace: VERIFIED" in out,
       "trace_example: the pass move produces the next snapshot", out)
-check("#verify step 1 move: UNCHECKED (no checker for kind=redraw yet)" in out,
-      "trace_example: redraw is reported UNCHECKED, not skipped", out)
+check("#verify step 1 redraw: VERIFIED" in out
+      and "#verify step 1 projection: UNCHECKED" in out,
+      "trace_example: redraw's rotation is checked, its projection is not"
+      " (and says so)", out)
 
 rc, out, _ = run(PROVE, ["-"], r1_example)
 check(rc == 0, "r1_example (stdin via '-'): exit 0", out)
@@ -199,6 +203,31 @@ for name, body in records:
         check(rc == 0, f"{name}: exit 0", out)
         for claim in ("disk (V0)", "classes (V4)", "labels (V2/V3/V5)"):
             check(f"{claim}: VERIFIED" in out, f"{name}: {claim} VERIFIED", out)
+
+# -- redraw -------------------------------------------------------------------
+
+# `redraw` is restricted to the two cyclic axis permutations, which are integer
+# matrices -- so the rotation is checked by EQUALITY, with no tolerance. The
+# projection checks are not built yet and must say so rather than pass.
+rc, out, _ = run(PROVE, [REDRAW])
+check(rc == 0, "redraw_example: exit 0", out)
+check("redraw: VERIFIED (rotation x->y->z->x" in out,
+      "redraw: the permitted rotation is recognised and named", out)
+check("projection: UNCHECKED" in out and "4 vertices carried" in out,
+      "redraw: the embedding is KEPT (not discarded) and its size reported", out)
+
+redraw = read(REDRAW)
+for bad, label in [
+    ("1,0,0,0,1,0,0,0,1", "the identity (which changes nothing)"),
+    ("0,1,0,1,0,0,0,0,1", "a swap (det = -1, a reflection)"),
+    ("0,0,1,1,0,0,0,1",   "eight entries"),
+    ("0,0,1,1,0,0,0,1,0.5", "a non-integer entry"),
+]:
+    stream = redraw.replace("rot=0,0,1,1,0,0,0,1,0", "rot=" + bad)
+    check(stream != redraw, f"redraw tamper applied: {label}")
+    rc, out, _ = run(PROVE, [], stream)
+    check(rc == 1, f"redraw with {label}: exit 1", out)
+    check("redraw: MISMATCH" in out, f"redraw with {label}: MISMATCH", out)
 
 # -- colours ------------------------------------------------------------------
 

@@ -818,30 +818,92 @@ would be unverifiable. Instead the record carries the witness of the isotopy:
   same 3-column TSV format the tools already read and write (component
   conventions included — `knoodledraw --embedding` output is the reference).
   Floats are printed with round-trip precision (`%.17g`).
-- **`rot`**: a rotation matrix `R` (row-major, orthonormal with `det = +1`
-  within a stated tolerance; verifiers check this). The new view is `R·E`.
-- The projection convention (which axis is the viewing direction, larger
-  coordinate on top) is **whatever `PD_T::FromCoordinates` /
-  `LinkEmbedding` implement** (`src/PlanarDiagram/FromEmbeddings.hpp`) —
-  cited as normative rather than restated here, so this spec cannot drift
-  from the code.
+- **`rot`**: the rotation `R`, row-major. **It must be one of exactly two
+  matrices** (see "Why only two rotations" below):
+
+  | `rot=` (row-major) | permutation | rotation |
+  |---|---|---|
+  | `0,0,1,1,0,0,0,1,0` | `x → y → z → x` | +2π/3 about (1,1,1) |
+  | `0,1,0,0,0,1,1,0,0` | `x → z → y → x` | −2π/3 (= 4π/3) about (1,1,1) |
+
+  Both are integer matrices with `det = +1`, so a verifier checks `R` by
+  EQUALITY, not against a tolerance. Both fix (1,1,1) and have trace 0, so
+  each turns by 120° in magnitude — `trace = 1 + 2cos θ` gives `cos θ = -1/2`
+  — and they are inverses of one another, one +2π/3 and one −2π/3. (Not π/3:
+  a 60° turn about (1,1,1) is not a lattice symmetry at all.) The columns are
+  the images of the basis vectors, which is the easy thing to get backwards:
+  in the first matrix `R·e_x = e_y`.
+- The projection convention is **whatever `PD_T::FromCoordinates` /
+  `LinkEmbedding` implement** (`src/PlanarDiagram/FromEmbeddings.hpp`) — cited
+  as normative rather than restated, so this spec cannot drift from the code.
+  Measured 2026-09-20, for orientation rather than as a second source of
+  truth: the viewing direction is **z** (the picture is the xy view) and the
+  **larger z is the over-strand**.
+
+### Why only two rotations
+
+The obvious contract — any `R ∈ SO(3)`, checked to a tolerance — makes the
+verifier's answer depend on floating-point luck exactly where the geometry is
+hardest: a rotation can bring two strands into near-alignment, and whether a
+crossing then exists is a question about epsilon rather than about the knot.
+
+The `Prosector` work exists to remove that. Simulation of simplicity makes a
+**fully degenerate projection parse repeatably**: an axis-aligned projection of
+a lattice knot has a definite, reproducible answer. A proof-grade simplifier
+should spend that, so `redraw` is restricted to the rotations that keep the
+lattice a lattice:
+
+- the two are exact in integer arithmetic — no tolerance anywhere in the check;
+- they carry a lattice curve to a lattice curve, so `LinkEmbedding_Int` and
+  `Prosector` stay applicable to both the before and the after view;
+- together with the identity they generate a group of order 3, so the reachable
+  views are the three axis projections, which is what a lattice simplifier
+  wants.
+
+`rot` naming the identity is **not** a `redraw`: the move would change nothing.
+If more views are ever wanted, the natural extension is the 24 chiral
+octahedral rotations — every one a signed permutation matrix, equally exact,
+and the checker below is unchanged.
 
 ### Verification contract
 
-1. `project(E)` reproduces **this record's PD snapshot exactly** (the
-   recorder must emit as its before-snapshot the PD that `FromCoordinates`
-   returns for `E`, so equality is literal, not up-to-relabeling).
-2. `project(R·E)` reproduces the **next record's PD snapshot exactly**
-   (same recorder-side rule for the after-snapshot).
-3. `R` is orthonormal, `det(R) = +1` (tolerance stated in the trace header
-   once fixed).
+1. `project(E)` is **isomorphic to this record's snapshot**.
+2. `project(R·E)` is **isomorphic to the next record's snapshot**.
+3. `R` is one of the two matrices above (equality, not tolerance).
+4. If the link has more than one component, the **component colours track
+   through the rotation**: the component a colour names before the move names
+   the corresponding component after it.
 
-Check 1 and 2 are runnable today: `knoodlesimplify -s=0` is precisely the
-embedding→PD converter with no simplification. Rigid rotation preserves
-link type by theorem, so a `redraw` passing these checks is verified —
-the trust base is `FromCoordinates` itself (plus float projection
-robustness) rather than the `LeftDarc` walk, which is why proof-grade and
-redraw-grade remain *labelled distinctly* even though both are checkable.
+**Isomorphic, not equal.** An earlier revision of this document demanded that
+the projection reproduce the snapshot *exactly* — "literal, not
+up-to-relabeling". That was the wrong call, and it is the same mistake `#pd`
+already corrected: a literal recompute aborts on our own worked example,
+because a projector numbers what it finds in its own order. `project` and the
+recorder agree about the diagram, not about its labels. The isomorphism is
+computed, not merely asserted, by `DiagramsIsomorphicQ`
+(`tools/diagram_agreement.hpp`), which hands back the relabelling it finds.
+
+**Colours need the embedding, not the isomorphism.** A relabelling cannot pin
+which component is which: two isomorphic components of a symmetric link are
+interchangeable, and the matcher is explicitly allowed to swap them. But
+`FromLinkEmbedding_Raw` takes the component colours as an INPUT — the diagram
+inherits them from the embedding rather than inventing them — so a verifier
+that projects `E` and `R·E` itself has the components pinned by construction.
+That is check 4: follow each component from 3-space down through both
+projections. It also checks, for free, that the number of components is
+preserved.
+
+**What is trusted.** `FromCoordinates` (and, for lattice input,
+`LinkEmbedding_Int` + `Prosector`) rather than the `LeftDarc` walk. That is
+why redraw-grade and proof-grade stay labelled distinctly even though both are
+checkable. What is NOT trusted any more is floating-point tie-breaking in the
+rotation itself, which is the whole point of the restriction.
+
+**Crossingless components.** `FromCoordinates` returns the diagram *and* the
+colours of the Anelli it found — components with no crossings, which a
+`PlanarDiagram` cannot hold beside crossings. A projection can create or
+destroy them (a component can be crossingless in one view and not in another),
+so they are compared as colours, by the same convention `#spinoffs` uses.
 
 ### Animation recipe (what the payload buys)
 

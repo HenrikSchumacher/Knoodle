@@ -1,0 +1,26 @@
+#trace v=0
+#step n=0 summand=0
+#comment A REAL redraw witness, small enough to check by hand.
+#comment
+#comment E is the 4-vertex closed curve below. Down z (the xy view) its first
+#comment and third edges cross at (1,1), separated in z, so project(E) is the
+#comment single-crossing diagram carried here -- verified with
+#comment `knoodlesimplify -s=0`, which is exactly the embedding->PD converter.
+#comment Rotating by x->y->z->x carries the crossing out of the xy view, so
+#comment project(R*E) is a crossingless circle: the next record carries no
+#comment diagram, which is what a 0-crossing summand looks like in a trace.
+#comment
+#comment A rotation is an isotopy, so the link type is the same on both sides
+#comment (an unknot either way) while the DIAGRAM changes -- which is the whole
+#comment point of the kind. Generated and checked 2026-09-20.
+#move kind=redraw rot=0,0,1,1,0,0,0,1,0
+#embedding rows=4
+0.0	0.0	0.0
+2.0	2.0	0.0
+2.0	0.0	1.0
+0.0	2.0	1.0
+1	0	0	1	-1
+
+#step n=1 summand=0
+#comment project(R*E): no crossings, so no diagram to carry.
+

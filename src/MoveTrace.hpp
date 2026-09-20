@@ -141,6 +141,13 @@ namespace Knoodle
             // The `#pd` annotation, flat, five entries per row.
             std::vector<Int> pd_rows;
 
+            // `#embedding`: the 3D polygonal embedding a `redraw` step used,
+            // flat, three coordinates per vertex. KEPT, not skipped: it is
+            // that step's whole witness -- `project(E)` is claimed to be this
+            // record's diagram and `project(R*E)` the next one's, so a
+            // verifier that cannot see `E` cannot check a redraw at all.
+            std::vector<double> embedding;
+
             // True when `state` was BUILT from `pd_rows` -- the v0 carrier, or
             // a v1 record that shipped only the annotation. When false and
             // `pd_rows` is non-empty the record carries both, and the two are
@@ -476,8 +483,9 @@ namespace Knoodle
 
                 if( line.starts_with("#embedding") )
                 {
-                    // A redraw witness. Rendering the lift/rotate/flatten
-                    // animation is a later backend's job; skip the rows.
+                    // A redraw witness: keep the coordinates. Rendering the
+                    // lift/rotate/flatten animation is a later backend's job,
+                    // but a VERIFIER needs the numbers.
                     Int rows = Int(0);
                     if( !FieldInt(line,"rows=",rows) || (rows < Int(0)) )
                     {
@@ -486,6 +494,39 @@ namespace Knoodle
                     }
                     std::string text;
                     if( !ReadBlock(rows,text,why) ) { return false; }
+
+                    rec.embedding.clear();
+                    rec.embedding.reserve(static_cast<std::size_t>(3*rows));
+                    {
+                        std::istringstream in (text);
+                        std::string row;
+                        Int seen = Int(0);
+                        while( std::getline(in,row) )
+                        {
+                            Chomp(row);
+                            if( row.empty() ) { continue; }
+
+                            std::istringstream rs (row);
+                            double v;
+                            int k = 0;
+                            while( rs >> v ) { rec.embedding.push_back(v); ++k; }
+
+                            if( k != 3 )
+                            {
+                                why = "'#embedding' row " + std::to_string(seen)
+                                    + " has " + std::to_string(k)
+                                    + " columns, want 3";
+                                return false;
+                            }
+                            ++seen;
+                        }
+                        if( seen != rows )
+                        {
+                            why = "'#embedding' says rows=" + std::to_string(rows)
+                                + " but carries " + std::to_string(seen);
+                            return false;
+                        }
+                    }
 
                     rec.headers.push_back("#embedding (" + std::to_string(rows)
                         + " rows, not rendered)");
