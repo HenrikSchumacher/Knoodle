@@ -48,6 +48,8 @@ REDRAW_LINK = os.path.join(HERE, "redraw_link_example.trace")
 REDRAW_SPLIT = os.path.join(HERE, "redraw_split_refused.trace")
 R1_SPINOFF = os.path.join(HERE, "r1_spinoff_example.txt")
 LINK_RESULT = os.path.join(HERE, "link_result_example.trace")
+PASS_WCROSS = os.path.join(HERE, "pass_wcross_example.trace")
+HEALED_CURL = os.path.join(HERE, "middlepass_healed_curl.trace")
 WITNESS_HPP = os.path.join(HERE, "witness_fixtures.hpp")
 
 checks = 0
@@ -370,8 +372,8 @@ other_rows = "\n".join(ln for ln in r1_example.split("\n")
 blocks = trace_example.split("\n\n")
 tampered_block = blocks[1].replace(TREFOIL_ROWS, other_rows, 1)
 check(tampered_block != blocks[1], "tamper: the substitution applied")
-tampered = "\n\n".join([blocks[0], tampered_block] + blocks[2:])
-rc, out, _ = run(PROVE, [], tampered)
+wrong_next = "\n\n".join([blocks[0], tampered_block] + blocks[2:])
+rc, out, _ = run(PROVE, [], wrong_next)
 check(rc == 1, "tampered snapshot: exit 1", out)
 check("#verify step 0 trace: MISMATCH" in out,
       "tampered snapshot: the trace claim is a MISMATCH", out)
@@ -383,6 +385,39 @@ rc, out, _ = run(PROVE, [], broken)
 check(rc == 1, "unparseable descriptor: exit 1", out)
 check("#verify step 0 descriptor: MISMATCH" in out,
       "unparseable descriptor: reported as a MISMATCH", out)
+
+# A descriptor that PARSES but is not well-formed is a fault in the record,
+# not a limit of the surgery: a MISMATCH and exit 1, never UNCHECKED and exit 0
+# (ROUND-22 §2). The clean stream's step 2 is a W-crossing pass tagged `o,o`;
+# `u,o` is a middlepass wearing a pass move's clothes, and `u,u` is uniform but
+# opposite to W's role -- a crossing change.
+rc, out, _ = run(PROVE, [PASS_WCROSS])
+check(rc == 0, "pass_wcross_example: exit 0", out)
+check(len(re.findall(r"result: VERIFIED", out)) >= 4,
+      "pass_wcross_example: every pass record's #result is VERIFIED", out)
+CLEAN_W = "#move kind=pass strand=31,33,35,39 depart=31 cross=23:o,33:o land=38"
+for tags, why, label in [
+    ("23:u,33:o", "check 5", "mixed tags on a pass"),
+    ("23:u,33:u", "that is a crossing change", "tags opposite to W's role"),
+]:
+    bad = tampered(PASS_WCROSS, CLEAN_W, CLEAN_W.replace("23:o,33:o", tags))
+    rc, out, _ = run(PROVE, [], bad)
+    check(rc == 1, f"{label}: exit 1", out)
+    check("#verify step 2 descriptor: MISMATCH -- not well-formed" in out
+          and why in out, f"{label}: a descriptor MISMATCH naming why", out)
+    check("step 2 result/drawing/trace: UNCHECKED" not in out,
+          f"{label}: not waved through as a limit of the surgery", out)
+
+# A transversal that heals into a curl at crossing 91 (arcs 125 -> 126 -> 127
+# through two interior crossings of W), crossed twice by the corridor.
+# AfterDiagram used to repoint the loop arc's tail where it meant its head and
+# build a diagram that fails CheckAll (ROUND-22 §3).
+rc, out, _ = run(PROVE, [HEALED_CURL])
+check(rc == 0, "middlepass_healed_curl: exit 0", out)
+check("#verify step 0 result: VERIFIED" in out
+      and "#verify step 0 trace: VERIFIED (266 crossings expected, 266 found)"
+      in out,
+      "middlepass_healed_curl: the healed curl is split at its head", out)
 
 # A record carrying no diagram is the next STATE (a crossingless summand), so a
 # pending claim must be answered against it, not carried over it. Splice one in

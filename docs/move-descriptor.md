@@ -224,8 +224,13 @@ entirely over or entirely under everything it crosses.
    must say which. A pass move slides a strand; it cannot turn an over-strand
    into an under-strand, and a descriptor that asks for that is a crossing
    change wearing a pass move's clothes.
-6. The corridor is no longer than the strand: `k <= L - 1`, i.e.
-   `path.CrossingCount() <= pass.CrossingCount()`.
+6. The corridor is no longer than the strand: `k_live <= L - 1`, where
+   `k_live` counts the `cross` entries whose arc is **not** on the strand --
+   the entries that become crossings of the after-diagram. A W entry (allowed
+   for `pass` by check 1) goes with W and needs no room, so it does not count.
+   For `middlepass` the membership clause forbids W entries, so there
+   `k_live = k`. Without W entries this is `path.CrossingCount() <=
+   pass.CrossingCount()`.
 
 Check 6 is a statement about the data structure, not about topology. A
 lengthening pass is a perfectly good isotopy; it is simply not expressible
@@ -236,6 +241,14 @@ grow. `Reroute` does not refuse such input either: its loop walks path
 positions while the strand pointer runs off the end of W, and it returns a
 diagram unrelated to the move (on a trefoil, 2 crossings out of 3). So this
 must be caught before anything is applied or drawn.
+
+The count is `k_live`, not `k`, because the room in question is room for the
+after-diagram's crossings (ROUND-22 §4, JHC 2026-09-23). An applier that uses
+`Reroute` hands it the corridor with the W entries removed, so `k_live` is also
+exactly what `Reroute` sees. `AfterDiagram` does not need check 6 at all -- it
+grows the arrays by `k` crossing slots -- so this is a limit of the in-place
+appliers, kept in well-formedness so that every applier can carry out every
+well-formed move.
 
 One consequence worth knowing: a corridor with two or more crossings needs a
 strand of three or more arcs, and neither the trefoil nor the figure-eight

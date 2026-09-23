@@ -504,7 +504,26 @@ static int run_pass_tests(Int xg, Int yg)
     // and FindShortestPath cannot emit it either -- it keeps a visited set on
     // arcs. This is the descriptor the old face-revisit case used.
     expect({ {11}, 11, {3, 2}, {false, false}, 11 }, false, 0, "cross-arc-twice");
-    expect({ {11}, 11, {11}, {false}, 10 },        false, 0, "cross-own-strand");
+    // A corridor that crosses its own one-arc strand. For kind=pass this is
+    // well formed (Proposition C′): the crossing goes with W, k_live = 0, and
+    // the move is the identity. It used to be refused only because check 6
+    // counted the W entry (ROUND-22 §4). Checked on the descriptor, not the
+    // route: both dots and the crossing sit on the one arc, so the corridor
+    // cannot be a simple path at this grid. For kind=middlepass the membership
+    // clause still refuses it.
+    {
+        const Deco_T::PassMove_T mv{ {11}, 11, {11}, {false}, 10 };
+        std::string why;
+        if (mv.WellFormedQ(diagram, why))
+        { std::printf("  pass cross-own-strand: well formed OK\n"); ++checks_passed; }
+        else
+        { std::printf("  pass cross-own-strand: REFUSED (%s)\n", why.c_str()); ok = false; }
+    }
+    {
+        Deco_T::PassMove_T mp{ {11}, 11, {11}, {false}, 10 };
+        mp.middlepassQ = true;
+        expect(mp, false, 0, "middlepass-cross-own-strand");
+    }
     expect({ {11, 3}, 11, {7}, {true}, 1 },        false, 0, "broken-strand");
     expect({ {}, 7, {}, {}, 7 },                   false, 0, "empty-strand");
     expect({ {11}, 11, {2}, {false}, 3 },          false, 0, "wrong-chain-start");

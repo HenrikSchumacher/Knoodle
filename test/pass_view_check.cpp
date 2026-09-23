@@ -813,11 +813,27 @@ static void RunStrandCrossingTests()
     };
     const PD_T pd = PD_T::FromSignedPDCode(code.data(), Int(30));
 
+    // Check 6 counts only the entries that survive (ROUND-22 §4): here k = 2
+    // on a strand of L = 2 arcs, which `k <= L-1` refused, but the corridor's
+    // first entry is W's own arc 0, so k_live = 1. The diagram is the first
+    // snapshot of test/pass_wcross_example.trace (a 15-crossing hard unknot),
+    // and the corridor was found by exhaustive search; its after-diagram
+    // passes CheckAll and identifies as the unknot.
+    const std::vector<Int> ts_code = {
+        29,25,0,24,1, 23,1,24,0,1, 1,12,2,13,-1, 11,2,12,3,-1, 22,3,23,4,-1,
+        4,21,5,22,-1, 5,10,6,11,-1, 15,6,16,7,-1, 7,16,8,17,-1, 8,20,9,19,1,
+        20,10,21,9,1, 28,14,29,13,1, 14,28,15,27,1, 17,26,18,27,-1,
+        25,18,26,19,-1
+    };
+    const PD_T ts = PD_T::FromSignedPDCode(ts_code.data(), Int(15));
+
     const Case_T cases[] = {
         { "raw_37 W-cross u", &pd,
           "strand=75,77,79,81,83 depart=75 cross=44:u,77:u,12:u land=82" },
         { "raw_37 W-cross o", &pd,
           "strand=27,29,31,33,35 depart=27 cross=8:o,33:o,116:o land=34" },
+        { "ts W-cross k=L", &ts,
+          "strand=1,3 depart=1 cross=1:o,47:o land=2" },
     };
 
     for( const auto & kase : cases )
@@ -831,7 +847,7 @@ static void RunStrandCrossingTests()
             continue;
         }
 
-        if( !mv.WellFormedQ(pd, err) )
+        if( !mv.WellFormedQ(*kase.pd, err) )
         {
             std::printf("  %-18s *** kind=pass refused: %s ***\n",
                 kase.name, err.c_str());
@@ -851,7 +867,7 @@ static void RunStrandCrossingTests()
             ok = false;
             continue;
         }
-        const bool refusedQ = !mp.WellFormedQ(pd, err)
+        const bool refusedQ = !mp.WellFormedQ(*kase.pd, err)
             && (err.find("corridor crosses its own strand") != std::string::npos);
         std::printf("  %-18s kind=middlepass  %s\n", kase.name,
             refusedQ ? "refused by the membership clause"

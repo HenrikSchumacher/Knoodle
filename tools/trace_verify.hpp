@@ -356,8 +356,8 @@ public:
     /// What BeginMove learned, for the caller's drawing check and for EndMove.
     struct Move
     {
-        bool             parsedQ = false;  // a `pass` descriptor at all
-        std::string      parse_why;        // the parser's refusal, if not
+        bool             parsedQ = false;  // a well-formed `pass` descriptor
+        std::string      parse_why;        // the refusal, if not
         Move_T           mv;
         bool             afterQ  = false;  // AfterDiagram built the result
         PD_T             after;
@@ -437,8 +437,10 @@ public:
      *
      * `AfterDiagram` works from the descriptor alone, never calling the
      * applier, so everything here is independent of whatever produced the
-     * trace. A descriptor that does not parse as a `pass` move returns with
-     * `parsedQ` false and nothing reported: that is the renderer's to refuse.
+     * trace. A descriptor that does not parse as a `pass` move, or parses
+     * but is not well-formed against this snapshot, returns with `parsedQ`
+     * false, the reason in `parse_why`, and nothing reported: the caller
+     * reports it as a `descriptor:` MISMATCH.
      */
     Move BeginMove( const Record_T & rec, const PD_T & dia,
                     const std::string & spec, std::size_t step )
@@ -446,6 +448,18 @@ public:
         Move m;
 
         if( !Move_T::Parse(spec, m.mv, m.parse_why) ) { return m; }
+
+        // Well-formedness is a fault in the RECORD, not a limit of our surgery,
+        // so it must not fall into the UNCHECKED branch below: a crossing
+        // change wearing a pass move's tags would then exit 0 (ROUND-22 §2).
+        // `AfterDiagram` runs the same checks, so everything it refuses after
+        // this is genuinely something it cannot build.
+        std::string wwhy;
+        if( !m.mv.WellFormedQ(dia, wwhy) )
+        {
+            m.parse_why = "not well-formed against this snapshot: " + wwhy;
+            return m;
+        }
         m.parsedQ = true;
 
         // The reporting overload: a pass move can split a crossingless

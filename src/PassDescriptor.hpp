@@ -251,10 +251,25 @@ namespace Knoodle
             //    the end of W, and it returns a diagram unrelated to the move
             //    (on a trefoil, 2 crossings out of 3). A lengthening pass is a
             //    perfectly good isotopy; it is just not expressible here.
-            if( k + 1 > m )
+            //
+            //    Only the entries on arcs that SURVIVE count: a W entry goes
+            //    with W (check 1, Proposition C′), becomes no crossing, and
+            //    needs no room. That is also exactly the corridor `Reroute` is
+            //    handed, with W hidden (ROUND-22 §4).
+            std::size_t k_live = 0;
+            for( std::size_t i = 0; i < k; ++i )
             {
-                return fail("the corridor has " + Tools::ToString(k)
-                    + " crossings but the strand has only "
+                bool on_wQ = false;
+                for( std::size_t j = 0; j < m; ++j )
+                {
+                    if( ArcOf(cross[i]) == ArcOf(strand[j]) ) { on_wQ = true; break; }
+                }
+                if( !on_wQ ) { ++k_live; }
+            }
+            if( k_live + 1 > m )
+            {
+                return fail("the corridor has " + Tools::ToString(k_live)
+                    + " crossings off the strand but the strand has only "
                     + Tools::ToString(static_cast<Int>(m) - Int(1))
                     + "; a pass move cannot lengthen the strand, there is no"
                       " room in the diagram for the extra crossings (check 6)");
@@ -520,14 +535,18 @@ namespace Knoodle
 
             constexpr Int In_ = Int(1), Out_ = Int(0);
 
-            auto repoint = [&]( Int c, Int from, Int to ) -> bool
+            // Repoint ONE END of an arc: its head sits in an In port of `c`,
+            // its tail in an Out port. The side has to be given, because a
+            // loop arc occupies both kinds of port at one crossing. Healing can
+            // make one: a transversal that leaves crossing c, runs through
+            // interior crossings of W only, and comes back to c heals into a
+            // curl at c. Searching both sides then repointed its tail when the
+            // split meant its head (ROUND-22 §3, n12s3 steps 386 and 500).
+            auto repoint = [&]( Int c, Int io, Int from, Int to ) -> bool
             {
-                for( Int io = 0; io < 2; ++io )
+                for( Int lr = 0; lr < 2; ++lr )
                 {
-                    for( Int lr = 0; lr < 2; ++lr )
-                    {
-                        if( Cx(c,io,lr) == from ) { Cx(c,io,lr) = to; return true; }
-                    }
+                    if( Cx(c,io,lr) == from ) { Cx(c,io,lr) = to; return true; }
                 }
                 return false;
             };
@@ -740,7 +759,7 @@ namespace Knoodle
                 {
                     const Int new_head = Aend(last,Int(1));
                     Aend(a,Int(1)) = new_head;
-                    if( !repoint(new_head,last,a) )
+                    if( !repoint(new_head,In_,last,a) )
                     {
                         return fail("healing: crossing " + std::to_string(new_head)
                             + " does not mention arc " + std::to_string(last));
@@ -820,12 +839,12 @@ namespace Knoodle
                 AC[static_cast<std::size_t>(p[static_cast<std::size_t>(j)])] = color;
             }
 
-            if( !repoint(T, w[0], p[0]) )
+            if( !repoint(T, Out_, w[0], p[0]) )
             {
                 return fail("tail anchor " + std::to_string(T)
                     + " does not mention the strand's first arc");
             }
-            if( !repoint(H, w[static_cast<std::size_t>(L-1)],
+            if( !repoint(H, In_, w[static_cast<std::size_t>(L-1)],
                             p[static_cast<std::size_t>(k_live)]) )
             {
                 return fail("head anchor " + std::to_string(H)
@@ -874,7 +893,7 @@ namespace Knoodle
                 AC[static_cast<std::size_t>(qj)] = AC[static_cast<std::size_t>(b)];
                 Aend(qj,Int(0)) = y;
                 Aend(qj,Int(1)) = old_head;
-                if( !repoint(old_head,b,qj) )
+                if( !repoint(old_head,In_,b,qj) )
                 {
                     return fail("splitting: crossing " + std::to_string(old_head)
                         + " does not mention arc " + std::to_string(b));
