@@ -808,16 +808,47 @@ would be unverifiable. Instead the record carries the witness of the isotopy:
 
 ```
 #move kind=redraw rot=<r00,r01,r02,r10,r11,r12,r20,r21,r22>
-#embedding rows=<n>
-<n rows of 3-column float coordinates, existing embedding TSV conventions>
-<5-column signed PD rows of the before-diagram>
+#spinoffs colors=<list>       (only if R·E's projection frees components)
+#embedding components=<k>
+#component color=<c_1> rows=<n_1>
+<n_1 rows of 3 integer coordinates: x y z>
+  ... one #component block per component, k in all ...
+#component color=<c_k> rows=<n_k>
+<n_k rows>
+<snapshot of the before-diagram, carrying component colours>
 <blank line>
 ```
 
-- **`#embedding`**: the 3D polygonal embedding `E` the step used, in the
-  same 3-column TSV format the tools already read and write (component
-  conventions included — `knoodledraw --embedding` output is the reference).
-  Floats are printed with round-trip precision (`%.17g`).
+- **`#embedding`**: the 3D polygonal embedding `E` the step used, as `k`
+  closed polygons. Each `#component` block is one component: `n_i ≥ 3`
+  vertices in order, the closing edge implied, **no blank lines** (a blank
+  line ends a record, which is why `.kndlxyz`'s blank-line separator cannot
+  be used here).
+- **Coordinates are integers** — a lattice curve, written as decimal integers
+  with no decimal point or exponent, each of absolute value below 2^31 (an
+  int32); anything else is a parse error. This is
+  what makes the check exact end to end: `R` permutes coordinates, so `R·E`
+  is a lattice curve too, and both projections go through `LinkEmbedding_Int`
+  + `Prosector` (simulation of simplicity) with no rounding step anywhere. A
+  recorder holding a float curve must quantize it itself, and must check that
+  the quantized curve still projects to its snapshot — the verifier will.
+  (`LinkEmbedding_Int` *can* ingest floats, scaling by a power of 2 and
+  rounding; accepting only zero-`RoundingError()` inputs was considered and
+  rejected, because it puts a code-defined condition in the trust base where
+  "is an integer" can be checked by reading the file.)
+- **`color=`**: the component's colour in the trace's own sense — the same
+  label the snapshot's rows carry, which a component keeps for life.
+  Positional colours (as `.kndlxyz` hands out) will NOT do: after a spinoff
+  the surviving colours need not be `0..k-1`. The `k` colours must be
+  distinct and must equal **exactly** the set of colours in the snapshot.
+  So `E` cannot carry a component that is crossingless in `project(E)`: the
+  snapshot could not hold it, and it would already have been spun off.
+- **`#spinoffs colors=<list>`**: a component that is crossingless in
+  `project(R·E)` leaves the diagram exactly as one freed by a pass move does,
+  and is declared the same way. The list form is REQUIRED here (the bare
+  count cannot say which component came free).
+- A knot is simply `components=1`. There is one form, not a knot form and a
+  link form.
 - **`rot`**: the rotation `R`, row-major. **It must be one of exactly two
   matrices** (see "Why only two rotations" below):
 
@@ -867,12 +898,36 @@ and the checker below is unchanged.
 
 ### Verification contract
 
+Implemented in full by `knoodleprove` (2026-09-23; `CheckRedraw` in
+`tools/trace_verify.hpp`), reporting `redraw:`, `projection:`, `spinoffs:`,
+`rotated:`, and — on the next record — a colour-strict `trace:`. Fixtures:
+`test/redraw_example.trace` (a curl the rotation frees),
+`test/redraw_link_example.trace` (a symmetric two-component link),
+`test/redraw_split_refused.trace` (check 5), and the redraw in
+`test/trace_example.txt` (a 62-vertex lattice trefoil, 3 → 9 crossings).
+
+**A snapshot trap worth knowing.** Write a redraw's snapshots as `#state`
+internal state, not PD rows, whenever a diagram can have ONE crossing: the
+row `1 0 0 1 ±1` of a one-crossing curl reads back with the opposite
+handedness (the two-arc PD code cannot say which way the over-strand runs),
+and the colour-kept isomorphism of check 1 correctly refuses it. Measured
+2026-09-23; round trips of larger diagrams were exact.
+
 1. `project(E)` is **isomorphic to this record's snapshot**.
 2. `project(R·E)` is **isomorphic to the next record's snapshot**.
 3. `R` is one of the two matrices above (equality, not tolerance).
 4. If the link has more than one component, the **component colours track
    through the rotation**: the component a colour names before the move names
-   the corresponding component after it.
+   the corresponding component after it. Concretely: `E`'s colours are exactly
+   the snapshot's; the components crossingless in `project(R·E)` are exactly
+   the record's `#spinoffs colors=`; and every other colour is carried by the
+   same arcs of `project(R·E)` as of the next snapshot, under the isomorphism
+   of check 2.
+5. `project(R·E)` is a **connected** diagram (one diagram component, after
+   the spinoffs of check 4 are removed). A rotation can make a split link
+   *look* split; what the trace should then do is the open `split` question
+   (see "Open questions"), and `redraw` refuses rather than deciding it as a
+   side effect.
 
 **Isomorphic, not equal.** An earlier revision of this document demanded that
 the projection reproduce the snapshot *exactly* — "literal, not
@@ -893,17 +948,20 @@ That is check 4: follow each component from 3-space down through both
 projections. It also checks, for free, that the number of components is
 preserved.
 
-**What is trusted.** `FromCoordinates` (and, for lattice input,
-`LinkEmbedding_Int` + `Prosector`) rather than the `LeftDarc` walk. That is
-why redraw-grade and proof-grade stay labelled distinctly even though both are
-checkable. What is NOT trusted any more is floating-point tie-breaking in the
-rotation itself, which is the whole point of the restriction.
+**What is trusted.** `LinkEmbedding_Int` + `Prosector` (the projection and
+its simulation-of-simplicity tie-break) rather than the `LeftDarc` walk. That
+is why redraw-grade and proof-grade stay labelled distinctly even though both
+are checkable. What is NOT trusted any more is floating-point anything: the
+coordinates are integers, the rotation is a permutation, and no rounding step
+remains.
 
-**Crossingless components.** `FromCoordinates` returns the diagram *and* the
-colours of the Anelli it found — components with no crossings, which a
-`PlanarDiagram` cannot hold beside crossings. A projection can create or
-destroy them (a component can be crossingless in one view and not in another),
-so they are compared as colours, by the same convention `#spinoffs` uses.
+**Crossingless components.** Projection returns the diagram *and* the colours
+of the Anelli it found — components with no crossings, which a `PlanarDiagram`
+cannot hold beside crossings. Only the AFTER side may have them (the before
+side cannot: `E`'s colours equal the snapshot's, and every snapshot colour sits
+on an arc). A rotation can create them, and they are then the record's
+`#spinoffs colors=` — compared as colours, by the same convention a pass move's
+spinoffs use.
 
 ### Animation recipe (what the payload buys)
 
@@ -1145,6 +1203,9 @@ and any seeded choice an emitter makes must be recorded in the stream.
   timelines), or keep it as a stream-level header that is not a move. Note that
   a crossingless component coming free is a DIFFERENT event, already handled by
   `#spinoffs`, and is unaffected by this question.
+  A `redraw` can also make a split link LOOK split (a disconnected
+  projection); until this question is settled, `redraw` refuses that case
+  (its check 5) rather than deciding it.
 - Whether `#faces` should also carry per-face canonical names for the WL
   side's convenience, or WL derives them (leaning: derive).
 - `redraw` instrumentation: whether Reapr exposes (or can be made to expose,
@@ -1152,13 +1213,14 @@ and any seeded choice an emitter makes must be recorded in the stream.
   moment it commits to a projection — and whether its projection step is
   exactly one rotation or a compound (if compound, record the composition or
   one step per rotation).
-- `redraw` for links: component correspondence between embedding strands and
-  PD components across the step (the `#color` machinery from the color
-  roundtrip work is the likely vehicle).
-- Numeric tolerances: for the `R ∈ SO(3)` check, and how close to a
-  degenerate projection the recorded `E`/`R` may legally sit (verifier
-  should probably re-run `FindIntersections` and demand a clean pass, which
-  `-s=0` already does).
+- ~~`redraw` for links~~ — RESOLVED 2026-09-23: per-component
+  `#component color=<c> rows=<n>` blocks carrying the trace's own colours,
+  integer coordinates, `#spinoffs colors=` for components the rotation frees
+  (see "Step kind: `redraw`").
+- ~~Numeric tolerances for `redraw`~~ — RESOLVED by construction: `R` is one
+  of two permutation matrices and `E` is a lattice curve, so there is no
+  tolerance and no "how close to degenerate" question; `Prosector` resolves
+  every degenerate projection repeatably.
 - Exterior-face seams: whether a recorder can always thread one compatible
   exterior choice through a whole Simplify run (does any move sequence
   *force* consuming every candidate exterior?), and — if seams prove

@@ -14,9 +14,14 @@ thing to protect:
   * IT CAN FAIL. A witness that lies (witness_rec_anchor_lie), a snapshot that
     is not what the move produces, a descriptor that does not parse: each must
     be a MISMATCH and exit 1. A checker that cannot fail proves nothing.
-  * HONEST COVERAGE. What is not checked says so. A redraw's rotation is
-    checked but its projection is not (yet), and the report distinguishes
-    them; a move kind with no checker at all is UNCHECKED, never skipped.
+  * HONEST COVERAGE. What is not checked says so; a move kind with no
+    checker at all is UNCHECKED, never skipped.
+
+redraw is checked in full (docs/move-descriptor.md, checks 1-5): the rotation
+by equality, and the lattice witness E projected EXACTLY (LinkEmbedding_Int +
+Prosector) to this snapshot and R*E to the next, colours kept. The link
+fixture's two components are interchangeable, so a colour swap that an
+uncoloured isomorphism would wave through is the tamper that matters most.
 
 r1 has a checker of its own, and for r1 the local checks ARE soundness (there
 is no witness to demand), so this also exercises the curl fixtures: the
@@ -39,6 +44,8 @@ TRACE_EXAMPLE = os.path.join(HERE, "trace_example.txt")
 R1_EXAMPLE = os.path.join(HERE, "r1_example.txt")
 R1_TRACE = os.path.join(HERE, "r1_trace_example.txt")
 REDRAW = os.path.join(HERE, "redraw_example.trace")
+REDRAW_LINK = os.path.join(HERE, "redraw_link_example.trace")
+REDRAW_SPLIT = os.path.join(HERE, "redraw_split_refused.trace")
 R1_SPINOFF = os.path.join(HERE, "r1_spinoff_example.txt")
 LINK_RESULT = os.path.join(HERE, "link_result_example.trace")
 WITNESS_HPP = os.path.join(HERE, "witness_fixtures.hpp")
@@ -125,9 +132,11 @@ check(rc == 0, "trace_example (as a FILE argument): exit 0", out)
 check("#verify step 0 trace: VERIFIED" in out,
       "trace_example: the pass move produces the next snapshot", out)
 check("#verify step 1 redraw: VERIFIED" in out
-      and "#verify step 1 projection: UNCHECKED" in out,
-      "trace_example: redraw's rotation is checked, its projection is not"
-      " (and says so)", out)
+      and "#verify step 1 projection: VERIFIED" in out
+      and "#verify step 1 trace: VERIFIED (9 crossings expected, 9 found,"
+          " colours kept)" in out,
+      "trace_example: the redraw's lattice trefoil projects to this snapshot,"
+      " and R*E to the next (3 -> 9 crossings)", out)
 
 rc, out, _ = run(PROVE, ["-"], r1_example)
 check(rc == 0, "r1_example (stdin via '-'): exit 0", out)
@@ -207,14 +216,92 @@ for name, body in records:
 # -- redraw -------------------------------------------------------------------
 
 # `redraw` is restricted to the two cyclic axis permutations, which are integer
-# matrices -- so the rotation is checked by EQUALITY, with no tolerance. The
-# projection checks are not built yet and must say so rather than pass.
+# matrices -- so the rotation is checked by EQUALITY, with no tolerance -- and
+# its witness is a lattice curve, projected exactly.
 rc, out, _ = run(PROVE, [REDRAW])
 check(rc == 0, "redraw_example: exit 0", out)
 check("redraw: VERIFIED (rotation x->y->z->x" in out,
       "redraw: the permitted rotation is recognised and named", out)
-check("projection: UNCHECKED" in out and "4 vertices carried" in out,
-      "redraw: the embedding is KEPT (not discarded) and its size reported", out)
+check("projection: VERIFIED (E has 1 component(s), 4 lattice vertices" in out,
+      "redraw: project(E) is the curl snapshot (check 1)", out)
+check("spinoffs: VERIFIED (colours 0 declared, 0 crossingless" in out,
+      "redraw: the rotation frees the curl, and #spinoffs names it", out)
+check("trace: VERIFIED (0 crossings expected, and the next record carries no"
+      " diagram)" in out,
+      "redraw: the empty next record answers project(R*E) (check 2)", out)
+
+rc, out, _ = run(PROVE, [REDRAW_LINK])
+check(rc == 0, "redraw_link_example: exit 0", out)
+check("projection: VERIFIED (E has 2 component(s), 8 lattice vertices" in out,
+      "redraw link: project(E) is the Hopf snapshot, colours kept", out)
+check("trace: VERIFIED (4 crossings expected, 4 found, colours kept)" in out,
+      "redraw link: project(R*E) is the next snapshot, colours kept", out)
+
+rc, out, _ = run(PROVE, [REDRAW_SPLIT])
+check(rc == 1 and "rotated: MISMATCH" in out
+      and "falls apart into 2 diagram components" in out,
+      "redraw split: a projection that falls apart is refused (check 5)", out)
+check("projection: VERIFIED" in out,
+      "redraw split: ... and it is refused for THAT reason, not an earlier one",
+      out)
+
+def tampered(path, old, new, count=1):
+    text = read(path)
+    check(text.count(old) == count, f"tamper target present: {old!r}")
+    return text.replace(old, new)
+
+redraw_link = read(REDRAW_LINK)
+for stream, verdict, why, label in [
+    # The Hopf link is symmetric: swapping the colours in the NEXT snapshot
+    # leaves a diagram that is isomorphic if colours are ignored. Check 4 is
+    # exactly the refusal to ignore them.
+    (tampered(REDRAW_LINK, "A_color = {3,3,3,3,0,0,0,0}",
+              "A_color = {0,0,0,0,3,3,3,3}"),
+     "trace: MISMATCH", "keeping every arc's colour",
+     "colours swapped in the next snapshot"),
+    (redraw_link.replace("#component color=3", "#component color=X")
+                .replace("#component color=0", "#component color=3")
+                .replace("#component color=X", "#component color=0"),
+     # Caught at the NEXT record, not this one, and that is correct: the
+     # 2-crossing Hopf diagram is itself symmetric, so a colour-kept
+     # isomorphism to the step-0 snapshot exists either way. The 4-crossing
+     # view has no such symmetry.
+     "trace: MISMATCH", "keeping every arc's colour",
+     "colours swapped between the embedding's components"),
+    (tampered(REDRAW_LINK, "#component color=3", "#component color=5"),
+     "projection: MISMATCH", "the embedding's components are colours 0,5 but"
+     " the snapshot's are 0,3",
+     "an embedding colour the snapshot does not have"),
+    (tampered(REDRAW_LINK, "1\t3\t1\n", "1\t0\t1\n"),
+     "projection: MISMATCH", "",
+     "one vertex moved (E no longer projects to the snapshot)"),
+    (tampered(REDRAW, "#spinoffs colors=0\n", ""),
+     "spinoffs: MISMATCH", "0 crossingless in project(R*E)",
+     "a freed component not declared"),
+    (tampered(REDRAW, "#spinoffs colors=0\n", "#spinoffs n=1\n"),
+     "spinoffs: MISMATCH", "the bare count cannot say",
+     "spinoffs given as a bare count"),
+]:
+    rc, out, _ = run(PROVE, [], stream)
+    check(rc == 1, f"redraw with {label}: exit 1", out)
+    check(verdict in out and why in out, f"redraw with {label}: {verdict}", out)
+
+# The grammar: integer coordinates, per-component blocks. A malformed witness
+# is a parse error naming the line, not a verdict.
+for stream, why, label in [
+    (tampered(REDRAW, "2\t2\t0\n", "2.0\t2\t0\n"), "is not an integer",
+     "a non-integer coordinate"),
+    (tampered(REDRAW, "#embedding components=1\n#component color=0 rows=4",
+              "#embedding rows=4"), "bad '#embedding' header",
+     "the retired flat '#embedding rows=' form"),
+    (tampered(REDRAW_LINK, "#component color=3", "#component color=0"),
+     "names colour 0 twice", "two components with one colour"),
+    (tampered(REDRAW, "2\t2\t0\n", "2\t2\t2147483648\n"),
+     "out of range", "a coordinate outside int32"),
+]:
+    rc, _, err = run(PROVE, [], stream)
+    check(rc == 1 and why in err, f"redraw witness with {label}: parse error",
+          err)
 
 redraw = read(REDRAW)
 for bad, label in [

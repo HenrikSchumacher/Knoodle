@@ -2,25 +2,44 @@
 #step n=0 summand=0
 #comment A REAL redraw witness, small enough to check by hand.
 #comment
-#comment E is the 4-vertex closed curve below. Down z (the xy view) its first
+#comment E is the 4-vertex lattice curve below. Down z (the xy view) its first
 #comment and third edges cross at (1,1), separated in z, so project(E) is the
-#comment single-crossing diagram carried here -- verified with
-#comment `knoodlesimplify -s=0`, which is exactly the embedding->PD converter.
-#comment Rotating by x->y->z->x carries the crossing out of the xy view, so
-#comment project(R*E) is a crossingless circle: the next record carries no
-#comment diagram, which is what a 0-crossing summand looks like in a trace.
+#comment single-crossing curl carried here. Rotating by x->y->z->x carries the
+#comment crossing out of view, so project(R*E) is a crossingless circle: the
+#comment component comes free, is named by '#spinoffs colors=0', and the next
+#comment record carries no diagram (a 0-crossing summand).
 #comment
-#comment A rotation is an isotopy, so the link type is the same on both sides
-#comment (an unknot either way) while the DIAGRAM changes -- which is the whole
-#comment point of the kind. Generated and checked 2026-09-20.
+#comment The snapshot is v1 internal state, NOT a PD row, deliberately: a
+#comment one-crossing curl is the one diagram whose PD row is ambiguous -- the
+#comment row `1 0 0 1 -1` that knoodlesimplify writes for this curve reads back
+#comment with the OPPOSITE handedness, which the colour-kept isomorphism of
+#comment check 1 (correctly) refuses. Internal state is label-exact.
+#comment The stream is v0 anyway, because v1 makes '#state' mandatory and so has
+#comment no spelling for the empty record that ends this trace.
+#comment
+#comment Generated 2026-09-23 by projecting E with LinkEmbedding4<Int64> (the
+#comment projector knoodleprove trusts). Do not hand-edit the #state block.
 #move kind=redraw rot=0,0,1,1,0,0,0,1,0
-#embedding rows=4
-0.0	0.0	0.0
-2.0	2.0	0.0
-2.0	0.0	1.0
-0.0	2.0	1.0
-1	0	0	1	-1
+#spinoffs colors=0
+#embedding components=1
+#component color=0 rows=4
+0	0	0
+2	2	0
+2	0	1
+0	2	1
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 1
+crossing_count = 1
+max_arc_count = 2
+arc_count = 2
+C_arcs = {{{1,0},{1,0}}}
+C_state = {-1}
+A_cross = {{0,0},{0,0}}
+A_state = {1,1}
+A_color = {0,0}
+last_color_deactivated = -1
+proven_minimalQ = 0
 
 #step n=1 summand=0
 #comment project(R*E): no crossings, so no diagram to carry.
-

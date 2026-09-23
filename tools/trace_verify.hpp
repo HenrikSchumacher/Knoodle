@@ -16,8 +16,9 @@
  *   spinoffs  the emitter's `#spinoffs` count agrees with the surgery's;
  *   result    the emitter's `#result` agrees port-by-port with `AfterDiagram`;
  *   V0/V4/V2-V5  the `#feas` witness (tools/witness_check.hpp);
- *   redraw    a re-projection's rotation is one of the two permitted lattice
- *             rotations (the projection checks themselves are not built yet);
+ *   redraw    a re-projection's whole witness: the rotation is one of the two
+ *             permitted lattice rotations, and projecting the lattice curve E
+ *             and R*E exactly gives this and the next snapshot, colours kept;
  *   r1        a curl removal's local checks, which for `r1` are the whole of
  *             soundness -- the spec's "well-formed implies sound" (there is no
  *             witness to demand), so `ResolveR1` passing IS the verdict.
@@ -57,6 +58,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <optional>
 #include <set>
 #include <ostream>
@@ -241,6 +243,101 @@ bool ColorsAgreeQ(
     return true;
 }
 
+/*!@brief What projecting a lattice witness down z produced. */
+template<class PD_T>
+struct LatticeProjection
+{
+    using Int = typename PD_T::Int;
+
+    bool             okQ = false;
+    std::string      why;
+    PD_T             pd;          // meaningful only when crossings > 0
+    Int              crossings = 0;
+    std::vector<Int> anelli;      // colours of the crossingless components
+};
+
+/**
+ * @brief Project a lattice link down z, EXACTLY, with the components' colours
+ * supplied rather than invented.
+ *
+ * `LinkEmbedding_Int` + `Prosector` with an integer coordinate type: no
+ * scaling, no rounding, and simulation of simplicity resolving every
+ * degenerate projection (a lattice curve seen down an axis is maximally
+ * degenerate) the same way every time. This is the ONLY projector the redraw
+ * checks trust; docs/move-descriptor.md cites it as normative for the
+ * projection convention (larger z is the over-strand).
+ *
+ * Passing the colours IN is what pins components through a rotation: the
+ * diagram inherits each component's colour from the curve it came from, so
+ * two interchangeable components of a symmetric link cannot be swapped.
+ */
+template<class PD_T>
+LatticeProjection<PD_T> ProjectLattice(
+    const std::vector<std::int64_t> & xyz,
+    const std::vector<typename PD_T::Int> & ptr,
+    const std::vector<typename PD_T::Int> & colors )
+{
+    using Int = typename PD_T::Int;
+    using L_T = Knoodle::LinkEmbedding4<std::int64_t,Int>;
+
+    LatticeProjection<PD_T> out;
+
+    using T_T = Tensors::Tensor1<Int,Int>;
+
+    L_T L ( T_T(ptr.data(),    static_cast<Int>(ptr.size())),
+            T_T(colors.data(), static_cast<Int>(colors.size())) );
+    L.ReadVertexCoordinates(xyz.data());
+
+    auto [pd, anelli] = PD_T::FromLinkEmbedding(L);
+
+    for( Int i = 0; i < anelli.Size(); ++i ) { out.anelli.push_back(anelli[i]); }
+
+    if( pd.InvalidQ() )
+    {
+        // Every component crossingless is a legitimate outcome (no diagram);
+        // anything else is the projector refusing -- which for an integer
+        // curve means two edges meet in 3-space: not an embedding.
+        if( static_cast<std::size_t>(anelli.Size()) + 1 == ptr.size() )
+        {
+            out.okQ = true;
+            return out;
+        }
+        out.why = "the curve is not an embedding (the exact projector found"
+                  " edges meeting in 3-space)";
+        return out;
+    }
+
+    out.crossings = pd.CrossingCount();
+    out.pd        = std::move(pd);
+    out.okQ       = true;
+    return out;
+}
+
+/*!@brief The colours present on a diagram's active arcs, sorted. */
+template<class PD_T>
+std::vector<typename PD_T::Int> DiagramColors( const PD_T & dia )
+{
+    using Int = typename PD_T::Int;
+    std::set<Int> s;
+    for( Int a = 0; a < dia.MaxArcCount(); ++a )
+    {
+        if( dia.ArcActiveQ(a) ) { s.insert(dia.ArcColors()[a]); }
+    }
+    return std::vector<Int>(s.begin(), s.end());
+}
+
+template<class Int>
+std::string ColorList( const std::vector<Int> & v )
+{
+    std::string s;
+    for( std::size_t i = 0; i < v.size(); ++i )
+    {
+        if( i ) { s += ","; }
+        s += std::to_string(v[i]);
+    }
+    return s.empty() ? std::string("none") : s;
+}
+
 /**
  * @brief Checks one trace stream's picture-independent claims, record by
  * record, writing one `#verify` line per claim to `out`.
@@ -289,13 +386,20 @@ public:
         PD_T expected = std::move(*pending_after_);
         pending_after_.reset();
 
+        // A redraw's claim carries colours pinned by its embedding, so for it
+        // the isomorphism must also keep every arc's colour (check 4).
+        const bool colorsQ = pending_colorsQ_;
+        pending_colorsQ_ = false;
+
         std::string vwhy;
-        const bool okQ = DiagramsIsomorphicQ(expected, dia, vwhy);
+        const bool okQ = DiagramsIsomorphicQ(expected, dia, vwhy,
+                                             nullptr, colorsQ);
 
         out_ << "#verify " << pending_label_ << " trace: "
              << (okQ ? "VERIFIED" : "MISMATCH")
              << " (" << expected.CrossingCount() << " crossings expected, "
-             << dia.CrossingCount() << " found)";
+             << dia.CrossingCount() << " found"
+             << (colorsQ ? ", colours kept" : "") << ")";
         if( !okQ ) { out_ << " -- " << vwhy; }
         out_ << "\n";
 
@@ -316,6 +420,7 @@ public:
 
         PD_T expected = std::move(*pending_after_);
         pending_after_.reset();
+        pending_colorsQ_ = false;
 
         const bool okQ = (expected.CrossingCount() == Int(0));
 
@@ -527,24 +632,39 @@ public:
     }
 
     /**
-     * @brief A re-projection: check the rotation, and report honestly on what
-     * is not yet checked.
+     * @brief A re-projection: the full `redraw` contract of
+     * docs/move-descriptor.md, checks 1-5.
      *
-     * `redraw` is restricted to the two cyclic axis permutations
-     * (docs/move-descriptor.md, "Why only two rotations"), so `R` is checked
-     * by EQUALITY against integer matrices -- no tolerance anywhere. The rest
-     * of the contract -- `project(E)` isomorphic to this snapshot,
-     * `project(R*E)` isomorphic to the next, and the component colours
-     * tracking through the rotation -- needs the projector and is NOT
-     * implemented yet; it is reported UNCHECKED rather than passed over.
+     *   redraw:     `R` is one of the two permitted rotations (equality).
+     *   projection: `E`'s colours are exactly the snapshot's, and `project(E)`
+     *               is isomorphic to the snapshot KEEPING every arc's colour
+     *               (check 1 and the before half of check 4).
+     *   spinoffs:   the components crossingless in `project(R*E)` are exactly
+     *               the record's `#spinoffs colors=` (after half of check 4).
+     *   rotated:    `project(R*E)` is connected once those are set aside
+     *               (check 5).
+     *   trace:      on the NEXT record, `project(R*E)` is isomorphic to its
+     *               snapshot, colours kept (checks 2 and 4).
+     *
+     * Everything is exact: integer coordinates, a permutation matrix, and
+     * `LinkEmbedding_Int` + `Prosector` to project. Colours are pinned by the
+     * embedding, never read off an isomorphism (which may swap
+     * interchangeable components).
      */
-    void CheckRedraw( const Record_T & rec, const std::string & spec,
-                      std::size_t step )
+    void CheckRedraw( const Record_T & rec, const PD_T & dia,
+                      const std::string & spec, std::size_t step )
     {
         using Redraw_T = KnoodleRedraw::RedrawDescriptor<Int>;
 
         Redraw_T desc;
         std::string err;
+
+        auto fail = [&]( const char * what, const std::string & msg )
+        {
+            out_ << "#verify step " << step << " " << what << ": MISMATCH -- "
+                 << msg << "\n";
+            failedQ_ = true;
+        };
 
         out_ << "#verify step " << step << " redraw: ";
         if( !Redraw_T::Parse(spec, desc, err) )
@@ -555,21 +675,118 @@ public:
         }
         out_ << "VERIFIED (rotation " << desc.CycleName() << ")\n";
 
-        // The witness itself. Without it nothing downstream is checkable, and
-        // a record that omits it is not a redraw record, it is a claim.
-        out_ << "#verify step " << step << " projection: UNCHECKED (";
+        // The witness itself. The spec makes it part of the record: without
+        // it a redraw is a bare assertion that the diagram changed.
         if( rec.embedding.empty() )
         {
-            out_ << "the record carries no '#embedding' block, so there is no"
-                    " witness to project";
+            fail("projection", "the record carries no '#embedding' block, so"
+                 " there is no witness to project");
+            return;
         }
-        else
+
+        // Check 4, before half: the embedding names exactly the snapshot's
+        // components. (Distinct colours: the reader enforced that.)
         {
-            out_ << rec.embedding.size() / 3
-                 << " vertices carried; projecting E and R*E and comparing"
-                    " them to this and the next snapshot is not built yet";
+            std::vector<Int> ecol = rec.embedding_colors;
+            std::sort(ecol.begin(), ecol.end());
+            const std::vector<Int> dcol = DiagramColors(dia);
+            if( ecol != dcol )
+            {
+                fail("projection", "the embedding's components are colours "
+                     + ColorList(ecol) + " but the snapshot's are "
+                     + ColorList(dcol));
+                return;
+            }
         }
-        out_ << ")\n";
+
+        // Check 1.
+        const auto before = ProjectLattice<PD_T>(
+            rec.embedding, rec.embedding_ptr, rec.embedding_colors);
+        if( !before.okQ )
+        {
+            fail("projection", "E: " + before.why);
+            return;
+        }
+        if( !before.anelli.empty() )
+        {
+            fail("projection", "component(s) " + ColorList(before.anelli)
+                 + " of E have no crossings in project(E); the snapshot"
+                   " cannot hold them, so they should already have been spun"
+                   " off");
+            return;
+        }
+        {
+            std::string iwhy;
+            if( !DiagramsIsomorphicQ(before.pd, dia, iwhy, nullptr, true) )
+            {
+                fail("projection", "project(E) is not this record's snapshot"
+                     " (colours kept): " + iwhy);
+                return;
+            }
+        }
+        out_ << "#verify step " << step << " projection: VERIFIED (E has "
+             << rec.embedding_colors.size() << " component(s), "
+             << rec.embedding.size() / 3 << " lattice vertices; project(E) is"
+                " the snapshot, " << before.crossings << " crossings, colours"
+                " kept)\n";
+
+        // Check 4, after half: what the rotation frees must be declared, BY
+        // COLOUR -- the bare count cannot say which component came free.
+        const auto after = ProjectLattice<PD_T>(
+            desc.Apply(rec.embedding), rec.embedding_ptr, rec.embedding_colors);
+        if( !after.okQ )
+        {
+            fail("rotated", "R*E: " + after.why);
+            return;
+        }
+
+        std::vector<Int> freed = after.anelli;
+        std::sort(freed.begin(), freed.end());
+
+        if( !freed.empty() || rec.spinoffs )
+        {
+            std::vector<Int> declared = rec.spinoff_colors;
+            std::sort(declared.begin(), declared.end());
+
+            if( rec.spinoffs && declared.empty() && (*rec.spinoffs > Int(0)) )
+            {
+                fail("spinoffs", "a redraw must name what it frees"
+                     " ('#spinoffs colors=<list>'); the bare count cannot say"
+                     " which component came free");
+                return;
+            }
+            const bool sameQ = (declared == freed);
+            out_ << "#verify step " << step << " spinoffs: "
+                 << (sameQ ? "VERIFIED" : "MISMATCH")
+                 << " (colours " << ColorList(declared) << " declared, "
+                 << ColorList(freed) << " crossingless in project(R*E))\n";
+            if( !sameQ ) { failedQ_ = true; return; }
+        }
+
+        // Check 5.
+        if( (after.crossings > Int(0))
+         && (after.pd.DiagramComponentCount() != Int(1)) )
+        {
+            fail("rotated", "project(R*E) falls apart into "
+                 + std::to_string(after.pd.DiagramComponentCount())
+                 + " diagram components; a split projection is refused until"
+                   " the spec settles 'split' (check 5)");
+            return;
+        }
+
+        out_ << "#verify step " << step << " rotated: VERIFIED (project(R*E)"
+                " has " << after.crossings << " crossings"
+             << ((after.crossings > Int(0)) ? ", connected" : "")
+             << "; checked against the next snapshot)\n";
+
+        // Check 2 is the ordinary trace claim, made colour-strict.
+        if( !rec.candidateQ )
+        {
+            pending_after_   = (after.crossings > Int(0))
+                             ? after.pd : PD_T::InvalidDiagram();
+            pending_label_   = "step " + std::to_string(step);
+            pending_colorsQ_ = true;
+        }
     }
 
     /**
@@ -662,6 +879,7 @@ public:
              << " trace: UNCHECKED (no following record to compare"
                 " against; " << still_checked << ")\n";
         pending_after_.reset();
+        pending_colorsQ_ = false;
     }
 
     /// Mark a failure found by a check that lives outside this class.
@@ -770,6 +988,7 @@ private:
     bool                failedQ_ = false;
     std::optional<PD_T> pending_after_;
     std::string         pending_label_;
+    bool                pending_colorsQ_ = false;  // the claim is a redraw's
 };
 
 } // namespace KnoodleTraceVerify

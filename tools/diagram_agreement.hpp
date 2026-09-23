@@ -289,10 +289,26 @@ bool DiagramsAgreeQ(
  *
  * Unlike the MacLeod code this replaced, it applies to LINKS -- MacLeod is a
  * knot invariant and simply does not exist for a multi-component diagram.
+ *
+ * `out_match` hands back the relabelling found (it was always built; it used
+ * to be discarded).
+ *
+ * `colorsQ` asks the stronger question: is there an isomorphism under which
+ * every arc keeps its COLOUR? Use it when both colourings are claims -- a
+ * `redraw`'s projection, whose colours are pinned by the embedding, against a
+ * snapshot's. Without it the matcher may legitimately swap two interchangeable
+ * components of a symmetric link, and a colour check run over THAT match
+ * would report a false mismatch. With it, a partner that would recolour an arc
+ * is rejected and the search moves on -- still O(n^2), since each rooted flag
+ * determines the whole map. (The greedy per-component assignment stays safe:
+ * two partners that both preserve colours carry the same colours, i.e. the
+ * same link components, and are interchangeable.)
  */
 template<typename PD_T>
 bool DiagramsIsomorphicQ(
-    const PD_T & d1, const PD_T & d2, std::string & why )
+    const PD_T & d1, const PD_T & d2, std::string & why,
+    DiagramMatch_T<typename PD_T::Int> * out_match = nullptr,
+    bool colorsQ = false )
 {
     using Int = typename PD_T::Int;
 
@@ -334,21 +350,49 @@ bool DiagramsIsomorphicQ(
             DiagramMatch_T<Int> trial = M;   // roll back on failure
             std::vector<std::array<Int,2>> seed{ {c1,c2} };
 
-            if( ExtendDiagramMatch(d1,d2,seed,trial,last) )
+            if( !ExtendDiagramMatch(d1,d2,seed,trial,last) ) { continue; }
+
+            if( colorsQ )
             {
-                M = std::move(trial);
-                placed = true;
-                break;
+                bool recolouredQ = false;
+                for( Int a = 0; a < d1.MaxArcCount(); ++a )
+                {
+                    const Int b = trial.amap[static_cast<std::size_t>(a)];
+                    if( (b == None)
+                     || (M.amap[static_cast<std::size_t>(a)] != None) )
+                    {
+                        continue;   // unmatched, or matched by an earlier component
+                    }
+                    if( d1.ArcColors()[a] != d2.ArcColors()[b] )
+                    {
+                        last = "matching crossing " + std::to_string(c1)
+                            + " to " + std::to_string(c2) + " sends arc "
+                            + std::to_string(a) + " (colour "
+                            + std::to_string(d1.ArcColors()[a]) + ") to arc "
+                            + std::to_string(b) + " (colour "
+                            + std::to_string(d2.ArcColors()[b]) + ")";
+                        recolouredQ = true;
+                        break;
+                    }
+                }
+                if( recolouredQ ) { continue; }
             }
+
+            M = std::move(trial);
+            placed = true;
+            break;
         }
 
         if( !placed )
         {
             return fail("no crossing of the second diagram can play the part of"
-                " crossing " + std::to_string(c1) + " of the first (last"
-                " attempt: " + last + ")");
+                " crossing " + std::to_string(c1) + " of the first"
+                + std::string(colorsQ ? " while keeping every arc's colour" : "")
+                + " (last attempt: " + last + ")");
         }
     }
+
+    if( out_match != nullptr ) { *out_match = std::move(M); }
 
     why.clear();
     return true;

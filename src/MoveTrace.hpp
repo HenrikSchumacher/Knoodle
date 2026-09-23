@@ -4,6 +4,7 @@
 
 #include <charconv>
 #include <cstddef>
+#include <cstdint>
 #include <istream>
 #include <optional>
 #include <string>
@@ -141,12 +142,21 @@ namespace Knoodle
             // The `#pd` annotation, flat, five entries per row.
             std::vector<Int> pd_rows;
 
-            // `#embedding`: the 3D polygonal embedding a `redraw` step used,
-            // flat, three coordinates per vertex. KEPT, not skipped: it is
-            // that step's whole witness -- `project(E)` is claimed to be this
-            // record's diagram and `project(R*E)` the next one's, so a
-            // verifier that cannot see `E` cannot check a redraw at all.
-            std::vector<double> embedding;
+            // `#embedding`: the 3D polygonal embedding a `redraw` step used.
+            // KEPT, not skipped: it is that step's whole witness --
+            // `project(E)` is claimed to be this record's diagram and
+            // `project(R*E)` the next one's, so a verifier that cannot see `E`
+            // cannot check a redraw at all.
+            //
+            // A lattice curve: INTEGER coordinates, flat, three per vertex.
+            // Component `i` owns vertices `[embedding_ptr[i],
+            // embedding_ptr[i+1])` and carries the trace colour
+            // `embedding_colors[i]` -- the snapshot's own label, not a
+            // position, because after a spinoff the live colours need not be
+            // 0..k-1. See docs/move-descriptor.md, "Step kind: `redraw`".
+            std::vector<std::int64_t> embedding;
+            std::vector<Int>          embedding_ptr;
+            std::vector<Int>          embedding_colors;
 
             // True when `state` was BUILT from `pd_rows` -- the v0 carrier, or
             // a v1 record that shipped only the annotation. When false and
@@ -325,6 +335,154 @@ namespace Knoodle
             }
 
             /*!@brief Read exactly `n` further lines verbatim. */
+            /*!@brief One `#embedding` row: exactly three decimal integers.
+             *
+             * Integers because the witness is a LATTICE curve: the two
+             * permitted rotations permute coordinates, so the whole check is
+             * exact only if the coordinates are. `2.0` is refused, not
+             * rounded -- "is an integer" is checked by reading the file, and a
+             * rounding rule would put code in the trust base. The bound keeps
+             * every coordinate in an int32, far inside the headroom the exact
+             * projector (`LinkEmbedding_Int`) needs for its determinants.
+             */
+            static bool ParseLatticeRow( const std::string & row,
+                                         std::vector<std::int64_t> & out,
+                                         std::string & why )
+            {
+                constexpr std::int64_t bound = std::int64_t(1) << 31;
+
+                int k = 0;
+                std::size_t pos = 0;
+                while( true )
+                {
+                    pos = row.find_first_not_of(" \t",pos);
+                    if( pos == std::string::npos ) { break; }
+                    auto end = row.find_first_of(" \t",pos);
+                    if( end == std::string::npos ) { end = row.size(); }
+
+                    const std::string_view tok (row.data()+pos,end-pos);
+                    std::int64_t v = 0;
+                    auto [p,ec] = std::from_chars(tok.data(),tok.data()+tok.size(),v);
+                    if( (ec != std::errc{}) || (p != tok.data() + tok.size()) )
+                    {
+                        why = "'#embedding' coordinate '" + std::string(tok)
+                            + "' is not an integer (a redraw witness is a"
+                              " lattice curve)";
+                        return false;
+                    }
+                    if( (v <= -bound) || (v >= bound) )
+                    {
+                        why = "'#embedding' coordinate " + std::string(tok)
+                            + " is out of range (|x| < 2^31)";
+                        return false;
+                    }
+                    out.push_back(v);
+                    ++k;
+                    pos = end;
+                }
+                if( k != 3 )
+                {
+                    why = "'#embedding' row '" + row + "' has "
+                        + std::to_string(k) + " columns, want 3";
+                    return false;
+                }
+                return true;
+            }
+
+            /*!@brief `#embedding components=<k>`, then `k` blocks of
+             * `#component color=<c> rows=<n>` and `n` coordinate rows.
+             *
+             * Per-component headers rather than `.kndlxyz`'s blank-line
+             * separators, because in a trace a blank line ENDS THE RECORD.
+             */
+            bool ReadEmbedding( const std::string & line, Record & rec,
+                                std::string & why )
+            {
+                Int k = Int(0);
+                if( !FieldInt(line,"components=",k) || (k < Int(1)) )
+                {
+                    why = "bad '#embedding' header '" + line + "' (want"
+                          " '#embedding components=<k>', k >= 1)";
+                    return false;
+                }
+
+                rec.embedding.clear();
+                rec.embedding_ptr.assign(1,Int(0));
+                rec.embedding_colors.clear();
+
+                for( Int i = 0; i < k; ++i )
+                {
+                    std::string head;
+                    if( !std::getline(in_,head) )
+                    {
+                        why = "EOF inside '#embedding': " + std::to_string(i)
+                            + " of " + std::to_string(k) + " components read";
+                        return false;
+                    }
+                    ++line_no_;
+                    Chomp(head);
+
+                    Int color = Int(0);
+                    Int rows  = Int(0);
+                    if( !head.starts_with("#component ")
+                     || !FieldInt(head,"color=",color)
+                     || !FieldInt(head,"rows=",rows) )
+                    {
+                        why = "'#embedding components=" + std::to_string(k)
+                            + "' wants a '#component color=<c> rows=<n>'"
+                              " header for component " + std::to_string(i)
+                            + ", got '" + head + "'";
+                        return false;
+                    }
+                    if( rows < Int(3) )
+                    {
+                        why = "'#component color=" + std::to_string(color)
+                            + "' has rows=" + std::to_string(rows)
+                            + "; a closed polygon needs at least 3 vertices";
+                        return false;
+                    }
+                    for( Int c : rec.embedding_colors )
+                    {
+                        if( c == color )
+                        {
+                            why = "'#embedding' names colour "
+                                + std::to_string(color) + " twice; each"
+                                  " component has its own colour";
+                            return false;
+                        }
+                    }
+
+                    for( Int r = 0; r < rows; ++r )
+                    {
+                        std::string row;
+                        if( !std::getline(in_,row) )
+                        {
+                            why = "EOF inside '#component color="
+                                + std::to_string(color) + "' after "
+                                + std::to_string(r) + " of "
+                                + std::to_string(rows) + " rows";
+                            return false;
+                        }
+                        ++line_no_;
+                        Chomp(row);
+                        if( !ParseLatticeRow(row,rec.embedding,why) )
+                        {
+                            return false;
+                        }
+                    }
+
+                    rec.embedding_colors.push_back(color);
+                    rec.embedding_ptr.push_back(
+                        rec.embedding_ptr.back() + rows );
+                }
+
+                rec.headers.push_back("#embedding (" + std::to_string(k)
+                    + " components, "
+                    + std::to_string(rec.embedding_ptr.back())
+                    + " vertices, not rendered)");
+                return true;
+            }
+
             bool ReadBlock( Int n, std::string & text, std::string & why )
             {
                 text.clear();
@@ -483,54 +641,7 @@ namespace Knoodle
 
                 if( line.starts_with("#embedding") )
                 {
-                    // A redraw witness: keep the coordinates. Rendering the
-                    // lift/rotate/flatten animation is a later backend's job,
-                    // but a VERIFIER needs the numbers.
-                    Int rows = Int(0);
-                    if( !FieldInt(line,"rows=",rows) || (rows < Int(0)) )
-                    {
-                        why = "bad '#embedding' header '" + line + "'";
-                        return false;
-                    }
-                    std::string text;
-                    if( !ReadBlock(rows,text,why) ) { return false; }
-
-                    rec.embedding.clear();
-                    rec.embedding.reserve(static_cast<std::size_t>(3*rows));
-                    {
-                        std::istringstream in (text);
-                        std::string row;
-                        Int seen = Int(0);
-                        while( std::getline(in,row) )
-                        {
-                            Chomp(row);
-                            if( row.empty() ) { continue; }
-
-                            std::istringstream rs (row);
-                            double v;
-                            int k = 0;
-                            while( rs >> v ) { rec.embedding.push_back(v); ++k; }
-
-                            if( k != 3 )
-                            {
-                                why = "'#embedding' row " + std::to_string(seen)
-                                    + " has " + std::to_string(k)
-                                    + " columns, want 3";
-                                return false;
-                            }
-                            ++seen;
-                        }
-                        if( seen != rows )
-                        {
-                            why = "'#embedding' says rows=" + std::to_string(rows)
-                                + " but carries " + std::to_string(seen);
-                            return false;
-                        }
-                    }
-
-                    rec.headers.push_back("#embedding (" + std::to_string(rows)
-                        + " rows, not rendered)");
-                    return true;
+                    return ReadEmbedding(line,rec,why);
                 }
 
                 rec.headers.push_back(line);

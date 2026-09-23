@@ -56,6 +56,10 @@ void PrintUsage()
         "  pd        the '#pd' annotation is the '#state' snapshot, up to relabelling\n"
         "  r1        a curl removal's local checks (for r1 these ARE soundness)\n"
         "  redraw    the rotation is one of the two permitted lattice rotations\n"
+        "  projection  a redraw's lattice curve E projects (exactly) to this\n"
+        "            snapshot, colours kept; 'rotated' says what R*E projects to\n"
+        "            (connected, its freed components named by '#spinoffs'),\n"
+        "            and 'trace' compares that to the next snapshot\n"
         "  trace     what a move produces is the NEXT record's snapshot\n"
         "  split     crossingless components the move frees (reported)\n"
         "  spinoffs  the '#spinoffs' count agrees with the surgery\n"
@@ -182,7 +186,7 @@ bool Prove( std::istream & input, const char * source )
             }
             else if( kind == "redraw" )
             {
-                verifier.CheckRedraw(rec, *rec.move, step);
+                verifier.CheckRedraw(rec, dia, *rec.move, step);
             }
             else
             {

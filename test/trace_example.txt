@@ -8,20 +8,90 @@
 4	2	5	1	1
 
 #step n=1 summand=0
-#comment PLACEHOLDER WITNESS: the rot below is a real permitted rotation, but
-#comment the 3 #embedding rows are a grammar placeholder, not a curve whose
-#comment projection is this snapshot. Replace it when the projection checks
-#comment land -- see test/redraw_example.trace for an honest one.
+#comment A REAL redraw witness (it replaces a 3-point placeholder). E is a
+#comment 62-vertex lattice trefoil, made by rounding the curve
+#comment (sin t + 2 sin 2t, cos t - 2 cos 2t, sin 3t) scaled 1.5 and joining
+#comment the points by unit axis steps; project(E) down z is exactly this
+#comment record's 3-crossing trefoil, colours kept. Rotating by x->y->z->x
+#comment shows it down the old y axis, where it has 9 crossings: the next
+#comment record. (A redraw may inflate a diagram; it is an isotopy, not a
+#comment simplification.) Generated 2026-09-23 with LinkEmbedding4<Int64>.
 #move kind=redraw rot=0,0,1,1,0,0,0,1,0
-#embedding rows=3
-0.0	0.0	0.0
-1.0	0.0	0.5
-0.0	1.0	-0.5
+#embedding components=1
+#component color=0 rows=62
+0	-2	0
+1	-2	0
+1	-1	0
+2	-1	0
+2	-1	1
+3	-1	1
+3	0	1
+4	0	1
+4	1	1
+4	1	0
+4	2	0
+3	2	0
+3	3	0
+3	3	-1
+2	3	-1
+1	3	-1
+0	3	-1
+-1	3	-1
+-1	2	-1
+-1	1	-1
+-1	1	0
+-2	1	0
+-2	0	0
+-2	0	1
+-2	-1	1
+-2	-2	1
+-2	-3	1
+-1	-3	1
+-1	-4	1
+-1	-4	0
+0	-4	0
+0	-5	0
+1	-5	0
+1	-4	0
+1	-4	-1
+2	-4	-1
+2	-3	-1
+2	-2	-1
+2	-1	-1
+2	0	-1
+2	0	0
+1	0	0
+1	1	0
+1	2	0
+1	2	1
+0	2	1
+0	3	1
+-1	3	1
+-2	3	1
+-3	3	1
+-4	3	1
+-4	2	1
+-4	2	0
+-4	1	0
+-4	1	-1
+-3	1	-1
+-3	0	-1
+-2	0	-1
+-2	-1	-1
+-1	-1	-1
+0	-1	-1
+0	-2	-1
 0	4	1	3	1
 2	0	3	5	1
 4	2	5	1	1
 
 #step n=2 summand=0
-0	4	1	3	1
-2	0	3	5	1
-4	2	5	1	1
+17	11	0	10	1
+5	1	6	0	1
+16	2	17	1	1
+2	14	3	13	1
+3	12	4	13	-1
+4	12	5	11	1
+6	9	7	10	-1
+7	9	8	8	1
+15	14	16	15	-1
