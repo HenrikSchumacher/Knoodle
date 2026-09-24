@@ -28,10 +28,13 @@
 #include "knoodle_io.hpp"
 #include "../src/MoveTrace.hpp"
 #include "trace_verify.hpp"
+#include "exterior_thread.hpp"
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #ifndef GIT_VERSION
 #define GIT_VERSION "unknown"
@@ -74,6 +77,15 @@ void PrintUsage()
         "\n"
         "Exits 1 on any MISMATCH, a malformed stream, or a library error.\n"
         "\n"
+        "Exterior faces (docs/move-descriptor.md, \"Exterior faces across a trace\"):\n"
+        "  --check-exterior   also check the '#view' claims: 'exterior' says each\n"
+        "                 record's exterior face is the image of the previous one's\n"
+        "                 across its move, with outside=/behind as the rule requires\n"
+        "  --thread-exterior  do not check; REWRITE the stream to stdout with one\n"
+        "                 exterior thread chosen through it (fewest 'behind' moves,\n"
+        "                 then largest exteriors), replacing every '#view' line.\n"
+        "                 Seams and records left without a view are noted on stderr\n"
+        "\n"
         "Options:\n"
         "  -h, --help     Show this message\n"
         "  --version      Show the version\n";
@@ -91,8 +103,12 @@ std::string MoveKind( const std::string & payload )
                                                        : e - b);
 }
 
-bool Prove( std::istream & input, const char * source )
+bool Prove( std::istream & input, const char * source, bool check_exteriorQ )
 {
+    // Kept only for --check-exterior, which needs neighbouring records.
+    std::vector<typename Trace_T::Record> kept;
+    std::vector<std::size_t>              kept_steps;
+
     typename Trace_T::Reader reader (input);
     KnoodleTraceVerify::TraceVerifier<PD_T> verifier(std::cout);
 
@@ -117,6 +133,12 @@ bool Prove( std::istream & input, const char * source )
         // reports on one stream line up step for step. A record with no
         // diagram is a crossingless summand -- still a state, so a pending
         // claim is answered against it rather than carried over it.
+        if( check_exteriorQ )
+        {
+            kept.push_back(rec);
+            kept_steps.push_back(step);
+        }
+
         if( !rec.state )
         {
             verifier.BeginRecordWithoutDiagram();
@@ -203,6 +225,12 @@ bool Prove( std::istream & input, const char * source )
 
     verifier.Finish("nothing follows it in the stream");
 
+    if( check_exteriorQ
+        && !KnoodleExterior::CheckExteriorThread<PD_T>(kept, kept_steps, std::cout) )
+    {
+        verifier.Fail();
+    }
+
     if( step == 0 )
     {
         std::cerr << "knoodleprove: warning: " << source
@@ -212,11 +240,96 @@ bool Prove( std::istream & input, const char * source )
     return !verifier.FailedQ();
 }
 
+/// --thread-exterior: the stream again, byte for byte, except that every
+/// record's `#view` line is replaced by the threader's (or dropped where it
+/// has none). The new line goes where the grammar puts `#view`: before the
+/// record's first `#move`, `#faces`, `#feas`, `#state` or `#pd` line, or its
+/// first data row (a v0 record has no `#state` line).
+bool Thread( std::istream & input, const char * source )
+{
+    std::stringstream buf;
+    buf << input.rdbuf();
+    const std::string text = buf.str();
+
+    std::vector<std::string> lines;
+    {
+        std::istringstream ls(text);
+        std::string l;
+        while( std::getline(ls, l) ) { lines.push_back(l); }
+    }
+
+    std::vector<typename Trace_T::Record> recs;
+    {
+        std::istringstream in(text);
+        typename Trace_T::Reader reader (in);
+        typename Trace_T::Record rec;
+        std::string why;
+        for(;;)
+        {
+            const auto status = reader.Next(rec, why);
+            if( status == Trace_T::Status::Eof ) { break; }
+            if( status == Trace_T::Status::Error )
+            {
+                std::cerr << "knoodleprove: " << source << ": trace line "
+                          << reader.LineNo() << ": " << why << "\n";
+                return false;
+            }
+            recs.push_back(rec);
+        }
+    }
+
+    const auto views = KnoodleExterior::ThreadExterior<PD_T>(recs);
+
+    // Record i spans lines [recs[i].line, recs[i+1].line), 1-based.
+    std::size_t next_rec = 0;
+    std::size_t behind = 0, seams = 0;
+    std::size_t emitted_for = std::size_t(-1);
+    for( std::size_t ln = 1; ln <= lines.size(); ++ln )
+    {
+        const std::string & l = lines[ln-1];
+        if( (next_rec < recs.size()) && (ln == recs[next_rec].line) ) { ++next_rec; }
+        const std::size_t r = (next_rec > 0) ? next_rec - 1 : std::size_t(-1);
+
+        if( l.rfind("#view ", 0) == 0 ) { continue; }
+
+        if( r != std::size_t(-1) && views[r].view )
+        {
+            const bool slotQ = (l.rfind("#move ", 0) == 0) || (l.rfind("#faces", 0) == 0)
+                || (l.rfind("#feas", 0) == 0) || (l.rfind("#state", 0) == 0)
+                || (l.rfind("#pd", 0) == 0)
+                || (!l.empty() && (l[0] != '#'));   // a v0 record's bare PD rows
+            // Emit once per record, at the first slot line.
+            if( slotQ && (emitted_for != r) )
+            {
+                std::cout << KnoodleExterior::FormatView(*views[r].view) << "\n";
+                emitted_for = r;
+                if( views[r].view->behindQ ) { ++behind; }
+                if( views[r].view->seamQ   ) { ++seams; }
+            }
+        }
+        std::cout << l << "\n";
+    }
+
+    for( std::size_t i = 0; i < recs.size(); ++i )
+    {
+        if( !views[i].note.empty() )
+        {
+            std::cerr << "knoodleprove: record at line " << recs[i].line << ": "
+                      << views[i].note << "\n";
+        }
+    }
+    std::cerr << "knoodleprove: threaded " << recs.size() << " records; "
+              << behind << " behind, " << seams << " seam(s)\n";
+    return true;
+}
+
 } // namespace
 
 int main( int argc, char * argv[] )
 {
     std::string path;
+    bool check_exteriorQ  = false;
+    bool thread_exteriorQ = false;
 
     for( int i = 1; i < argc; ++i )
     {
@@ -232,6 +345,8 @@ int main( int argc, char * argv[] )
             std::cout << "knoodleprove " << GIT_VERSION << "\n";
             return 0;
         }
+        if( arg == "--check-exterior"  ) { check_exteriorQ  = true; continue; }
+        if( arg == "--thread-exterior" ) { thread_exteriorQ = true; continue; }
         if( (arg.size() > 1) && (arg[0] == '-') )
         {
             std::cerr << "knoodleprove: unknown option '" << arg << "'\n";
@@ -254,7 +369,8 @@ int main( int argc, char * argv[] )
     bool okQ;
     if( path.empty() || (path == "-") )
     {
-        okQ = Prove(std::cin, "<stdin>");
+        okQ = thread_exteriorQ ? Thread(std::cin, "<stdin>")
+                               : Prove(std::cin, "<stdin>", check_exteriorQ);
     }
     else
     {
@@ -264,7 +380,8 @@ int main( int argc, char * argv[] )
             std::cerr << "knoodleprove: cannot open '" << path << "'\n";
             return 1;
         }
-        okQ = Prove(in, path.c_str());
+        okQ = thread_exteriorQ ? Thread(in, path.c_str())
+                               : Prove(in, path.c_str(), check_exteriorQ);
     }
 
     if( cerr_tap.Count() > 0 )

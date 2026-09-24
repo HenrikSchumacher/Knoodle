@@ -104,6 +104,21 @@ struct Sides_T
     std::vector<char> in_route;   // per arc
 
     std::vector<Int> disk [2];    // interior crossings per side, ascending
+
+    // The flood's own fragments, kept for tools/exterior_thread.hpp, which
+    // needs to know which side of the loop each piece of a FACE lies on (a
+    // face the corridor visits is two fragments, one per side).
+    //
+    // `frag` is indexed by darc half, 2*da + h (h = 0 the half the darc starts
+    // on, 1 the half it ends on); fragment `f < n_f` is face f, or the part of
+    // it the corridor did not cut away; `n_f + i` is the other part of the
+    // corridor's i-th face. `frag_side` is 0/1 per fragment. `loop_half`,
+    // indexed 2*a + half (0 tail, 1 head), marks the arc halves the loop runs
+    // along.
+    std::vector<Int>         frag;
+    std::vector<signed char> frag_side;
+    std::vector<char>        loop_half;
+    std::vector<Int>         corridor_faces;   // F_0 .. F_k
 };
 
 /*!@brief Rebuild both sides of the move's loop. False, with a reason, when the
@@ -355,6 +370,23 @@ bool ReconstructSides(
         cur = pd.NextArc(cur, PD_T::Head);
     }
     const Int root0 = region(cur, in_route[Z(cur)] ? 0 : -1);
+
+    out.frag = frag;
+    out.frag_side.assign(Z(n_frag), static_cast<signed char>(-1));
+    for( Int i = 0; i < n_frag; ++i )
+    {
+        out.frag_side[Z(i)] = (find(i) == root0) ? 0 : 1;
+    }
+    out.loop_half.assign(Z(Int(2) * n_a), char(0));
+    for( Int a = 0; a < n_a; ++a )
+    {
+        if( !pd.ArcActiveQ(a) ) { continue; }
+        for( int half = 0; half < 2; ++half )
+        {
+            out.loop_half[Z(Int(2) * a + Int(half))] = loopQ(a,half) ? char(1) : char(0);
+        }
+    }
+    out.corridor_faces = F;
 
     out.side_of.assign(Z(Int(3) * n_a), static_cast<signed char>(-1));
     for( Int a = 0; a < n_a; ++a )

@@ -82,7 +82,8 @@ A trace is a text stream extending the existing knoodle TSV streaming format
 #step n=<k> summand=<sid>
 #candidate                    (optional; evaluated but not applied)
 #comment <free text>          (optional, repeatable)
-#view exterior=<da>           (optional, recommended; see Layout transitions)
+#view exterior=<da> [outside=<0|1>] [behind] [seam]
+                              (optional, recommended; see Exterior faces across a trace)
 #move <descriptor>            (absent on terminal records)
 #faces <annotation>           (optional)
 #state lines=<N>              (v1; the snapshot)
@@ -1025,19 +1026,120 @@ use the *same* exterior face, embedded as the convex boundary. Hence
 `#view exterior=<da>` — the face `L(da)` that renderers must pass to
 OrthoDraw as its exterior-face argument (the constructor takes it).
 
-**Exterior stability across steps.** For combinatorial kinds the descriptor
-itself is the correspondence map across the step (it names exactly the
-arcs/faces it touches), so "the exterior face is unchanged by the move" is
-well-defined and checkable: recommended practice is to name the exterior in
-consecutive records by a surviving darc (one not in `strand`/`cross`/the
-move's args). A step that *must* change the exterior face (the move consumes
-it) is a **seam**: renderers fall back to a cut there, and recorders should
-choose exteriors to make seams rare — a single compatible choice threaded
-through the whole sequence is the ideal. Across `redraw` there is no
-combinatorial correspondence (the witness is geometric), so
-exterior-continuity is not defined there; the lift/rotate/flatten animation
-covers that transition instead, plus one tension morph from the raw
-projection layout to the tidy layout on the far side.
+**Exterior stability across steps** is specified in the next section.
+
+## Exterior faces across a trace (normative)
+
+Every record is drawn with a fresh layout; what keeps a sequence of them from
+jumping is that they all put the **same region of the plane at infinity**.
+`#view exterior=<da>` names that region in each record's own labels. This
+section says what "the same region" means across a move, and what a stream
+claims when it names one.
+
+### Faces are regions, and regions are never destroyed
+
+A move merges regions (deleting W joins the faces on its two sides; an R1
+folds the monogon into the face around it) and splits them (the corridor cuts
+each face it visits). It never destroys one. So every face of a record's
+diagram has an image in the next record's, and **a thread of exteriors never
+has to break** across `pass`, `middlepass` or `r1`. The "seam" the earlier
+version of this section feared -- a move that consumes the exterior -- was an
+artefact of naming a face by a darc, which a move can indeed consume. Name the
+region instead.
+
+### The image of a face across one move
+
+Let W be the strand and C the corridor's face chain `L(depart), R(cross_0),
+..., L(land)`. For a face F of the before-diagram:
+
+| F | image in the after-diagram |
+|---|---|
+| **untouched**: no darc of W on its boundary, not in C | the same face, with the *same boundary darc cycle*, same labels |
+| **merged**: bordered by W, not in C | the one after face containing it |
+| **split**: in C | one after face per side of the loop W + corridor |
+
+The untouched row is exact because every corner at an interior crossing of W
+lies between a W half-edge and a transversal half-edge, so a face touching a
+healed arc or a dying crossing is bordered by W; and an arc the corridor
+splits has corridor faces on both sides. `AfterDiagram` keeps surviving labels
+in place, so nothing on an untouched face's boundary changes. (Checked on every
+move the threader processes; a violation is an internal error.)
+
+For an `r1`, every face but the monogon survives, and the monogon's image is
+the image of the face around it, `L(loop XOR 1)`.
+
+Between records the correspondence is an **isomorphism**, not the identity: an
+emitter may relabel between one record's `#result` and the next record's
+`#state` (middlestrands compacts; 15 crossing slots become 12 and every arc is
+renumbered). A consumer maps the after-diagram onto the next snapshot with the
+same rooted-flag isomorphism the `trace:` check uses; it keeps In/Out and
+handedness, so it sends faces to faces. A darc number is therefore **never**
+carried from one record to the next as if it named the same thing.
+
+### Which side keeps infinity: `outside=` and `behind`
+
+The sides are the two sides of the loop W + corridor, numbered as in the
+feasibility witness ("Sides", above; the same rule for a uniform `pass`, which
+has no `#feas`). `outside=<s>` names the side infinity is on.
+
+- **The exterior lies on one side.** Infinity is there; `outside=` may be given
+  and must name that side.
+- **The corridor cuts the exterior** (it is in C). The exterior has a part on
+  each side and the drawing must choose one, so `outside=` is **required**. It
+  also binds the renderer: a corridor through the drawn exterior runs through
+  the margin ring, and it must go round the way that leaves side `outside`
+  unbounded.
+
+A `middlepass` sweeps its witness side `s`. When infinity lies on side `s`, the
+swept disk contains infinity: the strand goes **round the back of the sphere**
+and surfaces on the far side. That is a legitimate move and cannot always be
+avoided, but it is hard to follow in a flat picture and wants its own
+animation (the strand passing under, or over, the rest of the diagram).
+Such a record **must** say `behind`, and a record that says `behind` must be
+one. A uniform `pass` is an isotopy across either side, so its disk is by
+definition the side infinity is not on, and it is never `behind`.
+
+**Choosing `outside=` for a cut exterior** (the threader's rule; a recorder
+may choose otherwise as long as it flags `behind` truthfully):
+
+- `middlepass` with a witness: `outside = 1 - s`, so the swept disk is drawn
+  bounded;
+- uniform `pass` (or a middlepass without `#feas`): the side with **more**
+  pieces, so the smaller disk is the one drawn bounded; ties go to side 0.
+
+### `seam`
+
+`seam` on a record says: this exterior is *not* the image of the previous
+record's; the renderer cuts. It is never forced by the moves above, so it
+marks a limitation, not a topological event: today, a corridor that crosses W
+itself (Proposition C′ -- W + corridor is then not a simple loop, and has no
+two sides), and a move that frees a crossingless loop. Across a `redraw` no
+continuity is claimed and no `seam` is written: the lift/rotate/flatten
+animation carries that transition.
+
+### Who chooses
+
+The exterior is presentation, not proof, so it is chosen **after** recording,
+with hindsight: `knoodleprove --thread-exterior` rewrites a stream's `#view`
+lines. Only the first record of a run has a free choice -- the rules above
+decide every later step -- so it tries every face of the first diagram and
+keeps the thread with the fewest `behind` moves, then the largest total
+exterior boundary. An emitter's own `#view` lines are replaced. Candidate
+records borrow the face of the applied record showing the same diagram.
+
+### The claim a stream makes
+
+`knoodleprove --check-exterior` reports `#verify step <n> exterior:` per move:
+
+- `outside=` present when the corridor cuts the exterior, and naming the right
+  side when it does not;
+- `behind` present exactly when a witnessed middlepass keeps infinity on its
+  side `s`; absent on a uniform pass; `outside=`/`behind` absent on an `r1`;
+- the next applied record's exterior is the image of this one's (its
+  `outside` part), unless that record declares `seam`.
+
+The `#view` parser is strict: an unknown token is a `MISMATCH`, so a misspelt
+`behind` cannot silently lose its special animation.
 
 ## Annotations
 
@@ -1164,6 +1266,12 @@ and any seeded choice an emitter makes must be recorded in the stream.
   are echoed unrendered. Malformed records and rejected descriptors abort
   with a line-numbered message and nonzero exit. Example stream:
   `test/trace_example.txt`.
+- **Also implemented** (2026-09-23): exterior threading, `tools/exterior_thread.hpp`.
+  `knoodleprove --thread-exterior` rewrites `#view` lines; `--check-exterior`
+  checks them (see "Exterior faces across a trace"). **Not yet implemented**:
+  `knoodledraw` ignores `outside=` when it routes a corridor through the drawn
+  exterior -- its per-face BFS takes the shorter way round the margin ring --
+  and draws `behind` like any other move.
 - **Also implemented**: `--verify` checks a record's feasibility witness when
   it carries one, reporting `#verify step <n> disk (V0):` and
   `classes (V4):` (see "The feasibility witness" above). The reader
@@ -1234,12 +1342,12 @@ and any seeded choice an emitter makes must be recorded in the stream.
   of two permutation matrices and `E` is a lattice curve, so there is no
   tolerance and no "how close to degenerate" question; `Prosector` resolves
   every degenerate projection repeatably.
-- Exterior-face seams: whether a recorder can always thread one compatible
-  exterior choice through a whole Simplify run (does any move sequence
-  *force* consuming every candidate exterior?), and — if seams prove
-  unavoidable — whether to animate them as sphere re-rooting (project to
-  S², rotate the chosen face through infinity) rather than cutting. Parked:
-  seams are believed rare under a careful choice, so cuts suffice for now.
+- ~~Exterior-face seams~~ -- RESOLVED 2026-09-23: faces are regions and a
+  move never destroys one, so no move sequence forces a seam (see "Exterior
+  faces across a trace"). What remains is (a) the corridor-crosses-W and
+  freed-loop cases, which still fall back to `seam`, and (b) the `behind`
+  animation -- the strand passing round the back of the sphere -- which is
+  specified only as a flag so far.
 - Compatible-triangulation details for step 2 of the tension morph
   (Steiner-point placement realizing one triangulation graph in both
   orthogonal layouts; angle-π bend-chain vertices).
