@@ -29,7 +29,9 @@ What is protected:
     exterior, a false `outside=` is a hard stop (nonzero exit): it is a bug
     in whatever wrote the `#view` line. The threader cannot write one: it
     runs its own output through --check-exterior's checker and emits nothing
-    if that fails (exercised on every fixture above).
+    if that fails -- passing on every fixture, and refusing when the test hook
+    KNOODLEPROVE_TEST_CORRUPT_VIEW corrupts a view (a false outside=, the
+    wrong part of a cut exterior, a false `behind`).
   * HONEST GAPS. A corridor that crosses W (Proposition C') still falls back
     to a declared seam, with the reason on stderr.
 """
@@ -68,8 +70,12 @@ def check(condQ, label, detail=""):
     return condQ
 
 
-def run(args, stdin_text=None, binary=PROVE):
-    p = subprocess.run([binary] + args, input=stdin_text,
+def run(args, stdin_text=None, binary=PROVE, env=None):
+    full_env = None
+    if env:
+        full_env = dict(os.environ)
+        full_env.update(env)
+    p = subprocess.run([binary] + args, input=stdin_text, env=full_env,
                        capture_output=True, text=True, timeout=300)
     return p.returncode, p.stdout, p.stderr
 
@@ -246,6 +252,33 @@ for rec in recs:
 
 check(n_cut >= 2 and n_uncut >= 1,
       f"outside= rendering exercised ({n_cut} cut, {n_uncut} uncut records)")
+
+# -- the threader refuses to emit a claim its own checker rejects -------------
+#
+# KNOODLEPROVE_TEST_CORRUPT_VIEW corrupts one view after threading and before
+# the self-check, so the refusal path runs end to end: MISMATCH lines on
+# stderr, NOTHING on stdout, exit 1. Record indices count every record.
+
+sticky = read(FIXTURES["sticky"])
+corruptions = [
+    # record 0: the exterior lies wholly on one side -- a false outside=
+    ("0:outside", "lies wholly on side",  "a false outside= on an uncut exterior"),
+    # record 1: the corridor cuts it -- the other part is not the next exterior
+    ("1:outside", "the next record's exterior is face", "the wrong part of a cut exterior"),
+    # record 0: a uniform/unswept move is never behind
+    ("0:behind",  "'behind' is set",      "a false `behind`"),
+]
+for spec, needle, what in corruptions:
+    rc, out, err = run(["--thread-exterior"], sticky,
+                       env={"KNOODLEPROVE_TEST_CORRUPT_VIEW": spec})
+    check(rc == 1 and out == "" and "fails its own check" in err and needle in err,
+          f"threader self-check refuses {what} ({spec}): exit 1, nothing emitted",
+          f"rc={rc}, {len(out)} bytes on stdout\n{err}")
+
+rc, out, err = run(["--thread-exterior"], sticky,
+                   env={"KNOODLEPROVE_TEST_CORRUPT_VIEW": "99:outside"})
+check(rc != 0 and out == "" and "names no view" in err,
+      "the test hook refuses a spec it cannot apply", err)
 
 # -- honest gaps -------------------------------------------------------------
 

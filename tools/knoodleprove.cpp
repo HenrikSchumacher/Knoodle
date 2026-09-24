@@ -33,6 +33,7 @@
 #include <fstream>
 #include <iostream>
 #include <algorithm>
+#include <cstdlib>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -281,7 +282,32 @@ bool Thread( std::istream & input, const char * source )
         }
     }
 
-    const auto views = KnoodleExterior::ThreadExterior<PD_T>(recs);
+    auto views = KnoodleExterior::ThreadExterior<PD_T>(recs);
+
+    // TEST HOOK, for test/exterior_thread_check.py only: corrupt one view
+    // after threading, so the self-check below can be seen to refuse.
+    // KNOODLEPROVE_TEST_CORRUPT_VIEW=<record index>:outside flips that
+    // record's outside=; <record index>:behind toggles its `behind`.
+    if( const char * spec = std::getenv("KNOODLEPROVE_TEST_CORRUPT_VIEW") )
+    {
+        const std::string sp (spec);
+        const auto colon = sp.find(':');
+        std::size_t i = 0;
+        bool okQ = (colon != std::string::npos) && (colon > 0);
+        try { if( okQ ) { i = std::stoul(sp.substr(0, colon)); } } catch( ... ) { okQ = false; }
+        const std::string how = okQ ? sp.substr(colon + 1) : std::string();
+        okQ = okQ && (i < views.size()) && views[i].view
+            && ((how == "behind") || ((how == "outside") && (views[i].view->outside >= 0)));
+        if( !okQ )
+        {
+            std::cerr << "knoodleprove: KNOODLEPROVE_TEST_CORRUPT_VIEW='" << sp
+                      << "' names no view it can corrupt\n";
+            return false;
+        }
+        auto & v = *views[i].view;
+        if( how == "outside" ) { v.outside = 1 - v.outside; }
+        else                   { v.behindQ = !v.behindQ; }
+    }
 
     // Self-check: the threader's choices must pass the checker that
     // --check-exterior runs, or nothing is emitted. A false claim here (say
