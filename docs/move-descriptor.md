@@ -1268,10 +1268,23 @@ and any seeded choice an emitter makes must be recorded in the stream.
   `test/trace_example.txt`.
 - **Also implemented** (2026-09-23): exterior threading, `tools/exterior_thread.hpp`.
   `knoodleprove --thread-exterior` rewrites `#view` lines; `--check-exterior`
-  checks them (see "Exterior faces across a trace"). **Not yet implemented**:
-  `knoodledraw` ignores `outside=` when it routes a corridor through the drawn
-  exterior -- its per-face BFS takes the shorter way round the margin ring --
-  and draws `behind` like any other move.
+  checks them (see "Exterior faces across a trace").
+- **Also implemented** (2026-09-24): `knoodledraw --trace` honours `outside=`.
+  The corridor is routed as usual, then the side of W + corridor that the
+  picture leaves unbounded is read back off the grid (flood from the margin
+  ring; every drawn cell of a piece off the loop votes for its side, numbered
+  as in `ReconstructSides`). If it is the wrong side, the corridor is routed
+  again with its first exterior leg constrained to cross a fixed cut of the
+  exterior annulus (`OrthoDecorate::ExteriorRay`) an even, then an odd, number
+  of times, and the first routing that puts infinity on side `outside` is
+  kept; the portal points are free to change, which a one-cell exterior leg
+  (dot straight into the next crossing) needs. `--verify` checks the corridor
+  actually drawn. When the side cannot be honoured -- the corridor does not
+  run through the drawn exterior (so a false `outside=`), the sides cannot be
+  rebuilt (Proposition C′), or no routing fits -- knoodledraw warns on stderr
+  and draws the corridor as routed; the verdict on the claim itself is
+  `knoodleprove --check-exterior`'s. **Not yet implemented**: `behind` is
+  drawn like any other move.
 - **Also implemented**: `--verify` checks a record's feasibility witness when
   it carries one, reporting `#verify step <n> disk (V0):` and
   `classes (V4):` (see "The feasibility witness" above). The reader

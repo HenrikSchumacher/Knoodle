@@ -17,6 +17,7 @@
 #include "../src/OrthoDecorate.hpp"
 #include "diagram_agreement.hpp"
 #include "drawing_extractor.hpp"
+#include "witness_check.hpp"
 
 #include <algorithm>
 #include <array>
@@ -627,19 +628,21 @@ std::vector<std::array<typename PD_T::Int,2>> PassLoopCells(
     return loop;
 }
 
-/*!@brief Which canvas cells lie in the swept disk.
+/*!@brief The loop W + corridor as walls, and which cells the grid's own
+ * outside reaches around it.
  *
- * Returns a flat `n_x * n_y` flag array (canvas indexing, as everywhere else
- * here). Empty if the loop encloses nothing -- which is the honest answer when
- * W and P run alongside each other with no room between them.
+ * `wall` and `outside` are flat `n_x * n_y` flag arrays (canvas indexing, as
+ * everywhere else here). `outside` is the flood from the grid's boundary ring:
+ * in the picture, the unbounded side of the loop.
  */
 template<class PD_T>
-std::vector<char> PassDiskCells(
+void PassLoopFlood(
     Knoodle::OrthoDraw<PD_T>& H,
     const typename Knoodle::OrthoDecorate<PD_T>::PassMove_T& move,
     const typename Knoodle::OrthoDecorate<PD_T>::PassRoute_T& pr,
     typename PD_T::Int margin,
-    typename PD_T::Int n_x, typename PD_T::Int n_y)
+    typename PD_T::Int n_x, typename PD_T::Int n_y,
+    std::vector<char>& wall, std::vector<char>& outside)
 {
     using Int = typename PD_T::Int;
 
@@ -652,7 +655,7 @@ std::vector<char> PassDiskCells(
         return x >= 0 && x < n_x - 1 && y >= 0 && y < n_y;
     };
 
-    std::vector<char> wall(N, char(0));
+    wall.assign(N, char(0));
     for (const auto& c : PassLoopCells<PD_T>(H, move, pr, margin))
     {
         if (in_bounds(c[0], c[1])) { wall[idx(c[0], c[1])] = char(1); }
@@ -664,7 +667,7 @@ std::vector<char> PassDiskCells(
     static const Int dx4[] = {1, 0, -1, 0};
     static const Int dy4[] = {0, 1, 0, -1};
 
-    std::vector<char> outside(N, char(0));
+    outside.assign(N, char(0));
     std::vector<std::array<Int,2>> stack;
 
     for (Int y = 0; y < n_y; ++y)
@@ -694,6 +697,158 @@ std::vector<char> PassDiskCells(
             stack.push_back({qx,qy});
         }
     }
+}
+
+/*!@brief Which side of the loop W + corridor the drawing puts at infinity.
+ *
+ * Sides are numbered as in the feasibility witness
+ * (`KnoodleWitness::ReconstructSides`), which is the numbering `#view ...
+ * outside=<s>` uses. The drawn side is read off the picture: every cell of a
+ * piece whose side is known votes for that side, and the pieces the grid's
+ * outside reaches decide. Returns 0 or 1, or -1 with a reason when the sides
+ * cannot be rebuilt or the picture does not decide.
+ */
+template<class PD_T>
+int PassUnboundedSide(
+    Knoodle::OrthoDraw<PD_T>& H,
+    const PD_T& pd,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassMove_T& move,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassRoute_T& pr,
+    typename PD_T::Int margin,
+    typename PD_T::Int n_x, typename PD_T::Int n_y,
+    std::string& why)
+{
+    using Int    = typename PD_T::Int;
+    using Deco_T = Knoodle::OrthoDecorate<PD_T>;
+
+    for (Int da : move.cross)
+    {
+        for (Int ws : move.strand)
+        {
+            if (Deco_T::PassMove_T::ArcOf(da) == Deco_T::PassMove_T::ArcOf(ws))
+            {
+                why = "the corridor crosses W itself (Proposition C'), so the"
+                      " loop has no two sides";
+                return -1;
+            }
+        }
+    }
+
+    KnoodleWitness::Sides_T<PD_T> sides;
+    if (!KnoodleWitness::ReconstructSides(pd, move, sides, why))
+    {
+        why = "the move's two sides cannot be rebuilt: " + why;
+        return -1;
+    }
+
+    std::vector<char> wall, outside;
+    PassLoopFlood<PD_T>(H, move, pr, margin, n_x, n_y, wall, outside);
+
+    auto idx = [n_x, n_y](Int x, Int y) -> std::size_t {
+        return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y));
+    };
+
+    // votes[s][u]: cells of side-s pieces that are unbounded (u = 1) or not.
+    std::size_t votes[2][2] = {{0,0},{0,0}};
+
+    const Int n_a = pd.MaxArcCount();
+
+    for (Int a = 0; a < n_a; ++a)
+    {
+        if (!pd.ArcActiveQ(a) || sides.in_W[static_cast<std::size_t>(a)]) continue;
+
+        auto cells = ArcWalkCells<PD_T>(H, a, margin);
+
+        // A crossed arc is two pieces, split at the corridor's crossing cell.
+        Int cut = Int(-1);
+        if (sides.in_route[static_cast<std::size_t>(a)])
+        {
+            for (std::size_t j = 0; j < move.cross.size(); ++j)
+            {
+                if (Deco_T::PassMove_T::ArcOf(move.cross[j]) != a) continue;
+                const auto& cc = pr.route.path[static_cast<std::size_t>(
+                    pr.route.crossing_indices[j])];
+                for (const auto& c : cells)
+                {
+                    if (c.x == cc[0] && c.y == cc[1]) { cut = c.pos; break; }
+                }
+            }
+            if (cut < 0)
+            {
+                why = "internal: the corridor's crossing of arc "
+                    + std::to_string(a) + " is not on the arc's cells";
+                return -1;
+            }
+        }
+
+        for (const auto& c : cells)
+        {
+            if (c.x < 0 || c.x >= n_x - 1 || c.y < 0 || c.y >= n_y) continue;
+            const auto i = idx(c.x, c.y);
+            if (wall[i]) continue;
+
+            const Int key = (cut < 0)
+                ? KnoodleWitness::PieceKey(a, -1)
+                : KnoodleWitness::PieceKey(a, (c.pos < cut) ? 0 : 1);
+            const signed char sd = sides.side_of[static_cast<std::size_t>(key)];
+            if (sd < 0) continue;
+
+            ++votes[static_cast<int>(sd)][outside[i] ? 1 : 0];
+        }
+    }
+
+    if (votes[0][1] && votes[1][1])
+    {
+        why = "internal: pieces of both sides of the loop are on the"
+              " picture's unbounded side";
+        return -1;
+    }
+    if (votes[0][0] && votes[1][0] && !votes[0][1] && !votes[1][1])
+    {
+        why = "internal: pieces of both sides of the loop are enclosed by it";
+        return -1;
+    }
+    if (votes[0][1]) return 0;
+    if (votes[1][1]) return 1;
+    if (votes[0][0]) return 1;
+    if (votes[1][0]) return 0;
+
+    why = "no piece off the loop is drawn, so the picture decides nothing";
+    return -1;
+}
+
+/*!@brief Which canvas cells lie in the swept disk.
+ *
+ * Returns a flat `n_x * n_y` flag array (canvas indexing, as everywhere else
+ * here). Empty if the loop encloses nothing -- which is the honest answer when
+ * W and P run alongside each other with no room between them.
+ */
+template<class PD_T>
+std::vector<char> PassDiskCells(
+    Knoodle::OrthoDraw<PD_T>& H,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassMove_T& move,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassRoute_T& pr,
+    typename PD_T::Int margin,
+    typename PD_T::Int n_x, typename PD_T::Int n_y)
+{
+    using Int = typename PD_T::Int;
+
+    const auto N = static_cast<std::size_t>(n_x * n_y);
+
+    auto idx = [n_x, n_y](Int x, Int y) -> std::size_t {
+        return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y));
+    };
+    auto in_bounds = [n_x, n_y](Int x, Int y) -> bool {
+        return x >= 0 && x < n_x - 1 && y >= 0 && y < n_y;
+    };
+
+    std::vector<char> wall, outside;
+    PassLoopFlood<PD_T>(H, move, pr, margin, n_x, n_y, wall, outside);
+
+    static const Int dx4[] = {1, 0, -1, 0};
+    static const Int dy4[] = {0, 1, 0, -1};
+
+    std::vector<std::array<Int,2>> stack;
 
     // What is left, minus the loop itself, is the enclosed area -- possibly in
     // several pieces if W and P cross. Keep the biggest.

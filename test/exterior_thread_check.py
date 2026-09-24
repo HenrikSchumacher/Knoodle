@@ -20,6 +20,13 @@ What is protected:
     a jump, a cut exterior with no `outside=`, and an unflagged `behind`.
     Tampering with a good thread (flip `outside=`, add or drop `behind`,
     misspell a token) must also fail; declaring `seam` must not.
+  * THE RENDERER HONOURS `outside=`. Where the corridor cuts the drawn
+    exterior, knoodledraw routes it round the drawing whichever way leaves side
+    `outside` unbounded -- for both values, on every cut record of the threaded
+    sticky trace, and the two pictures differ. knoodledraw reads the side back
+    off its own picture and warns when it cannot draw the one asked for, so no
+    warning means the picture was checked. Where the corridor does not cut the
+    exterior, a false `outside=` gets that warning instead.
   * HONEST GAPS. A corridor that crosses W (Proposition C') still falls back
     to a declared seam, with the reason on stderr.
 """
@@ -186,6 +193,56 @@ lines[vidx[1]] = re.sub(r"exterior=\d+", "exterior=0", lines[vidx[1]]) + " seam"
 rc, chk2, _ = run(["--check-exterior"], "\n".join(lines))
 check("#verify step 0 exterior: UNCHECKED (the next record declares a seam)" in chk2,
       "a declared seam withdraws the continuity claim", chk2)
+
+# -- the renderer honours outside= -------------------------------------------
+
+_, chk, _ = run(["--check-exterior"], good)
+# Only a continuity claim says whether the corridor cuts the exterior; the
+# last record and candidates say neither, and only their true outside= is
+# asked to draw quietly.
+cut_set = {int(m.group(1)) for m in
+           re.finditer(r"#verify step (\d+) exterior: VERIFIED[^\n]*corridor cuts it", chk)}
+uncut_set = {int(m.group(1)) for m in
+             re.finditer(r"#verify step (\d+) exterior: VERIFIED \(face[^\n]*outside=\d\)", chk)}
+blocks = good.split("#step n=")
+head, recs = blocks[0], blocks[1:]
+n_cut = n_uncut = 0
+
+for rec in recs:
+    step = int(rec.split(" ", 1)[0])
+    if not re.search(r"^#view .*outside=\d", rec, re.M):
+        continue
+    flipped = re.sub(r"outside=(\d)",
+                     lambda m: "outside=" + str(1 - int(m.group(1))), rec, count=1)
+    pics = []
+    for label, r in (("as threaded", rec), ("flipped", flipped)):
+        rc, dout, derr = run(["--trace", "--verify", "--ascii"],
+                             head + "#step n=" + r, binary=DRAW)
+        warnQ = "cannot draw outside=" in derr
+        dv = [ln for ln in dout.split("\n") if ln.startswith("#verify")]
+        check(rc == 0 and dv and all("VERIFIED" in ln for ln in dv),
+              f"step {step} ({label}): the drawing verifies", dout + derr)
+        if step in cut_set:
+            check(not warnQ, f"step {step} ({label}): cut exterior, "
+                  "the corridor goes round the way outside= asks", derr)
+        elif label == "flipped":
+            if step not in uncut_set:
+                continue
+            check(warnQ and "does not run through the drawn exterior" in derr,
+                  f"step {step}: a false outside= on an uncut exterior is"
+                  " reported, not drawn", derr)
+        else:
+            check(not warnQ, f"step {step}: a true outside= draws quietly", derr)
+        pics.append(dout)
+    if step in cut_set:
+        n_cut += 1
+        check(len(pics) == 2 and pics[0] != pics[1],
+              f"step {step}: flipping outside= changes the corridor")
+    elif step in uncut_set:
+        n_uncut += 1
+
+check(n_cut >= 2 and n_uncut >= 1,
+      f"outside= rendering exercised ({n_cut} cut, {n_uncut} uncut records)")
 
 # -- honest gaps -------------------------------------------------------------
 

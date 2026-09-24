@@ -28,6 +28,7 @@
 #include "r1_view.hpp"
 #include "witness_check.hpp"
 #include "trace_verify.hpp"
+#include "exterior_thread.hpp"
 
 #include <charconv>     // ParsePassMove
 #include <cmath>
@@ -89,6 +90,8 @@ struct Config
     std::optional<Int> y_rounding_radius;
     std::optional<int> randomize_bends;
     std::optional<Int> exterior_face;  // which face OrthoDraw lays out as unbounded (nullopt = auto)
+    std::optional<int> outside_side;   // `#view ... outside=<s>`: the side of a pass move's
+                                       // loop the drawing must leave unbounded (trace mode)
 
     // Boolean options (nullopt = use default/preset)
     std::optional<bool> redistribute_bends;
@@ -2572,6 +2575,80 @@ using Deco_T = Knoodle::OrthoDecorate<PD_T>;
 using PS_T   = Knoodle::PassSimplifier<Int>;
 
 /**
+ * @brief Make a routed pass corridor honour `#view ... outside=<side>`.
+ *
+ * Where the corridor runs through the drawn exterior face, the router takes
+ * the cheaper way round the drawing, and that decides which side of the loop
+ * W + corridor the picture leaves unbounded (docs/move-descriptor.md,
+ * "Exterior faces across a trace"). If it is the wrong one, one exterior leg
+ * is rerouted the other way round. False, with a reason and `pr` untouched,
+ * when that cannot be done; the caller draws the corridor as routed.
+ */
+bool HonourOutside(OrthoDraw_T& H, const Deco_T& deco, const PD_T& pd,
+                   const Deco_T::PassMove_T& mv, Deco_T::PassRoute_T& pr,
+                   int outside, Int margin, std::string& why)
+{
+    const Int n_x = deco.GridWidth();
+    const Int n_y = deco.GridHeight();
+
+    const int drawn = KnoodlePassView::PassUnboundedSide<PD_T>(
+        H, pd, mv, pr, margin, n_x, n_y, why);
+    if (drawn < 0) return false;
+    if (drawn == outside) return true;
+
+    // Only a corridor through the drawn exterior face has a choice.
+    bool cutQ = (deco.LeftFace(mv.depart) == H.ExteriorFace());
+    for (Int da : mv.cross)
+    {
+        cutQ = cutQ || (deco.RightFace(da) == H.ExteriorFace());
+    }
+    if (!cutQ)
+    {
+        why = "the corridor does not run through the drawn exterior face, so"
+              " side " + std::to_string(drawn) + " is unbounded whichever way"
+              " it is routed";
+        return false;
+    }
+
+    for (Int parity : {Int(0), Int(1)})
+    {
+        Deco_T::PassRoute_T trial = deco.RoutePassMove(pd, mv, parity);
+        if (!trial.validQ) continue;
+
+        std::string twhy;
+        const int s = KnoodlePassView::PassUnboundedSide<PD_T>(
+            H, pd, mv, trial, margin, n_x, n_y, twhy);
+        if (s == outside)
+        {
+            pr = std::move(trial);
+            return true;
+        }
+    }
+
+    why = "the corridor leaves side " + std::to_string(drawn) + " unbounded,"
+          " and no routing through the exterior face that goes round the"
+          " drawing the other way fits in this layout";
+    return false;
+}
+
+/**
+ * @brief HonourOutside, if `outside=` was given, with a warning when it fails.
+ */
+void MaybeHonourOutside(OrthoDraw_T& H, const Deco_T& deco, const PD_T& pd,
+                        const Deco_T::PassMove_T& mv, Deco_T::PassRoute_T& pr,
+                        const std::optional<int>& outside, Int margin)
+{
+    if (!outside || !pr.validQ) return;
+
+    std::string why;
+    if (!HonourOutside(H, deco, pd, mv, pr, *outside, margin, why))
+    {
+        std::cerr << "knoodledraw: warning: cannot draw outside=" << *outside
+                  << " (" << why << "); drawing the corridor as routed\n";
+    }
+}
+
+/**
  * @brief Everything --format=wl needs to describe a routed pass move.
  *
  * The ASCII backend rasterizes the corridor into character cells
@@ -3528,6 +3605,8 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
 
                 Deco_T deco(H, move_margin);
                 auto pass_route = deco.RoutePassMove(summands[i], wmove);
+                MaybeHonourOutside(H, deco, summands[i], wmove, pass_route,
+                                   config.outside_side, move_margin);
 
                 if (pass_route.validQ)
                 {
@@ -3777,6 +3856,8 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
 
             Deco_T deco(H, move_margin);
             auto pass_route = deco.RoutePassMove(summands[i], move);
+            MaybeHonourOutside(H, deco, summands[i], move, pass_route,
+                               config.outside_side, move_margin);
             if (pass_route.validQ)
             {
                 const bool before_viewQ = (config.pass_view == "before");
@@ -4007,7 +4088,8 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
  * overlay on that record's snapshot -- the descriptor applies to the diagram
  * in the SAME record, per the spec, so no lookahead is needed. A
  * `#view exterior=<da>` header pins OrthoDraw's exterior face to L(da),
- * resolved via ArcFaces. `#embedding` blocks (redraw witnesses) are skipped
+ * resolved via ArcFaces, and its `outside=<s>` picks which way round the
+ * drawing a corridor through that face goes (HonourOutside). `#embedding` blocks (redraw witnesses) are skipped
  * with a note; other kinds and `#faces` annotations are echoed unrendered.
  *
  * Fail-loud: malformed records, unresolvable `#view` darcs, and rejected
@@ -4216,6 +4298,23 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
             rc.exterior_face = dia.ArcFaces()(a, da % Int(2));
         }
 
+        // `outside=` binds the corridor's way round the drawing. MoveTrace
+        // reads only `exterior=`; the full line is KnoodleExterior's.
+        for (const std::string& h : rec.headers)
+        {
+            if (!h.starts_with("#view ")) continue;
+
+            KnoodleExterior::View v;
+            std::string vwhy;
+            if (!KnoodleExterior::ParseView(h, v, vwhy))
+            {
+                std::cerr << "knoodledraw: trace line " << rec.line
+                          << ": " << vwhy << "\n";
+                return false;
+            }
+            if (v.outside >= 0) { rc.outside_side = v.outside; }
+        }
+
         if (config.verify_trace && rc.move_spec
             && (rec.move->find("kind=r1") != std::string::npos))
         {
@@ -4296,6 +4395,14 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
                     Deco_T dv(Hv, verify_margin);
 
                     auto prv = dv.RoutePassMove(dia, mvv);
+                    // The drawing checked is the drawing drawn: same way
+                    // round. (Its warning, if any, comes from the drawing.)
+                    if (prv.validQ && rc.outside_side)
+                    {
+                        std::string owhy;
+                        HonourOutside(Hv, dv, dia, mvv, prv,
+                                      *rc.outside_side, verify_margin, owhy);
+                    }
 
                     if (!prv.validQ)
                     {

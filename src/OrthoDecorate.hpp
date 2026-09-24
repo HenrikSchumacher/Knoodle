@@ -60,6 +60,30 @@ namespace Knoodle
         mutable bool             darc_faces_ready = false;
         mutable Tensor1<Int,Int> dA_F;
 
+    public:
+
+        // A cut of the exterior annulus: the vertical grid line between
+        // columns x0 and x0 + 1, from the bottom edge of the grid up to row
+        // y_end, the lowest row the drawing occupies. Every cell beside it is
+        // exterior, and it ends on the drawing, so it joins the annulus's two
+        // boundaries. Two paths through the exterior face with the same ends
+        // go round the drawing the same way iff they cross it with the same
+        // parity. validQ is false when the grid has no occupied cell at all.
+        struct ExteriorRay_T
+        {
+            Int  x0     = 0;
+            Int  y_end  = 0;
+            bool validQ = false;
+
+            bool CrossesQ(Int ax, Int ay, Int bx, Int by) const
+            {
+                return validQ && (ay == by) && (ay < y_end)
+                    && (std::min(ax, bx) == x0) && (std::max(ax, bx) == x0 + Int(1));
+            }
+        };
+
+    private:
+
         //======================================================================
         // Grid indexing
         //======================================================================
@@ -588,9 +612,15 @@ namespace Knoodle
         // keep out of (used for the multi-route's final goal and a leg's own
         // exit cell); -1 disables. The caller guarantees start and goal are
         // themselves admissible.
+        //
+        // `ray` (optional) makes the search track the parity of the path's
+        // crossings of that ray and accept the goal only at parity
+        // `want_parity`: A* over (cell, parity). Without a ray the parity
+        // stays 0 and the search is exactly the plain one.
         Path_T RouteThroughFaceImpl(
             Int face_id, Point_T start, Point_T goal,
-            const std::vector<char> * blocked, Int avoid_a, Int avoid_b
+            const std::vector<char> * blocked, Int avoid_a, Int avoid_b,
+            const ExteriorRay_T * ray = nullptr, Int want_parity = Int(0)
         ) const
         {
             RequireFaceMap();
@@ -608,8 +638,9 @@ namespace Knoodle
                         GridIndex(goal[0], goal[1]))])   return {};
             }
 
-            // Trivial case
-            if (start[0] == goal[0] && start[1] == goal[1])
+            // Trivial case (a one-cell path crosses no ray)
+            if (start[0] == goal[0] && start[1] == goal[1]
+                && (!ray || want_parity == Int(0)))
             {
                 return { start };
             }
@@ -623,33 +654,38 @@ namespace Knoodle
 
             Int grid_size = n_x * n_y;
 
-            // g-scores and parent pointers as flat arrays
+            // States are (cell, parity), numbered 2*cell + parity.
             const Int INF = std::numeric_limits<Int>::max();
-            std::vector<Int> g_score(static_cast<std::size_t>(grid_size), INF);
-            std::vector<Int> parent(static_cast<std::size_t>(grid_size), Int(-1));
+            std::vector<Int> g_score(static_cast<std::size_t>(2 * grid_size), INF);
+            std::vector<Int> parent(static_cast<std::size_t>(2 * grid_size), Int(-1));
 
-            // Priority queue: (f-score, grid-index)
+            // Priority queue: (f-score, state)
             using PQEntry = std::pair<Int, Int>;
             std::priority_queue<PQEntry, std::vector<PQEntry>, std::greater<PQEntry>> open;
 
             Int start_idx = GridIndex(start[0], start[1]);
             Int goal_idx  = GridIndex(goal[0], goal[1]);
 
-            g_score[static_cast<std::size_t>(start_idx)] = Int(0);
+            const Int goal_state = Int(2) * goal_idx + (ray ? want_parity : Int(0));
+
+            g_score[static_cast<std::size_t>(Int(2) * start_idx)] = Int(0);
 
             Int h_start = std::abs(goal[0] - start[0]) + std::abs(goal[1] - start[1]);
-            open.push({h_start, start_idx});
+            open.push({h_start, Int(2) * start_idx});
 
             bool found = false;
 
             while (!open.empty())
             {
-                auto [f_val, ci] = open.top();
+                auto [f_val, cs] = open.top();
                 open.pop();
 
-                if (ci == goal_idx) { found = true; break; }
+                if (cs == goal_state) { found = true; break; }
 
-                Int cg = g_score[static_cast<std::size_t>(ci)];
+                const Int ci  = cs / Int(2);
+                const Int par = cs % Int(2);
+
+                Int cg = g_score[static_cast<std::size_t>(cs)];
 
                 // Recover (cx, cy) from grid index.
                 // GridIndex(x, y) = x + n_x * (n_y - 1 - y)
@@ -659,7 +695,7 @@ namespace Knoodle
                 Int cy  = n_y - Int(1) - row;
 
                 // Skip stale entries
-                if (cg > g_score[static_cast<std::size_t>(ci)]) continue;
+                if (cg > g_score[static_cast<std::size_t>(cs)]) continue;
 
                 for (int dir = 0; dir < 4; ++dir)
                 {
@@ -679,13 +715,17 @@ namespace Knoodle
 
                     Int tentative_g = cg + edge_cost;
 
-                    if (tentative_g < g_score[static_cast<std::size_t>(ni)])
+                    const Int np = (ray && ray->CrossesQ(cx, cy, nx, ny))
+                                 ? (Int(1) - par) : par;
+                    const Int ns = Int(2) * ni + np;
+
+                    if (tentative_g < g_score[static_cast<std::size_t>(ns)])
                     {
-                        g_score[static_cast<std::size_t>(ni)] = tentative_g;
-                        parent[static_cast<std::size_t>(ni)] = ci;
+                        g_score[static_cast<std::size_t>(ns)] = tentative_g;
+                        parent[static_cast<std::size_t>(ns)] = cs;
 
                         Int h = std::abs(goal[0] - nx) + std::abs(goal[1] - ny);
-                        open.push({tentative_g + h, ni});
+                        open.push({tentative_g + h, ns});
                     }
                 }
             }
@@ -694,18 +734,34 @@ namespace Knoodle
 
             // Reconstruct path
             Path_T path;
-            Int ci = goal_idx;
-            while (ci != Int(-1))
+            Int cs = goal_state;
+            while (cs != Int(-1))
             {
+                const Int ci = cs / Int(2);
                 Int row = ci / n_x;
                 Int x   = ci % n_x;
                 Int y   = n_y - Int(1) - row;
                 path.push_back({x, y});
-                ci = parent[static_cast<std::size_t>(ci)];
+                cs = parent[static_cast<std::size_t>(cs)];
             }
 
             std::reverse(path.begin(), path.end());
             return path;
+        }
+
+        // A (cell, parity) search can come back through a cell it has
+        // already used, going once round the drawing in between; a corridor
+        // may not.
+        bool SimplePathQ(const Path_T & path) const
+        {
+            std::vector<char> seen(static_cast<std::size_t>(n_x * n_y), char(0));
+            for (const Point_T & c : path)
+            {
+                const auto ci = static_cast<std::size_t>(GridIndex(c[0], c[1]));
+                if (seen[ci]) return false;
+                seen[ci] = char(1);
+            }
+            return true;
         }
 
     public:
@@ -833,11 +889,22 @@ namespace Knoodle
         // ties break to the first minimal portal point. There is no
         // backtracking across crossings; a crossing none of whose portal
         // points admits a leg fails loudly.
+        //
+        // `exterior_parity` (0 or 1; -1, the default, for none) constrains
+        // the first leg that runs through the drawn exterior face to cross
+        // ExteriorRay() that many times mod 2, i.e. to go round the drawing a
+        // chosen way (see "Going round the other way" below).
         MultiRoute_T RouteAcrossDarcs(
-            Point_T start, Point_T goal, const std::vector<Int> & darcs
+            Point_T start, Point_T goal, const std::vector<Int> & darcs,
+            Int exterior_parity = Int(-1)
         ) const
         {
             RequireFaceMap();
+
+            const Int ext_f = H.ExteriorFace();
+            const ExteriorRay_T ext_ray = (exterior_parity >= Int(0))
+                ? ExteriorRay() : ExteriorRay_T{};
+            bool ext_pendingQ = ext_ray.validQ;
 
             MultiRoute_T result;
 
@@ -969,11 +1036,16 @@ namespace Knoodle
 
                     // The leg may not run through this candidate's own exit
                     // cell either -- the next leg starts there.
+                    const bool constrainQ = ext_pendingQ && (F[i] == ext_f);
+
                     Path_T leg = RouteThroughFaceImpl(
                         F[i], at, p.left, &blocked,
-                        goal_idx, grid_idx(p.right));
+                        goal_idx, grid_idx(p.right),
+                        constrainQ ? &ext_ray : nullptr, exterior_parity);
 
                     if (leg.empty()) continue;
+                    if (constrainQ && !SimplePathQ(leg)) continue;
+                    if (constrainQ) { ext_pendingQ = false; }
 
                     commit_leg(leg);
 
@@ -999,8 +1071,16 @@ namespace Knoodle
                 }
             }
 
+            const bool last_constrainQ = ext_pendingQ && (F[k] == ext_f);
+
             Path_T last = RouteThroughFaceImpl(
-                F[k], at, goal, &blocked, Int(-1), Int(-1));
+                F[k], at, goal, &blocked, Int(-1), Int(-1),
+                last_constrainQ ? &ext_ray : nullptr, exterior_parity);
+
+            if (last_constrainQ && !last.empty() && !SimplePathQ(last))
+            {
+                last.clear();
+            }
 
             if (last.empty())
             {
@@ -1068,9 +1148,12 @@ namespace Knoodle
          * with that diagram at all -- is `PassDescriptor::WellFormedQ`, which
          * needs no drawing; everything below it here is geometry: can a
          * corridor for it actually be laid out on this grid.
+         *
+         * `exterior_parity`: see RouteAcrossDarcs.
          */
         PassRoute_T RoutePassMove(
-            cref<PD_T> pd, const PassMove_T & mv
+            cref<PD_T> pd, const PassMove_T & mv,
+            Int exterior_parity = Int(-1)
         ) const
         {
             PassRoute_T result;
@@ -1228,7 +1311,8 @@ namespace Knoodle
             result.head_dot = hp.on_arc;
 
             // -- Route ------------------------------------------------------
-            result.route = RouteAcrossDarcs(tp.left, hp.left, mv.cross);
+            result.route = RouteAcrossDarcs(tp.left, hp.left, mv.cross,
+                                            exterior_parity);
             if (!result.route.validQ)
             {
                 return fail("face chain validated but geometric routing"
@@ -1245,6 +1329,50 @@ namespace Knoodle
             result.over   = mv.over;
             result.validQ = true;
             return result;
+        }
+
+        //======================================================================
+        // Going round the other way
+        //
+        // Within the drawn exterior face -- the margin ring and whatever of the
+        // plane the drawing does not fence in -- a leg of the corridor can go
+        // round the drawing either way, and RouteAcrossDarcs takes the cheaper.
+        // Which way it goes decides which side of the loop W + corridor the
+        // grid's own outside ends up on: the picture of `#view ... outside=`
+        // (docs/move-descriptor.md, "Exterior faces across a trace"). Whether
+        // the choice was right is a question about sides, which this class
+        // does not know; the caller asks it, and if the answer is wrong,
+        // routes again with `exterior_parity` (RoutePassMove,
+        // RouteAcrossDarcs) set: the first leg through the exterior face then
+        // crosses ExteriorRay() with that parity, and portal points that
+        // cannot give it are passed over. The caller tries both parities and
+        // keeps whichever puts infinity on the side it wants; which one that
+        // is depends on the portal points, so it is not "the other one".
+        //======================================================================
+
+        //!@brief The cut of the exterior annulus that "the other way round"
+        //! is measured against (see ExteriorRay_T).
+        ExteriorRay_T ExteriorRay() const
+        {
+            RequireFaceMap();
+
+            ExteriorRay_T ray;
+
+            for (Int y = 0; (y < n_y) && !ray.validQ; ++y)
+            {
+                for (Int x = 0; x < n_x - 1; ++x)
+                {
+                    if (occupied[GridIndex(x, y)])
+                    {
+                        // y is the lowest occupied row, so every cell below it
+                        // is free and in the exterior face -- in column x + 1
+                        // too, which is at most the right margin column.
+                        ray.x0 = x; ray.y_end = y; ray.validQ = true;
+                        break;
+                    }
+                }
+            }
+            return ray;
         }
 
         //======================================================================
