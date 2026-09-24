@@ -2586,8 +2586,11 @@ using PS_T   = Knoodle::PassSimplifier<Int>;
  */
 bool HonourOutside(OrthoDraw_T& H, const Deco_T& deco, const PD_T& pd,
                    const Deco_T::PassMove_T& mv, Deco_T::PassRoute_T& pr,
-                   int outside, Int margin, std::string& why)
+                   int outside, Int margin, std::string& why,
+                   bool* false_claimQ = nullptr)
 {
+    if (false_claimQ) { *false_claimQ = false; }
+
     const Int n_x = deco.GridWidth();
     const Int n_y = deco.GridHeight();
 
@@ -2604,9 +2607,11 @@ bool HonourOutside(OrthoDraw_T& H, const Deco_T& deco, const PD_T& pd,
     }
     if (!cutQ)
     {
-        why = "the corridor does not run through the drawn exterior face, so"
-              " side " + std::to_string(drawn) + " is unbounded whichever way"
-              " it is routed";
+        why = "the corridor does not run through the exterior face, so the"
+              " exterior lies wholly on side " + std::to_string(drawn)
+            + " and outside=" + std::to_string(outside) + " is a false claim"
+              " (knoodleprove --check-exterior rejects it too)";
+        if (false_claimQ) { *false_claimQ = true; }
         return false;
     }
 
@@ -2632,20 +2637,31 @@ bool HonourOutside(OrthoDraw_T& H, const Deco_T& deco, const PD_T& pd,
 }
 
 /**
- * @brief HonourOutside, if `outside=` was given, with a warning when it fails.
+ * @brief HonourOutside, if `outside=` was given. A false claim -- outside=
+ * naming a side the uncut exterior does not lie on -- is refused (false, with
+ * the message printed): it is a bug in whatever wrote the `#view` line. A
+ * layout that cannot fit the other way round is only warned about, and the
+ * corridor is drawn as routed.
  */
-void MaybeHonourOutside(OrthoDraw_T& H, const Deco_T& deco, const PD_T& pd,
+bool MaybeHonourOutside(OrthoDraw_T& H, const Deco_T& deco, const PD_T& pd,
                         const Deco_T::PassMove_T& mv, Deco_T::PassRoute_T& pr,
                         const std::optional<int>& outside, Int margin)
 {
-    if (!outside || !pr.validQ) return;
+    if (!outside || !pr.validQ) return true;
 
     std::string why;
-    if (!HonourOutside(H, deco, pd, mv, pr, *outside, margin, why))
+    bool false_claimQ = false;
+    if (!HonourOutside(H, deco, pd, mv, pr, *outside, margin, why, &false_claimQ))
     {
+        if (false_claimQ)
+        {
+            std::cerr << "knoodledraw: error: " << why << "\n";
+            return false;
+        }
         std::cerr << "knoodledraw: warning: cannot draw outside=" << *outside
                   << " (" << why << "); drawing the corridor as routed\n";
     }
+    return true;
 }
 
 /**
@@ -3605,8 +3621,11 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
 
                 Deco_T deco(H, move_margin);
                 auto pass_route = deco.RoutePassMove(summands[i], wmove);
-                MaybeHonourOutside(H, deco, summands[i], wmove, pass_route,
-                                   config.outside_side, move_margin);
+                if (!MaybeHonourOutside(H, deco, summands[i], wmove, pass_route,
+                                        config.outside_side, move_margin))
+                {
+                    return false;
+                }
 
                 if (pass_route.validQ)
                 {
@@ -3856,8 +3875,11 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
 
             Deco_T deco(H, move_margin);
             auto pass_route = deco.RoutePassMove(summands[i], move);
-            MaybeHonourOutside(H, deco, summands[i], move, pass_route,
-                               config.outside_side, move_margin);
+            if (!MaybeHonourOutside(H, deco, summands[i], move, pass_route,
+                                    config.outside_side, move_margin))
+            {
+                return false;
+            }
             if (pass_route.validQ)
             {
                 const bool before_viewQ = (config.pass_view == "before");

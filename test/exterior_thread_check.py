@@ -26,7 +26,10 @@ What is protected:
     sticky trace, and the two pictures differ. knoodledraw reads the side back
     off its own picture and warns when it cannot draw the one asked for, so no
     warning means the picture was checked. Where the corridor does not cut the
-    exterior, a false `outside=` gets that warning instead.
+    exterior, a false `outside=` is a hard stop (nonzero exit): it is a bug
+    in whatever wrote the `#view` line. The threader cannot write one: it
+    runs its own output through --check-exterior's checker and emits nothing
+    if that fails (exercised on every fixture above).
   * HONEST GAPS. A corridor that crosses W (Proposition C') still falls back
     to a declared seam, with the reason on stderr.
 """
@@ -219,18 +222,18 @@ for rec in recs:
         rc, dout, derr = run(["--trace", "--verify", "--ascii"],
                              head + "#step n=" + r, binary=DRAW)
         warnQ = "cannot draw outside=" in derr
+        if label == "flipped" and step not in cut_set:
+            if step in uncut_set:
+                check(rc != 0 and "is a false claim" in derr,
+                      f"step {step}: a false outside= on an uncut exterior"
+                      " is a hard stop", derr)
+            continue
         dv = [ln for ln in dout.split("\n") if ln.startswith("#verify")]
         check(rc == 0 and dv and all("VERIFIED" in ln for ln in dv),
               f"step {step} ({label}): the drawing verifies", dout + derr)
         if step in cut_set:
             check(not warnQ, f"step {step} ({label}): cut exterior, "
                   "the corridor goes round the way outside= asks", derr)
-        elif label == "flipped":
-            if step not in uncut_set:
-                continue
-            check(warnQ and "does not run through the drawn exterior" in derr,
-                  f"step {step}: a false outside= on an uncut exterior is"
-                  " reported, not drawn", derr)
         else:
             check(not warnQ, f"step {step}: a true outside= draws quietly", derr)
         pics.append(dout)

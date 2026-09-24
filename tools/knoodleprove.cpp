@@ -32,6 +32,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <algorithm>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -84,7 +85,9 @@ void PrintUsage()
         "  --thread-exterior  do not check; REWRITE the stream to stdout with one\n"
         "                 exterior thread chosen through it (fewest 'behind' moves,\n"
         "                 then largest exteriors), replacing every '#view' line.\n"
-        "                 Seams and records left without a view are noted on stderr\n"
+        "                 Seams and records left without a view are noted on stderr.\n"
+        "                 The new views are self-checked as --check-exterior would;\n"
+        "                 if any fails, nothing is written and the exit status is 1.\n"
         "\n"
         "Options:\n"
         "  -h, --help     Show this message\n"
@@ -279,6 +282,38 @@ bool Thread( std::istream & input, const char * source )
     }
 
     const auto views = KnoodleExterior::ThreadExterior<PD_T>(recs);
+
+    // Self-check: the threader's choices must pass the checker that
+    // --check-exterior runs, or nothing is emitted. A false claim here (say
+    // outside= naming a side the exterior does not lie on) is a bug in the
+    // threader, and a stream carrying it would make the renderer refuse.
+    {
+        auto checked = recs;
+        std::vector<std::size_t> steps (recs.size());
+        for( std::size_t i = 0; i < checked.size(); ++i )
+        {
+            steps[i] = i;
+            auto & h = checked[i].headers;
+            h.erase(std::remove_if(h.begin(), h.end(),
+                        []( const std::string & x ) { return x.rfind("#view ", 0) == 0; }),
+                    h.end());
+            if( views[i].view ) { h.push_back(KnoodleExterior::FormatView(*views[i].view)); }
+        }
+
+        std::ostringstream report;
+        if( !KnoodleExterior::CheckExteriorThread<PD_T>(checked, steps, report) )
+        {
+            std::cerr << "knoodleprove: " << source << ": internal error: the"
+                         " exterior thread fails its own check; nothing"
+                         " emitted:\n";
+            std::istringstream rs(report.str());
+            for( std::string l; std::getline(rs, l); )
+            {
+                if( l.find("MISMATCH") != std::string::npos ) { std::cerr << "  " << l << "\n"; }
+            }
+            return false;
+        }
+    }
 
     // Record i spans lines [recs[i].line, recs[i+1].line), 1-based.
     std::size_t next_rec = 0;

@@ -1279,11 +1279,14 @@ and any seeded choice an emitter makes must be recorded in the stream.
   of times, and the first routing that puts infinity on side `outside` is
   kept; the portal points are free to change, which a one-cell exterior leg
   (dot straight into the next crossing) needs. `--verify` checks the corridor
-  actually drawn. When the side cannot be honoured -- the corridor does not
-  run through the drawn exterior (so a false `outside=`), the sides cannot be
-  rebuilt (Proposition C′), or no routing fits -- knoodledraw warns on stderr
-  and draws the corridor as routed; the verdict on the claim itself is
-  `knoodleprove --check-exterior`'s. **Not yet implemented**: `behind` is
+  actually drawn. A false `outside=` -- the corridor does not cut the
+  exterior, which then lies wholly on the other side -- is a **hard stop**
+  (nonzero exit): it is a bug in whatever wrote the `#view` line.
+  `knoodleprove --thread-exterior` guards its own end of that: it runs its
+  output through `--check-exterior`'s checker and emits nothing if any claim
+  fails. Where the side merely cannot be drawn -- the sides cannot be rebuilt
+  (Proposition C′), or no routing round the other way fits the layout --
+  knoodledraw warns on stderr and draws the corridor as routed. **Not yet implemented**: `behind` is
   drawn like any other move.
 - **Also implemented**: `--verify` checks a record's feasibility witness when
   it carries one, reporting `#verify step <n> disk (V0):` and
