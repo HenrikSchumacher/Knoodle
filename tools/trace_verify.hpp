@@ -30,12 +30,17 @@
  * A record is checked in phases, because knoodledraw interleaves its drawing
  * check between them and must keep its output order:
  *
+ *   NoteRecord   -> the whole-stream ledger (input colours, summands, links
+ *                   a per-record check cannot see: after a #candidate, after
+ *                   a record with no move)
  *   BeginRecord  -> trace (against the previous move's claim)
  *   BeginMove    -> after-diagram, split, spinoffs, result
  *   [the caller's drawing check, if any]
  *   CheckWitness -> V0, V4, V2/V3/V5
  *   EndMove      -> carry this move's claim to the next record
- *   Finish       -> the last move's trace claim goes UNCHECKED
+ *   Finish       -> the last move's trace claim: VERIFIED if it is the empty
+ *                   diagram, else UNCHECKED
+ *   ReportStream -> `stream unlink:`, when the stream ends at the empty diagram
  *
  * Nothing here touches a drawing. This header does not include
  * `OrthoDecorate.hpp` (the pass-overlay drawing code), and nothing below
@@ -424,6 +429,8 @@ public:
      */
     void BeginRecordWithoutDiagram()
     {
+        emptyQ_ = true;
+
         if( !pending_after_ ) { return; }
 
         PD_T expected = std::move(*pending_after_);
@@ -631,11 +638,17 @@ public:
     /// Carry an r1's claim forward, as EndMove does for a pass.
     void EndR1( const Record_T & rec, R1Move & m, std::size_t step )
     {
-        if( m.validQ && !rec.candidateQ )
+        if( rec.candidateQ ) { return; }
+
+        if( !m.validQ )
         {
-            pending_after_ = std::move(m.after);
-            pending_label_ = "step " + std::to_string(step);
+            Gap("step " + std::to_string(step) + "'s curl removal is not"
+                " established");
+            return;
         }
+        freed_colors_.insert(freed_colors_.end(), m.freed.begin(), m.freed.end());
+        pending_after_ = std::move(m.after);
+        pending_label_ = "step " + std::to_string(step);
     }
 
     /**
@@ -789,6 +802,7 @@ public:
         // Check 2 is the ordinary trace claim, made colour-strict.
         if( !rec.candidateQ )
         {
+            freed_colors_.insert(freed_colors_.end(), freed.begin(), freed.end());
             pending_after_   = (after.crossings > Int(0))
                              ? after.pd : PD_T::InvalidDiagram();
             pending_label_   = "step " + std::to_string(step);
@@ -806,9 +820,30 @@ public:
     void CheckWitness( const Record_T & rec, const PD_T & dia,
                        const Move & m, std::size_t step )
     {
-        if( !m.parsedQ || !rec.feas ) { return; }
+        if( !m.parsedQ ) { return; }
+
+        // A uniform pass is sound by Proposition C′; a middlepass only by its
+        // witness, so for the whole-stream verdict an applied one needs all
+        // three witness checks VERIFIED.
+        const bool needQ = m.mv.middlepassQ && !rec.candidateQ;
+
+        if( !rec.feas )
+        {
+            if( needQ )
+            {
+                Gap("step " + std::to_string(step) + " is a middlepass with no"
+                    " '#feas' witness");
+            }
+            return;
+        }
 
         const auto wr = KnoodleWitness::CheckWitness<PD_T>(dia, m.mv, *rec.feas);
+
+        if( needQ && !(wr.v0_checkedQ && wr.v4_checkedQ && wr.labels_checkedQ) )
+        {
+            Gap("step " + std::to_string(step) + "'s middlepass witness is not"
+                " fully checked");
+        }
 
         out_ << "#verify step " << step << " disk (V0): ";
         if( !wr.v0_checkedQ )
@@ -870,8 +905,20 @@ public:
      */
     void EndMove( const Record_T & rec, Move & m, std::size_t step )
     {
-        if( m.afterQ && !rec.candidateQ )
+        if( rec.candidateQ ) { return; }
+
+        if( !m.parsedQ )
         {
+            Gap("step " + std::to_string(step) + "'s descriptor is not well formed");
+        }
+        else if( !m.afterQ )
+        {
+            Gap("step " + std::to_string(step) + ": AfterDiagram cannot build"
+                " what the move produces");
+        }
+        else
+        {
+            freed_colors_.insert(freed_colors_.end(), m.freed.begin(), m.freed.end());
             pending_after_ = std::move(m.after);
             pending_label_ = "step " + std::to_string(step);
         }
@@ -892,6 +939,7 @@ public:
                     " ends)\n";
             pending_after_.reset();
             pending_colorsQ_ = false;
+            emptyQ_ = true;
             return;
         }
 
@@ -904,6 +952,131 @@ public:
 
     /// Mark a failure found by a check that lives outside this class.
     void Fail() { failedQ_ = true; }
+
+    //==========================================================================
+    // The whole stream (docs/move-descriptor.md, "The whole stream: unlink").
+    //
+    // A stream that ends at the EMPTY diagram claims something about its
+    // input: it is an unlink, each component coming free exactly once. That
+    // needs every applied move to be sound, every link from one record to the
+    // next to be VERIFIED, and the freed colours to be exactly the input's.
+    // The per-record checks establish the pieces; this ledger notes where one
+    // is missing (a "gap") and adds up the colours.
+    //==========================================================================
+
+    /// Called at the start of every record, before BeginRecord (or
+    /// BeginRecordWithoutDiagram). `dia` is null for a record with no diagram.
+    void NoteRecord( const Record_T & rec, const PD_T * dia, std::size_t step )
+    {
+        for( const std::string & h : rec.headers )
+        {
+            if( h.rfind("#step", 0) != 0 ) { continue; }
+            const auto s = h.find("summand=");
+            if( s != std::string::npos )
+            {
+                summands_.insert(h.substr(s + 8, h.find_first_of(" \t", s) - (s + 8)));
+            }
+        }
+
+        if( (dia != nullptr) && !input_colors_ ) { input_colors_ = DiagramColors(*dia); }
+
+        if( emptyQ_ && (dia != nullptr) )
+        {
+            Gap("step " + std::to_string(step) + " carries a diagram after the"
+                " diagram went empty");
+        }
+
+        // A record with a diagram and no move is a state nothing leads out of.
+        if( open_step_ )
+        {
+            Gap("step " + std::to_string(*open_step_) + " carries no move, so"
+                " nothing connects it to step " + std::to_string(step));
+            open_step_.reset();
+        }
+
+        // A #candidate does not advance the diagram: the next record must carry
+        // the very snapshot it was evaluated on.
+        if( candidate_state_ )
+        {
+            std::string iwhy;
+            const bool sameQ = (dia != nullptr)
+                && DiagramsIsomorphicQ(*candidate_state_, *dia, iwhy, nullptr, true);
+            if( !sameQ )
+            {
+                out_ << "#verify step " << candidate_step_ << " trace: MISMATCH"
+                        " (a #candidate does not advance the diagram, but step "
+                     << step << " is not its snapshot)"
+                     << (iwhy.empty() ? std::string() : " -- " + iwhy) << "\n";
+                failedQ_ = true;
+            }
+            candidate_state_.reset();
+        }
+
+        if( dia != nullptr )
+        {
+            if( !rec.move )           { open_step_ = step; }
+            else if( rec.candidateQ ) { candidate_state_ = *dia; candidate_step_ = step; }
+        }
+        if( rec.move && !rec.candidateQ ) { ++applied_; }
+    }
+
+    /// A load-bearing claim the per-record checks could not establish.
+    void Gap( std::string why ) { gaps_.push_back(std::move(why)); }
+
+    /// The `#verify stream unlink:` verdict, after Finish. Silent unless the
+    /// stream ends at the empty diagram: any other stream makes no such claim.
+    void ReportStream()
+    {
+        if( !emptyQ_ ) { return; }
+
+        out_ << "#verify stream unlink: ";
+
+        if( summands_.size() > 1 )
+        {
+            out_ << "UNCHECKED (the stream has " << summands_.size()
+                 << " summands; the unlink verdict reads one-summand streams)\n";
+            return;
+        }
+        if( failedQ_ )
+        {
+            out_ << "UNCHECKED (the chain is broken: a claim along it came back"
+                    " MISMATCH)\n";
+            return;
+        }
+        if( !gaps_.empty() )
+        {
+            out_ << "UNCHECKED (" << gaps_.front();
+            if( gaps_.size() > 1 ) { out_ << "; and " << gaps_.size() - 1 << " more"; }
+            out_ << ")\n";
+            return;
+        }
+
+        std::vector<Int> freed = freed_colors_;
+        std::sort(freed.begin(), freed.end());
+        const auto twice = std::adjacent_find(freed.begin(), freed.end());
+        const std::vector<Int> input = input_colors_ ? *input_colors_ : std::vector<Int>();
+
+        if( twice != freed.end() )
+        {
+            out_ << "MISMATCH -- colour " << *twice << " came free twice\n";
+            failedQ_ = true;
+            return;
+        }
+        if( freed != input )
+        {
+            out_ << "MISMATCH -- the input's colours are " << ColorList(input)
+                 << " but the colours that came free are " << ColorList(freed) << "\n";
+            failedQ_ = true;
+            return;
+        }
+
+        out_ << "VERIFIED (the input's " << input.size() << " component"
+             << ((input.size() == 1) ? "" : "s") << ", colour"
+             << ((input.size() == 1) ? " " : "s ") << ColorList(input)
+             << ", each came free exactly once; " << applied_ << " move"
+             << ((applied_ == 1) ? "" : "s") << ", every one sound and every"
+                " link VERIFIED)\n";
+    }
 
 private:
 
@@ -1029,6 +1202,17 @@ private:
     std::optional<PD_T> pending_after_;
     std::string         pending_label_;
     bool                pending_colorsQ_ = false;  // the claim is a redraw's
+
+    // The whole-stream ledger (ReportStream).
+    std::optional<std::vector<Int>> input_colors_;
+    std::vector<Int>                freed_colors_;
+    std::vector<std::string>        gaps_;
+    std::set<std::string>           summands_;
+    std::optional<std::size_t>      open_step_;       // a state with no move out
+    std::optional<PD_T>             candidate_state_; // must be the next snapshot
+    std::size_t                     candidate_step_ = 0;
+    std::size_t                     applied_ = 0;
+    bool                            emptyQ_ = false;  // the diagram went empty
 };
 
 } // namespace KnoodleTraceVerify

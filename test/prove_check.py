@@ -57,6 +57,8 @@ PASS_WCROSS = os.path.join(HERE, "pass_wcross_example.trace")
 HEALED_CURL = os.path.join(HERE, "middlepass_healed_curl.trace")
 PASS_LASSO = os.path.join(HERE, "pass_lasso.trace")
 PASS_LASSO_CORRIDOR = os.path.join(HERE, "pass_lasso_corridor.trace")
+FHW_UNLINK = os.path.join(HERE, "fhw_unlink.trace")
+MIDDLEPASS_UNLINK = os.path.join(HERE, "middlepass_unlink.trace")
 WITNESS_HPP = os.path.join(HERE, "witness_fixtures.hpp")
 
 checks = 0
@@ -541,6 +543,96 @@ for path, old, new, why, label in [
     check(drc == 1 and why in derr,
           f"{label}: knoodledraw refuses it too, for the same reason",
           f"exit {drc}\n{derr}")
+
+# -- the whole stream: unlink --------------------------------------------------
+
+# A stream that ends at the EMPTY diagram claims its input is an unlink. FHW
+# (32 crossings) goes all the way: 11 passes, 4 r1s, every link VERIFIED.
+rc, out, _ = run(PROVE, [FHW_UNLINK])
+check(rc == 0 and "#verify stream unlink: VERIFIED (the input's 1 component,"
+      " colour 0, each came free exactly once; 15 moves, every one sound and"
+      " every link VERIFIED)" in out,
+      "fhw_unlink: the stream certifies FHW an unknot", out)
+for path, label in [(PASS_LASSO, "pass_lasso"), (R1_LAST_CURL, "r1_last_curl"),
+                    (R1_EMPTY_RESULT, "r1_empty_result")]:
+    rc, out, _ = run(PROVE, [path])
+    check("stream unlink: VERIFIED" in out, f"{label}: unlink VERIFIED", out)
+# A stream that stops at a diagram with crossings claims no such thing.
+rc, out, _ = run(PROVE, [PASS_WCROSS])
+check("stream unlink" not in out,
+      "a stream that does not end empty has no unlink verdict", out)
+
+# Each gap in the chain makes the verdict UNCHECKED, naming the gap; a false
+# claim along it makes it MISMATCH. All on FHW. blocks[k+1] is record k.
+fhw = read(FHW_UNLINK)
+blocks = fhw.split("\n\n")
+
+def fhw_with(k, old, new, count=1):
+    b = list(blocks)
+    check(b[k+1].count(old) >= count, f"FHW tamper target present: {old!r}")
+    b[k+1] = b[k+1].replace(old, new)
+    return "\n\n".join(b)
+
+cand = blocks[7].replace("#step n=6 summand=0", "#step n=6 summand=0\n#candidate")
+recoloured = re.sub(r"A_color = \{[0,]*\}",
+                    lambda mm: mm.group(0).replace("0", "7"),
+                    blocks[15]).replace("#spinoffs colors=0", "#spinoffs colors=7")
+
+for stream, rc_want, verdict, label in [
+    (fhw_with(5, "#move kind=pass", "#move kind=frob"), 0,
+     "UNCHECKED (step 5 is a kind=frob move, which nothing checks)",
+     "a move kind nothing checks"),
+    ("\n\n".join(blocks[:6] + [re.sub(r"#move [^\n]*\n", "", blocks[6])]
+                 + blocks[7:]), 0,
+     "UNCHECKED (step 5 carries no move, so nothing connects it to step 6)",
+     "a record with no move"),
+    (fhw_with(2, "#move kind=pass", "#move kind=middlepass"), 0,
+     "UNCHECKED (step 2 is a middlepass with no '#feas' witness)",
+     "a middlepass with no witness"),
+    (fhw_with(9, "summand=0", "summand=1"), 0,
+     "UNCHECKED (the stream has 2 summands", "two summands"),
+    # Every per-record check passes this one: the r1 frees colour 7, and the
+    # trace link into the recoloured snapshot compares structure only. Only
+    # the ledger sees that 7 was never an input colour.
+    ("\n\n".join(blocks[:15] + [recoloured] + blocks[16:]), 1,
+     "MISMATCH -- the input's colours are 0 but the colours that came free"
+     " are 7", "a final snapshot recoloured"),
+    # A #candidate does not advance the diagram. Inserted before the record
+    # it copies, nothing changes (candidates are not counted as moves) ...
+    ("\n\n".join(blocks[:7] + [cand] + blocks[7:]), 0,
+     "VERIFIED (the input's 1 component, colour 0, each came free exactly"
+     " once; 15 moves", "a #candidate in the right place"),
+    # ... but followed by a different snapshot it is a false claim.
+    ("\n\n".join(blocks[:7] + [cand] + blocks[8:]), 1,
+     "UNCHECKED (the chain is broken", "a #candidate followed by another state"),
+]:
+    rc, out, _ = run(PROVE, [], stream)
+    check(rc == rc_want and f"#verify stream unlink: {verdict}" in out,
+          f"unlink, {label}: exit {rc_want}, {verdict.split(' ')[0]}", out)
+    if label == "a #candidate followed by another state":
+        check("#verify step 6 trace: MISMATCH (a #candidate does not advance"
+              " the diagram, but step 7 is not its snapshot)" in out,
+              "unlink, a #candidate followed by another state: the record"
+              " says so", out)
+
+# Through the witness path: four middlepass records, two applied (steps 5
+# and 8) and two #candidate. An applied middlepass is sound only by its #feas
+# witness, so dropping step 5's leaves the verdict UNCHECKED; a candidate's
+# witness is not load-bearing.
+mp = read(MIDDLEPASS_UNLINK)
+rc, out, _ = run(PROVE, [MIDDLEPASS_UNLINK])
+check(rc == 0 and "#verify stream unlink: VERIFIED (the input's 1 component,"
+      " colour 0, each came free exactly once; 10 moves" in out,
+      "middlepass_unlink: certified through witnessed middlepasses", out)
+mp_blocks = mp.split("\n\n")
+k5 = next(i for i, b in enumerate(mp_blocks) if "#step n=5 " in b)
+check("#feas " in mp_blocks[k5] and "#candidate" not in mp_blocks[k5],
+      "middlepass_unlink: step 5 is an applied, witnessed middlepass")
+mp_blocks[k5] = re.sub(r"#feas [^\n]*\n(#fvar [^\n]*\n)*", "", mp_blocks[k5])
+rc, out, _ = run(PROVE, [], "\n\n".join(mp_blocks))
+check(rc == 0 and "#verify stream unlink: UNCHECKED (step 5 is a middlepass"
+      " with no '#feas' witness)" in out,
+      "middlepass_unlink: an applied middlepass without its witness", out)
 
 # A transversal that heals into a curl at crossing 91 (arcs 125 -> 126 -> 127
 # through two interior crossings of W), crossed twice by the corridor.

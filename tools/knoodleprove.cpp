@@ -71,6 +71,10 @@ void PrintUsage()
         "  result    '#result' agrees port-by-port with the descriptor's surgery\n"
         "  colors    ... and agrees about which COMPONENT each arc belongs to\n"
         "  V0/V4/V2-V5  the '#feas' feasibility witness\n"
+        "  unlink    (one line for the whole stream, only when it ends at the\n"
+        "            empty diagram) the input is an unlink: every applied move\n"
+        "            sound, every link between records VERIFIED, and each input\n"
+        "            colour freed exactly once\n"
         "\n"
         "Each is VERIFIED, MISMATCH or UNCHECKED. Move kinds checked: pass,\n"
         "middlepass, r1. A move kind with no checker is\n"
@@ -145,6 +149,7 @@ bool Prove( std::istream & input, const char * source, bool check_exteriorQ )
 
         if( !rec.state )
         {
+            verifier.NoteRecord(rec, nullptr, step);
             verifier.BeginRecordWithoutDiagram();
             ++step;
             continue;
@@ -176,6 +181,7 @@ bool Prove( std::istream & input, const char * source, bool check_exteriorQ )
             }
         }
 
+        verifier.NoteRecord(rec, &dia, step);
         verifier.BeginRecord(dia);
 
         if( rec.move )
@@ -221,6 +227,11 @@ bool Prove( std::istream & input, const char * source, bool check_exteriorQ )
                 // certificate.
                 std::cout << "#verify step " << step << " move: UNCHECKED"
                              " (no checker for kind=" << kind << " yet)\n";
+                if( !rec.candidateQ )
+                {
+                    verifier.Gap("step " + std::to_string(step) + " is a kind="
+                                 + kind + " move, which nothing checks");
+                }
             }
         }
 
@@ -228,6 +239,7 @@ bool Prove( std::istream & input, const char * source, bool check_exteriorQ )
     }
 
     verifier.Finish("nothing follows it in the stream");
+    verifier.ReportStream();
 
     if( check_exteriorQ
         && !KnoodleExterior::CheckExteriorThread<PD_T>(kept, kept_steps, std::cout) )

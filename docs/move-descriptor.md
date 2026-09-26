@@ -813,6 +813,41 @@ as the empty diagram plus one closed curve, and that curve is the freed
 component the move reported. Fixtures: `test/r1_empty_result.trace`,
 `test/r1_last_curl.trace` (ROUND-24 §7).
 
+**The whole stream: unlink.** A stream that ends at the empty diagram is a
+claim about its INPUT: it is an unlink, and each of its components came free
+exactly once. `knoodleprove` gives it one line after the per-record ones:
+
+```
+#verify stream unlink: VERIFIED (the input's 1 component, colour 0, each came free exactly once; 15 moves, every one sound and every link VERIFIED)
+```
+
+It is VERIFIED only when all of the following hold.
+
+- **Every applied move is sound.** `pass` and `r1` need only be well formed
+  and carried out (Proposition C′; "well-formed implies sound"). `middlepass`
+  needs its `#feas` witness with V0, V4 and V2–V5 all checked. `redraw` needs
+  all five of its checks. A kind with no checker is a gap.
+- **Every link is VERIFIED.** Each move's result must be the next record's
+  snapshot, or the empty diagram at the end of the stream. A record with a
+  diagram and no move, followed by another record, leaves nothing connecting
+  the two, and that is a gap. A `#candidate` does not advance the diagram, so
+  the record after it must carry the candidate's own snapshot. Anything else
+  is a `trace: MISMATCH` on the candidate's step.
+- **The colours balance.** The colours freed along the way (`split:` and
+  `spinoffs:`, from the surgery) must be exactly the first snapshot's, with
+  none freed twice. Colours are lifelong labels, and the per-record `trace:`
+  link compares structure only for `pass` and `r1`, so a stream that
+  recolours a component between records is caught here and nowhere else.
+- **One summand.**
+
+A gap makes the verdict `UNCHECKED` and names the first one. A MISMATCH
+anywhere along the chain also makes it `UNCHECKED` ("the chain is broken"),
+and the exit status is already 1. A colour imbalance is `MISMATCH`. A stream
+that stops at a diagram with crossings makes no unlink claim and gets no line.
+Fixtures: `test/fhw_unlink.trace`, FHW's 32 crossings in 11 passes and 4 r1s,
+and `test/middlepass_unlink.trace`, through two witnessed middlepasses
+(middlestrands' suggestion 2 in ROUND-24 §7).
+
 **The healed crossing is a corner, and which corner is forced.** The loop's two
 ends at `c` are rotationally adjacent — that is what it means for `L(loop)` to be
 a monogon. So the two surviving ends are adjacent too, and the healed strand
