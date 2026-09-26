@@ -244,7 +244,7 @@ preamble, last = records_of(read(R1_LAST_CURL))
 rc, out, _ = run(PROVE, [], "\n\n".join(
     [preamble, last, last.replace("#step n=0", "#step n=1", 1)]) + "\n")
 check(rc == 1 and "#verify step 0 trace: MISMATCH (0 crossings expected,"
-      " 1 found)" in out,
+      " 1 found, colours kept)" in out,
       "an empty claim followed by a crossing: MISMATCH", out)
 # (b) A claim with crossings in it is still UNCHECKED at the end of a stream.
 rc, out, _ = run(PROVE, [], records_of(read(R1_TRACE))[0] + "\n")
@@ -419,6 +419,27 @@ check(rc == 1, "#spinoffs naming the wrong colour: exit 1", out)
 check("spinoffs: MISMATCH (colours 1 reported, 0 from the surgery)" in out,
       "#spinoffs naming the wrong colour: caught, with both lists", out)
 
+# The trace link keeps colours too, on v1 streams: a component that changes
+# colour between one record's result and the next record's snapshot is a
+# different labelling of the link. Recolour component 1 as 5 in the LAST
+# snapshot; the link into it used to compare structure only and pass.
+head3, last3 = link.rsplit("#step n=2", 1)
+m3 = re.search(r"A_color = \{([^}]*)\}", last3)
+recol = last3[:m3.start(1)] + m3.group(1).replace("1", "5") + last3[m3.end(1):]
+check(recol != last3, "link recolour tamper: the substitution applied")
+rc, out, _ = run(PROVE, [], head3 + "#step n=2" + recol)
+check(rc == 1 and "#verify step 1 trace: MISMATCH" in out
+      and "keeping every arc's colour" in out,
+      "a link component recoloured between records: the trace link fails", out)
+rc, out, _ = run(PROVE, [LINK_RESULT])
+check("#verify step 1 trace: VERIFIED" in out and "colours kept" in out,
+      "link_result_example: the untampered link keeps its colours", out)
+# A v0 stream's snapshots are bare PD rows, whose colours are parse order:
+# there the link stays structural.
+rc, out, _ = run(PROVE, [TRACE_EXAMPLE])
+check("#verify step 0 trace: VERIFIED (3 crossings expected, 3 found)" in out,
+      "trace_example (v0): the link into a PD-row snapshot compares structure", out)
+
 # -- it can fail ------------------------------------------------------------
 
 # A snapshot the move does NOT produce: replace the record after the pass move
@@ -491,7 +512,8 @@ check("trace: VERIFIED" not in out,
 rc, out, _ = run(PROVE, [PASS_LASSO])
 check(rc == 0, "pass_lasso: exit 0", out)
 check("#verify step 0 result: VERIFIED (port-by-port" in out
-      and "#verify step 0 trace: VERIFIED (1 crossings expected, 1 found)" in out
+      and "#verify step 0 trace: VERIFIED (1 crossings expected, 1 found,"
+          " colours kept)" in out
       and "#verify step 1 trace: VERIFIED (0 crossings expected, and the"
           " stream ends)" in out,
       "pass_lasso: result, trace, and the r1 after it all VERIFIED", out)
@@ -591,12 +613,10 @@ for stream, rc_want, verdict, label in [
      "a middlepass with no witness"),
     (fhw_with(9, "summand=0", "summand=1"), 0,
      "UNCHECKED (the stream has 2 summands", "two summands"),
-    # Every per-record check passes this one: the r1 frees colour 7, and the
-    # trace link into the recoloured snapshot compares structure only. Only
-    # the ledger sees that 7 was never an input colour.
+    # A recoloured snapshot: the trace link into it keeps colours (v1 #state
+    # on both sides), so the chain breaks right there.
     ("\n\n".join(blocks[:15] + [recoloured] + blocks[16:]), 1,
-     "MISMATCH -- the input's colours are 0 but the colours that came free"
-     " are 7", "a final snapshot recoloured"),
+     "UNCHECKED (the chain is broken", "a final snapshot recoloured"),
     # A #candidate does not advance the diagram. Inserted before the record
     # it copies, nothing changes (candidates are not counted as moves) ...
     ("\n\n".join(blocks[:7] + [cand] + blocks[7:]), 0,
@@ -609,6 +629,10 @@ for stream, rc_want, verdict, label in [
     rc, out, _ = run(PROVE, [], stream)
     check(rc == rc_want and f"#verify stream unlink: {verdict}" in out,
           f"unlink, {label}: exit {rc_want}, {verdict.split(' ')[0]}", out)
+    if label == "a final snapshot recoloured":
+        check("#verify step 13 trace: MISMATCH (1 crossings expected, 1 found,"
+              " colours kept)" in out,
+              "unlink, a final snapshot recoloured: the link into it says so", out)
     if label == "a #candidate followed by another state":
         check("#verify step 6 trace: MISMATCH (a #candidate does not advance"
               " the diagram, but step 7 is not its snapshot)" in out,
@@ -641,7 +665,8 @@ check(rc == 0 and "#verify stream unlink: UNCHECKED (step 5 is a middlepass"
 rc, out, _ = run(PROVE, [HEALED_CURL])
 check(rc == 0, "middlepass_healed_curl: exit 0", out)
 check("#verify step 0 result: VERIFIED" in out
-      and "#verify step 0 trace: VERIFIED (266 crossings expected, 266 found)"
+      and "#verify step 0 trace: VERIFIED (266 crossings expected, 266 found,"
+      " colours kept)"
       in out,
       "middlepass_healed_curl: the healed curl is split at its head", out)
 

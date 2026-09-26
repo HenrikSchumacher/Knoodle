@@ -835,9 +835,10 @@ It is VERIFIED only when all of the following hold.
   is a `trace: MISMATCH` on the candidate's step.
 - **The colours balance.** The colours freed along the way (`split:` and
   `spinoffs:`, from the surgery) must be exactly the first snapshot's, with
-  none freed twice. Colours are lifelong labels, and the per-record `trace:`
-  link compares structure only for `pass` and `r1`, so a stream that
-  recolours a component between records is caught here and nowhere else.
+  none freed twice. On a v1 stream every `trace:` link already keeps colours
+  (below), so this is a backstop. Once any snapshot has come from bare PD rows,
+  colours are only parse order, and only the COUNT is compared: the input's
+  components against the number that came free ("counted" in the verdict).
 - **One summand.**
 
 A gap makes the verdict `UNCHECKED` and names the first one. A MISMATCH
@@ -1376,10 +1377,19 @@ and any seeded choice an emitter makes must be recorded in the stream.
   `#verify step <n> trace:` is the claim that what the move produces really is
   the *next* record's snapshot, so it needs one record of lookahead.
   `OrthoDecorate::AfterDiagram` builds the result from the descriptor alone —
-  never calling the applier that produced the trace — and since a PD-code
-  snapshot renumbers everything, there is no shared labelling to appeal to;
-  this one therefore asks the weaker question of whether the two diagrams are
-  isomorphic at all. That needs no graph-isomorphism machinery: a rooted flag
+  never calling the applier that produced the trace — and since a snapshot
+  may be relabelled between records, there is no shared labelling of
+  crossings and arcs to appeal to. This one therefore asks whether the two
+  diagrams are isomorphic, and on a link, whether they are isomorphic
+  **keeping every arc's colour**. Colours are lifelong labels: a move's result
+  inherits them from the snapshot it was made on, and a component that changes
+  colour between one record and the next is a different labelling of the
+  link. The colour-kept form (`, colours kept` in the verdict) applies to every
+  `redraw` link, and to `pass`, `middlepass` and `r1` links whenever both
+  snapshots are v1 `#state` blocks. A snapshot built from bare PD rows numbers
+  its components in parse order, so a link into or out of one compares
+  structure only (until 2026-09-26 every non-redraw link did, and a recoloured
+  component went unnoticed). That needs no graph-isomorphism machinery: a rooted flag
   determines the map, so fixing one crossing and trying each partner in turn is
   O(n²), the same bound and the same reason as Weinberg's planar-graph test.
   Unlike the MacLeod code it replaced, it applies to links.

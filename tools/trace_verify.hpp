@@ -392,17 +392,24 @@ public:
     }
 
     /// The previous move's claim, checked against this record's snapshot.
-    void BeginRecord( const PD_T & dia )
+    /// `coloredQ` is false when this snapshot was built from bare PD rows,
+    /// whose colours are only the order the parser met the components in.
+    void BeginRecord( const PD_T & dia, bool coloredQ = true )
     {
         if( !pending_after_ ) { return; }
 
         PD_T expected = std::move(*pending_after_);
         pending_after_.reset();
 
-        // A redraw's claim carries colours pinned by its embedding, so for it
-        // the isomorphism must also keep every arc's colour (check 4).
-        const bool colorsQ = pending_colorsQ_;
+        // Colours are lifelong labels, so the isomorphism must keep every
+        // arc's colour. A redraw's claim carries colours pinned by its
+        // embedding (check 4), so it is always compared that way. For pass,
+        // middlepass and r1 the claim's colours are inherited from the
+        // snapshot the move was made on, so they are a claim exactly when
+        // that snapshot and this one both carry real colours (v1 `#state`).
+        const bool colorsQ = pending_colorsQ_ && (pending_redrawQ_ || coloredQ);
         pending_colorsQ_ = false;
+        pending_redrawQ_ = false;
 
         std::string vwhy;
         const bool okQ = DiagramsIsomorphicQ(expected, dia, vwhy,
@@ -436,6 +443,7 @@ public:
         PD_T expected = std::move(*pending_after_);
         pending_after_.reset();
         pending_colorsQ_ = false;
+        pending_redrawQ_ = false;
 
         const bool okQ = (expected.CrossingCount() == Int(0));
 
@@ -647,8 +655,10 @@ public:
             return;
         }
         freed_colors_.insert(freed_colors_.end(), m.freed.begin(), m.freed.end());
-        pending_after_ = std::move(m.after);
-        pending_label_ = "step " + std::to_string(step);
+        pending_after_   = std::move(m.after);
+        pending_label_   = "step " + std::to_string(step);
+        pending_colorsQ_ = !rec.state_from_pd;
+        pending_redrawQ_ = false;
     }
 
     /**
@@ -807,6 +817,7 @@ public:
                              ? after.pd : PD_T::InvalidDiagram();
             pending_label_   = "step " + std::to_string(step);
             pending_colorsQ_ = true;
+            pending_redrawQ_ = true;
         }
     }
 
@@ -919,8 +930,10 @@ public:
         else
         {
             freed_colors_.insert(freed_colors_.end(), m.freed.begin(), m.freed.end());
-            pending_after_ = std::move(m.after);
-            pending_label_ = "step " + std::to_string(step);
+            pending_after_   = std::move(m.after);
+            pending_label_   = "step " + std::to_string(step);
+            pending_colorsQ_ = !rec.state_from_pd;
+            pending_redrawQ_ = false;
         }
     }
 
@@ -939,6 +952,7 @@ public:
                     " ends)\n";
             pending_after_.reset();
             pending_colorsQ_ = false;
+            pending_redrawQ_ = false;
             emptyQ_ = true;
             return;
         }
@@ -948,6 +962,7 @@ public:
                 " against; " << still_checked << ")\n";
         pending_after_.reset();
         pending_colorsQ_ = false;
+        pending_redrawQ_ = false;
     }
 
     /// Mark a failure found by a check that lives outside this class.
@@ -979,6 +994,10 @@ public:
         }
 
         if( (dia != nullptr) && !input_colors_ ) { input_colors_ = DiagramColors(*dia); }
+
+        // A snapshot built from bare PD rows numbers its components in parse
+        // order, so from then on a colour is not a lifelong label.
+        if( (dia != nullptr) && rec.state_from_pd ) { colors_realQ_ = false; }
 
         if( emptyQ_ && (dia != nullptr) )
         {
@@ -1055,6 +1074,27 @@ public:
         std::sort(freed.begin(), freed.end());
         const auto twice = std::adjacent_find(freed.begin(), freed.end());
         const std::vector<Int> input = input_colors_ ? *input_colors_ : std::vector<Int>();
+
+        // Without real colours only the count can balance.
+        if( !colors_realQ_ )
+        {
+            if( freed.size() != input.size() )
+            {
+                out_ << "MISMATCH -- the input has " << input.size()
+                     << " component(s) but " << freed.size() << " came free\n";
+                failedQ_ = true;
+                return;
+            }
+            out_ << "VERIFIED (the input's " << input.size() << " component"
+                 << ((input.size() == 1) ? "" : "s") << " came free, counted:"
+                    " PD-row snapshots carry no colours; " << applied_ << " move"
+                 << ((applied_ == 1) ? "" : "s") << ", every one sound and every"
+                    " link VERIFIED)\n";
+            return;
+        }
+
+        // With colour-kept links every step of the way this balance cannot
+        // fail on a stream whose links all VERIFIED; it stays as a backstop.
 
         if( twice != freed.end() )
         {
@@ -1201,7 +1241,8 @@ private:
     bool                failedQ_ = false;
     std::optional<PD_T> pending_after_;
     std::string         pending_label_;
-    bool                pending_colorsQ_ = false;  // the claim is a redraw's
+    bool                pending_colorsQ_ = false;  // the claim's colours are real
+    bool                pending_redrawQ_ = false;  // ... pinned by a redraw's embedding
 
     // The whole-stream ledger (ReportStream).
     std::optional<std::vector<Int>> input_colors_;
@@ -1213,6 +1254,7 @@ private:
     std::size_t                     candidate_step_ = 0;
     std::size_t                     applied_ = 0;
     bool                            emptyQ_ = false;  // the diagram went empty
+    bool                            colors_realQ_ = true;  // no PD-row snapshot yet
 };
 
 } // namespace KnoodleTraceVerify

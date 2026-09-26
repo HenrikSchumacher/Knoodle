@@ -182,7 +182,7 @@ bool Prove( std::istream & input, const char * source, bool check_exteriorQ )
         }
 
         verifier.NoteRecord(rec, &dia, step);
-        verifier.BeginRecord(dia);
+        verifier.BeginRecord(dia, !rec.state_from_pd);
 
         if( rec.move )
         {
