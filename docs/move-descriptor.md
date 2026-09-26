@@ -746,6 +746,19 @@ all. The claims that need no drawing are still checked, by `knoodleprove` —
 including that last one, where a record carrying no diagram answers the pending
 `trace:` claim rather than being skipped over.
 
+**The last curl.** An emitter that never splits may instead END the stream at
+an empty diagram (middlestrands does: `#state` and `#spinoffs colors=`, no
+`#result`, no further record). The end of the stream answers an empty claim
+exactly as a diagram-less record would: `trace: VERIFIED (0 crossings expected,
+and the stream ends)`. A claim with crossings in it at the end of a stream stays
+`UNCHECKED`. If the record does carry a `#result`, it is empty too, and two
+empty results agree with nothing to seed: `result: VERIFIED (both results are
+empty)`, with no `colors:` verdict, since where the colour went is what
+`spinoffs:` checks. The one-deletion drawing has no crossings in it; it parses
+as the empty diagram plus one closed curve, and that curve is the freed
+component the move reported. Fixtures: `test/r1_empty_result.trace`,
+`test/r1_last_curl.trace` (ROUND-24 §7).
+
 **The healed crossing is a corner, and which corner is forced.** The loop's two
 ends at `c` are rotationally adjacent — that is what it means for `L(loop)` to be
 a monogon. So the two surviving ends are adjacent too, and the healed strand

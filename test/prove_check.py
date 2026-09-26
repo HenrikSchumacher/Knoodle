@@ -25,7 +25,10 @@ uncoloured isomorphism would wave through is the tamper that matters most.
 
 r1 has a checker of its own, and for r1 the local checks ARE soundness (there
 is no witness to demand), so this also exercises the curl fixtures: the
-ordinary case, the spinoff, and a `loop` that does not name a loop arc.
+ordinary case, the spinoff, a `loop` that does not name a loop arc, and the
+LAST curl, which leaves nothing: an empty #result, a drawing with no
+crossings, and a stream that ends there (test/r1_empty_result.trace,
+test/r1_last_curl.trace -- middlestrands' ROUND-24 reproducers).
 
 Fixtures are the committed ones: test/trace_example.txt, test/r1_example.txt,
 and the real witnessed middlepass records embedded in test/witness_fixtures.hpp
@@ -47,6 +50,8 @@ REDRAW = os.path.join(HERE, "redraw_example.trace")
 REDRAW_LINK = os.path.join(HERE, "redraw_link_example.trace")
 REDRAW_SPLIT = os.path.join(HERE, "redraw_split_refused.trace")
 R1_SPINOFF = os.path.join(HERE, "r1_spinoff_example.txt")
+R1_EMPTY_RESULT = os.path.join(HERE, "r1_empty_result.trace")
+R1_LAST_CURL = os.path.join(HERE, "r1_last_curl.trace")
 LINK_RESULT = os.path.join(HERE, "link_result_example.trace")
 PASS_WCROSS = os.path.join(HERE, "pass_wcross_example.trace")
 HEALED_CURL = os.path.join(HERE, "middlepass_healed_curl.trace")
@@ -203,6 +208,56 @@ check("#verify step 0 trace: MISMATCH" in out,
       "r1 followed by the wrong snapshot: the trace claim fails", out)
 check("4 crossings expected, 3 found" in out,
       "r1 followed by the wrong snapshot: the counts are named", out)
+
+# The LAST curl (ROUND-24 §7): nothing is left, and each tool had a false
+# negative on it. knoodleprove found no untouched crossing to seed the result
+# match with; knoodledraw refused a drawing with no crossings in it. Two empty
+# diagrams agree, and a stream that stops after an empty claim has continued
+# exactly as claimed.
+for path, label in [(R1_EMPTY_RESULT, "r1_empty_result"),
+                    (R1_LAST_CURL, "r1_last_curl")]:
+    rc, out, _ = run(PROVE, [path])
+    check(rc == 0, f"{label}: exit 0", out)
+    check("#verify step 0 trace: VERIFIED (0 crossings expected, and the"
+          " stream ends)" in out,
+          f"{label}: an empty claim is answered by the stream ending", out)
+    drc, dout, derr = run(DRAW, ["--trace", "--verify"], read(path))
+    check(drc == 0 and "#verify step 0 drawing: VERIFIED (the deletion)"
+          in dout + derr,
+          f"{label}: knoodledraw parses the crossing-free drawing",
+          f"exit {drc}\n{derr}")
+
+rc, out, _ = run(PROVE, [R1_EMPTY_RESULT])
+check("#verify step 0 result: VERIFIED (both results are empty)" in out,
+      "r1_empty_result: an empty #result agrees with an empty surgery", out)
+check("colors:" not in out,
+      "r1_empty_result: no colour verdict where there is no arc to carry one"
+      " (spinoffs: says where the colour went)", out)
+
+# ... and none of that is unconditional.
+# (a) An empty claim followed by a record that still has a crossing.
+preamble, last = records_of(read(R1_LAST_CURL))
+rc, out, _ = run(PROVE, [], "\n\n".join(
+    [preamble, last, last.replace("#step n=0", "#step n=1", 1)]) + "\n")
+check(rc == 1 and "#verify step 0 trace: MISMATCH (0 crossings expected,"
+      " 1 found)" in out,
+      "an empty claim followed by a crossing: MISMATCH", out)
+# (b) A claim with crossings in it is still UNCHECKED at the end of a stream.
+rc, out, _ = run(PROVE, [], records_of(read(R1_TRACE))[0] + "\n")
+check(rc == 0 and "#verify step 0 trace: UNCHECKED (no following record" in out,
+      "a non-empty claim at the end of the stream: still UNCHECKED", out)
+# (c) A #result that keeps the curl the move removes.
+kept = read(R1_EMPTY_RESULT)
+head, block = kept.rsplit("#result", 1)
+block = (block.replace("crossing_count = 0", "crossing_count = 1", 1)
+              .replace("arc_count = 0", "arc_count = 2", 1)
+              .replace("C_state = {0}", "C_state = {1}", 1)
+              .replace("A_state = {0,0}", "A_state = {1,1}", 1))
+check(head + "#result" + block != kept, "kept-curl tamper: applied")
+rc, out, _ = run(PROVE, [], head + "#result" + block)
+check(rc == 1 and "result: MISMATCH -- crossing counts differ: 0 (ours) vs 1"
+      " (theirs)" in out,
+      "a #result that keeps the curl: MISMATCH", out)
 
 for name, body in records:
     rc, out, _ = run(PROVE, [], body)

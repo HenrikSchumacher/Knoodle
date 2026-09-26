@@ -953,6 +953,103 @@ static void RunR1DeletionTests()
             n3 ? "refused" : "*** ACCEPTED ***");
         if( n3 ) { ++checks_passed; } else { ok = false; }
     }
+
+    // The LAST curl (test/r1_last_curl.trace, ROUND-24 §7): one crossing, and
+    // removing it leaves a drawing with no crossings at all -- one closed
+    // curve and an empty diagram. That drawing used to be refused outright.
+    {
+        const std::vector<Int> C  = { 1,0, 1,0 };
+        const std::vector<Int> CS = { -1 };
+        const std::vector<Int> A  = { 0,0, 0,0 };
+        const std::vector<Int> AS = { 1, 1 };
+        const std::vector<Int> AC = { 0, 0 };
+        const PD_T curl( Int(1), C.data(), CS.data(), A.data(), AS.data(),
+                         AC.data(), PD_T::Uninitialized, false, false );
+
+        auto rc = KnoodleR1View::ResolveR1<PD_T>(curl, Int(0));
+        std::vector<Int> freed_c;
+        PD_T after_c = rc.validQ
+            ? KnoodleR1View::R1AfterDiagram<PD_T>(curl, rc, why, freed_c)
+            : PD_T();
+
+        const bool builtQ = rc.validQ && why.empty()
+            && (after_c.CrossingCount() == Int(0)) && (freed_c.size() == 1);
+        if( !builtQ )
+        {
+            std::printf("  r1 last curl     *** the fixture does not resolve: %s ***\n",
+                (rc.validQ ? why : rc.why).c_str());
+            ok = false;
+            return;
+        }
+
+        for( Int g : {2, 4} )
+        {
+            OrthoDraw_T H(curl, Int(-1), GridSettings(g,g));
+
+            const bool okQ = KnoodleR1View::CheckR1View<PD_T>(
+                H, curl, rc, after_c, why, Int(1));
+
+            std::printf("  r1 last curl     %2lldx%-2lld  %s\n",
+                (long long)g, (long long)g,
+                okQ ? "the deletion OK (no crossings left)"
+                    : ("*** " + why + " ***").c_str());
+
+            if( okQ ) { ++checks_passed; } else { ok = false; }
+        }
+
+        OrthoDraw_T H(curl, Int(-1), GridSettings(4,4));
+
+        // The freed curve is the whole claim once the diagram is empty, so a
+        // drawing that lost it must not pass.
+        const bool n4 = !KnoodleR1View::CheckR1View<PD_T>(
+            H, curl, rc, after_c, why, Int(0));
+        std::printf("  r1 negative      last curl, free loop not accounted for  %s\n",
+            n4 ? "refused" : "*** ACCEPTED ***");
+        if( n4 ) { ++checks_passed; } else { ok = false; }
+
+        // An empty drawing is not a match for a diagram that kept the curl.
+        const bool n5 = !KnoodleR1View::CheckR1View<PD_T>(
+            H, curl, rc, curl, why, Int(1));
+        std::printf("  r1 negative      last curl vs the curl itself  %s\n",
+            n5 ? "refused" : "*** ACCEPTED ***");
+        if( n5 ) { ++checks_passed; } else { ok = false; }
+    }
+}
+
+// A drawing with no crossings is legal: the view left by a move that frees
+// the last curl. The diagram is empty and the closed curves are what there is
+// to count -- so count them right, including none at all.
+static void RunCrossingFreeDrawingTests()
+{
+    auto expect = [&]( const char * name, const std::string & canvas,
+                       Int n_x, Int n_y, Int want_loops )
+    {
+        auto R = Extract_T::Extract(canvas, n_x, n_y);
+        const bool passQ = R.okQ && (R.pd.CrossingCount() == Int(0))
+                        && (R.free_loops == want_loops);
+        std::printf("  no crossings: %-12s %s\n", name,
+            passQ ? "parsed"
+                  : (R.okQ ? ("*** wrong parse: " + std::to_string(R.free_loops)
+                              + " loops ***").c_str()
+                           : ("*** " + R.why + " ***").c_str()));
+        if( passQ ) { ++checks_passed; } else { ok = false; }
+    };
+
+    expect("blank", "         \n         \n         \n", Int(10), Int(3), Int(0));
+
+    expect("one loop",
+        "           \n"
+        " +-->+     \n"
+        " |   |     \n"
+        " +<--+     \n"
+        "           \n", Int(12), Int(5), Int(1));
+
+    expect("two loops",
+        "           \n"
+        " +-->+ +>+ \n"
+        " |   | ^ v \n"
+        " +<--+ +<+ \n"
+        "           \n", Int(12), Int(5), Int(2));
 }
 
 static void RunIsomorphismTests()
@@ -1167,6 +1264,7 @@ int main()
     RunCrossingNeighbourCountTests();
     RunStrandCrossingTests();
     RunR1DeletionTests();
+    RunCrossingFreeDrawingTests();
 
     RunIsomorphismTests();
 

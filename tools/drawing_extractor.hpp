@@ -514,12 +514,10 @@ namespace KnoodleDrawIO
                 R.crossing_cell.push_back(Cell_T{x,y});
             }
 
+            // No crossings is a legal drawing -- the view left by a move that
+            // frees the last curl. Steps 5 and 6 still run, so its closed
+            // curves are counted; the diagram is then empty (see step 6).
             const Int n_c = static_cast<Int>(R.crossing_cell.size());
-
-            if( n_c == Int(0) )
-            {
-                return fail("the drawing has no crossings");
-            }
 
             //==================================================================
             // 5. Arcs: walk out of every crossing port until the next crossing
@@ -639,6 +637,17 @@ namespace KnoodleDrawIO
                         stack.push_back(Cell_T{qx,qy});
                     }
                 }
+            }
+
+            // Nothing with crossings in it: the diagram is the empty one (a
+            // default PD, all counts zero), and the closed curves are all
+            // there is to report. The array constructor below would turn zero
+            // crossings into InvalidDiagram, which is a different claim.
+            if( n_c == Int(0) )
+            {
+                R.okQ = true;
+                R.why.clear();
+                return R;
             }
 
             //==================================================================

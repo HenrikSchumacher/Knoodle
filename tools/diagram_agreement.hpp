@@ -239,14 +239,25 @@ bool DiagramsAgreeQ(
         return fail("arc counts differ: " + std::to_string(d1.ArcCount())
             + " vs " + std::to_string(d2.ArcCount()));
     }
-    if( seeds.empty() )
-    {
-        return fail("no seed correspondence was supplied");
-    }
 
     DiagramMatch_T<Int> M(
         d1.MaxCrossingCount(), d1.MaxArcCount(),
         d2.MaxCrossingCount(), d2.MaxArcCount() );
+
+    // Two empty diagrams agree, and there is nothing to seed. This is the
+    // after-diagram of a move that frees the last curl; whatever came free is
+    // the caller's to count, since neither side holds crossingless components.
+    if( d1.CrossingCount() == Int(0) )
+    {
+        if( out_match != nullptr ) { *out_match = std::move(M); }
+        why.clear();
+        return true;
+    }
+
+    if( seeds.empty() )
+    {
+        return fail("no seed correspondence was supplied");
+    }
 
     if( !ExtendDiagramMatch(d1,d2,seeds,M,why) ) { return false; }
 

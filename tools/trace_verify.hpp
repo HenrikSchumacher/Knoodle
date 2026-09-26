@@ -155,13 +155,21 @@ bool BuildSurvivorSeeds(
         if (in1) { seeds.push_back({c,c}); }
     }
 
-    if (seeds.empty())
-    {
-        why = "the move touches every crossing, so there is no untouched"
-              " crossing to seed the correspondence with";
-        return false;
-    }
-    return true;
+    if (!seeds.empty()) { return true; }
+
+    // A move that disposes of every crossing leaves nothing to seed, and
+    // nothing to need seeding if both sides agree the result is empty.
+    const Int n1 = d1.CrossingCount();
+    const Int n2 = d2.CrossingCount();
+
+    if ((n1 == Int(0)) && (n2 == Int(0))) { return true; }
+
+    why = (n1 != n2)
+        ? "crossing counts differ: " + std::to_string(n1) + " (ours) vs "
+          + std::to_string(n2) + " (theirs)"
+        : std::string("the move touches every crossing, so there is no"
+                      " untouched crossing to seed the correspondence with");
+    return false;
 }
 
 /*!@brief `BuildSurvivorSeeds` for a pass move: W's interior crossings are the
@@ -509,15 +517,7 @@ public:
                 okQ = DiagramsAgreeQ(m.after, *rec.result, seeds, swhy, &M);
             }
 
-            out_ << "#verify step " << step
-                 << " result: "
-                 << (okQ ? "VERIFIED (port-by-port against the applier)"
-                         : "MISMATCH");
-            if( !okQ ) { out_ << " -- " << swhy; }
-            out_ << "\n";
-
-            if( !okQ ) { failedQ_ = true; }
-            else        { ReportColors(dia, m.after, *rec.result, M, step); }
+            ReportResult(dia, m.after, *rec.result, M, okQ, swhy, step);
         }
 
         return m;
@@ -622,14 +622,7 @@ public:
                 okQ = DiagramsAgreeQ(m.after, *rec.result, seeds, swhy, &M);
             }
 
-            out_ << "#verify step " << step << " result: "
-                 << (okQ ? "VERIFIED (port-by-port against the applier)"
-                         : "MISMATCH");
-            if( !okQ ) { out_ << " -- " << swhy; }
-            out_ << "\n";
-
-            if( !okQ ) { failedQ_ = true; }
-            else        { ReportColors(dia, m.after, *rec.result, M, step); }
+            ReportResult(dia, m.after, *rec.result, M, okQ, swhy, step);
         }
 
         return m;
@@ -884,10 +877,23 @@ public:
         }
     }
 
-    /// Nothing follows the last move, so its trace claim cannot be checked.
+    /// Nothing follows the last move, so its trace claim cannot be checked --
+    /// unless the claim is that nothing is left. A crossingless diagram has no
+    /// next record to carry it, so a stream that stops there has continued
+    /// exactly as claimed.
     void Finish( const char * still_checked = "its drawing was still checked" )
     {
         if( !pending_after_ ) { return; }
+
+        if( pending_after_->CrossingCount() == Int(0) )
+        {
+            out_ << "#verify " << pending_label_
+                 << " trace: VERIFIED (0 crossings expected, and the stream"
+                    " ends)\n";
+            pending_after_.reset();
+            pending_colorsQ_ = false;
+            return;
+        }
 
         out_ << "#verify " << pending_label_
              << " trace: UNCHECKED (no following record to compare"
@@ -964,6 +970,26 @@ private:
      * at a glance whether the check had anything to distinguish: on a knot
      * there is one colour and the verdict is free.
      */
+    /// The `result:` verdict, and on success the `colors:` one. When both
+    /// results are empty the colours have nowhere to live; where they went is
+    /// the `spinoffs:` check's business.
+    void ReportResult( const PD_T & before, const PD_T & ours,
+                       const PD_T & theirs,
+                       const DiagramMatch_T<Int> & M,
+                       bool okQ, const std::string & why, std::size_t step )
+    {
+        const bool emptyQ = okQ && (ours.CrossingCount() == Int(0));
+
+        out_ << "#verify step " << step << " result: ";
+        if( !okQ )       { out_ << "MISMATCH -- " << why; }
+        else if( emptyQ ) { out_ << "VERIFIED (both results are empty)"; }
+        else             { out_ << "VERIFIED (port-by-port against the applier)"; }
+        out_ << "\n";
+
+        if( !okQ )       { failedQ_ = true; }
+        else if( !emptyQ ) { ReportColors(before, ours, theirs, M, step); }
+    }
+
     void ReportColors( const PD_T & before, const PD_T & ours,
                        const PD_T & theirs,
                        const DiagramMatch_T<Int> & M, std::size_t step )
