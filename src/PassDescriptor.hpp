@@ -218,8 +218,14 @@ namespace Knoodle
                 }
             }
 
-            // -- check 1 (cont.): the strand is a consecutive run. Compared by
-            //    crossing index; the drawing is not involved. --------------
+            // -- check 1 (cont.): the strand is a consecutive run ALONG ITS
+            //    COMPONENT. Meeting at a crossing is not enough: at a crossing
+            //    four arcs meet, and only one of them continues the strand --
+            //    the one straight through, `NextArc`, in the same direction.
+            //    Turning onto the other branch is an oriented smoothing wearing
+            //    a pass move's clothes (on the trefoil, strand=1,9 depart=0
+            //    land=8 was well formed and made a Hopf link; ROUND-24 §6(d)).
+            //    Proposition C′ assumes this (its hypothesis 1).
             for( std::size_t i = 0; i + 1 < m; ++i )
             {
                 if( DarcHeadCrossing(pd,strand[i])
@@ -228,6 +234,19 @@ namespace Knoodle
                     return fail("strand darcs " + Tools::ToString(strand[i]) + " and "
                         + Tools::ToString(strand[i+1])
                         + " are not consecutive (check 1)");
+                }
+
+                const Int  a = ArcOf(strand[i]);
+                const bool d = DirOf(strand[i]);
+
+                if( (ArcOf(strand[i+1]) != pd.NextArc(a,d))
+                    || (DirOf(strand[i+1]) != d) )
+                {
+                    return fail("strand darcs " + Tools::ToString(strand[i]) + " and "
+                        + Tools::ToString(strand[i+1]) + " meet at crossing "
+                        + Tools::ToString(DarcHeadCrossing(pd,strand[i]))
+                        + " but the second does not continue the first -- the"
+                          " strand turns onto the other branch there (check 1)");
                 }
             }
 

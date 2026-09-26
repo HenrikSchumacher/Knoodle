@@ -193,9 +193,18 @@ entirely over or entirely under everything it crosses.
 
 ### Local validation (every consumer must check)
 
-1. `strand` darcs are consecutive: head of each = tail of the next; all arcs
-   active and pairwise distinct; and the crossed arcs are pairwise distinct —
-   the corridor is **arc-disjoint**.
+1. `strand` darcs are consecutive: head of each = tail of the next, and each
+   **continues** the one before along its component — its arc is the one
+   straight through that crossing (`NextArc(a, d)`), traversed in the same
+   direction; all arcs active and pairwise distinct; and the crossed arcs are
+   pairwise distinct — the corridor is **arc-disjoint**.
+
+   Continuation is not implied by meeting at a crossing: four arcs meet there,
+   and two of them belong to the other branch. A strand that turns onto the
+   other branch is an oriented smoothing, not a pass. Until 2026-09-25 only the
+   crossings were compared, and on the trefoil `strand=1,9 depart=0 land=8` was
+   well formed and produced a Hopf link, which the `trace:` check VERIFIED
+   (ROUND-24 §6(d); Proposition C′'s hypothesis 1 is exactly this).
 
    For `pass`, a crossed arc **may** belong to the strand: the corridor may
    cross W. That crossing goes with W — deleting W leaves nothing there to

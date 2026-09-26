@@ -463,6 +463,24 @@ for tags, why, label in [
     check("step 2 result/drawing/trace: UNCHECKED" not in out,
           f"{label}: not waved through as a limit of the surgery", out)
 
+# A strand must CONTINUE along its component at each interior crossing, not
+# merely meet the next arc there (ROUND-24 §6(d)). Darcs 1 and 9 of the
+# trefoil meet at crossing 1 on different branches; as a uniform pass with a
+# k=0 corridor it was well formed, AfterDiagram smoothed the crossing, and the
+# trace check VERIFIED the trefoil going to a Hopf link. No witness backs a
+# uniform pass, so well-formedness is the whole soundness claim.
+TREFOIL_TO_HOPF = ("#trace v=0\n#step n=0 summand=0\n"
+                   "#move kind=pass strand=1,9 depart=0 land=8\n"
+                   "0\t4\t1\t3\t1\n2\t0\t3\t5\t1\n4\t2\t5\t1\t1\n\n"
+                   "#step n=1 summand=0\n2\t0\t3\t1\t1\n0\t2\t1\t3\t1\n")
+rc, out, _ = run(PROVE, [], TREFOIL_TO_HOPF)
+check(rc == 1 and "descriptor: MISMATCH" in out
+      and "turns onto the other branch" in out,
+      "a strand that turns onto the other branch: descriptor MISMATCH", out)
+check("trace: VERIFIED" not in out,
+      "a strand that turns onto the other branch: the Hopf link is not"
+      " waved through", out)
+
 # A transversal that heals into a curl at crossing 91 (arcs 125 -> 126 -> 127
 # through two interior crossings of W), crossed twice by the corridor.
 # AfterDiagram used to repoint the loop arc's tail where it meant its head and
