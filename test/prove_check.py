@@ -55,6 +55,8 @@ R1_LAST_CURL = os.path.join(HERE, "r1_last_curl.trace")
 LINK_RESULT = os.path.join(HERE, "link_result_example.trace")
 PASS_WCROSS = os.path.join(HERE, "pass_wcross_example.trace")
 HEALED_CURL = os.path.join(HERE, "middlepass_healed_curl.trace")
+PASS_LASSO = os.path.join(HERE, "pass_lasso.trace")
+PASS_LASSO_CORRIDOR = os.path.join(HERE, "pass_lasso_corridor.trace")
 WITNESS_HPP = os.path.join(HERE, "witness_fixtures.hpp")
 
 checks = 0
@@ -480,6 +482,65 @@ check(rc == 1 and "descriptor: MISMATCH" in out
 check("trace: VERIFIED" not in out,
       "a strand that turns onto the other branch: the Hopf link is not"
       " waved through", out)
+
+# A LASSO: tail anchor == head anchor (NSI2, ROUND-24). Their reproducer is the
+# under-lasso on the descending trefoil shadow, k = 0, then the r1 on the curl
+# it leaves: every claim of both records is checked, down to the empty diagram.
+rc, out, _ = run(PROVE, [PASS_LASSO])
+check(rc == 0, "pass_lasso: exit 0", out)
+check("#verify step 0 result: VERIFIED (port-by-port" in out
+      and "#verify step 0 trace: VERIFIED (1 crossings expected, 1 found)" in out
+      and "#verify step 1 trace: VERIFIED (0 crossings expected, and the"
+          " stream ends)" in out,
+      "pass_lasso: result, trace, and the r1 after it all VERIFIED", out)
+drc, dout, derr = run(DRAW, ["--trace", "--verify"], read(PASS_LASSO))
+check(drc == 0 and "#verify step 0 drawing: VERIFIED (both deletions)"
+      in dout + derr,
+      "pass_lasso: knoodledraw draws the lasso and checks both deletions",
+      f"exit {drc}\n{derr}")
+check("descriptor: MISMATCH" not in out and "UNCHECKED (AfterDiagram" not in out,
+      "pass_lasso: the coinciding anchors are neither refused nor skipped", out)
+
+# A lasso whose corridor crosses two arcs, on a random projection.
+rc, out, _ = run(PROVE, [PASS_LASSO_CORRIDOR])
+check(rc == 0 and "descriptor: MISMATCH" not in out,
+      "pass_lasso_corridor: a lasso with k = 2 is well formed", out)
+drc, dout, derr = run(DRAW, ["--trace", "--verify"], read(PASS_LASSO_CORRIDOR))
+check(drc == 0 and "#verify step 0 drawing: VERIFIED (both deletions)"
+      in dout + derr,
+      "pass_lasso_corridor: the corridor lasso draws, both deletions check",
+      f"exit {drc}\n{derr}")
+
+# ... and what NSI2 still refuses. Each is a one-record stream on a snapshot
+# the tampered move is otherwise legal on.
+LASSO_MOVE = "#move kind=pass strand=1,3,5 depart=1 cross= land=5"
+LASSO_K2 = "#move kind=pass strand=15,17,19 depart=14 cross=1:o,12:o land=18"
+for path, old, new, why, label in [
+    # middlepass keeps the distinct-anchors clause (Theorem B not re-ratified).
+    (PASS_LASSO, LASSO_MOVE, LASSO_MOVE.replace("kind=pass", "kind=middlepass"),
+     "allowed for kind=pass, not for kind=middlepass",
+     "a lasso as kind=middlepass"),
+    # The strand runs back through its own tail anchor (crossing 3).
+    (PASS_LASSO_CORRIDOR, LASSO_K2,
+     "#move kind=pass strand=1,3,5,7 depart=0 cross=0:o,14:o land=7",
+     "is also an interior crossing of the strand",
+     "an anchor that is also an interior crossing (NSI2)"),
+    # A lasso whose corridor visits face 3 twice: it was well formed, and
+    # AfterDiagram's result had a different HOMFLY polynomial.
+    (PASS_LASSO_CORRIDOR, LASSO_K2,
+     "#move kind=pass strand=15,17,19 depart=15 cross=4:o,9:o land=19",
+     "visits face", "a corridor that revisits a face"),
+]:
+    stream = tampered(path, old, new)
+    if path == PASS_LASSO:
+        stream = "\n\n".join(records_of(stream)[:2]) + "\n"   # record 0 alone
+    rc, out, _ = run(PROVE, [], stream)
+    check(rc == 1 and "#verify step 0 descriptor: MISMATCH" in out and why in out,
+          f"{label}: descriptor MISMATCH, exit 1", out)
+    drc, _, derr = run(DRAW, ["--trace", "--verify"], stream)
+    check(drc == 1 and why in derr,
+          f"{label}: knoodledraw refuses it too, for the same reason",
+          f"exit {drc}\n{derr}")
 
 # A transversal that heals into a curl at crossing 91 (arcs 125 -> 126 -> 127
 # through two interior crossings of W), crossed twice by the corridor.

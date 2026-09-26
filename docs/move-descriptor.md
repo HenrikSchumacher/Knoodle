@@ -225,10 +225,15 @@ entirely over or entirely under everything it crosses.
 2. `L(cross_1) = L(depart)`, and `L(cross_{i+1}) = R(cross_i)` for each
    consecutive pair — each crossing departs from the face the previous one
    arrived in.
-3. `L(land) = R(cross_k)` (or `= L(depart)` if `k = 0`).
+3. `L(land) = R(cross_k)` (or `= L(depart)` if `k = 0`). For `pass`, the
+   corridor is also **face-simple**: the faces `F_0, …, F_k` are pairwise
+   distinct.
 4. `L(depart)` has the strand's **first** arc on its boundary, and `L(land)`
-   has its **last** arc on its boundary. Also, the two anchors must be
-   distinct crossings.
+   has its **last** arc on its boundary. For `pass`: **neither anchor is an
+   interior crossing of the strand** (NSI₂), and the two anchors **may** be
+   the same crossing (a *lasso*); a strand that is its whole component,
+   closing up on its own branch at the anchor, is refused. For `middlepass`:
+   the two anchors must be distinct crossings.
 5. All over/under tags equal, and equal to the strand's own role: W must run
    uniformly over, or uniformly under, at its interior crossings, and the tags
    must say which. A pass move slides a strand; it cannot turn an over-strand
@@ -276,10 +281,47 @@ would change the diagram at a crossing the move promised not to touch. That
 is precisely the failure mode a picture of a pass move is meant to catch, so
 it belongs in well-formedness rather than in soundness.
 
-The distinct-anchors clause excludes the case where the strand leaves and
-returns to the same crossing (an R_I curl at the end of a strand, and its
-relatives). Both junctions would then be quadrants of one crossing and "which
-port" stops being well posed; rather than pick one, consumers refuse.
+**Anchors (NSI₂, 2026-09-25).** Until ROUND-24 check 4 also required the two
+anchors to be distinct crossings, on the grounds that with one crossing at
+both ends "which port" stops being well posed. It does not: the two junctions
+are **different ports** of the anchor I, the tail port of the first arc and
+the head port of the last, each named by the strand's own darcs, and
+`depart`/`land` each still pick one of the two quadrants flanking their own
+port. `AfterDiagram` repoints I's Out port and its In port separately, so it
+needed no change. Proposition C′, re-ratified by JHC on 2026-09-25 (middlestrands
+`cpp-design/slide-realization-theorem.md` §5.2, `c0bff9c`), has exactly three
+hypotheses: a strand (check 1), uniform (check 5), and NSI₂, i.e. neither
+anchor is an interior crossing. Its proof keeps W* away from both anchors, so
+whether they are one crossing never enters. So for `pass` the clause is now
+NSI₂, which cuts both ways:
+
+- It **admits** the lasso. On a knot, k = 0 always leaves a curl at I, which
+  an `r1` then removes. The lasso matters: it is the only move that reduces
+  the descending trefoil shadow (crossings O O O U U U), where 194 of
+  middlestrands' 197 quiescent unknots stopped (ROUND-24 §2).
+- It **refuses** a strand that passes back through its own anchor. The old
+  clause let that through whenever the anchors were distinct, and C′ does not
+  cover it.
+
+One sub-case is refused although C′ covers it: a link strand that uses every
+arc of its component, so that both ports at I lie on one branch and I's other
+branch belongs to another component. No emitter needs it, and for a knot NSI₂
+already makes it impossible. `middlepass` keeps the distinct-anchors clause:
+Theorem B has not been re-ratified for coinciding anchors. Fixtures:
+`test/pass_lasso.trace` (their reproducer: k = 0, then the r1) and
+`test/pass_lasso_corridor.trace` (a lasso whose corridor crosses two arcs).
+
+**Face-simple corridors (2026-09-25).** A face chain (checks 2–3) is not
+automatically an embedded arc. If the corridor passes through one face twice
+and the two passages' ends interleave round that face's boundary, the corridor
+must cross itself. No descriptor names that crossing, and `AfterDiagram` does
+not make it. Measured on 30 random 12-gon projections, 89 of about 28,000
+well-formed passes changed the HOMFLY polynomial, and every one of them
+revisited a face; after the check, 0 of 26,976 did. C′'s reading of a
+corridor is proved for face-simple routes (ROUND-24 §6(c)), and a
+shortest-path search never revisits a face, so nothing an emitter wants is
+excluded. `middlepass` is already covered by its witness: V0 reports
+`UNCHECKED` on a revisit.
 
 Every check is O(local) against the snapshot; a verifier needs `LeftDarc`
 orbits and nothing else. A descriptor that passes all checks is a
@@ -664,9 +706,12 @@ face touches an anchor twice); any darc naming the correct face is legal.
 ## Step kind: `r1` (curl removal)
 
 An R1 step removes a curl: a loop arc, together with the crossing it closes on.
-It is **not** a pass move, and the pass grammar refuses it by name — check 4's
-distinct-anchors clause exists precisely to exclude "an R_I curl at the end of a
-strand, and its relatives". So it gets its own kind, and a simpler contract.
+It is **not** a pass move: a pass keeps its anchors, and removing a curl
+destroys the crossing the curl closes on. (Check 4's old distinct-anchors
+clause used to say so by name. Since NSI₂ a pass MAY start and end at one
+crossing, the lasso, but it still leaves that crossing standing, often
+as a fresh curl for an r1 to remove.) So it gets its own kind, and a simpler
+contract.
 
 ```
 #move kind=r1 loop=<da>

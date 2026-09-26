@@ -253,11 +253,54 @@ namespace Knoodle
             const Int tail_anchor = DarcTailCrossing(pd,strand.front());
             const Int head_anchor = DarcHeadCrossing(pd,strand.back());
 
-            if( tail_anchor == head_anchor )
+            // -- check 4 (cont.): the anchors. For `pass` this is NSI₂ --
+            //    neither anchor is an interior crossing of the strand -- and
+            //    the anchors MAY coincide: a lasso, which leaves crossing I by
+            //    the first arc's port and comes back by the last arc's, two
+            //    different ports of I. Proposition C′ as re-ratified 2026-09-25
+            //    (middlestrands §5.2, c0bff9c) has exactly these hypotheses;
+            //    its proof keeps W* away from both anchors, so whether they are
+            //    one crossing never enters (ROUND-24). The lasso is the only
+            //    move that reduces the descending trefoil shadow.
+            //
+            //    `middlepass` keeps the distinct-anchors clause: Theorem B has
+            //    not been re-ratified for coinciding anchors.
+            if( middlepassQ )
             {
-                return fail("tail and head anchors are the same crossing"
-                    " (strand closes on itself; R_I curls and friends are not"
-                    " supported)");
+                if( tail_anchor == head_anchor )
+                {
+                    return fail("tail and head anchors are the same crossing"
+                        " (allowed for kind=pass, not for kind=middlepass)"
+                        " (check 4)");
+                }
+            }
+            else
+            {
+                for( std::size_t i = 0; i + 1 < m; ++i )
+                {
+                    const Int x = DarcHeadCrossing(pd,strand[i]);
+                    if( (x == tail_anchor) || (x == head_anchor) )
+                    {
+                        return fail("anchor crossing " + Tools::ToString(x)
+                            + " is also an interior crossing of the strand: the"
+                              " strand passes back through its own anchor (NSI2,"
+                              " check 4)");
+                    }
+                }
+
+                // A lasso whose two ports at I lie on ONE branch: the strand
+                // is its whole component, and I's other branch belongs to
+                // another component. C′ covers it, but nobody needs it, and
+                // for a knot NSI₂ already makes it impossible (ROUND-24 §4).
+                if( (tail_anchor == head_anchor)
+                    && (pd.NextArc(ArcOf(strand.back()),DirOf(strand.back()))
+                        == ArcOf(strand.front()))
+                    && (DirOf(strand.back()) == DirOf(strand.front())) )
+                {
+                    return fail("the strand is its whole component: it closes up"
+                        " on its own branch at crossing "
+                        + Tools::ToString(tail_anchor) + " (check 4)");
+                }
             }
 
             // -- check 6: the corridor may not be longer than the strand.
@@ -373,6 +416,33 @@ namespace Knoodle
             else if( F_dep != F_land )
             {
                 return fail("no crossings but L(depart) != L(land) (check 3)");
+            }
+
+            // -- check 3 (cont.): for `pass`, the corridor visits no face
+            //    twice. A face chain is not an embedded arc: two passages
+            //    through one face whose ends interleave round its boundary
+            //    must cross each other, a crossing no descriptor names and
+            //    `AfterDiagram` does not make. Measured 2026-09-25 on 30
+            //    random 12-gon projections: of ~28,000 well-formed passes,
+            //    89 changed the HOMFLY polynomial, and every one of them
+            //    revisited a face; no face-simple one did. Proposition C′'s
+            //    reading is proved for face-simple routes (ROUND-24 §6(c)),
+            //    and a shortest-path search never revisits a face, so nothing
+            //    an emitter legitimately wants is excluded. (`middlepass` is
+            //    covered by its witness: V0 is UNCHECKED on a revisit.)
+            if( !middlepassQ )
+            {
+                std::vector<Int> F;
+                F.reserve(k + 1);
+                F.push_back(F_dep);
+                for( Int da : cross ) { F.push_back(RightFace(pd,da)); }
+                std::sort(F.begin(), F.end());
+                const auto dup = std::adjacent_find(F.begin(), F.end());
+                if( dup != F.end() )
+                {
+                    return fail("the corridor visits face " + Tools::ToString(*dup)
+                        + " twice; a pass corridor must be face-simple (check 3)");
+                }
             }
 
             // -- check 4: `depart` must be a darc OF W's first arc, and `land`
