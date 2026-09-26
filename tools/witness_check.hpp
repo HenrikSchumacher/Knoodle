@@ -123,13 +123,23 @@ struct Sides_T
 
 /*!@brief Rebuild both sides of the move's loop. False, with a reason, when the
  * reconstruction does not apply (see the restrictions above).
+ *
+ * `facesQ` is for the exterior tools (tools/exterior_thread.hpp, knoodledraw's
+ * `outside=`), which need SIDES but not Theorem B. It drops the NSI check --
+ * a lasso's anchors coincide, and NSI₂ is well-formedness's business -- and
+ * admits a corridor that crosses W (Proposition C′). W* + corridor then has a
+ * double point at each such hit and its complement more than two regions; the
+ * two SIDES are the checkerboard classes (middlestrands ROUND-24 §6(b)), which
+ * are the winding number mod 2. Side 0 is numbered exactly as below, so on a
+ * simple loop both modes agree. V0 keeps the strict mode.
  */
 template<class PD_T>
 bool ReconstructSides(
     const PD_T &                                          pd,
     const Knoodle::PassDescriptor<typename PD_T::Int> &  mv,
     Sides_T<PD_T> &                                       out,
-    std::string &                                         why )
+    std::string &                                         why,
+    bool                                                  facesQ = false )
 {
     using Int    = typename PD_T::Int;
     using Desc_T = Knoodle::PassDescriptor<Int>;
@@ -151,6 +161,7 @@ bool ReconstructSides(
             + " diagram components; a loop in one says nothing about the others";
         return false;
     }
+    if( !facesQ )
     {
         // Theorem B needs W's crossings c_0, ..., c_m pairwise distinct (NSI).
         // Well-formedness asks only for distinct arcs and distinct anchors, and
@@ -344,11 +355,67 @@ bool ReconstructSides(
     std::sort(roots.begin(), roots.end());
     roots.erase(std::unique(roots.begin(), roots.end()), roots.end());
 
-    if( roots.size() != 2 )
+    if( !facesQ && (roots.size() != 2) )
     {
         why = "the loop W + corridor leaves " + std::to_string(roots.size())
             + " regions, not two";
         return false;
+    }
+
+    // ---- checkerboard: the regions on the two sides of every stretch of the
+    //      loop are in different classes. On a simple loop that is just "the
+    //      two regions"; with double points it is the winding number mod 2. ---
+    std::vector<signed char> colour (Z(n_frag), static_cast<signed char>(-1));
+    {
+        std::vector<std::vector<Int>> adj (Z(n_frag));
+        auto link = [&]( Int f1, Int f2 )
+        {
+            const Int r1 = find(f1), r2 = find(f2);
+            adj[Z(r1)].push_back(r2);
+            adj[Z(r2)].push_back(r1);
+        };
+        for( Int a = 0; a < n_a; ++a )
+        {
+            if( !pd.ArcActiveQ(a) ) { continue; }
+            for( int half = 0; half < 2; ++half )
+            {
+                if( loopQ(a,half) ) { link(frag_of_half(a,half,1), frag_of_half(a,half,0)); }
+            }
+        }
+        for( std::size_t i = 0; i <= k; ++i ) { link(F[i], n_f + Int(i)); }
+
+        std::vector<Int> queue { roots.front() };
+        colour[Z(roots.front())] = 0;
+        for( std::size_t q = 0; q < queue.size(); ++q )
+        {
+            const Int r = queue[q];
+            for( Int s : adj[Z(r)] )
+            {
+                if( s == r )
+                {
+                    why = "one region lies on both sides of the loop";
+                    return false;
+                }
+                if( colour[Z(s)] < 0 )
+                {
+                    colour[Z(s)] = static_cast<signed char>(1 - colour[Z(r)]);
+                    queue.push_back(s);
+                }
+                else if( colour[Z(s)] == colour[Z(r)] )
+                {
+                    why = "the regions of W + corridor are not 2-colourable";
+                    return false;
+                }
+            }
+        }
+        for( Int r : roots )
+        {
+            if( colour[Z(r)] < 0 )
+            {
+                why = "a region of W + corridor touches no stretch of the loop";
+                return false;
+            }
+        }
     }
 
     auto region = [&]( Int a, int half ) -> Int
@@ -370,12 +437,16 @@ bool ReconstructSides(
         cur = pd.NextArc(cur, PD_T::Head);
     }
     const Int root0 = region(cur, in_route[Z(cur)] ? 0 : -1);
+    auto sideOf = [&]( Int r ) -> signed char
+    {
+        return (colour[Z(find(r))] == colour[Z(root0)]) ? 0 : 1;
+    };
 
     out.frag = frag;
     out.frag_side.assign(Z(n_frag), static_cast<signed char>(-1));
     for( Int i = 0; i < n_frag; ++i )
     {
-        out.frag_side[Z(i)] = (find(i) == root0) ? 0 : 1;
+        out.frag_side[Z(i)] = sideOf(i);
     }
     out.loop_half.assign(Z(Int(2) * n_a), char(0));
     for( Int a = 0; a < n_a; ++a )
@@ -397,12 +468,12 @@ bool ReconstructSides(
         {
             for( int half = 0; half < 2; ++half )
             {
-                out.side_of[Z(PieceKey(a,half))] = (region(a,half) == root0) ? 0 : 1;
+                out.side_of[Z(PieceKey(a,half))] = sideOf(region(a,half));
             }
         }
         else
         {
-            out.side_of[Z(PieceKey(a,-1))] = (region(a,-1) == root0) ? 0 : 1;
+            out.side_of[Z(PieceKey(a,-1))] = sideOf(region(a,-1));
         }
     }
 

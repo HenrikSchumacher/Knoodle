@@ -23,7 +23,9 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <limits>
+#include <map>
 #include <set>
 #include <sstream>
 #include <string>
@@ -551,11 +553,15 @@ Canvas_T<PD_T> RenderPassView(
 // else.
 //==============================================================================
 
-/*!@brief The cells of the closed curve formed by W (between the dots) and the
- * corridor, in canvas coordinates.
+/*!@brief The closed curve formed by W (between the dots) and the corridor, as
+ * ordered walks in canvas coordinates: the corridor, then each W arc's span.
+ * Consecutive cells of a walk are grid neighbours, and the walks share their
+ * end cells (the dots, and W's interior crossings), so their unit steps are
+ * exactly the curve's. Two DIFFERENT walks are not joined: their ends can be
+ * neighbours by accident (a lasso's two dots), which is not a step.
  */
 template<class PD_T>
-std::vector<std::array<typename PD_T::Int,2>> PassLoopCells(
+std::vector<std::vector<std::array<typename PD_T::Int,2>>> PassLoopWalks(
     Knoodle::OrthoDraw<PD_T>& H,
     const typename Knoodle::OrthoDecorate<PD_T>::PassMove_T& move,
     const typename Knoodle::OrthoDecorate<PD_T>::PassRoute_T& pr,
@@ -565,10 +571,11 @@ std::vector<std::array<typename PD_T::Int,2>> PassLoopCells(
     using Deco_T = Knoodle::OrthoDecorate<PD_T>;
     using Cell_T = std::array<Int,2>;
 
-    std::vector<Cell_T> loop;
+    std::vector<std::vector<Cell_T>> walks;
 
     // The corridor, dots included (they are its first and last cells).
-    for (const auto& c : pr.route.path) { loop.push_back(Cell_T{c[0], c[1]}); }
+    walks.emplace_back();
+    for (const auto& c : pr.route.path) { walks.back().push_back(Cell_T{c[0], c[1]}); }
 
     auto pos_of = [](const std::vector<ArcCell_T<PD_T>>& cells,
                      const std::array<Int,2>& dot) -> Int
@@ -619,12 +626,31 @@ std::vector<std::array<typename PD_T::Int,2>> PassLoopCells(
             if (fwd) { hi = hp; } else { lo = hp; }
         }
 
+        walks.emplace_back();
         for (const auto& c : cells)
         {
-            if (c.pos >= lo && c.pos <= hi) { loop.push_back(Cell_T{c.x, c.y}); }
+            if (c.pos >= lo && c.pos <= hi) { walks.back().push_back(Cell_T{c.x, c.y}); }
         }
     }
 
+    return walks;
+}
+
+/*!@brief The cells of the closed curve formed by W (between the dots) and the
+ * corridor, in canvas coordinates.
+ */
+template<class PD_T>
+std::vector<std::array<typename PD_T::Int,2>> PassLoopCells(
+    Knoodle::OrthoDraw<PD_T>& H,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassMove_T& move,
+    const typename Knoodle::OrthoDecorate<PD_T>::PassRoute_T& pr,
+    typename PD_T::Int margin)
+{
+    std::vector<std::array<typename PD_T::Int,2>> loop;
+    for (const auto& w : PassLoopWalks<PD_T>(H, move, pr, margin))
+    {
+        loop.insert(loop.end(), w.begin(), w.end());
+    }
     return loop;
 }
 
@@ -703,10 +729,13 @@ void PassLoopFlood(
  *
  * Sides are numbered as in the feasibility witness
  * (`KnoodleWitness::ReconstructSides`), which is the numbering `#view ...
- * outside=<s>` uses. The drawn side is read off the picture: every cell of a
- * piece whose side is known votes for that side, and the pieces the grid's
- * outside reaches decide. Returns 0 or 1, or -1 with a reason when the sides
- * cannot be rebuilt or the picture does not decide.
+ * outside=<s>` uses. The drawn side is read off the picture: a side is a
+ * checkerboard class (the winding number mod 2; ROUND-24 §6(b)), so each
+ * piece cell, with the parity of a ray from it to infinity, names the
+ * unbounded side -- and every piece must name the same one. That covers a
+ * corridor that crosses W, whose loop has double points and more than two
+ * regions. Returns 0 or 1, or -1 with a reason when the sides cannot be
+ * rebuilt or the picture does not decide.
  */
 template<class PD_T>
 int PassUnboundedSide(
@@ -720,37 +749,66 @@ int PassUnboundedSide(
 {
     using Int    = typename PD_T::Int;
     using Deco_T = Knoodle::OrthoDecorate<PD_T>;
+    using Cell_T = std::array<Int,2>;
 
-    for (Int da : move.cross)
-    {
-        for (Int ws : move.strand)
-        {
-            if (Deco_T::PassMove_T::ArcOf(da) == Deco_T::PassMove_T::ArcOf(ws))
-            {
-                why = "the corridor crosses W itself (Proposition C'), so the"
-                      " loop has no two sides";
-                return -1;
-            }
-        }
-    }
-
+    // Faces mode: a lasso's anchors may coincide, and a corridor that crosses
+    // W (Proposition C′) is admitted -- its sides are the checkerboard classes.
     KnoodleWitness::Sides_T<PD_T> sides;
-    if (!KnoodleWitness::ReconstructSides(pd, move, sides, why))
+    if (!KnoodleWitness::ReconstructSides(pd, move, sides, why, true))
     {
         why = "the move's two sides cannot be rebuilt: " + why;
         return -1;
     }
 
-    std::vector<char> wall, outside;
-    PassLoopFlood<PD_T>(H, move, pr, margin, n_x, n_y, wall, outside);
-
-    auto idx = [n_x, n_y](Int x, Int y) -> std::size_t {
-        return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y));
+    // A side is a checkerboard class of the loop's complement: the winding
+    // number mod 2, and infinity's is 0. So every piece decides on its own --
+    // cast a ray from it and count the loop's crossings. From a cell centre
+    // (x, y) the ray runs right along y + 1/2, so it meets the loop's vertical
+    // unit steps and never a vertex; a double point (the corridor crossing W)
+    // needs no care. On a simple loop this is inside/outside, as before.
+    std::map<Int, std::vector<Int>> rows;   // y -> x of each step (x,y)-(x,y+1)
+    std::set<Cell_T> on_loop;
+    {
+        std::map<Cell_T, int> ends;
+        for (const auto& w : PassLoopWalks<PD_T>(H, move, pr, margin))
+        {
+            if (w.empty()) continue;
+            ++ends[w.front()];
+            ++ends[w.back()];
+            for (std::size_t i = 0; i < w.size(); ++i)
+            {
+                on_loop.insert(w[i]);
+                if (i + 1 == w.size()) break;
+                const Int dx = w[i+1][0] - w[i][0], dy = w[i+1][1] - w[i][1];
+                if (std::abs(dx) + std::abs(dy) != Int(1))
+                {
+                    why = "internal: the loop W + corridor takes a step that is"
+                          " not to a neighbouring cell";
+                    return -1;
+                }
+                if (dx == 0) { rows[std::min(w[i][1], w[i+1][1])].push_back(w[i][0]); }
+            }
+        }
+        for (const auto& e : ends)
+        {
+            if (e.second % 2)
+            {
+                why = "internal: the loop W + corridor does not close at ("
+                    + std::to_string(e.first[0]) + "," + std::to_string(e.first[1]) + ")";
+                return -1;
+            }
+        }
+        for (auto& r : rows) { std::sort(r.second.begin(), r.second.end()); }
+    }
+    auto parity = [&rows](Int x, Int y) -> int
+    {
+        const auto it = rows.find(y);
+        if (it == rows.end()) return 0;
+        const auto& v = it->second;
+        return static_cast<int>((v.end() - std::upper_bound(v.begin(), v.end(), x)) % 2);
     };
 
-    // votes[s][u]: cells of side-s pieces that are unbounded (u = 1) or not.
-    std::size_t votes[2][2] = {{0,0},{0,0}};
-
+    int unbounded = -1;
     const Int n_a = pd.MaxArcCount();
 
     for (Int a = 0; a < n_a; ++a)
@@ -784,8 +842,7 @@ int PassUnboundedSide(
         for (const auto& c : cells)
         {
             if (c.x < 0 || c.x >= n_x - 1 || c.y < 0 || c.y >= n_y) continue;
-            const auto i = idx(c.x, c.y);
-            if (wall[i]) continue;
+            if (on_loop.count(Cell_T{c.x, c.y})) continue;
 
             const Int key = (cut < 0)
                 ? KnoodleWitness::PieceKey(a, -1)
@@ -793,25 +850,18 @@ int PassUnboundedSide(
             const signed char sd = sides.side_of[static_cast<std::size_t>(key)];
             if (sd < 0) continue;
 
-            ++votes[static_cast<int>(sd)][outside[i] ? 1 : 0];
+            const int u = static_cast<int>(sd) ^ parity(c.x, c.y);
+            if (unbounded < 0) { unbounded = u; }
+            else if (unbounded != u)
+            {
+                why = "internal: the pieces disagree about which side of the"
+                      " loop is unbounded (piece of arc " + std::to_string(a) + ")";
+                return -1;
+            }
         }
     }
 
-    if (votes[0][1] && votes[1][1])
-    {
-        why = "internal: pieces of both sides of the loop are on the"
-              " picture's unbounded side";
-        return -1;
-    }
-    if (votes[0][0] && votes[1][0] && !votes[0][1] && !votes[1][1])
-    {
-        why = "internal: pieces of both sides of the loop are enclosed by it";
-        return -1;
-    }
-    if (votes[0][1]) return 0;
-    if (votes[1][1]) return 1;
-    if (votes[0][0]) return 1;
-    if (votes[1][0]) return 0;
+    if (unbounded >= 0) return unbounded;
 
     why = "no piece off the loop is drawn, so the picture decides nothing";
     return -1;

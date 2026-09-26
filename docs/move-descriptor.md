@@ -1184,6 +1184,26 @@ The sides are the two sides of the loop W + corridor, numbered as in the
 feasibility witness ("Sides", above; the same rule for a uniform `pass`, which
 has no `#feas`). `outside=<s>` names the side infinity is on.
 
+**When the corridor crosses W** (Proposition C′), W* + corridor is a closed
+curve with a transverse double point at each hit, and its complement has more
+than two regions. They still fall into exactly **two classes**: colour the
+regions so that neighbours across any stretch of the curve differ. This is
+middlestrands' definition (ROUND-24 §6(b)), and the class of a point is its
+winding number mod 2. The classes are the sides, numbered as above: side 0 is
+the class of the first non-W piece past W's orientation-last arc. On a simple
+loop that is the same numbering, so nothing changes there. Every rule below
+applies unchanged, and the same holds for a **lasso**, whose loop never
+reaches the anchor (the corners lie inside the end arcs).
+
+Why a uniform pass is still never `behind` when its loop is not simple: a
+homotopy from W* to the corridor sweeps each point a number of times equal to
+its winding number plus a constant, and one wrap of the sphere changes the
+constant by one. So the odd-swept class can be either class, and the natural
+choice (constant 0) is the class of odd winding, which does not hold infinity.
+middlestrands' *swept class* is the one swung through first at the departure
+corner. It is intrinsic, but it names a particular homotopy, and nothing here
+depends on it.
+
 - **The exterior lies on one side.** Infinity is there; `outside=` may be given
   and must name that side.
 - **The corridor cuts the exterior** (it is in C). The exterior has a part on
@@ -1213,11 +1233,20 @@ may choose otherwise as long as it flags `behind` truthfully):
 
 `seam` on a record says: this exterior is *not* the image of the previous
 record's; the renderer cuts. It is never forced by the moves above, so it
-marks a limitation, not a topological event: today, a corridor that crosses W
-itself (Proposition C′ -- W + corridor is then not a simple loop, and has no
-two sides), and a move that frees a crossingless loop. Across a `redraw` no
-continuity is claimed and no `seam` is written: the lift/rotate/flatten
-animation carries that transition.
+marks a limitation, not a topological event. Today that means a move that frees
+a crossingless loop, and a move whose after-diagram has two or more faces
+bounded only by new labels (the threader cannot tell them apart). A corridor
+that crosses W was a seam until 2026-09-26 and is not one any more: it has two
+sides (above). Across a `redraw` no continuity is claimed and no `seam` is
+written: the lift/rotate/flatten animation carries that transition.
+
+How knoodledraw reads the side back off its own picture, which is what
+`outside=` binds it to: the class of a piece is known combinatorially, and in
+the drawing a ray from any of that piece's cells, cast along a half-integer
+row, crosses the drawn loop an odd number of times exactly when the piece is
+in the class that does not hold infinity. Every piece must agree. This is the
+same test for a simple loop and for one with double points, and it replaced a
+flood that assumed two regions.
 
 ### Who chooses
 

@@ -335,25 +335,14 @@ bool PassAfterImage(
     using Desc_T = Knoodle::PassDescriptor<Int>;
     auto Z = []( Int i ) { return static_cast<std::size_t>(i); };
 
-    // A corridor that crosses W (Proposition C', uniform pass only) makes
-    // W + corridor a non-simple loop, which has no two sides. Say so before
-    // the flood does, less helpfully.
-    for( Int da : mv.cross )
-    {
-        for( Int ws : mv.strand )
-        {
-            if( Desc_T::ArcOf(da) == Desc_T::ArcOf(ws) )
-            {
-                out.why = "the corridor crosses W itself (Proposition C'), so"
-                          " the move has no two sides; face tracking does not"
-                          " cover that yet";
-                return false;
-            }
-        }
-    }
-
+    // Faces mode: a corridor that crosses W (Proposition C′) makes W* +
+    // corridor a curve with double points, and its two sides are the
+    // checkerboard classes of the complement (ROUND-24 §6(b)); a lasso's
+    // coinciding anchors are fine, the loop never reaches them. Deleting W
+    // below still joins exactly the fragments beside W's loop halves: where
+    // the corridor crossed W it now runs straight through.
     KnoodleWitness::Sides_T<PD_T> sides;
-    if( !KnoodleWitness::ReconstructSides(pd, mv, sides, out.why) )
+    if( !KnoodleWitness::ReconstructSides(pd, mv, sides, out.why, true) )
     {
         out.why = "the move's two sides cannot be rebuilt: " + out.why;
         return false;
