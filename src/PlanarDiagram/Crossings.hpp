@@ -20,17 +20,19 @@ Int CrossingCount() const
  *
  * The `c`-th crossing is stored in `Crossings()(c,i,j)`, `i = 0,1`, `j = 0,1` as follows; note that we defined Booleans `Out = 0`, `In = 0`, `Left = 0`, `Right = 0` for easing the indexing:
  *
- *    Crossings()(c,0,0)                   Crossings()(c,0,1)
- *           ==              O       O            ==
- * Crossings()(c,Out,Left)    ^     ^   Crossings()(c,Out,Right)
- *                             \   /
- *                              \ /
- *                               X
- *                              / \
- *                             /   \
- *    Crossings()(c,1,0)      /     \      Crossings()(c,1,1)
- *           ==              O       O            ==
- *  Crossings()(c,In,Left)               Crossings()(c,In,Right)
+ * @verbatim
+      Crossings()(c,0,0)                   Crossings()(c,0,1)
+             ==              O       O            ==
+   Crossings()(c,Out,Left)    ^     ^   Crossings()(c,Out,Right)
+                               \   /
+                                \ /
+                                 X
+                                / \
+                               /   \
+      Crossings()(c,1,0)      /     \      Crossings()(c,1,1)
+             ==              O       O            ==
+    Crossings()(c,In,Left)               Crossings()(c,In,Right)
+   @endverbatim
  *
  *  Beware that a crossing can have various states, such as `CrossingState_T::LeftHanded()`, `CrossingState_T::RightHanded()`, or `CrossingState_T::Inactive()`. This information is stored in the corresponding entry of `CrossingStates()`.
  */
@@ -194,6 +196,13 @@ Int NextCrossing( const Int c, bool io, bool side ) const
     AssertCrossing(c_next);
     
     return c_next;
+}
+
+Int FirstActiveCrossing() const
+{
+    Int c = 0;
+    while( !CrossingActiveQ(c) && (c < max_crossing_count) ) { ++c; }
+    return c;
 }
 
 

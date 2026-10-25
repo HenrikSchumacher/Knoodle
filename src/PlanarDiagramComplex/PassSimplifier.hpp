@@ -20,6 +20,7 @@ namespace Knoodle
         }
     }
     
+    /*!brief A class to perform simplifying pass moves on a `PlanarDiagramComplex`.*/
     template<IntQ Int_>
     class alignas( ObjectAlignment ) PassSimplifier final
     {
@@ -27,13 +28,10 @@ namespace Knoodle
         
 //        static_assert(SignedIntQ<Int_>,"");
         
-        using Int  = Int_;
-        
+        using Int        = Int_;
+        using Class_T    = PassSimplifier;
         using PDC_T      = PlanarDiagramComplex<Int>;
         using PD_T       = PDC_T::PD_T;
-        
-//        // We need a signed integer type for Mark_T because we use "negative" values to indicate directions in the dual graph.
-//        using Mark_T     = ToSigned<Int>;
         
         using CrossingContainer_T        = typename PD_T::CrossingContainer_T;
         using ArcContainer_T             = typename PD_T::ArcContainer_T;
@@ -47,7 +45,7 @@ namespace Knoodle
         
         static constexpr bool debugQ     = false;
         static constexpr bool mult_compQ = true;
-        static constexpr bool lutQ       = true; // Always activate this; switch is only for test reasons.
+        static constexpr bool lutQ       = true; // Always activate this; switch is only for test purposes.
 //        static constexpr bool lutQ       = false;
         
         static constexpr bool Head  = PD_T::Head;
@@ -97,9 +95,9 @@ namespace Knoodle
         
     private:
 
-        PDC_T & TOOLS_RESTRICT pdc;
+        PDC_T & pdc;
 
-        PD_T  * TOOLS_RESTRICT pd = nullptr;
+        PD_T  * pd = nullptr;
 
         Int    max_crossing_count = 0;
         Int    max_arc_count      = 0;
@@ -117,7 +115,7 @@ namespace Knoodle
         
         ArcDataContainer_T D_data;  // Two Int per (dual) arc: The first one stores the current marker and some bits for left/right direction and one for traversal backward/forward direction.
         
-        Int * TOOLS_RESTRICT dA_left;
+        Int * dA_left;
         
 //        Tensor1<Int,Int> path;
         Path_T  path_0;
@@ -371,14 +369,17 @@ namespace Knoodle
     
     public:
         
-        static constexpr std::string MethodName( const std::string & tag )
+        using Msgr = Tools::Messenger<Class_T>;
+        
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("PassSimplifier")
+            return ct_string("PassSimplifier")
                 + "<" + TypeName<Int>
                 + ">";
         }

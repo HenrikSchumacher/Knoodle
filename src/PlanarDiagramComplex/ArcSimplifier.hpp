@@ -11,8 +11,19 @@
 
 namespace Knoodle
 {
+    
     template<IntQ Int> class PlanarDiagramComplex;
 
+    /*!@brief A class to perform simplifying local moves on a `PlanarDiagramComplex`. This is somewhat obsolete now as `PassSimplifier` is able to apply a strictly greater set of simplifications, and is so efficient so that there is little point in running `ArcSimplifier` first. We keep `ArcSimplifier` for test purposes, though.
+     *
+     * @tparam Int_ Integer type used for indices.
+     *
+     * @tparam optimization_level_ Value `k` means: only search for patterns of up to `min(4,k)` crossings.
+     *
+     * @tparam mult_compQ_ Whether to expect the diagrams to have more than one connected component.
+     *
+     * @tparam forwardQ_ Whether we run through the diagram in forward direction.
+     */
     template<
         IntQ Int_,
         UInt8 optimization_level_ = 4,
@@ -23,10 +34,10 @@ namespace Knoodle
     {
     public:
         
-        using Int  = Int_;
-        
-        using PDC_T = PlanarDiagramComplex<Int>;
-        using PD_T  = PDC_T::PD_T;
+        using Int     = Int_;
+        using Class_T = ArcSimplifier;
+        using PDC_T   = PlanarDiagramComplex<Int>;
+        using PD_T    = PDC_T::PD_T;
         
         using CrossingContainer_T       = typename PD_T::CrossingContainer_T;
         using CrossingStateContainer_T  = typename PD_T::CrossingStateContainer_T;
@@ -67,15 +78,15 @@ namespace Knoodle
         
     private:
         
-        PDC_T & TOOLS_RESTRICT pdc;
-        PD_T  & TOOLS_RESTRICT pd;
+        PDC_T & pdc;
+        PD_T  & pd;
         
-        CrossingContainer_T      & TOOLS_RESTRICT C_arcs;
-        CrossingStateContainer_T & TOOLS_RESTRICT C_state;
+        CrossingContainer_T      & C_arcs;
+        CrossingStateContainer_T & C_state;
     
-        ArcContainer_T           & TOOLS_RESTRICT A_cross;
-        ArcStateContainer_T      & TOOLS_RESTRICT A_state;
-        ArcColorContainer_T      & TOOLS_RESTRICT A_color;
+        ArcContainer_T           & A_cross;
+        ArcStateContainer_T      & A_state;
+        ArcColorContainer_T      & A_color;
         
         Settings_T settings;
         
@@ -147,6 +158,7 @@ namespace Knoodle
         
     public:
 
+        /*!@brief The main routine. Search and simplify local patterns as they come.*/
         Size_T operator()()
         {
             if( pd.InvalidQ() ) { return 0; }
@@ -209,10 +221,13 @@ namespace Knoodle
             return counter;
         }
         
+        /*!@brief Return how many pattern checks have been performed since this instance of `ArcSimplifier` has been constructed.*/
         Size_T TestCount() const
         {
             return test_count;
         }
+        
+    private:
         
         void CreateUnlinkFromArc( const Int a_ )
         {
@@ -264,18 +279,21 @@ namespace Knoodle
         
     public:
         
-        static constexpr std::string MethodName( const std::string & tag )
+        using Msgr = Tools::Messenger<Class_T>;
+        
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("ArcSimplifier")
+            return ct_string("ArcSimplifier")
                 + "<" + TypeName<Int>
-                + "," + ToString(optimization_level)
-                + "," + ToString(mult_compQ)
-                + "," + ToString(forwardQ)
+            + "," + to_ct_string(optimization_level)
+            + "," + to_ct_string(mult_compQ)
+            + "," + to_ct_string(forwardQ)
                 + ">";
         }
 

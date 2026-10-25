@@ -108,7 +108,7 @@ friend InString & operator>>( InString & s, PD_T & pd )
     return s;
 }
 
-///*!@brief Import from `std::basic_istream`, using default options.*/
+////*!@brief Import from `std::basic_istream`, using default options.*/
 //template<typename C, typename T>
 //friend std::basic_istream<C,T> & operator>>(
 //    std::basic_istream<C,T> & stream, const PD_T & pd

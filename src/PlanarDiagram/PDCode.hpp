@@ -343,9 +343,7 @@ public:
  *  @param pd_code Integer array of length `5 * crossing_count_`.
  *  There is one 5-tuple for each crossing.
  *  The first 4 entries in each 5-tuple store the actual PD code.
- *  The last entry gives the handedness of the crossing:
- *    >  0 for a right-handed crossing
- *    <= 0 for a left-handed crossing
+ *  The last entry gives the handedness of the crossing: `>0` for a right-handed crossing, `<= 0` for a left-handed crossing
  *
  *  @param crossing_count Number of crossings in the diagram.
  *

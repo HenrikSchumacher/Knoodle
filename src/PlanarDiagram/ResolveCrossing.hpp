@@ -1,9 +1,21 @@
 private:
 
 /*!@brief **UNSAFE.** Checks whether crossing `c` is active. In the affirmative case it tries to resolves the crossing in an orientation-preserving way by (i) reconnecting the two incoming arcs to the corresponding tips of the outgoing arcs, (ii) deactivating the old outgoing arcs, and (iii) deactivating the crossing `c`; the return value will be `true`. Otherwise, this routine just returns `false` (keeping the internal cache as it was).
- * Since PlanarDiagram cannot handle trivial unlinks disconnected from the rest, the routine will also fail if this surgery ever leads to such trivial unlink.
-
+ * Since `PlanarDiagram` cannot handle trivial unlinks disconnected from the rest, the routine will also fail if this surgery ever leads to such trivial unlink.
  *
+ * CAUTION: The arc colors will likely be inconsistent after this!
+ *
+ * The crossing is resolved in the following way.
+ * @verbatim
+         O     O              O     O
+          ^   ^               ^     ^
+           \ /                |     |
+            X c       =>      |     |
+           / \                |     |
+          /   \               |     |
+         O     O              O     O
+   @endverbatim
+*
  * @param c The crossing to be resolved.
  *
  * @tparam warningQ If set to `true`, then a warning is issued whenever `c` is deactivated. Default is `false`.
@@ -17,8 +29,15 @@ bool ResolveCrossing_Private( const Int c )
     
     PD_ASSERT(CrossingActiveQ(c));
     
-    if( CrossingActiveQ(c) )
+    if( !CrossingActiveQ(c) )
     {
+        if constexpr ( warningQ )
+        {
+            Msgr::wprint("ResolveCrossing_Private", "Crossing ", CrossingString(c), " was already deactivated.");
+        }
+        return false;
+    }
+    
 
 /*        ###O----<----O       O---->----O###
  *               e_0    ^     ^    e_1
@@ -30,76 +49,72 @@ bool ResolveCrossing_Private( const Int c )
  *               e_2    /     \    e_3
  *        ###O---->----O       O----<----O###
 */
-        const Int e_0 = C_arcs(c,Out,Left );
-        const Int e_1 = C_arcs(c,Out,Right);
-        const Int e_2 = C_arcs(c,In ,Left );
-        const Int e_3 = C_arcs(c,In ,Right);
-        
-        if( e_0 == e_2 )
-        {
-//            ++unlink_count;
-//            DeactivateArc(e_0);
-            if constexpr( warningQ )
-            {
-                Msgr::wprint("ResolveCrossing_Private", "This procedure would create a trivial, disconnected unlink. Aborting.");
-            }
-            return false;
-        }
-        else
-        {
-            Reconnect<Head>(e_2,e_0);
-        }
-        
-        if( e_1 == e_3 )
-        {
-//            ++unlink_count;
-//            DeactivateArc(e_1);
-            if constexpr( warningQ )
-            {
-                Msgr::wprint("ResolveCrossing_Private", "This procedure would create a trivial, disconnected unlink. Aborting.");
-            }
-            return false;
-        }
-        else
-        {
-            Reconnect<Head>(e_3,e_1);
-        }
-        
-        DeactivateCrossing(c);
-        
-        /* If e_0 != e_2 and e_1 != e_3, then this should look like this now:
-        //
-        //        ###O----<----+       +---->----O###
-        //                     |       |
-        //                     |       |
-        //                     |       |
-        //                 e_0 ^       ^ e_1
-        //                     |       |
-        //                     |       |
-        //                     |       |
-        //        ###O---->----+       +----<----O###
-        //
-        // In the other case, up to two unlinks might have been created.
-        */
-        
-        return true;
-    }
-    else
+    const Int e_0 = C_arcs(c,Out,Left );
+    const Int e_1 = C_arcs(c,Out,Right);
+    const Int e_2 = C_arcs(c,In ,Left );
+    const Int e_3 = C_arcs(c,In ,Right);
+    
+    if( e_0 == e_2 )
     {
-        if constexpr ( warningQ )
+        if constexpr( warningQ )
         {
-            Msgr::wprint("ResolveCrossing_Private", "Crossing ", CrossingString(c), " was already deactivated.");
+            Msgr::wprint("ResolveCrossing_Private", "This procedure would create a trivial, disconnected unlink. Aborting.");
         }
         return false;
     }
+    
+    if( e_1 == e_3 )
+    {
+        if constexpr( warningQ )
+        {
+            Msgr::wprint("ResolveCrossing_Private", "This procedure would create a trivial, disconnected unlink. Aborting.");
+        }
+        return false;
+    }
+    
+    Reconnect<Head>(e_2,e_0);
+    Reconnect<Head>(e_3,e_1);
+    DeactivateCrossing(c);
+    
+    /* If e_0 != e_2 and e_1 != e_3, then this should look like this now:
+    //
+    //        ###O----<----+       +---->----O###
+    //                     |       |
+    //                     |       |
+    //                     |       |
+    //                 e_0 ^       ^ e_1
+    //                     |       |
+    //                     |       |
+    //                     |       |
+    //        ###O---->----+       +----<----O###
+    //
+    // In the other case, up to two unlinks might have been created.
+    */
+    
+    return true;
 }
 
 
 public:
 
 /*!@brief **UNSAFE.** Checks whether crossing `c` is active. In the affirmative case it to resolves the crossing in an orientation-preserving way by (i) reconnecting the two incoming arcs to the corresponding tips of the outgoing arcs, (ii) deactivating the old outgoing arcs, (iii) deactivating the crossing `c`, and (iv)  clearing the internal cache; the return value will be `true`. Otherwise, this routine just returns `false` (keeping the internal cache as it was).
- *  Since PlanarDiagram cannot handle trivial unlinks disconnected from the rest, the routine will also fail if this surgery ever leads to such trivial unlink.
- *  _Use this with extreme caution as this might invalidate some invariants of the `PlanarDiagram` class._ _Never _ use it in productive code unless you really, really know what you are doing! This feature is highly experimental and we expose it only for debugging purposes and for experiments.
+ *  Since `PlanarDiagram` cannot handle trivial unlinks disconnected from the rest, the routine will also fail if this surgery ever leads to such trivial unlink.
+ *  _Use this with extreme caution as this might invalidate some invariants of the `PlanarDiagram` class._ _Never_ use it in productive code unless you really, really know what you are doing! This feature is highly experimental and we expose it only for debugging purposes and for experiments. This is why we mandate that the use first calls `Unlock` to be able to use this.
+ *
+ *
+ * The crossing is resolved in the following way.
+ * @verbatim
+         O     O              O     O
+          ^   ^               ^     ^
+           \ /                |     |
+            X c       =>      |     |
+           / \                |     |
+          /   \               |     |
+         O     O              O     O
+   @endverbatim
+ *
+ *
+ * CAUTION: The arc colors will likely be inconsistent after this!
  *
  * @param c The crossing to be resolved.
  *

@@ -23,15 +23,15 @@ public:
  * Here, `a` is the first arc in that link component, `lc` is the index of the link component, and `lc_begin` is the number of arcs before this link component.
  *
  * @param arc_fun A function to apply to every visited arc. Its argument pattern depends on `crossingsQ`:
- * If `crossingsQ == false`, then it must be of the pattern
+ * If `crossingsQ == false`, then it must be of the following pattern:
  *
- *      `arc_fun( Int a, Int a_idx, Int lc )`.
+ *      `arc_fun( Int a, Int a_idx, Int lc )`
  *
- * If `crossingsQ == true`, then it must be of the pattern
+ * If `crossingsQ == true`, then it must be of the following pattern:
  *
  *      `arc_fun( Int a,   Int a_idx,   Int  lc,
  *                Int c_0, Int c_0_idx, bool c_0_visited,
- *                Int c_1, Int c_1_idx, bool c_1_visitedQ )`.
+ *                Int c_1, Int c_1_idx, bool c_1_visitedQ )`
  *
  * Here the arguments mean the following:
  *      - `a` is the current arc within the link;

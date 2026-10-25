@@ -30,8 +30,8 @@ static PD_T Anello( const Int color )
     return pd;
 }
 
-/*!@brief Return a farfalla of color specified by `color`.*/
-static PD_T Farfalla( const Int color )
+/*!@brief Return a farfalla of color specified by `color` and `handedness`.*/
+static PD_T Farfalla( const Int color, const CrossingState_T handedness = CrossingState_T::RightHanded )
 {
     // needs to know all member variables
     
@@ -41,7 +41,7 @@ static PD_T Farfalla( const Int color )
     
     constexpr Int C[1][2][2] = {{{1, 0}, {1, 0}}};
     pd.C_arcs.Read(&C[0][0][0]);
-    pd.C_state[0] = CrossingState_T::RightHanded;
+    pd.C_state[0] = handedness;
 //
     constexpr Int A[2][2] = {{0, 0}, {0, 0}};
     pd.A_cross.Read(&A[0][0]);

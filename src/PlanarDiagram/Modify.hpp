@@ -180,7 +180,18 @@ Int CreateLoop( const Int a, const bool side, CrossingState_T handedness )
 }
 
 
-/*!@brief **UNSAFE.** Cut arcs `a` and `b` and reconnect the tail of `a` with the tip of `b` and the tail of `b` with the tip of `a`.*/
+/*!@brief **UNSAFE.** Swaps tge head of arcs `a` and `b`, effectively implementing connected sum.
+ *
+ * CAUTION: color information is not adjusted, so the resulting diagram may be color-invalid if `a` and `b` have different colors.
+ *
+ * @verbatim
+     O     O        O<----O
+     ^     |           b
+    a|     |b   =>
+     |     v           a
+     O     O        O---->O
+   @endverbatim
+ */
 template<bool silentQ = false, bool assertsQ = true>
 bool Connect( const Int a, const Int b )
 {
@@ -277,7 +288,16 @@ bool Connect( const Int a, const Int b )
 private:
 
 /*!@brief **UNSAFE.** Swaps heads or tails of the arcs a and b. No checks are performed and we do not use the locking mechanism. This is why this is a private routine.
- */
+ *
+ * Behavior in case of `headtail == Head`:
+ * @verbatim
+    O     O        O<----O
+    ^     |           b
+   a|     |b   =>
+    |     v           a
+    O     O        O---->O
+   @endverbatim
+*/
 
 void ArcSwap_Private( const Int a, const bool headtail, const Int b )
 {
@@ -292,7 +312,16 @@ void ArcSwap_Private( const Int a, const bool headtail, const Int b )
 }
 
 /*!@brief **UNSAFE.** Swaps heads or tails of the arcs a and b. No checks are performed and we do not use the locking mechanism. This is why this is a private routine.
- */
+ *
+ * Behavior in case of `headtail == Head`:
+ * @verbatim
+    O     O        O<----O
+    ^     |           b
+   a|     |b   =>
+    |     v           a
+    O     O        O---->O
+   @endverbatim
+*/
 
 template<bool headtail>
 void ArcSwap_Private( const Int a, const Int b )

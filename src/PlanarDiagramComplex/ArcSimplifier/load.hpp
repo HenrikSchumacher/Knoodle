@@ -1,3 +1,5 @@
+private:
+
 void load_c_0()
 {
     PD_DPRINT( "load_c_0()" );

@@ -1,3 +1,5 @@
+private:
+
 bool R_Ia_above()
 {
     PD_DPRINT("R_Ia_above()");

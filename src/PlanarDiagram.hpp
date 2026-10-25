@@ -280,7 +280,6 @@ namespace Knoodle
             crossing_count       = CountActiveCrossings();
             arc_count            = CountActiveArcs();
             
-
             if( (crossing_count == 0)
                 && proven_minimalQ
                 && (last_color_deactivated != Uninitialized)
@@ -292,7 +291,8 @@ namespace Knoodle
             
             if( compressQ )
             {
-                this->template Compress_Private<true>();
+                // We don't want recoloring of arcs; we want to use the input colors.
+                this->template Compress_Private<false>();
             }
         }
         
@@ -449,6 +449,7 @@ namespace Knoodle
 
 
 #include "PlanarDiagram/ResolveCrossing.hpp"
+#include "PlanarDiagram/KauffmanSplit.hpp"
 //#include "PlanarDiagram/VerticalSummandQ.hpp"
         
 #include "PlanarDiagram/DepthFirstSearch.hpp"

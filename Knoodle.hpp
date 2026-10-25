@@ -97,3 +97,6 @@ namespace Knoodle
 #include "src/ConformalBarycenterSampler.hpp"
 
 #include "src/Klut.hpp"
+
+
+#include "src/KnotInvariants/LaurentPolynomial.hpp"

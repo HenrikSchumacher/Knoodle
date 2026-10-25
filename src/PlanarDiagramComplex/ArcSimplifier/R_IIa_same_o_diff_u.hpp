@@ -1,3 +1,5 @@
+private:
+
 bool R_IIa_same_o_diff_u()
 {
     PD_DPRINT("\tR_IIa_same_o_diff_u()");

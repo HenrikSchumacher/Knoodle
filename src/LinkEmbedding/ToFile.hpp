@@ -86,7 +86,7 @@ bool WriteToOutString( mref<OutString> s, const bool colorQ = true ) const
 }
 
 
-/*!@brief Export to `OutString`, using default options.*/
+/*!@brief Export to `OutString`, using default options. This allows using instances of `LinkEmbedding_T` as arguments to `print` and `logprint`.*/
 friend OutString & operator<<( OutString & s, const LinkEmbedding_T & L )
 {
     (void)L.WriteToOutString(s);

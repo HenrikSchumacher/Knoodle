@@ -3,7 +3,7 @@ public:
 struct Path_T
 {
     // The first and last arc in a path_container are the start and end arcs.
-    // All the other arcs path_container stand for arcs we need to cross.
+    // All the other arcs in path_container stand for arcs we need to cross.
     Tensor1<Int,Int> container;
     Int size = 0;
     

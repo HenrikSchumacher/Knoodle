@@ -39,19 +39,24 @@ PD_T CreateCompressed_Private()
             return Anello(FirstColor());
         }
     }
+  
     
     if( FarfallaQ() )
     {
+        // TODO: We keep the handedness of farfalla as is for the sake of correct computation of the Kauffman bracket.
+        
+        Int c = FirstActiveCrossing();
+        
         if constexpr ( recolorQ )
         {
-            return Farfalla(Int(0));
+            return Farfalla( Int(0), CrossingState(c) );
         }
         else
         {
-            return Farfalla(FirstColor());
+            return Farfalla( A_color[C_arcs(c,Out,Left)], CrossingState(c) );
         }
     }
-    
+
 //    constexpr bool debugQ = true;
     
     PD_T pd;

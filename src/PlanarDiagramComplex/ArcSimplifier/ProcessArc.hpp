@@ -4,6 +4,11 @@ private:
     {
         if( !pd.ArcActiveQ(a_) ) return false;
         
+        if constexpr ( optimization_level < UInt8(1) )
+        {
+            return false;
+        }
+        
         ++test_count;
         a = a_;
         

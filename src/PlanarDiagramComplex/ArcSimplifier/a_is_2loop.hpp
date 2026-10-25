@@ -1,3 +1,5 @@
+private:
+
 bool a_is_2loop()
 {
     PD_PRINT("a_is_2loop()");

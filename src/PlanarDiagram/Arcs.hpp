@@ -14,17 +14,27 @@ Int ArcCount() const
     return arc_count;
 }
 
+
+Int FirstActiveArc() const
+{
+    Int a = 0;
+    while( !ArcActiveQ(a) && (a < max_arc_count) ) { ++a; }
+    return a;
+}
+
 /*!@brief Expose the arcs that connect the crossings as a reference to a constant `Tensor2` object, which is basically a heap-allocated matrix. Read only.
  *
  * This reference is constant because things can go wild (segfaults, infinite loops) if we allow the user to mess with this data.
  *
  * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way; note that we defined Booleans `Tail = 0` and `Head = 1` for easing the indexing:
  *
- *                        a
- *    Arcs()(a,0) X -------------> X Arcs()(a,0)
- *        ==                             ==
- * Arcs()(a,Tail)                    Arcs()(a,Head)
- *
+ *@verbatim
+                          a
+      Arcs()(a,0) X -------------> X Arcs()(a,0)
+          ==                             ==
+   Arcs()(a,Tail)                    Arcs()(a,Head)
+   @endverbatim
+ *   
  * This means that arc `a` leaves crossing `GetArc()(a,Tail)` and enters `GetArc()(a,Head)`.
  *
  * Beware that an arc can have various states such as `CrossingState_T::Active` or `CrossingState_T::Deactivated`. This information is stored in the corresponding entry of `ArcStates()`.

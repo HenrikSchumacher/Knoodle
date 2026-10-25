@@ -272,7 +272,7 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
             // If anything upstream changed, then we should better continue working on the split diagrams.
             if( args.splitQ )
             {
-                change_count += Split( std::move(pd), pd_todo, proven_reducedQ );
+                change_count += Split_impl( std::move(pd), pd_todo, proven_reducedQ );
                 continue;
             }
             else
@@ -298,7 +298,7 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
                     }
                 }
                 
-                change_count += Split( std::move(pd), reapr_list, proven_reducedQ );
+                change_count += Split_impl( std::move(pd), reapr_list, proven_reducedQ );
                 
                 // If proven_reducedQ, then Split already filtered out minimal diagrams.
                 while( !reapr_list.empty() )
@@ -333,10 +333,10 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
         }
         else
         {
-            // If no changes were found and if we do not want reapr, then we cannot do better than splittinh and pushing to pd_done.
+            // If no changes were found and if we do not want reapr, then we cannot do better than splitting and pushing to pd_done.
             if( args.splitQ )
             {
-                change_count += Split( std::move(pd), pd_done, proven_reducedQ );
+                change_count += Split_impl( std::move(pd), pd_done, proven_reducedQ );
             }
             else
             {
@@ -625,7 +625,7 @@ Size_T Rattle(
         
         if( args.splitQ )
         {
-            split_count = Split( std::move(pd_1), pd_todo, proven_reducedQ );
+            split_count = Split_impl( std::move(pd_1), pd_todo, proven_reducedQ );
         }
         else
         {
@@ -665,14 +665,7 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
             if( !pd.CheckAll() ) { pd_eprint(MethodName(tag), ": CheckAll() failed when pushed to pd_done."); };
         }
         
-        if( pd.crossing_count < pd.max_crossing_count )
-        {
-            PushDiagramDone( pd.CreateCompressed() );
-        }
-        else
-        {
-            PushDiagramDone( std::move(pd) );
-        }
+        PushDiagramDone( std::move(pd) );
         
         pd = PD_T::InvalidDiagram();
         return {Size_T{0},Size_T{0}};

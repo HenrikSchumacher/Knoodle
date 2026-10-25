@@ -1,34 +1,42 @@
-public:
+private:
 
 // TODO: We could build the check of being alternating directly into the construction loop.
 
-// Caution: Split is allowed to push minimal diagrams to pd_done.
+// Caution: Split_impl is allowed to push minimal diagrams to pd_done.
 
-Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_reducedQ = false )
+template<bool compressQ = true>
+Size_T Split_impl(
+    PD_T && pd,
+    mref<PDC_T::PD_List_T> pd_output,
+    const bool proven_reducedQ = false
+)
 {
-    TOOLS_PTIMER(timer,MethodName("Split") + "(pd,pd_output," + ToString(proven_reducedQ) + ")");
+    [[maybe_unused]] auto tag = MethodName("Split_impl") + "<" + to_ct_string(compressQ) + ">";
+    
+    TOOLS_PTIMER(timer,std::string(tag) + "(pd,pd_output," + ToString(proven_reducedQ) + ")");
     
 //    constexpr bool debugQ = true;
     
     if constexpr ( debugQ )
     {
-        Msgr::wprint("Split","Debug mode active.");
+        Msgr::wprint(tag,"Debug mode active.");
     }
     
     if( pd.InvalidQ() ) { return Size_T{0}; }
-    
-    if( pd.crossing_count <= Int{1} )
-    {
-        CreateUnlink(pd.last_color_deactivated);
-        pd = PD_T::InvalidDiagram();
-        return Size_T{1};
-    }
+  
+    // We don't like this because it makes farfalle disappear. Bad for bracket polynomial.
+//    if( pd.crossing_count <= Int{1} )
+//    {
+//        CreateUnlink(pd.last_color_deactivated);
+//        pd = PD_T::InvalidDiagram();
+//        return Size_T{1};
+//    }
     
     if( pd.proven_minimalQ )
     {
         if constexpr ( debugQ )
         {
-            if( !pd.CheckAll() ) { pd_eprint(MethodName("Split"),": pd.CheckAll() failed when pushed to pd_output."); };
+            if( !pd.CheckAll() ) { pd_eprint(tag,": pd.CheckAll() failed when pushed to pd_output."); };
         }
         
         pd_done.push_back( std::move(pd) );
@@ -118,20 +126,28 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
     {
         const Int i_begin = dc_lc_ptr[dc    ];
         const Int i_end   = dc_lc_ptr[dc + 1];
-        
-        Int dc_arc_count = 0;
-        
-        for( Int i = i_begin; i < i_end; ++i )
-        {
-            const Int lc = dc_lc_idx[i];
-            
-            const Int j_begin = lc_arc_ptr[lc    ];
-            const Int j_end   = lc_arc_ptr[lc + 1];
-            
-            dc_arc_count += j_end - j_begin;
-        }
 
-        PD_T pd_new (dc_arc_count/Int{2},true);
+        PD_T pd_new;
+        
+        if constexpr( compressQ )
+        {
+            Int dc_arc_count = 0;
+            
+            for( Int i = i_begin; i < i_end; ++i )
+            {
+                const Int lc = dc_lc_idx[i];
+                const Int j_begin = lc_arc_ptr[lc    ];
+                const Int j_end   = lc_arc_ptr[lc + 1];
+                dc_arc_count += j_end - j_begin;
+            }
+            
+            pd_new = PD_T(dc_arc_count/Int{2},true);
+        }
+        else
+        {
+            pd_new = PD_T(pd.max_arc_count);
+        }
+        
         Int a_counter = 0;
         Int c_counter = 0;
         
@@ -147,18 +163,29 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
                 // Traversing link component `j`.
                 const Int a = lc_arc_idx[j];
 
+                Int a_label;
+                
+                if constexpr( compressQ )
+                {
+                    a_label = a_counter;
+                }
+                else
+                {
+                    a_label = a;
+                }
+                
                 if constexpr (debugQ)
                 {
                     if( a_counter >= pd_new.MaxArcCount() )
                     {
                         TOOLS_LOGDUMP(a_counter);
                         TOOLS_LOGDUMP(pd_new.MaxArcCount());
-                        pd_eprint(MethodName("Split"),"a_counter >= pd_new.MaxArcCount()");
+                        pd_eprint(tag,"a_counter >= pd_new.MaxArcCount()");
                     }
                 }
                 
-                pd_new.A_state[a_counter] = pd.A_state[a];
-                pd_new.A_color[a_counter] = pd.A_color[a];
+                pd_new.A_state[a_label] = pd.A_state[a];
+                pd_new.A_color[a_label] = pd.A_color[a];
                 
                 const Int  c_0    = pd.A_cross(a,Tail);
                 const bool side_0 = pd.ArcSide(a,Tail);
@@ -173,7 +200,16 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
                 // TODO: I think we can get rid of this check.
                 if( !PD_T::ValidIndexQ(C_labels[c_0]) )
                 {
-                    c_0_label = C_labels[c_0] = c_counter;
+                    if constexpr( compressQ )
+                    {
+                        c_0_label = c_counter;
+                    }
+                    else
+                    {
+                        c_0_label = c_0;
+                    }
+                    
+                    C_labels[c_0] = c_0_label;
                     pd_new.C_state[c_0_label] = pd.C_state[c_0];
                     ++c_counter;
                 }
@@ -189,16 +225,25 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
                     {
                         TOOLS_LOGDUMP(c_0_label);
                         TOOLS_LOGDUMP(pd_new.MaxCrossingCount());
-                        pd_eprint(MethodName("Split"),"c_0_label >= pd_new.MaxCrossingCount()");
+                        pd_eprint(tag,"c_0_label >= pd_new.MaxCrossingCount()");
                     }
                 }
                 
-                pd_new.C_arcs(c_0_label,Out,side_0) = a_counter;
-                pd_new.A_cross(a_counter,Tail) = c_0_label;
+                pd_new.C_arcs(c_0_label,Out,side_0) = a_label;
+                pd_new.A_cross(a_label,Tail) = c_0_label;
                 
                 if( !PD_T::ValidIndexQ(C_labels[c_1]) )
                 {
-                    c_1_label = C_labels[c_1] = c_counter;
+                    if constexpr( compressQ )
+                    {
+                        c_1_label = c_counter;
+                    }
+                    else
+                    {
+                        c_1_label = c_1;
+                    }
+                    
+                    C_labels[c_1] = c_1_label;
                     pd_new.C_state[c_1_label] = pd.C_state[c_1];
                     ++c_counter;
                 }
@@ -214,11 +259,11 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
                     {
                         TOOLS_LOGDUMP(c_1_label);
                         TOOLS_LOGDUMP(pd_new.MaxCrossingCount());
-                        pd_eprint("c_1_label >= pd_new.MaxCrossingCount()");
+                        pd_eprint(tag,"c_1_label >= pd_new.MaxCrossingCount()");
                     }
                 }
-                pd_new.C_arcs(c_1_label,In,side_1) = a_counter;
-                pd_new.A_cross(a_counter,Head) = c_1_label;
+                pd_new.C_arcs(c_1_label,In,side_1) = a_label;
+                pd_new.A_cross(a_label,Head) = c_1_label;
                 ++a_counter;
             }
         }
@@ -233,37 +278,37 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
             if( pd_new.CrossingCount() <= Int{0} )
             {
                 TOOLS_LOGDUMP(pd_new.CrossingCount());
-                pd_eprint(MethodName("Split"),"pd_new.crossing_count <= Int{0}");
+                pd_eprint(tag,"pd_new.crossing_count <= Int{0}");
             }
             
             if( pd_new.CrossingCount() != pd_new.max_crossing_count )
             {
                 TOOLS_LOGDUMP(pd_new.CrossingCount());
                 TOOLS_LOGDUMP(pd_new.MaxCrossingCount());
-                pd_eprint(MethodName("Split"),"pd_new.crossing_count != pd_new.max_crossing_count");
+                pd_eprint(tag,"pd_new.crossing_count != pd_new.max_crossing_count");
             }
             
             if( pd_new.ArcCount() != pd_new.MaxArcCount() )
             {
                 TOOLS_LOGDUMP(pd_new.ArcCount());
                 TOOLS_LOGDUMP(pd_new.MaxArcCount());
-                pd_eprint(MethodName("Split"),"pd_new.arc_count != pd_new.MaxArcCount()");
+                pd_eprint(tag,"pd_new.arc_count != pd_new.MaxArcCount()");
             }
             
             if( pd_new.ArcCount() != Int{2} * pd_new.CrossingCount() )
             {
                 TOOLS_LOGDUMP(pd_new.ArcCount());
                 TOOLS_LOGDUMP(Int{2} * pd_new.CrossingCount());
-                pd_eprint(MethodName("Split"),"pd_new.ArcCount() != Int{2} * pd_new.CrossingCount()");
+                pd_eprint(tag,"pd_new.ArcCount() != Int{2} * pd_new.CrossingCount()");
             }
             
             if( !pd_new.CheckAll() )
             {
-                pd_eprint(MethodName("Split"),"pd_new.CheckAll() failed.");
+                pd_eprint(tag,"pd_new.CheckAll() failed.");
             }
         }
         
-        PD_PRINT(MethodName("Split") + ": Split off a diagram with " + ToString(pd_new.CrossingCount()) + " crossings.");
+        PD_PRINT(tag + ": Split off a diagram with " + ToString(pd_new.CrossingCount()) + " crossings.");
         
         PD_ASSERT( pd_new.CrossingCount() > Int{0} );
         
@@ -284,9 +329,14 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
     return ToSize_T(dc_count);
 }
 
-/*!@brief Split off all connected components in each diagram and append them as new diagrams. This routine works in-place. Returns the number of splits performed.*/
+public:
 
-Size_T Split()
+/*!@brief Split off all connected components in each diagram and append them as new diagrams. This routine works in-place. Returns the number of splits performed.
+ *
+ * @param compressQ If set to true, then in each created diagram the crossings and arcs are relabed to produce a compressed diagram. Otherwise, each created diagram may have deactivated crossings and arcs and it will require as much space as the diagram it is split off. The latter may be useful for label-preserving drawing with `OrthoDraw`. In order to minimize memory consumption, the default is set to `compressQ = true`.
+ */
+
+Size_T Split( const bool compressQ = true )
 {
     TOOLS_PTIMER(timer,MethodName("Split"));
     PD_ASSERT(pd_done.empty());
@@ -295,9 +345,19 @@ Size_T Split()
     
     Size_T split_count = 0;
     
-    for( PD_T & pd : pd_list )
+    if( compressQ )
     {
-        split_count += Split( std::move(pd), pd_done );
+        for( PD_T & pd : pd_list )
+        {
+            split_count += this->template Split_impl<true>( std::move(pd), pd_done );
+        }
+    }
+    else
+    {
+        for( PD_T & pd : pd_list )
+        {
+            split_count += this->template Split_impl<false>( std::move(pd), pd_done );
+        }
     }
     
     using std::swap;
@@ -311,13 +371,16 @@ Size_T Split()
     return split_count;
 }
 
-/*!@brief Return a new `PlanarDiagramComplex` in which all diagrams are connected. */
+/*!@brief Return a new `PlanarDiagramComplex` in which all diagrams are connected.
+ *
+ * @param compressQ If set to true, then in each created diagram the crossings and arcs are relabed to produce a compressed diagram. Otherwise, each created diagram may have deactivated crossings and arcs and it will require as much space as the diagram it is split off. The latter may be useful for label-preserving drawing with `OrthoDraw`. In order to minimize memory consumption, the default is set to `compressQ = true`.
+ */
 
-PDC_T Splitting() const
+PDC_T Splitting( const bool compressQ = true ) const
 {
     PDC_T pdc_new (*this);
     
-    pdc_new.Split();
+    pdc_new.Split(compressQ);
     
     return pdc_new;
 }

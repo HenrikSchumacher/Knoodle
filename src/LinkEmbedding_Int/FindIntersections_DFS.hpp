@@ -111,13 +111,14 @@ void FindIntersectingEdges_DFS() const
             if constexpr ( mortonQ )
             {
                 ComputeEdgeEdgeIntersection(
-                    p[T.NodeBegin(i)],
-                    p[T.NodeBegin(j)]
+                    p[T.NodeBegin(i)], p[T.NodeBegin(j)]
                 );
             }
             else
             {
-                ComputeEdgeEdgeIntersection(T.NodeBegin(i), T.NodeBegin(j));
+                ComputeEdgeEdgeIntersection(
+                    T.NodeBegin(i), T.NodeBegin(j)
+                );
             }
         }
     }

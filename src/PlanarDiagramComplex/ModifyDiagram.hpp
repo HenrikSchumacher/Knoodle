@@ -70,19 +70,32 @@ Int CreateLoop(
 }
 
 
-/*!@brief **UNSAFE.** Cut the two arcs `a` and `b` and reconnect.*/
+/*!@brief **UNSAFE.** Swaps the head of arcs `a` and `b`.
+ *
+ * CAUTION: color information is not adjusted, so the resulting diagram may be color-invalid if `a` and `b` have different colors.
+ *
+ * @verbatim
+    O     O        O<----O
+    ^     |           b
+   a|     |b   =>
+    |     v           a
+    O     O        O---->O
+   @endverbatim
+ */
 template<bool silentQ = false, bool assertsQ = true>
-bool Connect( const Int diagram_idx, const Int a, const Int b )
+bool Connect( const Int idx, const Int a, const Int b )
 {
+    if( LockedQ() ) { LockMessage("Connect"); return false; }
+    
     TOOLS_PTIMER(timer,MethodName("Connect"));
 
-    PD_T & pd = Diagram_Private(diagram_idx);
+    PD_T & pd = Diagram_Private(idx);
     
     if( pd.InvalidQ() )
     {
         if constexpr (!silentQ)
         {
-            Msgr::wprint("Connect", "Diagram(",diagram_idx,") is invalid. Doing nothing.");
+            Msgr::wprint("Connect", "Diagram(",idx,") is invalid. Doing nothing.");
         }
         return false;
     }

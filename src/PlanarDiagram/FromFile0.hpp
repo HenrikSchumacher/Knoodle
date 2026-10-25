@@ -1,7 +1,7 @@
 public:
 
 /*!@brief **EXPERIMENTAL** Reconstruct a diagram from the text written by
- * `ToInternalStateString` / `WriteToOutString0`.
+ * `WriteToOutString0`.
  *
  * Deliberately tolerant: it looks up each field by name and ignores
  * everything else, so a `PrintInfo` dump lifted out of a log file -- which

@@ -119,7 +119,8 @@ namespace Knoodle
             pd_list.reserve( ToSize_T(unlink_count) + Size_T(validQ) );
             pd_done.reserve( ToSize_T(unlink_count) + Size_T(validQ) );
 
-            PushDiagramDone( std::move(pd) );
+            // We suppress compression here because it may startle users. Morever, they can compress the input diagram pd if they want.
+            PushDiagramDone( std::move(pd), false );
             
             for( Int unlink = 0; unlink < unlink_count; ++unlink )
             {
@@ -133,7 +134,8 @@ namespace Knoodle
         /*!@brief Initialize from a `PlanarDiagram` and a list of unlink colors, taking ownership.*/
         explicit PlanarDiagramComplex( std::pair<PD_T,Tensor1<Int,Int>> && pd_and_unlink_colors )
         :   PlanarDiagramComplex(
-                std::move(pd_and_unlink_colors.first), std::move(pd_and_unlink_colors.second)
+                std::move(pd_and_unlink_colors.first),
+                std::move(pd_and_unlink_colors.second)
             )
         {}
         
@@ -343,23 +345,23 @@ namespace Knoodle
         
     private:
         
-        mref<PD_T> Diagram_Private( Int i )
+        mref<PD_T> Diagram_Private( Int idx )
         {
-            if( i < Int(0) )
+            if( idx < Int(0) )
             {
-                Msgr::eprint("Diagram", "Index  i < 0. Returning invalid diagram.");
+                Msgr::eprint("Diagram", "Index  idx < 0. Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
             
-            if( i >= DiagramCount() )
+            if( idx >= DiagramCount() )
             {
-                Msgr::eprint("Diagram", "Index i = ", i, " is greater equal DiagramCount() = ", DiagramCount(), ". Returning invalid diagram.");
+                Msgr::eprint("Diagram", "Index idx = ", idx, " is greater equal DiagramCount() = ", DiagramCount(), ". Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
             
-            return pd_list[ToSize_T(i)];
+            return pd_list[ToSize_T(idx)];
         }
         
     public:
@@ -527,13 +529,15 @@ namespace Knoodle
             }
         }
         
-        void PushDiagramDone( PD_T && pd )
+        void PushDiagramDone( PD_T && pd, const bool compressQ = true )
         {
             if( pd.ValidQ() )
             {
-                // It is maybe a good idea to compress here so save memory.
-                if( pd.crossing_count < pd.max_crossing_count ) { pd.Compress(); }
-                
+//                // It is maybe a good idea to compress here so save memory.
+                if( compressQ && (pd.crossing_count < pd.max_crossing_count) )
+                {
+                    pd.Compress();
+                }
                 pd_done.push_back( std::move(pd) );
             }
             else
@@ -623,15 +627,8 @@ namespace Knoodle
                 
                 if(  pd.ProvenMinimalQ() )
                 {
-                    if( pd.ArcCount() < pd.MaxArcCount() )
-                    {
-                        PushDiagramDone( pd.CreateCompressed() );
-                    }
-                    else
-                    {
-                        pd.ClearCache();
-                        PushDiagramDone( std::move(pd) );
-                    }
+                    pd.ClearCache();
+                    PushDiagramDone( std::move(pd) );
                     continue;
                 }
                 
@@ -663,17 +660,8 @@ namespace Knoodle
                     continue;
                 }
                 
-                if( pd.CrossingCount() < pd.MaxCrossingCount() )
-                {
-                    PushDiagramDone( pd.CreateCompressed() );
-                    continue;
-                }
-                else
-                {
-                    pd.ClearCache();
-                    PushDiagramDone( std::move(pd) );
-                    continue;
-                }
+                pd.ClearCache();
+                PushDiagramDone( std::move(pd) );
                 
             }  // while( !pd_todo.empty() )
             
