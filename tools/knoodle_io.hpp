@@ -819,6 +819,114 @@ void LogError(const std::string& msg)
 }
 
 /**
+ * @brief Canonical form of a command-line token, for tolerant matching.
+ *
+ * Lowercase, with '-' and '_' dropped, so that every spelling that differs only
+ * in case or separators folds together:
+ *
+ *   --checkerboard-coloring  --CheckerboardColoring  --checkerboard_coloring
+ *       all canonicalize to  "checkerboardcoloring"
+ *
+ * A user who types any of those has said unambiguously what they want, so the
+ * tools serve them rather than complain about the spelling.
+ *
+ * Used for flag NAMES (CanonicalizeFlagSpelling) and for the values of flags
+ * with a fixed vocabulary (TokenIs / MatchToken) -- --format=WL and
+ * --compaction=LENGTH_MCF are as clear as their preferred spellings. It is
+ * never applied to open-ended values: dropping '-' from a path, a PD
+ * descriptor or a negative number would change what they mean.
+ */
+[[maybe_unused]] std::string CanonicalToken(std::string_view name)
+{
+    std::string result;
+    result.reserve(name.size());
+    for (char c : name)
+    {
+        if (c == '-' || c == '_') { continue; }
+        result += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+    return result;
+}
+
+/**
+ * @brief Rewrite one argv entry to the PREFERRED spelling of the flag it names.
+ *
+ * `known` lists a tool's documented flags in their preferred spelling (the one
+ * and only form --help describes). If `arg` names one of them in any spelling
+ * that canonicalizes the same, the preferred spelling is substituted; anything
+ * else is handed back untouched. Run over argv before matching, this buys the
+ * whole parser variant-spelling tolerance without a single comparison site
+ * having to know about it -- and because the substituted name has the preferred
+ * spelling's exact length, offsets into the rewritten argument stay valid.
+ *
+ * Only the flag NAME is folded. Everything right of the first '=' is a value --
+ * a path, a PD descriptor, a highlight list -- where case and punctuation carry
+ * meaning, so it is copied verbatim. Single-dash arguments are left alone too:
+ * they are short flags (-calf) or filenames, not long-flag spellings.
+ *
+ * Deliberately NOT accepted: abbreviations (--checker) and single-dash long
+ * flags (-format=wl). Every accepted spelling maps to exactly one documented
+ * flag, so the mapping is unambiguous today and adding a flag tomorrow cannot
+ * change how an existing spelling parses. An unknown flag comes back verbatim,
+ * so the parser's own error message quotes what the user actually typed.
+ */
+template<typename FlagList>
+[[maybe_unused]] std::string CanonicalizeFlagSpelling(
+    std::string_view arg, const FlagList & known)
+{
+    if (!arg.starts_with("--")) { return std::string(arg); }
+
+    const auto eq = arg.find('=');
+    const std::string canon = CanonicalToken(arg.substr(0, eq));
+
+    for (std::string_view flag : known)
+    {
+        if (CanonicalToken(flag) != canon) { continue; }
+
+        std::string result(flag);
+        if (eq != std::string_view::npos) { result += std::string(arg.substr(eq)); }
+        return result;
+    }
+
+    return std::string(arg);
+}
+
+/**
+ * @brief Does `value` name the vocabulary token `token`, in any spelling?
+ *
+ * For flags whose value is drawn from a fixed vocabulary (--format=wl,
+ * --bend-method=mcf, --compaction=length-mcf). Case and '-'/'_' separators are
+ * ignored, so --compaction=LENGTH_MCF and --reapr-energy=TV-CLP are served.
+ *
+ * Only ever call this where the vocabulary IS fixed. A path, a PD descriptor
+ * or a number must be compared verbatim.
+ */
+[[maybe_unused]] bool TokenIs(std::string_view value, std::string_view token)
+{
+    return CanonicalToken(value) == CanonicalToken(token);
+}
+
+/**
+ * @brief Find the preferred spelling of the vocabulary token `value` names.
+ *
+ * Returns the matching entry of `tokens` -- the preferred spelling, as --help
+ * documents it -- or an empty view if `value` names none of them. Use this
+ * rather than TokenIs where the value is STORED and compared again later, so
+ * that what gets stored is the canonical token and every downstream comparison
+ * keeps working unchanged.
+ */
+template<typename TokenList>
+[[maybe_unused]] std::string_view MatchToken(
+    std::string_view value, const TokenList & tokens)
+{
+    for (std::string_view token : tokens)
+    {
+        if (TokenIs(value, token)) { return token; }
+    }
+    return std::string_view{};
+}
+
+/**
  * @brief Trim leading and trailing whitespace from a string.
  */
 std::string Trim(std::string_view s)

@@ -24,12 +24,19 @@ namespace Knoodle
     template<IntQ Int_>
     class alignas( ObjectAlignment ) PassSimplifier final
     {
+        // Test-only: lets `test/oracle_vs_reroute` call `LoadDiagram` and
+        // `Reroute` directly, so `OrthoDecorate::AfterDiagram` can be checked
+        // against the applier on the same move. Reading access only -- the
+        // harness drives the existing routines, it does not reimplement them.
+        // See handoff/reroute-arc-label-aliasing/.
+        friend class PassOracle<Int_>;
+
     public:
-        
+
 //        static_assert(SignedIntQ<Int_>,"");
-        
         using Int        = Int_;
         using Class_T    = PassSimplifier;
+        
         using PDC_T      = PlanarDiagramComplex<Int>;
         using PD_T       = PDC_T::PD_T;
         

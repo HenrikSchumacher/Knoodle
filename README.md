@@ -9,7 +9,7 @@ To use the Knoodle classes in your own programs, clone this repository. To make 
 
     git clone --depth 1 --recurse-submodules --shallow-submodules git@github.com:HenrikSchumacher/Knoodle.git
 
-Knoodle's command line tools _polyfold_, _knoodlesimplify_, _knoodledraw_, and _knoodleidentify_ (but *not* the Knoodle headers themselves) can be installed via _homebrew_ on a wide variety of systems. The native platform is MacOS/Apple Clang. Installation is continuously tested via GitHub Actions on the `ubuntu-latest` and `macos-26` runners, and WSL2 uses the same Linuxbrew path as native Linux. It should install on a wide variety of linux systems with the following commands: 
+Knoodle's command line tools _polyfold_, _knoodlesimplify_, _knoodledraw_, _knoodleidentify_, and _knoodleprove_ (but *not* the Knoodle headers themselves) can be installed via _homebrew_ on a wide variety of systems. The native platform is MacOS/Apple Clang. Installation is continuously tested via GitHub Actions on the `ubuntu-latest` and `macos-26` runners, and WSL2 uses the same Linuxbrew path as native Linux. It should install on a wide variety of linux systems with the following commands: 
 
 ```
 brew tap designbynumbers/cantarellalab
@@ -96,15 +96,17 @@ _PolyFold_ produces a directory containing files named "Tools_Log.txt" (for debu
 
 # Command-line tools
 
-_Knoodle_ ships three command-line knot tools — _knoodlesimplify_, _knoodledraw_, and _knoodleidentify_ — which are installed by the homebrew formula alongside _PolyFold_. They can also be compiled by running make in the tools subdirectory. The three tools share a common set of input formats and are designed to compose as Unix filters, so a typical pipeline looks like:
+_Knoodle_ ships four command-line knot tools — _knoodlesimplify_, _knoodledraw_, _knoodleidentify_, and _knoodleprove_ — which are installed by the homebrew formula alongside _PolyFold_. They can also be compiled by running make in the tools subdirectory. The first three share a common set of input formats and are designed to compose as Unix filters, so a typical pipeline looks like:
 
 ```
 knoodlesimplify --streaming-mode < input.tsv | knoodledraw
 generator | knoodleidentify
 ```
 
+_knoodleprove_ is the odd one out: it reads a **move-trace stream** (the format in `docs/move-descriptor.md`) rather than a diagram, and checks what each recorded move claims — that a record's annotation matches its snapshot, that a move really produces the next record's diagram, and that any feasibility witness holds up. It reports one verdict per claim and exits nonzero if any of them fails. The claim that a *picture* of a move is honest stays with `knoodledraw --trace --verify`.
+
 ## Input formats
-All three tools auto-detect their input. You can give a tool a single file, several files, an entire directory of files, or pipe data to it on stdin. The recognized formats are tsv files with varying number of columns:
+The three diagram tools auto-detect their input. You can give a tool a single file, several files, an entire directory of files, or pipe data to it on stdin. The recognized formats are tsv files with varying number of columns:
 
 |Columns|Meaning|
 |-------|-------|

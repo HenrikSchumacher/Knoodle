@@ -67,8 +67,21 @@ namespace Knoodle
     
     template<IntQ Int> class PlanarDiagram;
     template<IntQ Int> class PlanarDiagramComplex;
+
+    // Test-only harness that compares `OrthoDecorate::AfterDiagram` against
+    // `PassSimplifier::Reroute` on the same pass move. Defined in
+    // `test/pass_oracle.hpp`, never in a shipped translation unit; the friend
+    // declaration in `PassSimplifier` is what it exists for. Henrik approved
+    // the access 2026-08-12 -- see handoff/reroute-arc-label-aliasing/.
+    template<IntQ Int> class PassOracle;
     template<FloatQ Real, IntQ Int, FloatQ BReal> class Reapr;
     template<typename PD_T> class OrthoDraw;
+
+    // Defined downstream (middlestrands project), not in this tree. Declared
+    // here only so PlanarDiagram/PlanarDiagramComplex can befriend it; an
+    // undefined class template that is never instantiated costs nothing.
+    // See handoff/middle-strand-simplifier-friend-access/.
+    template<IntQ Int> class MiddleStrandSimplifier;
 }
 
 #include "src/PlanarDiagramComplex/LoopRemover.hpp"
@@ -77,6 +90,11 @@ namespace Knoodle
 
 #include "src/PlanarDiagram.hpp"
 #include "src/PlanarDiagramComplex.hpp"
+
+// Not included here, to keep compile times down; include them after this file
+// where they are used: src/PassDescriptor.hpp, src/MoveTrace.hpp,
+// src/OrthoDecorate.hpp (the last pulls in PassDescriptor.hpp).
+
 #include "src/OrthoDraw.hpp"
 #include "src/Reapr.hpp"
 

@@ -1,0 +1,57 @@
+#trace v=1
+#step n=0 summand=0
+#comment A LINK redraw: the Hopf link as two lattice squares, colours 3 and 0.
+#comment
+#comment The colours are the trace's own labels, NOT positions: the component
+#comment listed first is colour 3. project(E) is the 2-crossing Hopf diagram;
+#comment rotating by x->y->z->x shows it from a view with 4 crossings (an R2 pair
+#comment appears), still one connected diagram, nothing freed.
+#comment
+#comment The two components are INTERCHANGEABLE (the Hopf link is symmetric), so
+#comment an uncoloured isomorphism would happily swap them. That is what makes
+#comment this the right fixture for check 4: prove_check swaps the colours in
+#comment one snapshot and demands a MISMATCH.
+#comment
+#comment Generated 2026-09-23 by projecting E and R*E with LinkEmbedding4<Int64>
+#comment (the projector knoodleprove trusts). Do not hand-edit a #state block.
+#move kind=redraw rot=0,0,1,1,0,0,0,1,0
+#embedding components=2
+#component color=3 rows=4
+1	1	-1
+1	1	1
+1	3	1
+1	3	-1
+#component color=0 rows=4
+0	0	0
+2	0	0
+2	2	0
+0	2	0
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 2
+crossing_count = 2
+max_arc_count = 4
+arc_count = 4
+C_arcs = {{{3,0},{1,2}},{{1,2},{3,0}}}
+C_state = {1,1}
+A_cross = {{0,1},{1,0},{1,0},{0,1}}
+A_state = {1,1,1,1}
+A_color = {3,3,0,0}
+last_color_deactivated = -1
+proven_minimalQ = 0
+
+#step n=1 summand=0
+#comment project(R*E), colours carried through the rotation.
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 4
+crossing_count = 4
+max_arc_count = 8
+arc_count = 8
+C_arcs = {{{0,6},{5,3}},{{5,1},{0,4}},{{2,4},{7,1}},{{7,3},{2,6}}}
+C_state = {1,1,-1,1}
+A_cross = {{0,1},{1,2},{2,3},{3,0},{2,1},{1,0},{0,3},{3,2}}
+A_state = {1,1,1,1,1,1,1,1}
+A_color = {3,3,3,3,0,0,0,0}
+last_color_deactivated = -1
+proven_minimalQ = 0

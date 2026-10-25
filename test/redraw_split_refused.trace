@@ -1,0 +1,41 @@
+#trace v=1
+#step n=0 summand=0
+#comment NEGATIVE fixture: a redraw that knoodleprove must REFUSE (check 5).
+#comment
+#comment Two copies of one 5-vertex lattice curve, the second lifted 100 in z.
+#comment Down z they lie on top of each other and cross 6 times: one connected
+#comment diagram, which is this record's snapshot, and checks 1-4 pass. Rotated
+#comment by x->y->z->x they are seen down the old y axis, 100 apart: the
+#comment projection falls into two diagram components. What a trace should do
+#comment with a split projection is the open 'split' question, so a redraw
+#comment refuses it rather than deciding it (docs/move-descriptor.md).
+#comment
+#comment Generated 2026-09-23 with LinkEmbedding4<Int64>, by random search for a
+#comment small curve that crosses itself in both views. Do not hand-edit #state.
+#move kind=redraw rot=0,0,1,1,0,0,0,1,0
+#embedding components=2
+#component color=0 rows=5
+3	0	1
+2	3	3
+3	3	0
+1	2	3
+0	1	2
+#component color=1 rows=5
+3	0	101
+2	3	103
+3	3	100
+1	2	103
+0	1	102
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 6
+crossing_count = 6
+max_arc_count = 12
+arc_count = 12
+C_arcs = {{{3,0},{5,2}},{{10,1},{0,9}},{{2,9},{8,1}},{{4,7},{6,3}},{{6,5},{4,11}},{{11,8},{7,10}}}
+C_state = {1,-1,1,1,-1,1}
+A_cross = {{0,1},{1,2},{2,0},{0,3},{3,4},{4,0},{4,3},{3,5},{5,2},{2,1},{1,5},{5,4}}
+A_state = {1,1,1,1,1,1,1,1,1,1,1,1}
+A_color = {0,0,0,0,0,0,1,1,1,1,1,1}
+last_color_deactivated = -1
+proven_minimalQ = 0

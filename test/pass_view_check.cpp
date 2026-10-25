@@ -1,0 +1,1277 @@
+// pass_view_check -- the two-deletions contract, checked against the drawing.
+//
+// docs/move-descriptor.md says a pass-move picture is a superposition of two
+// states, each one deletion away:
+//
+//   delete the corridor (the p-arcs)  ->  an embedding of the diagram we were
+//                                         handed;
+//   delete the strand W (the w-arcs)  ->  an embedding of the diagram the move
+//                                         produces.
+//
+// Every previous check of that claim was indirect: `--trace --verify` compared
+// `AfterDiagram` to the next snapshot by MacLeod code, which sees "wrong knot"
+// but never "right knot, wrong picture", localizes nothing, and does not exist
+// for links. This test checks the claim where it is actually made -- in the
+// drawing. Each view is RENDERED, then PARSED BACK into a diagram by
+// tools/drawing_extractor.hpp (which reads structure from the characters and
+// never consults the diagram it is checking), and the result is compared
+// port-by-port to what that view is supposed to be.
+//
+// The correspondence handed to the comparison is geometric, so the check is
+// much stronger than "isomorphic to": each parsed crossing is matched to the
+// crossing whose GRID CELL it was read from -- surviving crossings by their
+// drawn position, the corridor's new crossings by their order along the
+// corridor (which is how `AfterDiagram` numbers them). A corridor attached to
+// the wrong port of an anchor therefore fails even when what it draws is a
+// perfectly legal diagram of the right knot.
+//
+// Build: `make pass_view_check` in test/ (a row in test/manifest.tsv).
+
+#include "../Knoodle.hpp"
+#include "../src/OrthoDecorate.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <cstdio>
+#include <string>
+#include <vector>
+
+#include "../tools/pass_view.hpp"
+#include "../tools/diagram_agreement.hpp"
+#include "../tools/drawing_extractor.hpp"
+#include "../tools/find_pass.hpp"
+#include "../tools/r1_view.hpp"
+#include "pass_fixtures.hpp"
+
+using Int         = std::int64_t;
+using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
+using PS_T        = Knoodle::PassSimplifier<Int>;
+using PD_T        = Knoodle::PlanarDiagram<Int>;
+using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
+using Deco_T      = Knoodle::OrthoDecorate<PD_T>;
+using Extract_T   = KnoodleDrawIO::DrawingExtractor<PD_T>;
+using View        = KnoodlePassView::PassViewKind;
+
+static bool ok = true;
+
+// Checks that passed. Printed at the end so the manifest's work pattern can
+// tell a run that examined something from one that examined nothing.
+static int checks_passed = 0;
+
+static constexpr Int margin = Int(2);
+
+static OrthoDraw_T::Settings_T GridSettings( Int xg, Int yg )
+{
+    OrthoDraw_T::Settings_T s{};
+    s.x_grid_size = xg;
+    s.y_grid_size = yg;
+    s.x_gap_size  = Int(1);
+    s.y_gap_size  = Int(1);
+    return s;
+}
+
+struct Case_T
+{
+    const char *     name;
+    const PD_T *     pd;
+    const char *     spec;
+};
+
+static void RunCase( const Case_T & kase, Int xg, Int yg )
+{
+    char tag[128];
+    std::snprintf(tag, sizeof tag, "%-18s %2lldx%-2lld",
+        kase.name, (long long)xg, (long long)yg);
+
+    Deco_T::PassMove_T mv;
+    std::string err;
+    if( !Deco_T::PassMove_T::Parse(kase.spec, mv, err) )
+    {
+        std::printf("  %s  descriptor did not parse: %s\n", tag, err.c_str());
+        ok = false;
+        return;
+    }
+
+    const PD_T & pd = *kase.pd;
+
+    OrthoDraw_T H(pd, Int(-1), GridSettings(xg,yg));
+    Deco_T deco(H, margin);
+
+    auto pr = deco.RoutePassMove(pd, mv);
+    if( !pr.validQ )
+    {
+        std::printf("  %s  routing failed: %s\n", tag, pr.why.c_str());
+        ok = false;
+        return;
+    }
+
+    std::string why;
+    PD_T after = deco.AfterDiagram(pd, mv, why);
+    if( !why.empty() )
+    {
+        std::printf("  %s  AfterDiagram failed: %s\n", tag, why.c_str());
+        ok = false;
+        return;
+    }
+
+    // Both deletions, through the very routine knoodledraw --verify calls, so
+    // the test cannot drift from what the tool checks.
+    if( !KnoodlePassView::CheckBothDeletions<PD_T>(
+            H, deco, pd, mv, pr, after, margin, why) )
+    {
+        std::printf("  %s  %s\n", tag, why.c_str());
+        ok = false;
+        return;
+    }
+
+    std::printf("  %s  both deletions OK (k=%zu)\n", tag, mv.cross.size());
+    ++checks_passed;
+}
+
+// The oracle has to be able to FAIL, or it proves nothing. Each corruption
+// below is a plausible drawing bug; each must be caught, and caught for the
+// right reason.
+static void RunNegativeTests( const PD_T & pd, const char * spec )
+{
+    Deco_T::PassMove_T mv;
+    std::string err, why;
+    if( !Deco_T::PassMove_T::Parse(spec, mv, err) ) { ok = false; return; }
+
+    OrthoDraw_T H(pd, Int(-1), GridSettings(Int(4),Int(2)));
+    Deco_T deco(H, margin);
+
+    auto pr = deco.RoutePassMove(pd, mv);
+    if( !pr.validQ ) { ok = false; return; }
+
+    PD_T after = deco.AfterDiagram(pd, mv, why);
+    if( !why.empty() ) { ok = false; return; }
+
+    auto expect_caught = [&]( const std::string & canvas, Int n_x, Int n_y,
+                              const PD_T & truth, bool afterQ,
+                              const char * name )
+    {
+        auto R = Extract_T::Extract(canvas, n_x, n_y);
+
+        std::string w;
+        bool caught = false;
+        std::string reason;
+
+        if( !R.okQ ) { caught = true; reason = "parse: " + R.why; }
+        else
+        {
+            std::vector<std::array<Int,2>> seeds;
+            const bool seedQ = KnoodlePassView::PassViewSeeds<PD_T>(
+                R, pd, H, afterQ ? &pr : nullptr, margin, seeds, w);
+            if( !seedQ ) { caught = true; reason = "seeds: " + w; }
+            else if( !DiagramsAgreeQ(R.pd, truth, seeds, w) )
+            {
+                caught = true; reason = "compare: " + w;
+            }
+        }
+
+        std::printf("  negative %-22s %s%s%s\n", name,
+            caught ? "caught" : "*** NOT CAUGHT ***",
+            caught ? " -- " : "", caught ? reason.c_str() : "");
+
+        if( !caught ) { ok = false; } else { ++checks_passed; }
+    };
+
+    // 1. --pass-view=both is not a single deletion: the dot is a branch point
+    //    there, so the parser must refuse it rather than pick a branch.
+    {
+        auto c = KnoodlePassView::RenderPassView<PD_T>(
+            H, mv, pr, deco, margin, View::Both);
+        expect_caught(c.chars, c.n_x, c.n_y, pd, false, "both-view refused");
+    }
+
+    // 2. A healed transversal left un-drawn -- the deletion of W erased the
+    //    strand but forgot to restore the strand it used to cross.
+    {
+        auto c = KnoodlePassView::RenderPassView<PD_T>(
+            H, mv, pr, deco, margin, View::After);
+
+        // The interior crossing of W is where the strand's first darc ends.
+        const Int a = Deco_T::PassMove_T::ArcOf(mv.strand.front());
+        const auto & A_V = H.ArcVertices();
+        const auto & V    = H.VertexCoordinates();
+        auto verts = A_V[a];
+        const Int v = *(verts.end() - 1);
+        const Int x = V(v,0) + margin, y = V(v,1) + margin;
+        const auto i = static_cast<std::size_t>(x + c.n_x * (c.n_y - Int(1) - y));
+
+        std::string bad = c.chars;
+        if( i < bad.size() ) { bad[i] = ' '; }
+        expect_caught(bad, c.n_x, c.n_y, after, true, "heal patch missing");
+    }
+
+    // 3. A corridor crossing drawn with the wrong strand on top. The diagram
+    //    stays perfectly legal -- only the handedness changes -- which is
+    //    exactly the class of error an invariant-level check would wave past.
+    if( !pr.route.crossing_indices.empty() )
+    {
+        auto c = KnoodlePassView::RenderPassView<PD_T>(
+            H, mv, pr, deco, margin, View::After);
+
+        const auto & cell = pr.route.path[static_cast<std::size_t>(
+            pr.route.crossing_indices[0])];
+        const auto i = static_cast<std::size_t>(
+            cell[0] + c.n_x * (c.n_y - Int(1) - cell[1]));
+
+        std::string bad = c.chars;
+        if( i < bad.size() )
+        {
+            // Swap which axis is drawn through the crossing cell.
+            const char g = bad[i];
+            const bool horizQ = (g == '-') || (g == '=') || (g == '<') || (g == '>');
+            bad[i] = horizQ ? '|' : '-';
+        }
+        expect_caught(bad, c.n_x, c.n_y, after, true, "over/under flipped");
+    }
+}
+
+// Before any of the pass-move machinery is involved: can the extractor read
+// back an ORDINARY drawing? This is the parser's own regression test, and it
+// is where the handedness rule and the link handling are pinned down --
+// mirrored knots (both crossing signs) and two-component links, neither of
+// which the pass-move fixtures cover.
+static void RunPlainRoundTrip(
+    const char * name, std::vector<Int> code, Int n, Int xg, Int yg )
+{
+    PD_T pd = PD_T::FromSignedPDCode(code.data(), n);
+
+    OrthoDraw_T H(pd, Int(-1), GridSettings(xg,yg));
+
+    std::string canvas = H.DiagramString();
+    std::replace(canvas.begin(), canvas.end(), '.', ' ');
+
+    const Int n_x = H.Width()  * xg + Int(2);
+    const Int n_y = H.Height() * yg + Int(1);
+
+    auto R = Extract_T::Extract(canvas, n_x, n_y);
+
+    if( !R.okQ )
+    {
+        std::printf("  plain %-16s %2lldx%-2lld  parse failed: %s\n",
+            name, (long long)xg, (long long)yg, R.why.c_str());
+        ok = false;
+        return;
+    }
+
+    // Same geometric seeding as the views, but with no margin.
+    const auto & V = H.VertexCoordinates();
+    std::vector<std::array<Int,2>> seeds;
+    for( std::size_t i = 0; i < R.crossing_cell.size(); ++i )
+    {
+        const Int x = R.crossing_cell[i][0], y = R.crossing_cell[i][1];
+        Int match = Int(-1);
+        for( Int c = 0; c < pd.MaxCrossingCount(); ++c )
+        {
+            if( !pd.CrossingActiveQ(c) ) { continue; }
+            if( (V(c,0) == x) && (V(c,1) == y) ) { match = c; break; }
+        }
+        if( match < 0 )
+        {
+            std::printf("  plain %-16s %2lldx%-2lld  crossing at (%lld,%lld)"
+                " has no counterpart\n", name, (long long)xg, (long long)yg,
+                (long long)x, (long long)y);
+            ok = false;
+            return;
+        }
+        seeds.push_back({ static_cast<Int>(i), match });
+    }
+
+    std::string why;
+    if( !DiagramsAgreeQ(R.pd, pd, seeds, why) )
+    {
+        std::printf("  plain %-16s %2lldx%-2lld  disagrees: %s\n",
+            name, (long long)xg, (long long)yg, why.c_str());
+        ok = false;
+        return;
+    }
+    if( !R.pd.CheckAll() )
+    {
+        std::printf("  plain %-16s %2lldx%-2lld  CheckAll failed\n",
+            name, (long long)xg, (long long)yg);
+        ok = false;
+        return;
+    }
+    ++checks_passed;
+}
+
+// A pass move can free a crossingless component: when a transversal closes up
+// through nothing but interior crossings of the strand, deleting the strand
+// takes away every crossing that loop had, and it survives as a free unknot
+// split from the rest. A PlanarDiagram cannot hold such a component alongside
+// crossings, so AfterDiagram reports it instead -- one colour per component.
+//
+// Three claims are checked here, and the third is the one worth having:
+//   1. the four-argument overload reports exactly one freed component, and the
+//      surviving diagram is legal;
+//   2. the three-argument overload REFUSES, rather than quietly returning a
+//      diagram that is missing a component;
+//   3. the DRAWING shows exactly one crossingless closed curve -- so the
+//      picture and the surgery agree about what came loose, which is a claim
+//      about both of them.
+static void RunSplitTests( const PD_T & pd, const char * spec,
+                           Int expect_cx, const char * name )
+{
+    Deco_T::PassMove_T mv;
+    std::string err, why;
+    if( !Deco_T::PassMove_T::Parse(spec, mv, err) )
+    {
+        std::printf("  split %-14s parse failed: %s\n", name, err.c_str());
+        ok = false;
+        return;
+    }
+    mv.middlepassQ = true;
+
+    OrthoDraw_T H(pd, Int(-1), GridSettings(Int(6),Int(3)));
+    Deco_T deco(H, margin);
+
+    // 1. The reporting overload.
+    std::vector<Int> freed;
+    PD_T after = deco.AfterDiagram(pd, mv, why, freed);
+
+    if( !why.empty() )
+    {
+        std::printf("  split %-14s AfterDiagram: %s\n", name, why.c_str());
+        ok = false;
+        return;
+    }
+
+    const bool countQ = (freed.size() == std::size_t(1));
+    const bool cleanQ = after.CheckAll();
+    const bool cxQ    = (after.CrossingCount() == expect_cx);
+
+    if( !countQ || !cleanQ || !cxQ )
+    {
+        std::printf("  split %-14s freed=%zu (want 1), CheckAll %s,"
+            " %lld crossings (want %lld)\n", name, freed.size(),
+            cleanQ ? "PASS" : "FAIL",
+            (long long)after.CrossingCount(), (long long)expect_cx);
+        ok = false;
+        return;
+    }
+
+    // 2. The plain overload must refuse rather than lose a component.
+    {
+        std::string w2;
+        PD_T bare = deco.AfterDiagram(pd, mv, w2);
+        if( w2.empty() )
+        {
+            std::printf("  split %-14s the 3-arg overload ACCEPTED a splitting"
+                " move\n", name);
+            ok = false;
+            return;
+        }
+        (void)bare;
+    }
+
+    // 3. The drawing has to show the freed loop, and exactly one of it.
+    auto pr = deco.RoutePassMove(pd, mv);
+    if( !pr.validQ )
+    {
+        std::printf("  split %-14s routing failed: %s\n", name, pr.why.c_str());
+        ok = false;
+        return;
+    }
+
+    if( !KnoodlePassView::CheckBothDeletions<PD_T>(
+            H, deco, pd, mv, pr, after, margin, why,
+            static_cast<Int>(freed.size())) )
+    {
+        std::printf("  split %-14s %s\n", name, why.c_str());
+        ok = false;
+        return;
+    }
+
+    // And the count really is load-bearing: claiming none must fail.
+    {
+        std::string w3;
+        if( KnoodlePassView::CheckBothDeletions<PD_T>(
+                H, deco, pd, mv, pr, after, margin, w3, Int(0)) )
+        {
+            std::printf("  split %-14s the drawing check passed while claiming"
+                " nothing came free\n", name);
+            ok = false;
+            return;
+        }
+    }
+
+    ++checks_passed;
+    std::printf("  split %-14s k=%zu, %lld->%lld crossings, 1 component freed"
+        " (colour %lld), drawing agrees\n", name, mv.cross.size(),
+        (long long)pd.CrossingCount(), (long long)after.CrossingCount(),
+        (long long)freed.front());
+}
+
+// Per-crossing over/under has nowhere to go in `Pass_T`, which carries ONE
+// `overQ` for the whole move. Check 5 does not catch that, because
+// `kind=middlepass` exists precisely to drop check 5 -- so `ToPassAndPath`
+// has to refuse a mixed-tag corridor itself. Before it did, it read `over[0]`
+// and discarded the rest, handing the applier a DIFFERENT move that happened
+// to typecheck. That is the exact shape of the bug that produced the zf075886
+// incident downstream, so it is worth a test of its own.
+static void RunMixedTagTests( const PD_T & pd )
+{
+    // PassSimplifier's nested Pass_T / Path_T cannot be NAMED until a
+    // PassSimplifier has been constructed -- it and PlanarDiagramComplex are
+    // mutually dependent, so the nested types are not complete before then.
+    // Build PD -> PDC -> PS first, exactly as oracle_vs_reroute does.
+    PDC_T pdc { PD_T(pd) };
+    PS_T  ps( pdc, Knoodle::DijkstraStrategy_T::Bidirectional );
+    (void)ps;
+
+    auto attempt = [&]( const char * spec, bool middlepassQ, bool expect_okQ,
+                        const char * name )
+    {
+        Deco_T::PassMove_T mv;
+        std::string err, why;
+        if( !Deco_T::PassMove_T::Parse(spec, mv, err) )
+        {
+            std::printf("  tags %-22s parse failed: %s\n", name, err.c_str());
+            ok = false;
+            return;
+        }
+        mv.middlepassQ = middlepassQ;
+
+        // Well-formedness first, so a refusal below is about the conversion
+        // and not about the descriptor being bad in some other way.
+        if( !mv.WellFormedQ(pd,why) )
+        {
+            std::printf("  tags %-22s not well-formed: %s\n", name, why.c_str());
+            ok = false;
+            return;
+        }
+
+        typename PS_T::Pass_T pass;
+        typename PS_T::Path_T path( pd.MaxArcCount() + Int(4) );
+
+        const bool gotQ = mv.ToPassAndPath(pd, pass, path, why);
+
+        std::printf("  tags %-22s %s\n", name,
+            (gotQ == expect_okQ)
+                ? (gotQ ? "converted (as expected)" : "REFUSED (as expected)")
+                : "*** WRONG ANSWER ***");
+
+        if( gotQ != expect_okQ ) { ok = false; }
+        else
+        {
+            ++checks_passed;
+            if( !gotQ ) { std::printf("       reason: %s\n", why.c_str()); }
+        }
+    };
+
+    // Uniform tags: converts, and must keep converting.
+    attempt("strand=1,3,5 depart=0 cross=12:o,17:o land=4", true,  true,
+            "middlepass, uniform");
+    attempt("strand=1,3,5 depart=0 cross=12:o,17:o land=4", false, true,
+            "pass, uniform");
+
+    // Mixed tags. Well-formed as a middlepass (check 5 is dropped), so the
+    // refusal has to come from the conversion.
+    attempt("strand=1,3,5 depart=0 cross=12:o,17:u land=4", true,  false,
+            "middlepass, mixed");
+}
+
+// The swept disk: the region the strand covers as it slides over to the
+// corridor. W and the corridor share their two endpoints (the dots), so
+// between them they close into a loop, and the disk is what that loop bounds.
+//
+// What is asserted here is the DEFINING property -- that the region really is
+// "bounded by arcs in p and arcs in w": every cell next to a disk cell is
+// either in the disk or on the loop, so nothing else can be part of its
+// boundary. Plus that it touches BOTH W and the corridor, which is what makes
+// it the region BETWEEN them rather than some unrelated pocket of the drawing.
+static void RunDiskTests( const char * name, const PD_T & pd,
+                          const char * spec, Int xg, Int yg )
+{
+    Deco_T::PassMove_T mv;
+    std::string err;
+    if( !Deco_T::PassMove_T::Parse(spec, mv, err) ) { ok = false; return; }
+
+    OrthoDraw_T H(pd, Int(-1), GridSettings(xg,yg));
+    Deco_T deco(H, margin);
+
+    auto pr = deco.RoutePassMove(pd, mv);
+    if( !pr.validQ ) { ok = false; return; }
+
+    const Int n_x = H.Width()  * xg + Int(2) + Int(2) * margin;
+    const Int n_y = H.Height() * yg + Int(1) + Int(2) * margin;
+
+    auto disk = KnoodlePassView::PassDiskCells<PD_T>(
+        H, mv, pr, margin, n_x, n_y);
+
+    auto idx = [n_x,n_y]( Int x, Int y ) -> std::size_t
+    { return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y)); };
+
+    // Split the loop into its two arcs: the corridor, and W between the dots.
+    std::set<std::array<Int,2>> p_cells;
+    for( const auto & c : pr.route.path ) { p_cells.insert({c[0],c[1]}); }
+
+    std::set<std::array<Int,2>> loop, w_cells;
+    for( const auto & c : KnoodlePassView::PassLoopCells<PD_T>(H,mv,pr,margin) )
+    {
+        loop.insert({c[0],c[1]});
+        if( !p_cells.count({c[0],c[1]}) ) { w_cells.insert({c[0],c[1]}); }
+    }
+
+    if( disk.empty() )
+    {
+        std::printf("  disk %-18s %lldx%-2lld  encloses nothing\n",
+            name, (long long)xg, (long long)yg);
+        return;
+    }
+
+    std::size_t cells = 0;
+    bool borderQ = false, on_loopQ = false, leakQ = false;
+    bool touch_wQ = false, touch_pQ = false;
+
+    static const Int dx4[] = {1,0,-1,0};
+    static const Int dy4[] = {0,1,0,-1};
+
+    for( Int y = 0; y < n_y; ++y )
+    for( Int x = 0; x < n_x - Int(1); ++x )
+    {
+        const auto i = idx(x,y);
+        if( i >= disk.size() || !disk[i] ) { continue; }
+        ++cells;
+
+        if( loop.count({x,y}) ) { on_loopQ = true; }
+        if( (x == 0) || (x == n_x - Int(2)) || (y == 0) || (y == n_y - Int(1)) )
+        {
+            borderQ = true;
+        }
+
+        for( int d = 0; d < 4; ++d )
+        {
+            const Int qx = x + dx4[d], qy = y + dy4[d];
+            if( (qx < 0) || (qx >= n_x - Int(1)) || (qy < 0) || (qy >= n_y) )
+            {
+                leakQ = true; continue;
+            }
+            const std::array<Int,2> q{qx,qy};
+            if( loop.count(q) )
+            {
+                if( w_cells.count(q) ) { touch_wQ = true; }
+                if( p_cells.count(q) ) { touch_pQ = true; }
+                continue;
+            }
+            const auto j = idx(qx,qy);
+            if( (j >= disk.size()) || !disk[j] ) { leakQ = true; }
+        }
+    }
+
+    const bool goodQ = !borderQ && !on_loopQ && !leakQ && touch_wQ && touch_pQ;
+
+    std::printf("  disk %-18s %lldx%-2lld  %zu cells%s\n",
+        name, (long long)xg, (long long)yg, cells,
+        goodQ ? ", bounded by w and p"
+              : (borderQ  ? "  *** reaches the canvas border ***"
+              : (on_loopQ ? "  *** includes loop cells ***"
+              : (leakQ    ? "  *** has a boundary cell that is neither disk nor loop ***"
+              : (!touch_wQ ? "  *** does not touch the strand ***"
+                           : "  *** does not touch the corridor ***")))));
+
+    if( !goodQ ) { ok = false; } else { ++checks_passed; }
+}
+
+// The other way to name a pass move: give the strand's first and last arc and
+// let Knoodle's own search supply the corridor (knoodledraw --find-pass=A,B,
+// oracle_vs_reroute --find A B). Whatever it returns is inside Reroute's
+// contract by construction, so it is the move class that actually matters --
+// and its drawings must satisfy the two deletions like any other.
+//
+// Finding nothing is a legitimate answer, not a failure: FindShortestRerouting
+// budgets the search at L-2, which admits only corridors saving two crossings
+// or more, so a strand with no such route simply has none. Only what it DOES
+// return is checked here.
+static void RunFoundPassTests( const char * name, const PD_T & pd,
+                               Int first_arc, Int last_arc )
+{
+    std::string why;
+    Deco_T::PassMove_T mv;
+
+    if( !KnoodleFindPass::FindPassDescriptor<PD_T,PDC_T,PS_T,
+            Deco_T::PassMove_T>(pd, first_arc, last_arc, mv, why) )
+    {
+        std::printf("  found %-16s arcs %lld..%lld: none (%s)\n",
+            name, (long long)first_arc, (long long)last_arc, why.c_str());
+        return;
+    }
+
+    // The corridor came from the shortest-path search, so it must shorten --
+    // and by TWO, not one. The budget and the crossing count differ by one, so
+    // spell the chain out rather than re-deriving it wrongly (this bound read
+    // `k <= L-2` until 2026-09-17, which is the budget, not the count):
+    //
+    //   FindShortestRerouting   max_dist = Ramp(L-2)
+    //   the search succeeds     only with path length k' <= max_dist
+    //   the returned Path_T     Size() == k'+1, CrossingCount() == Size()-2
+    //   FromPassAndPath         copies the INTERIOR entries, so
+    //                           mv.cross.size() == CrossingCount() == k'-1
+    //
+    // hence k <= (L-2) - 1 == L-3. (L == 2 cannot reach here at all: its budget
+    // is Ramp(0) == 0 while success needs k' >= 1, so no path is returned and
+    // FindPassDescriptor has already failed above.)
+    const Int L = static_cast<Int>(mv.strand.size());
+    const Int k = static_cast<Int>(mv.cross.size());
+    if( k > L - Int(3) )
+    {
+        std::printf("  found %-16s k=%lld exceeds the L-3 = %lld cap\n",
+            name, (long long)k, (long long)(L - Int(3)));
+        ok = false;
+        return;
+    }
+
+    int drawn = 0;
+    for( Int xg : {4, 6, 8} )
+    {
+        for( Int yg : {2, 3, 4} )
+        {
+            OrthoDraw_T H(pd, Int(-1), GridSettings(xg,yg));
+            Deco_T deco(H, margin);
+
+            auto pr = deco.RoutePassMove(pd, mv);
+            if( !pr.validQ )
+            {
+                std::printf("  found %-16s %lldx%lld: routing failed (%s)\n",
+                    name, (long long)xg, (long long)yg, pr.why.c_str());
+                ok = false;
+                continue;
+            }
+
+            PD_T after = deco.AfterDiagram(pd, mv, why);
+            if( !why.empty() )
+            {
+                std::printf("  found %-16s AfterDiagram: %s\n", name, why.c_str());
+                ok = false;
+                continue;
+            }
+
+            if( !KnoodlePassView::CheckBothDeletions<PD_T>(
+                    H, deco, pd, mv, pr, after, margin, why) )
+            {
+                std::printf("  found %-16s %lldx%lld: %s\n",
+                    name, (long long)xg, (long long)yg, why.c_str());
+                ok = false;
+                continue;
+            }
+            ++drawn;
+            ++checks_passed;
+        }
+    }
+
+    std::printf("  found %-16s arcs %lld..%lld -> k=%lld, %lld->%lld crossings,"
+        " %d grids OK\n", name, (long long)first_arc, (long long)last_arc,
+        (long long)k, (long long)pd.CrossingCount(),
+        (long long)(pd.CrossingCount() - (L - Int(1)) + k), drawn);
+}
+
+// `knoodledraw --trace --verify` leans on DiagramsIsomorphicQ for the one
+// comparison that has no shared labelling to appeal to -- a record's snapshot
+// against what the previous record's move produced, across a PD code that
+// renumbered everything. It replaced the MacLeod code, which does not exist
+// for links, so it had better be right about both what it accepts and what it
+// refuses.
+// A corridor that turns into its dot right beside the anchor stub's corner puts
+// a dot, a plain corner and two corridor corners in one 2x2 block. The dot and
+// the '+' each still need one arm, and the only neighbours that can supply it
+// are each other -- but a corridor corner whose arms point elsewhere, and a
+// stroke lying across with nothing beyond it, are not blank either. Counting
+// those as candidates left both cells deadlocked at degree 1 (found on
+// juhasz-veryhard-177). The canvas below is that drawing exactly: the "after"
+// view of its disagreeing-chord move (`--pass-view=after`), whose head dot is
+// the '*' at cell (22,11), with the corridor's ']' and '{' to its upper left and
+// the stub's '+' above it.
+static void RunInferenceDeadlockTests()
+{
+    const std::string canvas = R"CANVAS(                                             
+                                             
+      +-->+                                  
+      ^   v                                  
+  +<---<--|<--------------+                  
+  |   ^   v               ^                  
+  |   +<---<--+   +<-------<----------+      
+  |       v   ^   v       ^           ^      
+  |       +--*|   |       |       +-->--->+  
+  |          ;^   |       ^       ^   ^   |  
+  |          {|=>==>=]+-->|-->--->--->+   |  
+  |           |   v  {*   ^       ^       |  
+  |           |   +-->--->+       |       |  
+  v           |                   |       |  
+  +---------->|------>--->+       |       |  
+              ^           v       |       |  
+              |           |       |       |  
+              |           v       |       v  
+              +<-----------<------|<------+  
+                          v       ^          
+                          +------>+          
+                                             
+                                             
+)CANVAS";
+
+    auto R = Extract_T::Extract(canvas, Int(46), Int(23));
+
+    const bool passQ = R.okQ && (R.pd.CrossingCount() > Int(0));
+
+    std::printf("  inference: dot and corner beside a corridor corner  %s\n",
+        passQ ? "parsed"
+              : (R.okQ ? "*** wrong parse ***" : ("*** " + R.why + " ***").c_str()));
+
+    if( passQ ) { ++checks_passed; } else { ok = false; }
+}
+
+// A dot whose stub runs straight into its anchor, with a healed transversal
+// on the dot's other side: `*` between two `|`. The anchor is promoted to a
+// crossing earlier in the round than the dot's counting rule runs, and the
+// counting rule used to ignore a neighbour that was ALREADY a crossing -- so
+// it saw one candidate where there were two, and "forced" the dot onto the
+// transversal. That pulled the corridor stroke beside it into a phantom
+// crossing and the parse failed. Canvas: the after view of the W-crossing
+// experiment (raw_37, second instance), grid 2x2, where the dot at (21,16)
+// sits between the healed transversal (20,16) and its anchor (22,16).
+static void RunCrossingNeighbourCountTests()
+{
+    const std::string canvas = R"CANVAS(                                 
+                                 
+          +<----------------+    
+          |                 ^    
+          |   +<------------|<+  
+          v   v             ^ ^  
+        +<|<---<----------+ | |  
+        | |   |           ^ | |  
+        | |   |     +<+   | | |  
+        | |   v     v ^   | | |  
+        | | +<|<----|<-<+ | | |  
+        | v v v     | ^ ^ | | |  
+        | +>->->+   | | | | | |  
+        |   v *==>=]| | | | | |  
+        | +>|>->|>+v| | | | | |  
+        | ^ |   v v;v | | | | |  
+        | | |   | |;|*|>+ | | |  
+        | | |   | |{=}^   | | |  
+        | | |   | | +>|-->->+ |  
+        v | v   v v   ^   ^   |  
+    +-->->|>|-->|>|-->+   |   |  
+    ^   v ^ v   v v       |   |  
+  +>--->|>+ +-->->|------>+   |  
+  ^ ^   |       v v           |  
+  | |   |       +>|---------->+  
+  | |   v         v              
+  | | +<-<--------+              
+  | | v v                        
+  +<|<-<+                        
+    ^ v                          
+    +<+                          
+                                 
+                                 
+)CANVAS";
+
+    auto R = Extract_T::Extract(canvas, Int(34), Int(33));
+
+    const bool passQ = R.okQ && (R.pd.CrossingCount() == Int(28));
+
+    std::printf("  inference: dot between its anchor and a healed transversal  %s\n",
+        passQ ? "parsed"
+              : (R.okQ ? ("*** wrong parse: " + std::to_string(R.pd.CrossingCount())
+                          + " crossings, expected 28 ***").c_str()
+                       : ("*** " + R.why + " ***").c_str()));
+
+    if( passQ ) { ++checks_passed; } else { ok = false; }
+}
+
+// A corridor that crosses its own strand W. The crossing goes WITH W: in the
+// after view W is erased and the corridor runs straight through the cell, and
+// `AfterDiagram` makes no crossing for that `cross` entry. Both used to get it
+// wrong (ROUND-14): a CrossUnder cell stamped nothing and left a gap in the
+// corridor, and `AfterDiagram` split an arc it had just retired, producing 29
+// crossings where the move leaves 28.
+//
+// Check 1's membership clause (no crossed arc on the strand) binds
+// `middlepass` only: Proposition C′ licenses a W-crossing corridor for a
+// uniform `pass`, and nothing corresponding is proved for mixed tags. So each
+// case is asserted both ways -- as `kind=pass` it must be well formed and pass
+// the full two-deletions check at every grid; as `kind=middlepass` it must be
+// refused, and by that clause specifically. raw_37 is a 30-crossing random
+// projection; instance 1 is an under-strand with the corridor crossing W arc
+// 38 (darc 77), instance 2 an over-strand crossing W arc 16 (darc 33).
+static void RunStrandCrossingTests()
+{
+    const std::vector<Int> code = {
+        26,0,27,59,1, 9,1,10,0,1, 28,1,29,2,-1,
+        21,2,22,3,-1, 12,3,13,4,-1, 39,5,40,4,1,
+        5,14,6,15,-1, 51,7,52,6,1, 7,24,8,25,-1,
+        8,44,9,43,1, 10,28,11,27,1, 20,11,21,12,-1,
+        38,14,39,13,1, 40,15,41,16,-1, 57,16,58,17,-1,
+        17,54,18,55,-1, 55,18,56,19,-1, 19,56,20,57,-1,
+        37,23,38,22,1, 50,24,51,23,1, 25,43,26,42,1,
+        29,48,30,49,-1, 35,31,36,30,1, 31,45,32,44,1,
+        45,33,46,32,1, 33,47,34,46,1, 47,35,48,34,1,
+        49,36,50,37,-1, 52,42,53,41,1, 58,53,59,54,-1
+    };
+    const PD_T pd = PD_T::FromSignedPDCode(code.data(), Int(30));
+
+    // Check 6 counts only the entries that survive (ROUND-22 §4): here k = 2
+    // on a strand of L = 2 arcs, which `k <= L-1` refused, but the corridor's
+    // first entry is W's own arc 0, so k_live = 1. The diagram is the first
+    // snapshot of test/pass_wcross_example.trace (a 15-crossing hard unknot),
+    // and the corridor was found by exhaustive search; its after-diagram
+    // passes CheckAll and identifies as the unknot.
+    const std::vector<Int> ts_code = {
+        29,25,0,24,1, 23,1,24,0,1, 1,12,2,13,-1, 11,2,12,3,-1, 22,3,23,4,-1,
+        4,21,5,22,-1, 5,10,6,11,-1, 15,6,16,7,-1, 7,16,8,17,-1, 8,20,9,19,1,
+        20,10,21,9,1, 28,14,29,13,1, 14,28,15,27,1, 17,26,18,27,-1,
+        25,18,26,19,-1
+    };
+    const PD_T ts = PD_T::FromSignedPDCode(ts_code.data(), Int(15));
+
+    const Case_T cases[] = {
+        { "raw_37 W-cross u", &pd,
+          "strand=75,77,79,81,83 depart=75 cross=44:u,77:u,12:u land=82" },
+        { "raw_37 W-cross o", &pd,
+          "strand=27,29,31,33,35 depart=27 cross=8:o,33:o,116:o land=34" },
+        { "ts W-cross k=L", &ts,
+          "strand=1,3 depart=1 cross=1:o,47:o land=2" },
+    };
+
+    for( const auto & kase : cases )
+    {
+        Deco_T::PassMove_T mv;
+        std::string err;
+        if( !Deco_T::PassMove_T::Parse(kase.spec, mv, err) )
+        {
+            std::printf("  %-18s descriptor did not parse: %s\n", kase.name, err.c_str());
+            ok = false;
+            continue;
+        }
+
+        if( !mv.WellFormedQ(*kase.pd, err) )
+        {
+            std::printf("  %-18s *** kind=pass refused: %s ***\n",
+                kase.name, err.c_str());
+            ok = false;
+            continue;
+        }
+
+        for( Int g : {2, 3, 4, 6} ) { RunCase(kase, g, g); }
+
+        // The same corridor as a middlepass: the membership clause stands.
+        const std::string mp_spec = std::string("kind=middlepass ") + kase.spec;
+        Deco_T::PassMove_T mp;
+        if( !Deco_T::PassMove_T::Parse(mp_spec, mp, err) )
+        {
+            std::printf("  %-18s middlepass descriptor did not parse: %s\n",
+                kase.name, err.c_str());
+            ok = false;
+            continue;
+        }
+        const bool refusedQ = !mp.WellFormedQ(*kase.pd, err)
+            && (err.find("corridor crosses its own strand") != std::string::npos);
+        std::printf("  %-18s kind=middlepass  %s\n", kase.name,
+            refusedQ ? "refused by the membership clause"
+                     : ("*** not refused by the membership clause: "
+                        + (err.empty() ? std::string("well formed") : err)
+                        + " ***").c_str());
+        if( refusedQ ) { ++checks_passed; } else { ok = false; }
+    }
+}
+
+// An R1's ONE deletion (docs/move-descriptor.md): erase the monogon's arc,
+// heal the dead crossing into the corner the survivors force, and what is left
+// must be the diagram the move produces. Same instrument as the pass views --
+// render, parse back, compare port-by-port under the correspondence the grid
+// dictates -- so the negatives matter as much as the positive: an oracle that
+// cannot fail proves nothing.
+static void RunR1DeletionTests()
+{
+    // test/r1_example.txt's diagram: a 5-crossing raw projection with one
+    // curl. Its loop arc is 4, at crossing 3, and darc 9 names the monogon.
+    const std::vector<Int> code = {
+        2,0,3,9,1,  0,7,1,8,-1,  6,1,7,2,-1,  3,5,4,4,1,  8,6,9,5,1
+    };
+    const PD_T pd = PD_T::FromSignedPDCode(code.data(), Int(5));
+
+    auto r = KnoodleR1View::ResolveR1<PD_T>(pd, Int(9));
+    if( !r.validQ )
+    {
+        std::printf("  r1 deletion      *** the fixture does not resolve: %s ***\n",
+            r.why.c_str());
+        ok = false;
+        return;
+    }
+
+    std::string why;
+    std::vector<Int> freed;
+    PD_T after = KnoodleR1View::R1AfterDiagram<PD_T>(pd, r, why, freed);
+    if( !why.empty() )
+    {
+        std::printf("  r1 deletion      *** the surgery failed: %s ***\n",
+            why.c_str());
+        ok = false;
+        return;
+    }
+
+    for( Int g : {2, 3, 4, 6} )
+    {
+        OrthoDraw_T H(pd, Int(-1), GridSettings(g,g));
+
+        const bool okQ = KnoodleR1View::CheckR1View<PD_T>(
+            H, pd, r, after, why, static_cast<Int>(freed.size()));
+
+        std::printf("  r1 deletion      %2lldx%-2lld  %s\n",
+            (long long)g, (long long)g,
+            okQ ? "the deletion OK" : ("*** " + why + " ***").c_str());
+
+        if( okQ ) { ++checks_passed; } else { ok = false; }
+    }
+
+    // Negatives, on one grid. Each must be REFUSED.
+    {
+        OrthoDraw_T H(pd, Int(-1), GridSettings(4,4));
+
+        // 1. compared against the diagram we started from: the curl is still
+        //    in it, so the drawing (which has lost it) must not match.
+        const bool n1 = !KnoodleR1View::CheckR1View<PD_T>(H, pd, r, pd, why, Int(0));
+        std::printf("  r1 negative      before-diagram  %s\n",
+            n1 ? "refused" : "*** ACCEPTED ***");
+        if( n1 ) { ++checks_passed; } else { ok = false; }
+
+        // 2. a freed component claimed where the drawing has none.
+        const bool n2 = !KnoodleR1View::CheckR1View<PD_T>(H, pd, r, after, why, Int(1));
+        std::printf("  r1 negative      phantom free loop  %s\n",
+            n2 ? "refused" : "*** ACCEPTED ***");
+        if( n2 ) { ++checks_passed; } else { ok = false; }
+
+        // 3. the OTHER darc of the loop arc: L(8) is not the monogon, so the
+        //    move is refused before any drawing is made.
+        auto r_other = KnoodleR1View::ResolveR1<PD_T>(pd, Int(8));
+        const bool n3 = !r_other.validQ
+            && !KnoodleR1View::CheckR1View<PD_T>(H, pd, r_other, after, why, Int(0));
+        std::printf("  r1 negative      non-monogon side  %s\n",
+            n3 ? "refused" : "*** ACCEPTED ***");
+        if( n3 ) { ++checks_passed; } else { ok = false; }
+    }
+
+    // The LAST curl (test/r1_last_curl.trace, ROUND-24 §7): one crossing, and
+    // removing it leaves a drawing with no crossings at all -- one closed
+    // curve and an empty diagram. That drawing used to be refused outright.
+    {
+        const std::vector<Int> C  = { 1,0, 1,0 };
+        const std::vector<Int> CS = { -1 };
+        const std::vector<Int> A  = { 0,0, 0,0 };
+        const std::vector<Int> AS = { 1, 1 };
+        const std::vector<Int> AC = { 0, 0 };
+        const PD_T curl( Int(1), C.data(), CS.data(), A.data(), AS.data(),
+                         AC.data(), PD_T::Uninitialized, false, false );
+
+        auto rc = KnoodleR1View::ResolveR1<PD_T>(curl, Int(0));
+        std::vector<Int> freed_c;
+        PD_T after_c = rc.validQ
+            ? KnoodleR1View::R1AfterDiagram<PD_T>(curl, rc, why, freed_c)
+            : PD_T();
+
+        const bool builtQ = rc.validQ && why.empty()
+            && (after_c.CrossingCount() == Int(0)) && (freed_c.size() == 1);
+        if( !builtQ )
+        {
+            std::printf("  r1 last curl     *** the fixture does not resolve: %s ***\n",
+                (rc.validQ ? why : rc.why).c_str());
+            ok = false;
+            return;
+        }
+
+        for( Int g : {2, 4} )
+        {
+            OrthoDraw_T H(curl, Int(-1), GridSettings(g,g));
+
+            const bool okQ = KnoodleR1View::CheckR1View<PD_T>(
+                H, curl, rc, after_c, why, Int(1));
+
+            std::printf("  r1 last curl     %2lldx%-2lld  %s\n",
+                (long long)g, (long long)g,
+                okQ ? "the deletion OK (no crossings left)"
+                    : ("*** " + why + " ***").c_str());
+
+            if( okQ ) { ++checks_passed; } else { ok = false; }
+        }
+
+        OrthoDraw_T H(curl, Int(-1), GridSettings(4,4));
+
+        // The freed curve is the whole claim once the diagram is empty, so a
+        // drawing that lost it must not pass.
+        const bool n4 = !KnoodleR1View::CheckR1View<PD_T>(
+            H, curl, rc, after_c, why, Int(0));
+        std::printf("  r1 negative      last curl, free loop not accounted for  %s\n",
+            n4 ? "refused" : "*** ACCEPTED ***");
+        if( n4 ) { ++checks_passed; } else { ok = false; }
+
+        // An empty drawing is not a match for a diagram that kept the curl.
+        const bool n5 = !KnoodleR1View::CheckR1View<PD_T>(
+            H, curl, rc, curl, why, Int(1));
+        std::printf("  r1 negative      last curl vs the curl itself  %s\n",
+            n5 ? "refused" : "*** ACCEPTED ***");
+        if( n5 ) { ++checks_passed; } else { ok = false; }
+    }
+}
+
+// A drawing with no crossings is legal: the view left by a move that frees
+// the last curl. The diagram is empty and the closed curves are what there is
+// to count -- so count them right, including none at all.
+static void RunCrossingFreeDrawingTests()
+{
+    auto expect = [&]( const char * name, const std::string & canvas,
+                       Int n_x, Int n_y, Int want_loops )
+    {
+        auto R = Extract_T::Extract(canvas, n_x, n_y);
+        const bool passQ = R.okQ && (R.pd.CrossingCount() == Int(0))
+                        && (R.free_loops == want_loops);
+        std::printf("  no crossings: %-12s %s\n", name,
+            passQ ? "parsed"
+                  : (R.okQ ? ("*** wrong parse: " + std::to_string(R.free_loops)
+                              + " loops ***").c_str()
+                           : ("*** " + R.why + " ***").c_str()));
+        if( passQ ) { ++checks_passed; } else { ok = false; }
+    };
+
+    expect("blank", "         \n         \n         \n", Int(10), Int(3), Int(0));
+
+    expect("one loop",
+        "           \n"
+        " +-->+     \n"
+        " |   |     \n"
+        " +<--+     \n"
+        "           \n", Int(12), Int(5), Int(1));
+
+    expect("two loops",
+        "           \n"
+        " +-->+ +>+ \n"
+        " |   | ^ v \n"
+        " +<--+ +<+ \n"
+        "           \n", Int(12), Int(5), Int(2));
+}
+
+static void RunIsomorphismTests()
+{
+    auto build = []( std::vector<Int> code ) -> PD_T
+    {
+        return PD_T::FromSignedPDCode(
+            code.data(), static_cast<Int>(code.size() / 5));
+    };
+
+    auto expect = [&]( const PD_T & a, const PD_T & b, bool wantQ,
+                       const char * name )
+    {
+        std::string why;
+        const bool got = DiagramsIsomorphicQ(a,b,why);
+        std::printf("  iso %-28s %s\n", name,
+            (got == wantQ)
+                ? (got ? "isomorphic (as expected)" : "refused (as expected)")
+                : "*** WRONG ANSWER ***");
+        if( got != wantQ ) { ok = false; }
+        else
+        {
+            ++checks_passed;
+            if( !got ) { std::printf("      reason: %s\n", why.c_str()); }
+        }
+    };
+
+    PD_T trefoil = build({ 0,4,1,3,1,  2,0,3,5,1,  4,2,5,1,1 });
+
+    // Same diagram with its rows permuted: a relabelling, nothing more. This
+    // is the case the trace check actually meets, since a PD code renumbers.
+    PD_T trefoil_perm = build({ 4,2,5,1,1,  0,4,1,3,1,  2,0,3,5,1 });
+
+    // The mirror: identical crossing and arc counts, so the answer has to come
+    // from the propagation rather than from a count.
+    PD_T trefoil_mirror = build({ 4,1,3,0,-1,  0,3,5,2,-1,  2,5,1,4,-1 });
+
+    PD_T fig8 = build({ 3,1,4,0,1,  7,5,0,4,1,  5,2,6,3,-1,  1,6,2,7,-1 });
+
+    // Links: the whole reason MacLeod had to go.
+    PD_T hopf  = build({ 1,2,0,3,-1,  3,0,2,1,-1 });
+    PD_T hopf2 = build({ 3,0,2,1,-1,  1,2,0,3,-1 });          // rows swapped
+    PD_T hopf_mirror = build({ 2,0,3,1,1,  0,2,1,3,1 });
+
+    expect(trefoil, trefoil,        true,  "trefoil vs itself");
+    expect(trefoil, trefoil_perm,   true,  "trefoil vs relabelled");
+    expect(trefoil, trefoil_mirror, false, "trefoil vs mirror");
+    expect(trefoil, fig8,           false, "trefoil vs figure-eight");
+    expect(hopf,    hopf,           true,  "hopf vs itself");
+    expect(hopf,    hopf2,          true,  "hopf vs relabelled");
+    expect(hopf,    hopf_mirror,    false, "hopf vs mirror");
+    expect(hopf,    trefoil,        false, "hopf vs trefoil");
+}
+
+int main()
+{
+    std::vector<Int> trefoil_code = {
+        0, 4, 1, 3, 1,
+        2, 0, 3, 5, 1,
+        4, 2, 5, 1, 1,
+    };
+    PD_T trefoil = PD_T::FromSignedPDCode(trefoil_code.data(), Int(3));
+
+    PD_T big = PD_T::FromSignedPDCode(
+        zf061098_underpass.data(),
+        Int(zf061098_underpass.size() / 5), false, false );
+
+    auto link = []( const std::vector<Int> & code ) -> PD_T
+    {
+        return PD_T::FromSignedPDCode(
+            code.data(), Int(code.size() / 5), false, false );
+    };
+
+    PD_T l4a1  = link(L4a1_0);
+    PD_T l6a1  = link(L6a1_0);
+    PD_T l6n1  = link(L6n1_0_0);
+    PD_T l7n1  = link(L7n1_0);
+    PD_T l10a  = link(L10n104_0_0_0);
+    PD_T l10b  = link(L10n104_1_0_0);
+
+    // ---- the parser's own round trip, before any move is involved --------
+    std::printf("=== plain drawings read back ===\n");
+    {
+        // Mirroring a PD code is not a sign flip: slot 0 must stay the
+        // incoming UNDER-strand, and mirroring makes the old over-strand the
+        // under one, so the row rotates X[a,b,c,d] -> X[b,c,d,a] too.
+        std::vector<Int> trefoil_L = {
+            4, 1, 3, 0, -1,
+            0, 3, 5, 2, -1,
+            2, 5, 1, 4, -1,
+        };
+        std::vector<Int> fig8 = {
+            3, 1, 4, 0,  1,
+            7, 5, 0, 4,  1,
+            5, 2, 6, 3, -1,
+            1, 6, 2, 7, -1,
+        };
+        std::vector<Int> hopf = {           // L2a1_0: two components
+            1, 2, 0, 3, -1,
+            3, 0, 2, 1, -1,
+        };
+        std::vector<Int> l6a1 = {           // L6a1_0: mixed signs, two components
+            3, 8, 0, 9, -1,
+            5, 0, 6, 1, -1,
+            1, 4, 2, 5, -1,
+            9, 2,10, 3, -1,
+           11, 7, 4, 6,  1,
+            7,11, 8,10,  1,
+        };
+        // L6a4_0_0, the Borromean rings: THREE components, so the parser's
+        // per-component orientation propagation and colouring have to keep
+        // three independent cycles apart rather than two.
+        std::vector<Int> borromean = {
+            3,11, 0,10,  1,
+            5, 0, 6, 1, -1,
+            1, 8, 2, 9, -1,
+            7, 3, 4, 2,  1,
+            9, 4,10, 5, -1,
+           11, 7, 8, 6,  1,
+        };
+
+        int done = 0;
+        for( Int xg : {4, 6, 8, 20} )
+        {
+            for( Int yg : {2, 3, 4, 20} )
+            {
+                RunPlainRoundTrip("trefoil (right)", trefoil_code, 3, xg, yg);
+                RunPlainRoundTrip("trefoil (left)",  trefoil_L,    3, xg, yg);
+                RunPlainRoundTrip("figure-eight",    fig8,         4, xg, yg);
+                RunPlainRoundTrip("hopf link",       hopf,         2, xg, yg);
+                RunPlainRoundTrip("L6a1_0 link",     l6a1,         6, xg, yg);
+                RunPlainRoundTrip("borromean (3cpt)", borromean,   6, xg, yg);
+                done += 6;
+            }
+        }
+        std::printf("  %d drawings read back and matched port-by-port\n", done);
+    }
+
+    std::printf("=== two deletions, parsed back out of the drawing ===\n");
+
+    const std::vector<Case_T> cases = {
+        { "trefoil doc",   &trefoil, "strand=1,3 depart=1 cross=6:u land=3" },
+        { "trefoil 2-arc", &trefoil, "strand=11,1 depart=11 cross=7:o land=1" },
+        { "big k=2",       &big,     "strand=1,3,5 depart=0 cross=51:o,122:o land=4" },
+        { "big k=3",       &big,     "strand=1,3,5,7 depart=0 cross=51:o,122:o,239:o land=6" },
+        { "big k=8",       &big,     "strand=81,83,85,87,89,91,93,95,97 depart=80"
+                                     " cross=7:u,42:u,8:u,230:u,131:u,281:u,260:u,290:u land=96" },
+
+        // LINKS. In every one of these the corridor belongs to one component
+        // and crosses arcs of ANOTHER -- the case no knot can exercise, and
+        // the reason the checking had to stop relying on a knot invariant.
+        { "L4a1 2cpt k=1",  &l4a1, "strand=1,3 depart=0 cross=12:o land=2" },
+        { "L6a1 2cpt k=1u", &l6a1, "strand=11,13 depart=10 cross=1:u land=12" },
+        { "L6n1 3cpt k=2",  &l6n1, "strand=1,3,5 depart=0 cross=12:o,17:o land=4" },
+        { "L7n1 2cpt k=2",  &l7n1, "strand=1,3,5 depart=0 cross=12:o,22:o land=4" },
+        // The corridor crosses one arc of each of the other THREE components.
+        { "L10n104 4cpt k=3",  &l10a,
+          "strand=15,17,19,9 depart=14 cross=33:o,0:o,22:o land=8" },
+        { "L10n104 4cpt k=3u", &l10b,
+          "strand=13,15,17,19 depart=12 cross=31:u,2:u,24:u land=18" },
+    };
+
+    for( const auto & kase : cases )
+    {
+        for( Int xg : {4, 6, 8} )
+        {
+            for( Int yg : {2, 3, 4} )
+            {
+                RunCase(kase, xg, yg);
+            }
+        }
+    }
+
+    std::printf("=== moves that split a component off ===\n");
+    {
+        PD_T l10a11 = link(L10a11_0);
+        RunSplitTests(l10a11,
+            "strand=9,11,13,15,17,19,21 depart=8 land=20",
+            Int(4), "L10a11 k=0");
+        RunSplitTests(l10a11,
+            "strand=9,11,13,15,17,19,21,23 depart=8 cross=32:u land=22",
+            Int(4), "L10a11 k=1");
+    }
+
+    std::printf("=== per-crossing tags have nowhere to go in Pass_T ===\n");
+    RunMixedTagTests(l6n1);
+
+    std::printf("=== the swept disk, bounded by w and p ===\n");
+    for( Int xg : {4, 8} )
+    {
+        for( Int yg : {2, 4} )
+        {
+            RunDiskTests("trefoil doc", trefoil,
+                "strand=1,3 depart=1 cross=6:u land=3", xg, yg);
+            RunDiskTests("big k=3", big,
+                "strand=1,3,5,7 depart=0 cross=51:o,122:o,239:o land=6", xg, yg);
+            RunDiskTests("L6n1 3cpt", l6n1,
+                "strand=1,3,5 depart=0 cross=12:o,17:o land=4", xg, yg);
+            RunDiskTests("L10n104 4cpt", l10a,
+                "strand=15,17,19,9 depart=14 cross=33:o,0:o,22:o land=8", xg, yg);
+        }
+    }
+
+    std::printf("=== moves found by Knoodle's own search (in contract) ===\n");
+    RunFoundPassTests("big",     big,   Int(40), Int(48));
+    RunFoundPassTests("trefoil", trefoil, Int(0), Int(1));
+    RunFoundPassTests("L6n1",    l6n1,  Int(0),  Int(2));
+    RunFoundPassTests("L10n104", l10a,  Int(7),  Int(4));
+
+    std::printf("=== unrooted isomorphism (what --verify's trace check uses) ===\n");
+    RunInferenceDeadlockTests();
+    RunCrossingNeighbourCountTests();
+    RunStrandCrossingTests();
+    RunR1DeletionTests();
+    RunCrossingFreeDrawingTests();
+
+    RunIsomorphismTests();
+
+    std::printf("=== the oracle must be able to fail ===\n");
+    RunNegativeTests(trefoil, "strand=1,3 depart=1 cross=6:u land=3");
+
+    if( ok ) { std::printf("PASS VIEW CHECK OK (%d checks passed)\n", checks_passed); }
+    else     { std::printf("PASS VIEW CHECK FAILED\n"); }
+    return ok ? 0 : 1;
+}
