@@ -47,6 +47,14 @@ void Alexander_Strands(
 
     auto [factor,exp] = Alexander_Strands_Normalization<sparseQ>(pd);
     
+    if( !std::isfinite( Re(factor.Mantissa2()) ) )
+    {
+        // The normalization failed and has already said so. Return NaN rather than a wrong value.
+        mantissa = static_cast<ExtScal>( std::numeric_limits<Real>::quiet_NaN() );
+        exponent = ExtInt(0);
+        return;
+    }
+    
     Multiplier_T det = Alexander_Strands_Det<sparseQ>(pd,t);
     
     Multiplier_T pow = Multiplier_T::Power(t,exp);
@@ -105,25 +113,45 @@ Alexander_Strands_Normalization( cref<PD_T> pd ) const
             
             Multiplier_T factor ( unit / a );
             
-            constexpr Real eval_0 = cSqrt(Real(2));
-            Real eval = eval_0;
-            Int sqrt_count = 1;
-            Multiplier_T c = Alexander_Strands_Det<sparseQ>( pd, Complex(eval) );
+            // The strand determinant is det(t) = +/- t^k * Delta(t) for some integer k. As Delta(1/t) = Delta(t),
+            // the quotient det(1/x) / det(x) is x^(-2k), and we read off exp = -k from it at a real point x.
+            // If x is a root of Delta, both determinants are rounding noise, and so is the quotient. For example,
+            // Delta(sqrt(2)) = 0 whenever 2 t^2 - 5 + 2 t^-2 (the Alexander polynomial of 6_1 at t^2) divides Delta.
+            // So we accept the quotient only if it is positive and its logarithm is within tol of an integer
+            // (for valid points it is within 1e-10, even at 100k crossings); otherwise we try the next point
+            // in the sequence sqrt(2), 2^(1/4), 2^(1/8), ... .
+            constexpr Int  max_tries = 8;
+            constexpr Real tol       = Real(1e-6);
             
-            while( c.Mantissa2() == Scalar::Zero<Complex> )
+            Real eval   = cSqrt(Real(2));
+            bool foundQ = false;
+            E_T  exp    = 0;
+            
+            for( Int try_count = 0; try_count < max_tries; ++try_count )
             {
-                ++sqrt_count;
+                const Multiplier_T c = Alexander_Strands_Det<sparseQ>( pd, Complex(eval) );
+                const Multiplier_T b = Alexander_Strands_Det<sparseQ>( pd, Complex(Inv(eval)) );
+                
+                const Multiplier_T d = b / c; // Should be a power of eval * eval.
+                
+                const Real e = ( std::log2(Abs(d.Mantissa2())) + d.Exponent2() ) / std::log2(eval * eval);
+                
+                if( (Re(d.Mantissa2()) > Real(0)) && std::isfinite(e) && (Abs(e - std::round(e)) <= tol) )
+                {
+                    exp    = static_cast<E_T>( std::round(e) );
+                    foundQ = true;
+                    break;
+                }
+                
                 eval = std::sqrt(eval);
-                c = Alexander_Strands_Det<sparseQ>( pd, eval );
             }
             
-            Multiplier_T b = Alexander_Strands_Det<sparseQ>( pd, Complex(Inv(eval)) );
-            
-            const Multiplier_T d = b / c; // Should be a power of eval * eval.
-            
-            auto e = ( std::log2(Re(d.Mantissa2())) + d.Exponent2()  ) / std::log2(eval * eval);
-            
-            E_T exp = static_cast<Int>( std::round(e) );
+            if( !foundQ )
+            {
+                eprint(MethodName("Alexander_Strands_Normalization") + ": Could not determine the normalizing power of t; the Alexander polynomial seems to vanish at all " + ToString(max_tries) + " evaluation points. Returning NaN.");
+                
+                factor = Multiplier_T( Scal(std::numeric_limits<Real>::quiet_NaN()) );
+            }
             
             pd.SetCache( tag, std::pair(factor,exp) );
         }
