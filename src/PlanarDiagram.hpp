@@ -19,7 +19,7 @@ namespace Knoodle
      *
      * If no color information is submitted, the constructors will color the arcs automatically in a consistent way: each arc gets the color of its link component, and each link components gets its own color that is different from all others'.
      *
-     * Some public class methods are marked as **UNSAFE** because they may alter the topological class of the represented link. For users who want to use modify a `PlanarDiagram` nonetheless, we provide a locking mechanism: Per default every new created diagram is _locked_. The state of the lock can be queried with `LockedQ()`. The user may use `Unlock()` to unlock and `Lock()` to lock again. Alternatively, a RAII-stylescoped lock can be obtain by initializing a `ScopedUnlock` object:
+     * Some public class methods are marked as **UNSAFE** because they may alter the topological class of the represented link. For users who want to use modify a `PlanarDiagram` nonetheless, we provide a locking mechanism: Per default every new created diagram is _locked_. The state of the lock can be queried with `LockedQ()`. The user may use `Unlock()` to unlock and `Lock()` to lock again. Alternatively, a RAII-style scoped lock can be obtained by initializing a `ScopedUnlock` object:
      *
      *     ScopedUnlock unlocker (pd);
      *
@@ -419,7 +419,8 @@ namespace Knoodle
         }
         
     public:
-        
+
+#include "PlanarDiagram/Lock.hpp"
 #include "PlanarDiagram/FromEmbeddings.hpp"
         
 #include "PlanarDiagram/Crossings.hpp"
@@ -706,35 +707,10 @@ namespace Knoodle
         
     public:
         
-        /*!@brief Return whether this diagram is _locked_. Public UNSAFE operations cannot be called while this is being locked to prohibit unintended modifications that break topological invariance.*/
-        bool LockedQ() const
-        {
-            return lockedQ;
-        }
-        
-        /*!@brief Unlock diagram to allow topological modifications.*/
-        void Unlock()
-        {
-            lockedQ = false;
-        }
-        
-        /*!@brief Lock diagram to prohibit topological modifications.*/
-        void Lock()
-        {
-            lockedQ = true;
-        }
-        
-        void LockMessage( const std::string & tag ) const
-        {
-            wprint(MethodName(tag) + ": This method is considered **UNSAFE**, and the diagram is currently locked to prevent break of topological invariance. If you want to perform this operation anyways, call `Unlock()` first. (Don't forget to `Lock()` it again.)");
-        }
-        
-    public:
-        
         /*!@brief Writes internal state of the diagram to log file. Meant for debugging purposes only.*/
         void PrintInfo() const
         {
-            logprint(MethodName("PrintInfo") + " -- begin");
+            logprint(MethodName("PrintInfo"), " -- begin");
             
             TOOLS_LOGDUMP( max_crossing_count );
             TOOLS_LOGDUMP( crossing_count );
@@ -752,7 +728,7 @@ namespace Knoodle
             
             TOOLS_LOGDUMP( this->CacheKeys() );
             
-            logprint(MethodName("PrintInfo") + " -- end");
+            logprint(MethodName("PrintInfo"), " -- end");
         }
 
         /*!@brief A coarse estimator of heap-allocated memory in use for this class instance. Does not account for quantities stored in the class' cache.*/

@@ -122,7 +122,9 @@ namespace Knoodle
         template<IntQ I_0, IntQ I_1>
         MultiGraphBase(
             const I_0 vertex_count_,
-            cref<I_0> tails, cref<I_0> heads, const I_1 edge_count_
+            cptr<I_0> tails,
+            cptr<I_0> heads,
+            const I_1 edge_count_
         )
         :   vertex_count ( int_cast<VInt>(vertex_count_)    )
         ,   edges        ( int_cast<EInt>(edge_count_)      )
@@ -166,7 +168,7 @@ namespace Knoodle
         /*!@brief Initialize from a `PairAggregator`.*/
         template<IntQ I_0, IntQ I_1>
         MultiGraphBase(
-            const I_0 vertex_count_, mref<PairAggregator<I_0,I_0,I_1>> pairs
+            const I_0 vertex_count_, cref<PairAggregator<I_0,I_0,I_1>> pairs
         )
         :   MultiGraphBase(
                vertex_count_,

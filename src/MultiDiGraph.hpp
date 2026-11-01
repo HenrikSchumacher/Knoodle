@@ -93,7 +93,9 @@ namespace Knoodle
         template<typename I_0, typename I_1>
         MultiDiGraph(
             const I_0 vertex_count_,
-            cref<I_0> tails, cref<I_0> heads, const I_1 edge_count_
+            cptr<I_0> tails,
+            cptr<I_0> heads,
+            const I_1 edge_count_
         )
         :   Base_T( vertex_count_, tails, heads, edge_count_ )
         {}
@@ -101,7 +103,8 @@ namespace Knoodle
         // Provide an EdgeContainer_T.
         template<typename I_0>
         MultiDiGraph(
-            const I_0 vertex_count_, cref<EdgeContainer_T> edges_
+            const I_0 vertex_count_,
+            cref<EdgeContainer_T> edges_
         )
         :   Base_T( vertex_count_, edges_ )
         {}
@@ -117,7 +120,7 @@ namespace Knoodle
         // Provide a list of edges by a PairAggregator.
         template<typename I_0, typename I_1>
         MultiDiGraph(
-            const I_0 vertex_count_, mref<PairAggregator<I_0,I_0,I_1>> pairs
+            const I_0 vertex_count_, cref<PairAggregator<I_0,I_0,I_1>> pairs
         )
         :   Base_T( vertex_count_, pairs )
         {}
