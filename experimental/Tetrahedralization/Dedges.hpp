@@ -108,7 +108,7 @@ TetDedgeContainer_T DedgeLabels() const
     
     if( !InCacheQ(tag) )
     {
-        TetDedgeContainer_T de_labels( tet_count, Unvisited );
+        TetDedgeContainer_T de_labels( tet_capacity, Unvisited );
 
         Int de_counter = 0;
         
@@ -142,18 +142,19 @@ TetDedgeContainer_T DedgeLabels() const
             
                 if( de.ValidQ() ) { continue; }
                 
+//                logprint("Reverse cycling.");
+                
                 // If we arrive here, then de.Face() is a boundary face. We have to make sure that the incomplete edge cycle is completed.
                 
                 // Cycle around dedge de_0 in backward direction.
                 de = CycleForward(de_0.Reverse());
-                do
+                while( de.ValidQ() && (de_labels(de.t,de.e) == Unvisited) )
                 {
                     de_labels(de.t,de.e) = de_counter++;
                     const Dedge_T de_rev = de.Reverse();
                     de_labels(de_rev.t,de_rev.e) = de_counter++;
                     de = CycleForward(de);
                 }
-                while( de.ValidQ() && (de_labels(de.t,de.e) == Unvisited) );
             }
         }
      

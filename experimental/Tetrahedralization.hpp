@@ -36,14 +36,17 @@ namespace Knoodle
          */
         static constexpr bool TetIndexValidQ( const Int i )
         {
-            if constexpr ( SignedIntQ<Int> )
-            {
-                return (i >= Int{0}) && (i <= MaxTetIndex);
-            }
-            else
-            {
-                return (i <= MaxTetIndex);
-            }
+            // If Int is a signed type, then casting to unsigned turns makes negative numbers into numberse greater than MaxTetIndex.
+            return static_cast<ToUnsigned<Int>>(i) <= static_cast<ToUnsigned<Int>>(MaxTetIndex);
+            
+//            if constexpr ( SignedIntQ<Int> )
+//            {
+//                return (i >= Int{0}) && (i <= MaxTetIndex);
+//            }
+//            else
+//            {
+//                return (i <= MaxTetIndex);
+//            }
         }
         
         using Class_T              = Tetrahedralization;
