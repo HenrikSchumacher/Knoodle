@@ -3,13 +3,13 @@ public:
 struct Gluing_T
 {   
     Dface_T df = Uninitialized;
-    Zmod3   r  = 3;
+    Z3   r  = 3;
     
     constexpr Gluing_T( Int t_, Int f_, Int r_ )
     :   df {t_,f_}, r {r_}
     {}
     
-    constexpr Gluing_T( cref<Dface_T> df_, Zmod3 r_ )
+    constexpr Gluing_T( cref<Dface_T> df_, Z3 r_ )
     :   df {df_}, r {r_}
     {}
     
@@ -22,7 +22,7 @@ struct Gluing_T
   
     constexpr bool ValidQ() const
     {
-        return df.ValidQ() && r.ValidQ();
+        return df.ValidQ();
     }
     
     friend std::string ToString( cref<Gluing_T> g )

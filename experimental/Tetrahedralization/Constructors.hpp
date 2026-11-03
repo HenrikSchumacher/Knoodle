@@ -36,7 +36,7 @@ static Tetrahedralization FromSimplices( cptr<ExtInt> simplices, const ExtInt2 s
             
             
             const Triangle_T triangle_0 = {
-                v_0[df_0.Vertex(0).v], v_0[df_0.Vertex(1).v], v_0[df_0.Vertex(2).v]
+                v_0[df_0.Vertex(Z3{0}).v], v_0[df_0.Vertex(Z3{1}).v], v_0[df_0.Vertex(Z3{2}).v]
             };
             
             Triangle_T key;
@@ -59,7 +59,7 @@ static Tetrahedralization FromSimplices( cptr<ExtInt> simplices, const ExtInt2 s
                 v_1.Read(&simplices[Int(4) * df_1.t]);
                 
                 const Triangle_T triangle_1 = {
-                    v_1[df_1.Vertex(0).v], v_1[df_1.Vertex(1).v], v_1[df_1.Vertex(2).v]
+                    v_1[df_1.Vertex(Z3{0}).v], v_1[df_1.Vertex(Z3{1}).v], v_1[df_1.Vertex(Z3{2}).v]
                 };
             
                 
@@ -72,15 +72,15 @@ static Tetrahedralization FromSimplices( cptr<ExtInt> simplices, const ExtInt2 s
                 
                 if( triangle_1[0] == triangle_0[0] )
                 {
-                    T.Glue_Private<false>(df_0,df_1,Zmod3{0});
+                    T.Glue_Private<false>(df_0,df_1,Z3{0});
                 }
                 else if( triangle_1[0] == triangle_0[1] )
                 {
-                    T.Glue_Private<false>(df_0,df_1,Zmod3{1});
+                    T.Glue_Private<false>(df_0,df_1,Z3{1});
                 }
                 else if( triangle_1[0] == triangle_0[2] )
                 {
-                    T.Glue_Private<false>(df_0,df_1,Zmod3{2});
+                    T.Glue_Private<false>(df_0,df_1,Z3{2});
                 }
                 else
                 {

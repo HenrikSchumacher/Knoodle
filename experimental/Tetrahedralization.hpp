@@ -4,7 +4,7 @@ namespace Knoodle
 {
     
     template<IntQ Int_ = Int64>
-    class Tetrahedralization final
+    class Tetrahedralization final : public CachedObject<1,0,0,0>
     {
     public:
         
@@ -17,14 +17,15 @@ namespace Knoodle
         static constexpr int face_bit_count     = 2;
         static constexpr Int face_bit_mask      = Int{3};
         
-        static constexpr int dedge_bit_count     = 3;
-        static constexpr Int dedge_bit_mask      = Int{7};
+        static constexpr int dedge_bit_count     = 4;
+        static constexpr Int dedge_bit_mask      = Int{15};
         
         static constexpr int rotation_bit_count = 2;
         static constexpr Int rotation_bit_mask  = Int{3};
         
-        static constexpr Int Uninitialized = SignedIntQ<Int> ? Int(-1): std::numeric_limits<Int>::max();
-        //            static constexpr Int DoNotVisit    = Uninitialized - Int(1);
+        static constexpr Int Uninitialized = SignedIntQ<Int> ? Int{-1}: std::numeric_limits<Int>::max();
+        static constexpr Int DoNotVisit    = Uninitialized - Int{1};
+        static constexpr Int Unvisited     = Uninitialized - Int{2};
         
         // We need to be able to store the lower bits.
         static constexpr Int MaxTetIndex = std::numeric_limits<Int>::max() >> (lower_bit_count + 4);
@@ -52,14 +53,16 @@ namespace Knoodle
         using TetStateContainer_T  = Tensor1<bool,Int>;
         using TetGluingContainer_T = Tiny::VectorList_AoS<4,Int,Int>;
         using TetVertexContainer_T = Tiny::VectorList_AoS<4,Int,Int>;
+        using TetDedgeContainer_T  = Tiny::VectorList_AoS<12,Int,Int>;
         
         struct Vertex_T;
         struct Dedge_T;
         struct Dface_T;
         struct Gluing_T;
         
+#include "Tetrahedralization/Z3.hpp"
+//#include "Tetrahedralization/Zmod3_lut.hpp"
 #include "Tetrahedralization/LUT.hpp"
-#include "Tetrahedralization/Rotation.hpp"
 #include "Tetrahedralization/Gluing.hpp"
         
     private:
@@ -83,8 +86,8 @@ namespace Knoodle
         Tetrahedralization( const Int tet_count_, const Int tet_capacity_ = 0 )
         :   tet_capacity  { Ramp(Max(tet_capacity_,tet_count_)) }
         ,   tet_count     { Ramp(tet_count_)                    }
-        ,   tet_state     { tet_capacity                       }
-        ,   tet_glue      { tet_capacity                       }
+        ,   tet_state     { tet_capacity                        }
+        ,   tet_glue      { tet_capacity                        }
         ,   t_search_ptr  { tet_count                           }
         {
             fill_buffer( tet_state.data(), true, tet_count );
@@ -126,6 +129,7 @@ namespace Knoodle
         
 #include "Tetrahedralization/Lock.hpp"
 #include "Tetrahedralization/Tets.hpp"
+#include "Tetrahedralization/ModifyUnsafe.hpp"
 #include "Tetrahedralization/Dfaces.hpp"
 #include "Tetrahedralization/Checks.hpp"
 #include "Tetrahedralization/Constructors.hpp"

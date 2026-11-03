@@ -1,6 +1,6 @@
 public:
 
-class Zmod3
+class Z3
 {
     using UInt =  UInt8;
     
@@ -10,11 +10,11 @@ private:
     
 public:
     
-    Zmod3() = default;
-    ~Zmod3() = default;
+    Z3() = default;
+    ~Z3() = default;
     
     template<IntQ I>
-    Zmod3( I x )
+    Z3( I x )
     {
         switch (x)
         {
@@ -46,31 +46,31 @@ public:
         return (r < UInt{3});
     }
     
-    inline friend constexpr Zmod3 operator+( Zmod3 a, Zmod3 b )
+    inline friend constexpr Z3 operator+( Z3 a, Z3 b )
     {
         constexpr UInt lut [4][4] = {{0, 1, 2, 3}, {1, 2, 0, 3}, {2, 0, 1, 3}, {3, 3, 3, 3}};
-        Zmod3 c;
+        Z3 c;
         c.r = lut[a.r][b.r];
         return c.r;
     }
     
-    inline friend constexpr Zmod3 operator-( Zmod3 a, Zmod3 b )
+    inline friend constexpr Z3 operator-( Z3 a, Z3 b )
     {
         constexpr UInt lut [4][4] = {{0, 2, 1, 3}, {1, 0, 2, 3}, {2, 1, 0, 3}, {3, 3, 3, 3}};
-        Zmod3 c;
+        Z3 c;
         c.r = lut[a.r][b.r];
         return c.r;
     }
     
-    inline friend constexpr Zmod3 operator-( Zmod3 a )
+    inline friend constexpr Z3 operator-( Z3 a )
     {
         constexpr UInt lut [4] = {0, 2, 1, 3};
-        Zmod3 c;
+        Z3 c;
         c.r = lut[a.r];
         return c.r;
     }
 
-    friend constexpr bool operator==( Zmod3 a, Zmod3 b )
+    friend constexpr bool operator==( Z3 a, Z3 b )
     {
         return a.r == b.r;
     }
@@ -85,7 +85,7 @@ public:
         return static_cast<Size_T>(r);
     }
     
-    friend std::string ToString( Zmod3 a )
+    friend std::string ToString( Z3 a )
     {
         if( !a.ValidQ() ) { return "nan"; }
         
@@ -96,4 +96,4 @@ public:
     }
 
 
-}; // struct Zmod3
+}; // struct Z3
