@@ -100,6 +100,7 @@ Dedge_T CycleForward( cref<Dedge_T> de_0 ) const
     return de_1;
 }
 
+// **EXPERIMENTAL** and maybe **INCOMPLETE**
 TetDedgeContainer_T DedgeLabels() const
 {
     TOOLS_PTIMER(timer,MethodName("DedgeLabels"));
@@ -133,14 +134,18 @@ TetDedgeContainer_T DedgeLabels() const
                 // Cycle around dedge de_0 in forward direction.
                 do
                 {
-                    de_labels(de.t,de.e) = de_counter++;
+                    de_labels(de.t,de.e) = de_counter;
                     const Dedge_T de_rev = de.Reverse();
-                    de_labels(de_rev.t,de_rev.e) = de_counter++;
+                    de_labels(de_rev.t,de_rev.e) = de_counter;
                     de = CycleForward(de);
                 }
                 while( de.ValidQ() && (de_labels(de.t,de.e) == Unvisited) );
             
-                if( de.ValidQ() ) { continue; }
+                if( de.ValidQ() )
+                {
+                    ++de_counter;
+                    continue;
+                }
                 
 //                logprint("Reverse cycling.");
                 
@@ -150,11 +155,13 @@ TetDedgeContainer_T DedgeLabels() const
                 de = CycleForward(de_0.Reverse());
                 while( de.ValidQ() && (de_labels(de.t,de.e) == Unvisited) )
                 {
-                    de_labels(de.t,de.e) = de_counter++;
+                    de_labels(de.t,de.e) = de_counter;
                     const Dedge_T de_rev = de.Reverse();
-                    de_labels(de_rev.t,de_rev.e) = de_counter++;
+                    de_labels(de_rev.t,de_rev.e) = de_counter;
                     de = CycleForward(de);
                 }
+                
+                ++de_counter;
             }
         }
      
@@ -168,35 +175,3 @@ Int DedgeLabel( cref<Dedge_T> de ) const
 {
     return DedgeLabels()(de.t,de.e);
 }
-
-
-
-
-//static constexpr ToDedge( const Int t, const Int e )
-//{
-//    return (t << 3) | (e & Int{7}));
-//}
-//
-//static constexpr std::pair<Int,Int> FromDedge( const Int de )
-//{
-//    return { de >> 3, de & Int{7} };
-//}
-//
-//static constexpr ReverseDedge( const Int de )
-//{
-//    return (de & ~Int{7}) | dedge_rev_dege_lut[de & Int{7}];
-//}
-//
-//static constexpr OppositeDedge( const Int de )
-//{
-//    return (de & ~Int{7}) | dedge_opp_dege_lut[de & Int{7}];
-//}
-//
-//
-//static constexpr DedgeToDface( const Int de )
-//{
-//    auto [t, e] = FromDedge(de);
-//    
-//    return ToDface( t, dedge_face_lut[e] );
-//}
-//
