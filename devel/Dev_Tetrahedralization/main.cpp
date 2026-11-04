@@ -50,14 +50,9 @@ int main()
     TOOLS_DUMP(T.VertexLabel(de_1.Tail()));
     TOOLS_DUMP(T.VertexLabel(de_1.Head()));
     
-    TOOLS_DUMP(Abs(-4) % 3);
-    TOOLS_DUMP(Abs(-3) % 3);
-    TOOLS_DUMP(Abs(-2) % 3);
-    TOOLS_DUMP(Abs(-1) % 3);
-    TOOLS_DUMP( 0 % 3);
-    TOOLS_DUMP( 1 % 3);
-    TOOLS_DUMP( 2 % 3);
-    TOOLS_DUMP( 3 % 3);
+    Z3 r = 3;
+    
+    TOOLS_DUMP(r);
     
     return EXIT_SUCCESS;
 }

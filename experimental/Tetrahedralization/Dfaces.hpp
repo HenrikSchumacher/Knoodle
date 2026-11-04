@@ -5,7 +5,7 @@ Int DfaceCount() const { return Int{4} * tet_count; }
 struct Dface_T
 {
     Int t = Uninitialized;
-    Int f = Uninitialized;
+    Int f = 3;
     
     Dface_T() = default;
     ~Dface_T() = default;
@@ -16,7 +16,12 @@ struct Dface_T
     
     constexpr Dface_T( IntQ auto df_comp )
     :   t{static_cast<Int>(df_comp) >> lower_bit_count}, f{static_cast<Int>(df_comp) & face_bit_mask}
-    {}
+    {
+//        if( df_comp == Uninitialized ) { return; }
+//        
+//        t = static_cast<Int>(df_comp) >> lower_bit_count;
+//        f = static_cast<Int>(df_comp) & face_bit_mask};
+    }
     
     constexpr Int Compress() const { return (t << lower_bit_count) | (f & face_bit_mask); }
     
@@ -42,7 +47,7 @@ struct Dface_T
     
     constexpr Vertex_T Opposite() const
     {
-        return Vertex_T{ t, f };
+        return { t, f };
     }
     
     constexpr Int Tet() const

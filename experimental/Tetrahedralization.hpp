@@ -54,9 +54,10 @@ namespace Knoodle
         using TetGlue_T            = Tiny::Vector<4,Int,Int>;
         
         using TetStateContainer_T  = Tensor1<bool,Int>;
-        using TetGluingContainer_T = Tiny::VectorList_AoS<4,Int,Int>;
-        using TetVertexContainer_T = Tiny::VectorList_AoS<4,Int,Int>;
+        using TetGluingContainer_T = Tiny::VectorList_AoS< 4,Int,Int>;
+        using TetVertexContainer_T = Tiny::VectorList_AoS< 4,Int,Int>;
         using TetDedgeContainer_T  = Tiny::VectorList_AoS<12,Int,Int>;
+        using TetEdgeContainer_T   = Tiny::VectorList_AoS< 6,Int,Int>;
         
         struct Vertex_T;
         struct Dedge_T;

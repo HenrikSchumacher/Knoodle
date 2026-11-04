@@ -101,6 +101,7 @@ Dedge_T CycleForward( cref<Dedge_T> de_0 ) const
 }
 
 // **EXPERIMENTAL** and maybe **INCOMPLETE**
+// TODO: The undirected edge labels might be more of interest. We need them to assemble the matrix for system of equations that a necessary for an angle structure.
 TetDedgeContainer_T DedgeLabels() const
 {
     TOOLS_PTIMER(timer,MethodName("DedgeLabels"));

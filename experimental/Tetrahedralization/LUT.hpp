@@ -78,7 +78,6 @@ static constexpr std::array<Z3,12> dedge_mod3 = {
     Z3{0}, Z3{1}, Z3{2}, Z3{0}, Z3{1}, Z3{2}, Z3{0}, Z3{1}, Z3{2}, Z3{0}, Z3{1}, Z3{2}
 };
 
-
 static constexpr std::array<Int,12> dedge_rev_dedge_lut = {
     3, 7, 11, 0, 10, 8, 9, 1, 5, 6, 4, 2
 };
