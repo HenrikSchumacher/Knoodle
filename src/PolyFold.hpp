@@ -227,22 +227,22 @@ print(R"(
                     Run();
                     
                     print("Done.");
-                    valprint<30>("Time elapsed during burn-in",burn_in_time);
-                    valprint<30>("Time elapsed during sampling",total_sampling_time);
-                    valprint<30>("Time elapsed during analysis",total_analysis_time);
-                    valprint<30>("Time elapsed during snapshots",total_snapshot_time);
+                    valprint<true,30>("Time elapsed during burn-in",burn_in_time);
+                    valprint<true,30>("Time elapsed during sampling",total_sampling_time);
+                    valprint<true,30>("Time elapsed during analysis",total_analysis_time);
+                    valprint<true,30>("Time elapsed during snapshots",total_snapshot_time);
                     print(std::string(26 + 24,'-'));
-                    valprint<30>("Time elapsed all together",total_timing);
+                    valprint<true,30>("Time elapsed all together",total_timing);
                 }
             }
             catch( const std::exception & e )
             {
-                eprint(e.what());
+                eprint(ClassName(),"(): ", std::string_view(e.what()));
                 throw;
             }
             catch(...)
             {
-                eprint(ClassName()+"(): Unknown exception.");
+                eprint(ClassName(), "(): Unknown exception.");
                 throw;
             }
         }

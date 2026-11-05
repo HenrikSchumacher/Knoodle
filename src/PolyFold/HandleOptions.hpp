@@ -72,11 +72,11 @@ bool HandleOptions( int argc, char** argv )
     }
     
     
-    valprint<a>("Use Quaternions", BoolString(Clisby_T::quaternionsQ) );
+    valprint<true,a>("Use Quaternions", BoolString(Clisby_T::quaternionsQ) );
     print("");
     
     hard_sphere_diam = vm["diam"].as<Real>();
-    valprint<a>("Hard Sphere Diameter d", hard_sphere_diam);
+    valprint<true,a>("Hard Sphere Diameter d", hard_sphere_diam);
     
     if( vm.count("edge-count") )
     {
@@ -84,7 +84,7 @@ bool HandleOptions( int argc, char** argv )
         
         edge_length_tolerance = Real(0.00000000001) * Real(n);
         
-        valprint<a>("Edge Count n", n);
+        valprint<true,a>("Edge Count n", n);
     }
     else
     {
@@ -96,7 +96,7 @@ bool HandleOptions( int argc, char** argv )
     {
         burn_in = vm["burn-in"].as<LInt>();
         
-        valprint<a>("Burn-in Count b", burn_in);
+        valprint<true,a>("Burn-in Count b", burn_in);
     }
     else
     {
@@ -109,7 +109,7 @@ bool HandleOptions( int argc, char** argv )
     {
         skip = vm["skip"].as<LInt>();
         
-        valprint<a>("Skip Count s", skip);
+        valprint<true,a>("Skip Count s", skip);
     }
     else
     {
@@ -122,7 +122,7 @@ bool HandleOptions( int argc, char** argv )
     {
         N = vm["sample-count"].as<Int>();
         
-        valprint<a>("Sample Count N", N);
+        valprint<true,a>("Sample Count N", N);
     }
     else
     {
@@ -134,45 +134,45 @@ bool HandleOptions( int argc, char** argv )
     print("");
     
     anglesQ = (vm.count("angles") != 0);
-    valprint<a>("Compute Angle Statistics", BoolString(anglesQ) );
+    valprint<true,a>("Compute Angle Statistics", BoolString(anglesQ) );
 
     squared_gyradiusQ = (vm.count("squared-gyradius") != 0);
-    valprint<a>("Compute Squared Gyradius", BoolString(squared_gyradiusQ) );
+    valprint<true,a>("Compute Squared Gyradius", BoolString(squared_gyradiusQ) );
     
     bounding_boxesQ = (vm.count("bounding-boxes") != 0);
-    valprint<a>("Compute Bounding Boxes", BoolString(bounding_boxesQ) );
+    valprint<true,a>("Compute Bounding Boxes", BoolString(bounding_boxesQ) );
     
     pdQ = (vm.count("pd-code") != 0);
-    valprint<a>("Compute PD Codes", BoolString(pdQ) );
+    valprint<true,a>("Compute PD Codes", BoolString(pdQ) );
     
     gaussQ = (vm.count("gauss-code") != 0);
-    valprint<a>("Compute Gauss Codes", BoolString(gaussQ) );
+    valprint<true,a>("Compute Gauss Codes", BoolString(gaussQ) );
     
     macleodQ = (vm.count("macleod-code") != 0);
-    valprint<a>("Compute MacLeod Codes", BoolString(macleodQ) );
+    valprint<true,a>("Compute MacLeod Codes", BoolString(macleodQ) );
     
     tally_unknotsQ = vm["tally-unknots"].as<bool>();
-    valprint<a>("Tally Unknots", BoolString(tally_unknotsQ) );
+    valprint<true,a>("Tally Unknots", BoolString(tally_unknotsQ) );
     
     tally_trefoilsQ = vm["tally-trefoils"].as<bool>();
-    valprint<a>("Tally Trefoils", BoolString(tally_trefoilsQ) );
+    valprint<true,a>("Tally Trefoils", BoolString(tally_trefoilsQ) );
     
     tally_F8Q = vm["tally-f8"].as<bool>();
-    valprint<a>("Tally Figure Eights", BoolString(tally_F8Q) );
+    valprint<true,a>("Tally Figure Eights", BoolString(tally_F8Q) );
     
     steps_between_print = vm["polygons"].as<LInt>();
     printQ = (steps_between_print > LInt(0));
-    valprint<a>("Polygon Snapshot Skip", ToString(steps_between_print) );
+    valprint<true,a>("Polygon Snapshot Skip", ToString(steps_between_print) );
     
     bin_count = Ramp( vm["histograms"].as<Int>() );
     curvature_hist = Tensor1<LInt,Int> ( bin_count, 0 );
     torsion_hist   = Tensor1<LInt,Int> ( Int(2) * bin_count, 0 );
-    valprint<a>("Histogram Bin Count", ToString(bin_count) );
+    valprint<true,a>("Histogram Bin Count", ToString(bin_count) );
 
     print("");
     
     force_deallocQ = (vm.count("low-mem") != 0);
-    valprint<a>("Forced Deallocation", BoolString(force_deallocQ) );
+    valprint<true,a>("Forced Deallocation", BoolString(force_deallocQ) );
     
     if( vm.count("gaussian-angles") && vm.count("reflections") && !vm["reflections"].defaulted()
     )
@@ -186,23 +186,23 @@ bool HandleOptions( int argc, char** argv )
         wprint("Reflections cannot be activated while quaternions are used. Deactivating reflections");
         reflection_probability = 0;
     }
-    valprint<a>("Reflection Probability",ToString(reflection_probability));
+    valprint<true,a>("Reflection Probability",ToString(reflection_probability));
     
     
     edge_length_tolerance = vm["edge-length-tol"].as<Real>() * Real(n);
-    valprint<a>("Edge Length Tolerance", edge_length_tolerance);
+    valprint<true,a>("Edge Length Tolerance", edge_length_tolerance);
     
     if( vm.count("gaussian-angles") && !vm.count("gaussian-angles") )
     {
         Real sigma = vm["gaussian-angles"].as<Real>();
         
-        valprint<a>("Angle Random Method", "Wrapped Gaussian ( SD = " + ToString(sigma) +")");
+        valprint<true,a>("Angle Random Method", "Wrapped Gaussian ( SD = " + ToString(sigma) +")");
         angle_method = AngleRandomMethod_T::WrappedGaussian;
         angle_sigma = sigma;
     }
     else
     {
-        valprint<a>("Angle Random Method", "Uniform");
+        valprint<true,a>("Angle Random Method", "Uniform");
         angle_method = AngleRandomMethod_T::Uniform;
     }
     test_angles = vm["test-angles"].as<LInt>();
@@ -226,41 +226,41 @@ bool HandleOptions( int argc, char** argv )
     if( vm.count("gaussian-pivots") )
     {
         pivot_sigma = vm["gaussian-pivots"].as<double>();
-        valprint<a>("Pivot Random Method", "Discrete Wrapped Gaussian ( SD = " + ToString(pivot_sigma) + " )");
+        valprint<true,a>("Pivot Random Method", "Discrete Wrapped Gaussian ( SD = " + ToString(pivot_sigma) + " )");
         pivot_method = PivotRandomMethod_T::DiscreteWrappedGaussian;
     }
     if( vm.count("laplace-pivots") )
     {
         pivot_beta = vm["laplace-pivots"].as<Real>();
-        valprint<a>("Pivot Random Method", "Wrapped Laplace ( beta = " + ToString(pivot_beta) + " )");
+        valprint<true,a>("Pivot Random Method", "Wrapped Laplace ( beta = " + ToString(pivot_beta) + " )");
         pivot_method = PivotRandomMethod_T::DiscreteWrappedLaplace;
     }
     if( vm.count("clisby-pivots") )
     {
-        valprint<a>("Pivot Random Method", "Clisby");
+        valprint<true,a>("Pivot Random Method", "Clisby");
         pivot_method = PivotRandomMethod_T::Clisby;
     }
     else
     {
-        valprint<a>("Pivot Random Method", "Uniform");
+        valprint<true,a>("Pivot Random Method", "Uniform");
         pivot_method = PivotRandomMethod_T::Uniform;
     }
     test_pivots = vm["test-pivots"].as<LInt>();
     
     hierarchicalQ = vm["hierarchical"].as<bool>();
-    valprint<a>("Hierarchical Moves", BoolString(hierarchicalQ) );
+    valprint<true,a>("Hierarchical Moves", BoolString(hierarchicalQ) );
     
     shiftQ = vm["shift"].as<bool>();
-    valprint<a>("Shift Indices", BoolString(shiftQ) );
+    valprint<true,a>("Shift Indices", BoolString(shiftQ) );
     
     recenterQ = vm["recenter"].as<bool>();
-    valprint<a>("Recenter", BoolString(recenterQ) );
+    valprint<true,a>("Recenter", BoolString(recenterQ) );
 
     checksQ = vm["checks"].as<bool>();
-    valprint<a>("Hard Sphere Checks", BoolString(checksQ) );
+    valprint<true,a>("Hard Sphere Checks", BoolString(checksQ) );
     
     check_jointsQ = vm["check-joints"].as<bool>();
-    valprint<a>("Joint Checks", BoolString(check_jointsQ) );
+    valprint<true,a>("Joint Checks", BoolString(check_jointsQ) );
     
     if( vm.count("pcg-multiplier") )
     {
@@ -268,7 +268,7 @@ bool HandleOptions( int argc, char** argv )
         
         prng_init.multiplier = vm["pcg-multiplier"].as<std::string>();
         
-        valprint<a>("PCG Multiplier", prng_init.multiplier);
+        valprint<true,a>("PCG Multiplier", prng_init.multiplier);
     }
     
     if( vm.count("pcg-increment") )
@@ -277,7 +277,7 @@ bool HandleOptions( int argc, char** argv )
         
         prng_init.increment = vm["pcg-increment"].as<std::string>();
         
-        valprint<a>("PCG Increment", prng_init.increment);
+        valprint<true,a>("PCG Increment", prng_init.increment);
     }
     
     if( vm.count("pcg-state") )
@@ -286,13 +286,13 @@ bool HandleOptions( int argc, char** argv )
         
         prng_init.state = vm["pcg-state"].as<std::string>();
         
-        valprint<a>("PCG State", prng_init.state);
+        valprint<true,a>("PCG State", prng_init.state);
     }
     
     print("");
     
     verbosity = vm["verbosity"].as<int>();
-    valprint<a>("Verbosity", verbosity);
+    valprint<true,a>("Verbosity", verbosity);
     
     if( vm.count("output") )
     {
@@ -324,7 +324,7 @@ bool HandleOptions( int argc, char** argv )
     // Make sure that the working directory exists.
     std::filesystem::create_directories(path);
     
-    valprint<a>("Output Path", path.string());
+    valprint<true,a>("Output Path", path.string());
     
     // Use this path for profiles and general log files.
     Profiler::Clear(path,true);
@@ -346,7 +346,7 @@ bool HandleOptions( int argc, char** argv )
         
         inputQ = true;
         
-        valprint<a>("Input file", input_file.string());
+        valprint<true,a>("Input file", input_file.string());
     }
     else
     {

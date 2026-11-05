@@ -147,7 +147,7 @@ void BurnIn()
 
     
     print("Burn-in done.");
-    valprint<a>("Burn-In Seconds Elapsed", burn_in_time);
+    valprint<true,a>("Burn-In Seconds Elapsed", burn_in_time);
     print("");
     
 } // BurnIn
