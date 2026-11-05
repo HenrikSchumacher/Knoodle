@@ -6,6 +6,10 @@
 	objectVersion = 70;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AF2DFB7D309CD2980045C4A1 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF5B87F32BAE053100CB5CAF /* Accelerate.framework */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		AF0DC0EA302399A800D2B90D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -1832,6 +1836,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		AF2DFB70309CC7300045C4A1 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		AFBB9A982EF54467000CA528 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1853,6 +1866,7 @@
 		AF298AE42F75A2C600DE1933 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF2DF47E309CAB040045C4A1 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF2DFB62309CB6B30045C4A1 /* PolyFold */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PolyFold; sourceTree = BUILT_PRODUCTS_DIR; };
+		AF2DFB72309CC7300045C4A1 /* Dev_Scratch */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_Scratch; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF3017E8302CF15300D6545C /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF3C1CCE2FEC34F8000094CE /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF403C7A302E468100DF1C18 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
@@ -1895,6 +1909,13 @@
 			);
 			target = AF2DFB61309CB6B30045C4A1 /* PolyFold */;
 		};
+		AF2DFB7C309CC73A0045C4A1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Dev_Scratch/main.cpp,
+			);
+			target = AF2DFB71309CC7300045C4A1 /* Dev_Scratch */;
+		};
 		AFDEBF36302E272C001C88F5 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -1913,7 +1934,7 @@
 		AF8612BC2F66C0AA00F08C51 /* src */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = src; sourceTree = "<group>"; };
 		AF8C883E302CAABE0062AC7B /* tools */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = tools; sourceTree = "<group>"; };
 		AFDEBF17302E2721001C88F5 /* examples */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AFDEBF36302E272C001C88F5 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = examples; sourceTree = "<group>"; };
-		AFDEBF79302E28E6001C88F5 /* devel */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AF2DFB6C309CB6C30045C4A1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = devel; sourceTree = "<group>"; };
+		AFDEBF79302E28E6001C88F5 /* devel */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AF2DFB6C309CB6C30045C4A1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, AF2DFB7C309CC73A0045C4A1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = devel; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1921,6 +1942,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AF2DFB6F309CC7300045C4A1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AF2DFB7D309CD2980045C4A1 /* Accelerate.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2191,6 +2220,7 @@
 			children = (
 				AFBB9A9A2EF54467000CA528 /* Example_Knoodle */,
 				AF2DFB62309CB6B30045C4A1 /* PolyFold */,
+				AF2DFB72309CC7300045C4A1 /* Dev_Scratch */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -2553,6 +2583,25 @@
 			productReference = AF2DFB62309CB6B30045C4A1 /* PolyFold */;
 			productType = "com.apple.product-type.tool";
 		};
+		AF2DFB71309CC7300045C4A1 /* Dev_Scratch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AF2DFB76309CC7300045C4A1 /* Build configuration list for PBXNativeTarget "Dev_Scratch" */;
+			buildPhases = (
+				AF2DFB6E309CC7300045C4A1 /* Sources */,
+				AF2DFB6F309CC7300045C4A1 /* Frameworks */,
+				AF2DFB70309CC7300045C4A1 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Dev_Scratch;
+			packageProductDependencies = (
+			);
+			productName = Dev_Scratch;
+			productReference = AF2DFB72309CC7300045C4A1 /* Dev_Scratch */;
+			productType = "com.apple.product-type.tool";
+		};
 		AFBB9A992EF54467000CA528 /* Example_Knoodle */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AFBB9A9E2EF54467000CA528 /* Build configuration list for PBXNativeTarget "Example_Knoodle" */;
@@ -2582,6 +2631,9 @@
 				LastUpgradeCheck = 2720;
 				TargetAttributes = {
 					AF2DFB61309CB6B30045C4A1 = {
+						CreatedOnToolsVersion = 27.2;
+					};
+					AF2DFB71309CC7300045C4A1 = {
 						CreatedOnToolsVersion = 27.2;
 					};
 					AFBB9A992EF54467000CA528 = {
@@ -2754,6 +2806,7 @@
 			targets = (
 				AFBB9A992EF54467000CA528 /* Example_Knoodle */,
 				AF2DFB61309CB6B30045C4A1 /* PolyFold */,
+				AF2DFB71309CC7300045C4A1 /* Dev_Scratch */,
 			);
 		};
 /* End PBXProject section */
@@ -4582,6 +4635,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AF2DFB6E309CC7300045C4A1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AFBB9A962EF54467000CA528 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -4632,6 +4692,36 @@
 					"-lumfpack",
 					"-lboost_program_options",
 				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		AF2DFB77309CC7300045C4A1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		AF2DFB78309CC7300045C4A1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.2;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -4876,6 +4966,15 @@
 			buildConfigurations = (
 				AF2DFB67309CB6B40045C4A1 /* Debug */,
 				AF2DFB68309CB6B40045C4A1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AF2DFB76309CC7300045C4A1 /* Build configuration list for PBXNativeTarget "Dev_Scratch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF2DFB77309CC7300045C4A1 /* Debug */,
+				AF2DFB78309CC7300045C4A1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

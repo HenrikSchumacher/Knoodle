@@ -173,7 +173,7 @@ void ComputeIntersections()
     intersection_count = int_cast<Int>(intersections.size());
     
     {
-        TOOLS_PTIMER(timer,MethodName("ComputeIntersections") + ": sorting.");
+        TOOLS_PTIMER(timer2,MethodName("ComputeIntersections") + ": sorting.");
         
         // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
         edge_ctr.template RequireSize<false>( edge_ptr.Size() );

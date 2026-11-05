@@ -1,4 +1,4 @@
-//#define TOOLS_ENABLE_PROFILER
+#define TOOLS_ENABLE_PROFILER
 
 #include "../../Knoodle.hpp"
 #include "../../src/PolyFold.hpp"

@@ -457,7 +457,7 @@ void Initialize()
     
     if( !force_deallocQ )
     {
-        print("Run with command-line option \"-m\" to run with forced deallocation to reduce Expected Byte Count to ", expected_byte_count), ".");
+        print("Run with command-line option \"-m\" to run with forced deallocation to reduce Expected Byte Count to ", expected_byte_count, ".");
     }
     
     print("");
