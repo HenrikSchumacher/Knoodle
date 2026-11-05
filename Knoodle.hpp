@@ -53,7 +53,7 @@ namespace Knoodle
 
 // The old cruft. Will be removed soon.
 #include "legacy/Prosector_Float.hpp"
-//#include "legacy/LinkEmbedding_Float.hpp"
+#include "legacy/LinkEmbedding_Float.hpp"
 #include "legacy/KnotEmbedding_Float.hpp" // Like LinkEmbedding_Float, only for knots. A bit more efficient this way.
 
 

@@ -30,7 +30,7 @@
  *              until the sheared answer stabilizes, so the test certifies rather
  *              than assumes that N was large enough.
  *
- *   cross      Sharing the perturbation contract, LinkEmbedding2, 3 and 4 must
+ *   cross      Sharing the perturbation contract, LinkEmbedding and LinkEmbedding2/3 must
  *              agree with each other crossing for crossing on every input.
  *
  *   invariant  Knot type is unchanged between the degenerate projection and
