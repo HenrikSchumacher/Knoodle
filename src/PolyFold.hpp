@@ -237,12 +237,12 @@ print(R"(
             }
             catch( const std::exception & e )
             {
-                eprint(e.what());
+                eprint(ClassName(),"(): ", std::string_view(e.what()));
                 throw;
             }
             catch(...)
             {
-                eprint(ClassName()+"(): Unknown exception.");
+                eprint(ClassName(), "(): Unknown exception.");
                 throw;
             }
         }

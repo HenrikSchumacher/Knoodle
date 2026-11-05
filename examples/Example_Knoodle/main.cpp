@@ -10,8 +10,7 @@ using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 
 int main()
 {
-    Tools::print( "-=| An example program for Knoodle. |=-" );
-    Tools::print( "" );
+    Tools::print( "-=| An example program for Knoodle. |=-\n" );
  
     const auto loc = std::source_location::current();
     
@@ -79,8 +78,7 @@ int main()
     Knoodle::Klut klut (klut_path);
     
     
-    Tools::print( "" );
-    Tools::print( "== Demonstration of Simplify ==" );
+    Tools::print( "\n== Demonstration of Simplify ==" );
     Tools::print( "Simplify applies pass moves to the diagram." );
     {
         std::string filename ( path / "Diagram_Simplify5.txt" );
@@ -95,14 +93,16 @@ int main()
         
         pdc.Simplify();
         
-        pdc.ToPDCodeFile("/Users/Henrik/a.tsv");
-        
         std::ofstream file ( filename );
         
         std::size_t iter = 0;
         for( const PD_T & pd : pdc.Diagrams() )
         {
+<<<<<<< HEAD
             Tools::print("Connected component no. ", iter, ":" );
+=======
+            Tools::print( "Connected component no. ", iter, ":" );
+>>>>>>> 072fa8acdd0930bc9af7e3f9b7ab3b9588427fb3
             Tools::valprint( "No. of crossings", pd.CrossingCount() );
             // Print PD code to command line.
             Tools::valprint( "PD code", pd.template PDCode<Int,{.signQ = true,.colorQ = false}>() );
@@ -116,19 +116,21 @@ int main()
             file << H.DiagramString();
             file << "\n";
             
-            Tools::print(H.DiagramString());
-            Tools::print("");
+            Tools::print(H.DiagramString(),"\n");
             
             ++iter;
         }
     }
     
-    Tools::print( "" );
-    Tools::print( "== Demonstration of Reapr ==" );
-    Tools::print( "Reapr applies Simplify and then make a number of attempts to embed, randomly rotate, project, and run Simplify again. Often, the output of Simplify is already as good as it gets. You need a fairly hard knot for Reapr to make a difference. Note that Reapr is _not_ deterministic.." );
+    Tools::print( "\n== Demonstration of Reapr ==" );
+    Tools::print( "Reapr applies Simplify and then make a number of attempts to embed, randomly rotate, project, and run Simplify again. Often, the output of Simplify is already as good as it gets. You need a fairly hard knot for Reapr to make a difference. Note that Reapr is _not_ deterministic." );
     {
         std::string filename ( path / "Diagram_Reapr.txt" );
+<<<<<<< HEAD
         Tools::print( "Writing diagram to file ", filename, "." );
+=======
+        Tools::print( "Writing diagram to file " , filename, "." );
+>>>>>>> 072fa8acdd0930bc9af7e3f9b7ab3b9588427fb3
         
         PDC_T pdc { PD_T(pd_0) }; // Creating a copy of pd here because PDC_T wants ownership. (Typically, to save memory.)
         
@@ -156,8 +158,7 @@ int main()
             file << H.DiagramString();
             file << "\n";
             
-            Tools::print(H.DiagramString());
-            Tools::print("");
+            Tools::print(H.DiagramString(), "\n");
         }
     }    
 

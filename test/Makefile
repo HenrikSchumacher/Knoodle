@@ -97,9 +97,29 @@ endif
 # is what the twenty-three hand-written recipes reduced to.
 # ---------------------------------------------------------------------------
 
+<<<<<<< HEAD
 FLAGS_plain           = $(KNOODLE_INC)
 LIBS_plain            =
 DEPS_plain            =
+=======
+# alexander_normalization_check — pins Alexander_UMFPACK's normalization on a
+# knot whose Alexander polynomial vanishes at sqrt(2) (it hung on x86-64 and was
+# off by a power of t on arm64). Same UMFPACK config as inflate_check; the src
+# header is an explicit dep because the fix lives entirely in src/.
+alexander_normalization_check: alexander_normalization_check.cpp ../Knoodle.hpp \
+                               ../src/KnotInvariants/Alexander_UMFPACK/Alexander_Strands.hpp
+	@echo "=== Building alexander_normalization_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
+	    alexander_normalization_check.cpp $(UMFPACK_LDFLAGS) -o $@
+	@echo "✓ alexander_normalization_check compiled successfully"
+
+# error_tap_check — regression test for the CLI tools' fail-loudly machinery
+# (cerr error tap + staged/atomic output). Light build, no UMFPACK.
+error_tap_check: error_tap_check.cpp ../tools/knoodle_io.hpp ../Knoodle.hpp
+	@echo "=== Building error_tap_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) error_tap_check.cpp -o $@
+	@echo "✓ error_tap_check compiled successfully"
+>>>>>>> 072fa8acdd0930bc9af7e3f9b7ab3b9588427fb3
 
 FLAGS_homfly          = $(KNOODLE_INC)
 LIBS_homfly           = $(LIBHOMFLY_OBJ)

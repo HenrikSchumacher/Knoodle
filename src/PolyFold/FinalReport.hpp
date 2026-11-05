@@ -69,17 +69,29 @@ void FinalReport()
             Size_T cnt = get(F_T::AtCorner0) + get(F_T::AtCorner0) + get(F_T::CornerCorner);
             if( cnt != 0 )
             {
+<<<<<<< HEAD
                 eprint(ClassName()+"::FinalReport: Prosector_Float detected " + ToString(cnt) + " spatial intersections.");
+=======
+                eprint(ClassName(), "::FinalReport: PlanarLineSegmentIntersector detected ", cnt, " spatial intersections.");
+>>>>>>> 072fa8acdd0930bc9af7e3f9b7ab3b9588427fb3
             }
             cnt = get(F_T::AtCorner0) + get(F_T::AtCorner0) + get(F_T::CornerCorner);
             if( cnt != 0 )
             {
+<<<<<<< HEAD
                 wprint(ClassName()+"::FinalReport: Prosector_Float detected " + ToString(cnt) + " corner cases.");
+=======
+                wprint(ClassName(), "::FinalReport: PlanarLineSegmentIntersector detected ", cnt, " corner cases.");
+>>>>>>> 072fa8acdd0930bc9af7e3f9b7ab3b9588427fb3
             }
             cnt = get(F_T::Interval);
             if( cnt != 0 )
             {
+<<<<<<< HEAD
                 wprint(ClassName()+"::FinalReport: Prosector_Float detected " + ToString(cnt) + " interval-like intersections.");
+=======
+                wprint(ClassName(), "::FinalReport: PlanarLineSegmentIntersector detected ", cnt, " interval-like intersections.");
+>>>>>>> 072fa8acdd0930bc9af7e3f9b7ab3b9588427fb3
             }
         }
     }
