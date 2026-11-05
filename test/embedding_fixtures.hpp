@@ -35,7 +35,7 @@
 
 #include "../Knoodle.hpp"
 
-//// Knoodle.hpp pulls in LinkEmbedding4 but not 2 and 3.
+//// Knoodle.hpp pulls in LinkEmbedding but not 2 and 3.
 
 #include "../experimental/LinkEmbedding_Boost.hpp"
 #include "../experimental/LinkEmbedding3.hpp"
@@ -644,7 +644,7 @@ struct RunResult
 {
     bool        ok             = false;
     int         err            = 0;      ///< class's own error code (6 = 3D intersection)
-    bool        threw          = false;  ///< LinkEmbedding4 throws where 2/3 return a code
+    bool        threw          = false;  ///< LinkEmbedding throws where 2/3 return a code
     std::string message;
 
     Fingerprint fp;
@@ -661,7 +661,7 @@ struct RunResult
 
 /// Project `c` with class `LE_T` and report what came out.
 ///
-/// Failures are captured, never fatal: `LinkEmbedding4` currently *throws* where
+/// Failures are captured, never fatal: `LinkEmbedding` currently *throws* where
 /// `LinkEmbedding2/3` return error code 6, and a test that aborts on the first
 /// awkward fixture cannot report on the rest.
 template<class LE_T>

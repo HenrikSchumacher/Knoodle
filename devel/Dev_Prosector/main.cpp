@@ -10,7 +10,7 @@
 #include "../../Knoodle.hpp"
 //#include "../../experimental/LinkEmbedding_Boost.hpp"
 //#include "../../experimental/LinkEmbedding3.hpp"
-#include "../../experimental/LinkEmbedding5.hpp"
+//#include "../../experimental/LinkEmbedding5.hpp"
 
 using namespace Knoodle;
 using namespace Tools;
@@ -19,11 +19,10 @@ using Real  = Real64;
 using Int   = Int64;
 using IReal = Int64;
 
-//using Link1_T = LinkEmbedding4<Real,Int,IReal>;
 using Link1_T = LinkEmbedding_Float<Real,Int>;
 //using Link2_T = LinkEmbedding_Boost<Real,Int>;
 //using Link3_T = LinkEmbedding3<Real,Int>;
-using Link4_T = LinkEmbedding4<Real,Int,IReal>;
+using Link4_T = LinkEmbedding<Real,Int,IReal>;
 //using Link5_T = LinkEmbedding5<Real,Int,IReal>;
 
 using PDC_T   = PlanarDiagramComplex<Int>;

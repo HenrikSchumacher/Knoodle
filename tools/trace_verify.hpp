@@ -273,7 +273,7 @@ struct LatticeProjection
  * @brief Project a lattice link down z, EXACTLY, with the components' colours
  * supplied rather than invented.
  *
- * `LinkEmbedding_Int` + `Prosector` with an integer coordinate type: no
+ * `LinkEmbedding_Int` + `Prosector_Int` with an integer coordinate type: no
  * scaling, no rounding, and simulation of simplicity resolving every
  * degenerate projection (a lattice curve seen down an axis is maximally
  * degenerate) the same way every time. This is the ONLY projector the redraw
@@ -291,7 +291,7 @@ LatticeProjection<PD_T> ProjectLattice(
     const std::vector<typename PD_T::Int> & colors )
 {
     using Int = typename PD_T::Int;
-    using L_T = Knoodle::LinkEmbedding4<std::int64_t,Int>;
+    using L_T = Knoodle::LinkEmbedding<std::int64_t,Int>;
 
     LatticeProjection<PD_T> out;
 

@@ -102,28 +102,28 @@ using Alexander_T = kt::LinkAlexander<std::complex<double>,std::int64_t>;
 // zero-rounding-error route through the same code. Every fixture here except
 // the deliberately rotated ones is integral.
 
-using LE1_f64 = Knoodle::LinkEmbedding <double,std::int64_t,float>;
+using LE1_f64 = Knoodle::LinkEmbedding_Float<double,std::int64_t,float>;
 using LE2_f64 = Knoodle::LinkEmbedding2<double,std::int64_t,std::int64_t>;
 using LE3_f64 = Knoodle::LinkEmbedding3<double,std::int64_t,std::int64_t>;
-using LE4_f64 = Knoodle::LinkEmbedding4<double,std::int64_t,std::int64_t>;
+using LE4_f64 = Knoodle::LinkEmbedding<double,std::int64_t,std::int64_t>;
 
 // Float coordinates against the 64-bit backend: a genuine narrowing of the
 // input, so `RoundingError()` becomes informative.
-using LE1_f32 = Knoodle::LinkEmbedding <float,std::int64_t,float>;
+using LE1_f32 = Knoodle::LinkEmbedding_Float<float,std::int64_t,float>;
 using LE2_f32 = Knoodle::LinkEmbedding2<float,std::int64_t,std::int64_t>;
 using LE3_f32 = Knoodle::LinkEmbedding3<float,std::int64_t,std::int64_t>;
-using LE4_f32 = Knoodle::LinkEmbedding4<float,std::int64_t,std::int64_t>;
+using LE4_f32 = Knoodle::LinkEmbedding<float,std::int64_t,std::int64_t>;
 
-using LE1_i32 = Knoodle::LinkEmbedding <float,std::int64_t,float>;
+using LE1_i32 = Knoodle::LinkEmbedding_Float<float,std::int64_t,float>;
 using LE2_i32 = Knoodle::LinkEmbedding2<float,std::int64_t,std::int32_t>;
 using LE3_i32 = Knoodle::LinkEmbedding3<float,std::int64_t,std::int32_t>;
-using LE4_i32 = Knoodle::LinkEmbedding4<float,std::int64_t,std::int32_t>;
+using LE4_i32 = Knoodle::LinkEmbedding<float,std::int64_t,std::int32_t>;
 
 // Integral `Real_`. Unbuildable until 4d2d0624 implemented it (finding C of
 // docs/embedding-check.md); no longer gated.
 using LE2_i64 = Knoodle::LinkEmbedding2<std::int64_t,std::int64_t,std::int64_t>;
 using LE3_i64 = Knoodle::LinkEmbedding3<std::int64_t,std::int64_t,std::int64_t>;
-using LE4_i64 = Knoodle::LinkEmbedding4<std::int64_t,std::int64_t,std::int64_t>;
+using LE4_i64 = Knoodle::LinkEmbedding<std::int64_t,std::int64_t,std::int64_t>;
 
 enum class Coords { f64, f32, i32, i64 };
 

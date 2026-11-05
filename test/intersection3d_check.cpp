@@ -201,10 +201,11 @@ int main()
               c.curve.name + ": the census confirms this curve is not an embedding");
         if( cen.spatial <= Int(0) ) { continue; }
 
+        Probe<Knoodle::LinkEmbedding<Int,   Int,Int>>(c.curve,"LinkEmbedding<i64>",cen.spatial,true);
         Probe<Knoodle::LinkEmbedding2<double,Int,Int>>(c.curve,"LinkEmbedding2<f64>",cen.spatial,true);
         Probe<Knoodle::LinkEmbedding2<Int,   Int,Int>>(c.curve,"LinkEmbedding2<i64>",cen.spatial,true);
         Probe<Knoodle::LinkEmbedding3<Int,   Int,Int>>(c.curve,"LinkEmbedding3<i64>",cen.spatial,true);
-        Probe<Knoodle::LinkEmbedding4<Int,   Int,Int>>(c.curve,"LinkEmbedding4<i64>",cen.spatial,true);
+
     }
 
     std::printf("\n%s\n", ok ? "INTERSECTION 3D CHECK OK" : "INTERSECTION 3D CHECK FAILED");
