@@ -98,11 +98,7 @@ int main()
         std::size_t iter = 0;
         for( const PD_T & pd : pdc.Diagrams() )
         {
-<<<<<<< HEAD
             Tools::print("Connected component no. ", iter, ":" );
-=======
-            Tools::print( "Connected component no. ", iter, ":" );
->>>>>>> 072fa8acdd0930bc9af7e3f9b7ab3b9588427fb3
             Tools::valprint( "No. of crossings", pd.CrossingCount() );
             // Print PD code to command line.
             Tools::valprint( "PD code", pd.template PDCode<Int,{.signQ = true,.colorQ = false}>() );
@@ -126,11 +122,7 @@ int main()
     Tools::print( "Reapr applies Simplify and then make a number of attempts to embed, randomly rotate, project, and run Simplify again. Often, the output of Simplify is already as good as it gets. You need a fairly hard knot for Reapr to make a difference. Note that Reapr is _not_ deterministic." );
     {
         std::string filename ( path / "Diagram_Reapr.txt" );
-<<<<<<< HEAD
         Tools::print( "Writing diagram to file ", filename, "." );
-=======
-        Tools::print( "Writing diagram to file " , filename, "." );
->>>>>>> 072fa8acdd0930bc9af7e3f9b7ab3b9588427fb3
         
         PDC_T pdc { PD_T(pd_0) }; // Creating a copy of pd here because PDC_T wants ownership. (Typically, to save memory.)
         
