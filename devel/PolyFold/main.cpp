@@ -1,7 +1,7 @@
-//#define TOOLS_ENABLE_PROFILER
+#define TOOLS_ENABLE_PROFILER
 
-#include "../Knoodle.hpp"
-#include "../src/PolyFold.hpp"
+#include "../../Knoodle.hpp"
+#include "../../src/PolyFold.hpp"
 
 using Real  = Knoodle::Real64; // scalar type used for positions of polygon
 using BReal = Knoodle::Real32; // scalar type used for bounding boxes

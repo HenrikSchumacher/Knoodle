@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "2660"
+   LastUpgradeVersion = "2720"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -15,9 +15,8 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "AFBDADA62DECE2D9004BCA41"
-               BuildableName = "Dev_OrthoDraw"
-               BlueprintName = "Dev_OrthoDraw"
+               BlueprintIdentifier = "AF2DFB71309CC7300045C4A1"
+               BuildableName = "Dev_Scratch"
                ReferencedContainer = "container:Knoodle.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -40,14 +39,14 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES"
-      viewDebuggingEnabled = "No">
+      viewDebuggingEnabled = "No"
+      queueDebuggingEnabled = "No">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "AFBDADA62DECE2D9004BCA41"
-            BuildableName = "Dev_OrthoDraw"
-            BlueprintName = "Dev_OrthoDraw"
+            BlueprintIdentifier = "AF2DFB71309CC7300045C4A1"
+            BuildableName = "Dev_Scratch"
             ReferencedContainer = "container:Knoodle.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -62,9 +61,8 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "AFBDADA62DECE2D9004BCA41"
-            BuildableName = "Dev_OrthoDraw"
-            BlueprintName = "Dev_OrthoDraw"
+            BlueprintIdentifier = "AF2DFB71309CC7300045C4A1"
+            BuildableName = "Dev_Scratch"
             ReferencedContainer = "container:Knoodle.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

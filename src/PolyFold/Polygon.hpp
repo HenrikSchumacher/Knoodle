@@ -3,10 +3,13 @@ cref<PolygonContainer_T> GetPolygon() const
     return x;
 }
 
-static std::string PolygonString( cref<PolygonContainer_T> X )
+static OutString PolygonString( cref<PolygonContainer_T> X )
 {
-    return ToStringTSV(X);
+//    return ToStringTSV(X);
+    return OutString::FromMatrix<Format::Matrix::TSV>( X.ReadAccess(), X.Dim(0), X.Dim(1) );
 }
+
+
 
 template<Size_T t0>
 void PolygonSnapshot( const LInt i )
