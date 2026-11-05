@@ -107,5 +107,9 @@ int main()
 //        TOOLS_DUMP(jones);
 //    }
     
+    
+    std::string s = OutString::FromMisc("{ ", 1,  ", ", 2., " } ");
+    print(s);
+    
     return 0;
 }
