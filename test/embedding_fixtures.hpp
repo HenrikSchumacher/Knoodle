@@ -40,7 +40,7 @@
 #include "../experimental/LinkEmbedding_Boost.hpp"
 #include "../experimental/LinkEmbedding3.hpp"
 
-// Henrik: LinkEmbedding2/3/4 are now type aliases of LinkEmbedding_Int, which is a wrapper class that can be instantiated with different Prosector types. LinkEmbedding_Int is now loaded by Knoodle.hpp.
+// Henrik: LinkEmbedding and LinkEmbedding2/3 are now type aliases of LinkEmbedding_Int, which is a wrapper class that can be instantiated with different Prosector types. LinkEmbedding_Int is now loaded by Knoodle.hpp.
 
 #include <algorithm>
 #include <cmath>
