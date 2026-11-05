@@ -1,6 +1,8 @@
+#define TOOLS_USE_BOOST_UNORDERED
+
 //#define TOOLS_NO_RESTRICT
 
-//#define TOOLS_ENABLE_PROFILER
+#define TOOLS_ENABLE_PROFILER
 //#define TOOLS_NO_INT128
 #define TOOLS_AGGRESSIVE_INLINING
 
@@ -17,7 +19,8 @@ using Real  = Real64;
 using Int   = Int64;
 using IReal = Int64;
 
-using Link1_T = LinkEmbedding<Real,Int>;
+//using Link1_T = LinkEmbedding4<Real,Int,IReal>;
+using Link1_T = LinkEmbedding_Float<Real,Int>;
 //using Link2_T = LinkEmbedding_Boost<Real,Int>;
 //using Link3_T = LinkEmbedding3<Real,Int>;
 using Link4_T = LinkEmbedding4<Real,Int,IReal>;
@@ -31,11 +34,12 @@ int main()
     Profiler::Clear();
     int err;
     
-    auto file = HomeDirectory() / "a.txt";
+    auto file = HomeDirectory() / "a.tsv";
     
     print("");
 
-    auto L1 = Link1_T::FromFile(file);
+    auto L1 = Link1_T::FromFile(file);    
+    
     tic(L1.ClassName());
     err = L1.RequireIntersections();
     toc(L1.ClassName());
@@ -71,7 +75,7 @@ int main()
 //    ostrstream << L4;
     
     PDC_T pdc (L4);
-    print(pdc[0]);
+//    print(pdc[0]);
     {
         std::ofstream ofstream ( HomeDirectory() /"b.txt" );
         ofstream << pdc[0];
@@ -83,13 +87,13 @@ int main()
     
     {
         InString in ( HomeDirectory() /"b.txt" );
-        print(in.View());
+//        print(in.View());
         in >> pd_0;
         in >> pd_1;
         
     }
-    print("pd_0 = ", pd_0);
-    print("pd_1 = ", pd_1);
+//    print("pd_0 = ", pd_0);
+//    print("pd_1 = ", pd_1);
     
 //    Link5_T L5 = Link5_T::FromFile(file);
 //    tic(std::string(L5.ClassName()));
@@ -113,9 +117,9 @@ int main()
 //    TOOLS_DUMP(L5.EdgeCrossings() == L1.EdgeCrossings());
     
 //    print(StringCat(std::string("Test")," ","Bla"));
-//    
+//
 //    print(Link5_T::Msgr::MethodName("Test"));
-//    
+//
 //    print(Link5_T::Msgr::Message("Test","Bla bla = ",Tools::ToString(L5.CrossingCount()),". Blub blub. Blib blib"));
     
     
@@ -125,12 +129,12 @@ int main()
 //    TOOLS_DUMP(Stringy<std::string &>);
 //    TOOLS_DUMP(Stringy<const std::string &>);
 //    TOOLS_DUMP(Stringy<std::string &&>);
-//    
+//
 //    TOOLS_DUMP(Stringy<OutString>);
 //    TOOLS_DUMP(Stringy<OutString &>);
 //    TOOLS_DUMP(Stringy<const OutString &>);
 //    TOOLS_DUMP(Stringy<OutString &&>);
-//    
+//
 //    TOOLS_DUMP(Stringy<int>);
 //    TOOLS_DUMP(Stringy<int &>);
 //    TOOLS_DUMP(Stringy<const int &>);

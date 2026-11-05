@@ -140,7 +140,7 @@ static PD_T FromMacLeodCode(
     const bool    proven_minimalQ_ = false
 )
 {
-    TOOLS_PTIMER(timer, Msgr::MethodName( ct_string("FromMacLeodCode")
+    TOOLS_PTIMER(timer, MethodName( ct_string("FromMacLeodCode")
         + "<" + TypeName<T>
         + "," + TypeName<ExtInt>
         + "," + TypeName<ExtInt2>
@@ -193,7 +193,7 @@ static PD_T FromMacLeodCode(
 
 std::string MacLeodString() const
 {
-    TOOLS_PTIMER(timer,Msgr::MethodName("MacLeodString"));
+    TOOLS_PTIMER(timer,MethodName("MacLeodString"));
     
     auto code = this->template MacLeodCode<UInt>();
     
@@ -208,7 +208,7 @@ std::string MacLeodString() const
 template<IntQ ExtInt2>
 static PD_T FromMacLeodString( cref<std::string> s, const ExtInt2 color )
 {
-    TOOLS_PTIMER(timer,Msgr::MethodName("FromMacLeodString"));
+    TOOLS_PTIMER(timer,MethodName("FromMacLeodString"));
     
     Size_T L = ToSize_T(s.size());
     Size_T d = 1;   // current digit count that we try

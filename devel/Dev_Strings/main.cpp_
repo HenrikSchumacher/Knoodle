@@ -17,7 +17,9 @@ using Real  = Real64;
 using Int   = Int64;
 using IReal = Int64;
 
-using Link_T = LinkEmbedding<Real,Int>;
+using PDC_T           = PlanarDiagramComplex<Int>;
+using LinkEmbedding_T = PDC_T::LinkEmbedding_T;
+using PD_T            = PDC_T::PD_T;
 
 int main()
 {

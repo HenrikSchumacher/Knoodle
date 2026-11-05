@@ -18,7 +18,9 @@ namespace Knoodle
      */
     
     template<FloatQ Real_ = double, IntQ Int_ = Int64, FloatQ BReal_ = Real_>
-    class alignas( ObjectAlignment ) KnotEmbedding final
+    class
+//    [[deprecated("This class uses some inexact arithmetic. Better use LinkEmbedding.")]]
+    alignas( ObjectAlignment ) KnotEmbedding_Float final
     {
         // This data type is mostly intended to read in 3D vertex coordinates, to apply a planar projection and compute the crossings. Then it can be handed over to class PlanarDiagram. Hence, this class' main routine is FindIntersections (using a static binary tree).
         
@@ -40,7 +42,7 @@ namespace Knoodle
         
         static constexpr Int AmbDim = 3;
         
-        using Class_T        = KnotEmbedding;
+        using Class_T        = KnotEmbedding_Float;
         using Tree2_T        = AABBTree<2,Real,Int,BReal,false>;
 //        using Tree3_T        = AABBTree<3,Real,Int,BReal,false>;
         
@@ -104,23 +106,23 @@ namespace Knoodle
     public:
         
         // Default constructor
-        KnotEmbedding() = default;
+        KnotEmbedding_Float() = default;
         // Destructor
-        ~KnotEmbedding() = default;
+        ~KnotEmbedding_Float() = default;
         // Copy constructor
-        KnotEmbedding( const KnotEmbedding & other ) = default;
+        KnotEmbedding_Float( const KnotEmbedding_Float & other ) = default;
         // Copy assignment operator
-        KnotEmbedding & operator=( const KnotEmbedding & other ) = default;
+        KnotEmbedding_Float & operator=( const KnotEmbedding_Float & other ) = default;
         // Move constructor
-        KnotEmbedding( KnotEmbedding && other ) = default;
+        KnotEmbedding_Float( KnotEmbedding_Float && other ) = default;
         // Move assignment operator
-        KnotEmbedding & operator=( KnotEmbedding && other ) = default;
+        KnotEmbedding_Float & operator=( KnotEmbedding_Float && other ) = default;
         
         
         /*!@brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
         template<typename I>
-        explicit KnotEmbedding( const I edge_count_ )
+        explicit KnotEmbedding_Float( const I edge_count_ )
         :   edge_count      { int_cast<Int>(edge_count_)         }
         ,   vertex_coords   { int_cast<Int>(edge_count + Int(1)) }
         ,   edge_ptr        { int_cast<Int>(edge_count + Int(1)) }
@@ -138,10 +140,10 @@ namespace Knoodle
             component_ptr[1] = edge_count;
         }
 
-#include "KnotEmbedding/VertexCoordinates.hpp"
-#include "LinkEmbedding/Helpers.hpp"
-#include "LinkEmbedding/BoundingBoxes.hpp"
-#include "LinkEmbedding/FindIntersections.hpp"
+#include "KnotEmbedding_Float/VertexCoordinates.hpp"
+#include "LinkEmbedding_Float/Helpers.hpp"
+#include "LinkEmbedding_Float/BoundingBoxes.hpp"
+#include "LinkEmbedding_Float/FindIntersections.hpp"
 
     
     public:
@@ -225,7 +227,7 @@ namespace Knoodle
         
         Size_T ByteCount() const
         {
-            return sizeof(KnotEmbedding) + AllocatedByteCount();
+            return sizeof(KnotEmbedding_Float) + AllocatedByteCount();
         }
         
         template<int t0 = 0>
@@ -255,7 +257,7 @@ namespace Knoodle
         
         static consteval auto ClassName()
         {
-            return ct_string("KnotEmbedding")
+            return ct_string("KnotEmbedding_Float")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<BReal>

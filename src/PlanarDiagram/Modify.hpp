@@ -107,7 +107,7 @@ public:
 template<bool silentQ = false, bool assertsQ = true>
 Int CreateLoop( const Int a, const bool side, CrossingState_T handedness )
 {
-    TOOLS_PTIMER(timer,Msgr::MethodName("CreateLoop"));
+    TOOLS_PTIMER(timer,MethodName("CreateLoop"));
     if( InvalidQ() )
     {
         if constexpr ( !silentQ )
@@ -197,7 +197,7 @@ bool Connect( const Int a, const Int b )
 {
     if( LockedQ() ) { LockMessage("Connect"); return false; }
     
-    TOOLS_PTIMER(timer,Msgr::MethodName("Connect"));
+    TOOLS_PTIMER(timer,MethodName("Connect"));
     
     if( InvalidQ() )
     {

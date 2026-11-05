@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-<<<<<<< HEAD:Knoodle.xcodeproj/xcshareddata/xcschemes/Dev_OrthoDraw.xcscheme
-   LastUpgradeVersion = "2710"
-=======
    LastUpgradeVersion = "2720"
->>>>>>> 072fa8acdd0930bc9af7e3f9b7ab3b9588427fb3:Knoodle.xcodeproj/xcshareddata/xcschemes/Dev_Scratch.xcscheme
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"

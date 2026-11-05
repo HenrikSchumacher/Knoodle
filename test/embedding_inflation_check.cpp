@@ -90,10 +90,9 @@
 
 using Int     = std::int64_t;
 using Real    = double;
-using BReal   = float;
 using PDC_T   = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T    = PDC_T::PD_T;
-using Reapr_T = Knoodle::Reapr<Real, Int, BReal>;
+using Reapr_T = Knoodle::Reapr<Real, Int>;
 
 namespace {
 

@@ -340,7 +340,7 @@ bool HandleOptions( int argc, char** argv )
         if( flag != 0 )
         {
             throw std::invalid_argument(
-                ClassName()+"::HandleOptions: Failed to read input file."
+                std::string(ClassName())+"::HandleOptions: Failed to read input file."
             );
         }
         

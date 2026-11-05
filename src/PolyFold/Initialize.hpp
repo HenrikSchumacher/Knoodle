@@ -404,7 +404,17 @@ void Initialize()
             kv<t3,0>("Class", PD_T::ClassName());
         
         // We delay the allocation until substantial parts of L have been deallocated.
-        PDC_T PDC ( L );
+//        PDC_T PDC ( L );
+        
+        Int comp_color [1] = {Int{0}};
+        PDC_T PDC = PDC_T::FromLinkEmbedding_Raw(
+            L.ComponentCount(),
+            L.ComponentPointers().data(),
+            &comp_color[0],
+            L.IntersectionCount(),
+            L.EdgePointers().data(),
+            L.EdgeCrossings().data()
+        );
 
         if( force_deallocQ )
         {

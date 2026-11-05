@@ -43,14 +43,14 @@ static PDC_T FromCoordinatesAndEdges( cptr<Real> x, cptr<ExtInt> edges, const Ex
 }
 
 /*!@brief For internal use only. Users should not call this. Testing makes it necessary to make this public. */
-template<IntQ ExtInt, IntQ ExtInt2>
+template<IntQ ExtInt>
 static PDC_T FromLinkEmbedding_Raw(
     const ExtInt  component_count_,
     cptr<ExtInt>  component_ptr,
     cptr<ExtInt>  component_color,
     const ExtInt  crossing_count_,
     cptr<ExtInt>  edge_ptr,
-    cptr<ExtInt>  edge_cross
+    cptr<EdgeCrossing<ExtInt>> edge_cross
 )
 {
     return PDC_T( PD_T::FromLinkEmbedding_Raw(

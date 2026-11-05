@@ -1,4 +1,4 @@
-#define KNOODLE_USE_BOOST_UNORDERED
+#define TOOLS_USE_BOOST_UNORDERED
 
 #include "../Knoodle.hpp"
 #include "../src/PolyFold.hpp"

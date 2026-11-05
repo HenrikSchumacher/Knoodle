@@ -16,13 +16,12 @@ namespace Knoodle
     /*!@brief A class for computing relatively simple 3D embeddings of planar diagrams.
      */
     
-    template<FloatQ Real_ = Real64, IntQ Int_ = Int64, FloatQ BReal_ = Real32>
+    template<FloatQ Real_ = Real64, IntQ Int_ = Int64>
     class Reapr
     {
     public:
         using Real                = Real_;
         using Int                 = Int_;
-        using BReal               = BReal_;
         
 #ifdef KNOODLE_USE_UMFPACK
         using UMF_Int             = Int64;
@@ -39,14 +38,13 @@ namespace Knoodle
         
         static constexpr Parallel_T parQ = Sequential;
         
-        //        using Link_T              = LinkEmbedding<Real,Int,BReal>;
         using PD_T                = PlanarDiagram<Int>;
         using Point_T             = Tiny::Vector<3,Real,Int>;
         using Matrix_T            = Tiny::Matrix<3,3,Real,Int>;
         using OrthoDraw_T         = OrthoDraw<PD_T>;
         using OrthoDrawSettings_T = OrthoDraw_T::Settings_T;
         //        using Embedding_T         = RaggedList<Point_T,Int>;
-        using LinkEmbedding_T     = LinkEmbedding<Real,Int,BReal>;
+        using LinkEmbedding_T     = LinkEmbedding<Real,Int>;
         
         using PRNG_T              = Knoodle::PRNG_T;
         using Flag_T              = Scalar::Flag;

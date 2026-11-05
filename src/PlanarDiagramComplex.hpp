@@ -50,18 +50,15 @@ namespace Knoodle
         using OrthoDrawSettings_T   = OrthoDraw_T::Settings_T;
         using Compaction_T          = OrthoDraw_T::CompactionMethod_T;
         /*!@brief Alias for `Reapr`.*/
-        using Reapr_T               = Reapr<double,Int,float>;
+        using Reapr_T               = Reapr<double,Int>;
         using Energy_T              = Reapr_T::Energy_T;
         using ReaprSettings_T       = Reapr_T::Settings_T;
-        /*!@brief Alias for `LinkEmbedding`.*/
         using LinkEmbedding_T       = Reapr_T::LinkEmbedding_T;
         
         
         using PDCode_TArgs_T        = PD_T::PDCode_TArgs_T;
         using FromPDCode_TArgs_T    = PD_T::FromPDCode_TArgs_T;
         
-        
-//        using LinkEmbedding_T       = LinkEmbedding<double,Int,float>;
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
         static constexpr bool Left  = PD_T::Left;
@@ -153,17 +150,6 @@ namespace Knoodle
         :   PlanarDiagramComplex( PD_T(pd), Tensor1<Int,Int>() )
         {}
         
-        /*!@brief Initialize from a `LinkEmbedding`, taking ownership.*/
-        template<typename Real, typename BReal>
-        explicit PlanarDiagramComplex( LinkEmbedding<Real,Int,BReal> && L )
-        :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
-        {}
-        
-        /*!@brief Initialize from a `LinkEmbedding`.*/
-        template<typename Real, typename BReal>
-        explicit PlanarDiagramComplex( LinkEmbedding<Real,Int,BReal> & L )
-        :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
-        {}
         
         /*!@brief Initialize from a `LinkEmbedding_Int`, taking ownership.*/
         template<typename Real, typename Prosector_T>
@@ -175,18 +161,6 @@ namespace Knoodle
         template<typename Real, typename Prosector_T>
         explicit PlanarDiagramComplex( LinkEmbedding_Int<Real,Prosector_T> & L )
         :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
-        {}
-        
-        /*!@brief Initialize from a `KnotEmbedding`, taking ownership.*/
-        template<typename Real, typename BReal>
-        explicit PlanarDiagramComplex( KnotEmbedding<Real,Int,BReal> && K  )
-        :   PlanarDiagramComplex( PD_T::FromKnotEmbedding(K) )
-        {}
-        
-        /*!@brief Initialize from a `KnotEmbedding`.*/
-        template<typename Real, typename BReal>
-        explicit PlanarDiagramComplex( KnotEmbedding<Real,Int,BReal> & K )
-        :   PlanarDiagramComplex( PD_T::FromKnotEmbedding(K) )
         {}
         
 #include "PlanarDiagramComplex/Constructors.hpp"

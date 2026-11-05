@@ -21,7 +21,7 @@ cref<VContainer_T> VertexCoordinates() const
 template<bool transformQ = false>
 void ReadVertexCoordinates( cptr<Real> v )
 {
-    TOOLS_PTIMER(timer,Msgr::MethodName("ReadVertexCoordinates") + "<" + to_ct_string(transformQ) + ">(AoS, " + to_ct_string(preorderedQ) + ")");
+    TOOLS_PTIMER(timer,MethodName("ReadVertexCoordinates") + "<" + to_ct_string(transformQ) + ">(AoS, " + ToString(preorderedQ) + ")");
 
     vertex_coords_loadedQ    = false;
     edge_coords_computedQ    = false;

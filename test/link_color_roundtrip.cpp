@@ -23,7 +23,10 @@
 
 using Int    = std::int64_t;
 using Real   = double;
-using Link_T = Knoodle::LinkEmbedding<Real, Int, float>;
+
+using PDC_T           = PlanarDiagramComplex<Int>;
+using PD_T            = PDC_T::PD_T;
+using LinkEmbedding_T = PDC_T::LinkEmbedding_T; // That's the default type we use every, e.g., in Reapr.
 
 namespace
 {

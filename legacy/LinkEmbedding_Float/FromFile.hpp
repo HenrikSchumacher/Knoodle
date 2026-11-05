@@ -36,6 +36,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
     bool comp_needs_colorQ  = true;  // Whether component still needs a color assignment.
     bool coords_may_followQ = true;  // Whether we are ready to read coordinates.
     
+    
     while( !s.EmptyQ() && !s.FailedQ() )
     {
         if( s.NewlineQ() )
@@ -68,11 +69,11 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
                 {
                     if( comp_wo_colorQ )
                     {
-                        Msgr::eprint("FromInString", " At link component no. ",lc(), ": Current component has a '#color' attribute but is preceded by components without one. That is illegal: either all components need to have a '#color' attribute or none. Returning invalid object.");
+                        Msgr::eprint("FromInString", "At link component no. ",lc(), ": Current component has a '#color' attribute but is preceded by components without one. That is illegal: either all components need to have a '#color' attribute or none. Returning invalid object.");
                     }
                     else
                     {
-                        Msgr::eprint("FromInString", ": At link component no. " ,lc(), ": '#color' attribute appears at illegal position. Returning invalid object.");
+                        Msgr::eprint("FromInString", "At link component no. " ,lc(), ": '#color' attribute appears at illegal position. Returning invalid object.");
                     }
                     return LinkEmbedding_T();
                 }
@@ -92,13 +93,13 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
  
                 if( s.FailedQ() )
                 {
-                    Msgr::eprint("FromInString", " at link component no. ", lc(), ": Malformed '#color' line. Returning invalid object.");
+                    Msgr::eprint("FromInString", "At link component no. ", lc(), ": Malformed '#color' line. Returning invalid object.");
                     return LinkEmbedding_T();
                 }
                 
                 if( color == InvalidColor )
                 {
-                    Msgr::eprint("FromInString", " at link component no. ", lc(), ": Color is invalid. Returning invalid object.");
+                    Msgr::eprint("FromInString", "At link component no. ", lc(), ": Color is invalid. Returning invalid object.");
                     return LinkEmbedding_T();
                 }
 
@@ -120,7 +121,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
         
         if( !coords_may_followQ )
         {
-            Msgr::eprint("FromInString", " at link component no. ", lc(), ": Missing '#color' attribute. Returning invalid object.");
+            Msgr::eprint("FromInString", "At link component no. ", lc(), ": Missing '#color' attribute. Returning invalid object.");
             return LinkEmbedding_T();
         }
         
@@ -128,7 +129,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
         {
             if( color_declaredQ )
             {
-                Msgr::eprint("FromInString", " at link component no. ", lc(), ": `comp_needs_colorQ` is `true` and `color_declaredQ` is `true`. (This should be impossible.)");
+                Msgr::eprint("FromInString", "At link component no. ", lc(), ": `comp_needs_colorQ` is `true` and `color_declaredQ` is `true`. (This should be impossible.)");
                 return LinkEmbedding_T();
             }
             
@@ -158,7 +159,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
 
     if( s.FailedQ() )
     {
-        Msgr::eprint("FromInString", ": Reading file failed. Returning invalid object.");
+        Msgr::eprint("FromInString", "Reading file failed. Returning invalid object.");
         return LinkEmbedding_T();
     }
 
@@ -176,7 +177,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
         
         if( coords_may_followQ )
         {
-            Msgr::eprint("FromInString", " at link component no. ", lc(), ": Trailing '#color' attribute. Returning invalid object.");
+            Msgr::eprint("FromInString", "At link component no. ", lc(), ": Trailing '#color' attribute. Returning invalid object.");
             return LinkEmbedding_T();
         }
     }
@@ -184,7 +185,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
     // This is really more like an assert than a real check.
     if( component_ptr_agg.size() != color_agg.size() + 1 )
     {
-        Msgr::eprint("FromInString", ": component_ptr_agg.size() != color_agg.size() + 1. Something during parsing must have gone wrong. Returning invalid object.");
+        Msgr::eprint("FromInString", "component_ptr_agg.size() != color_agg.size() + 1. Something during parsing must have gone wrong. Returning invalid object.");
         TOOLS_DUMP(component_ptr_agg.size());
         TOOLS_DUMP(color_agg.size());
         return LinkEmbedding_T();

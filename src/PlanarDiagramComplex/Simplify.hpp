@@ -443,7 +443,7 @@ void DumpRattleFailure(
               << "  link components    = " << pd.LinkComponentCount() << "\n"
               << "  diagram components = " << pd.DiagramComponentCount() << "\n\n"
               << "Transformation matrix = " << ToString(emb.TransformationMatrix()) << "\n"
-              << "Sterbenz shift = " << ToString(emb.SterbenzShift()) << "\n"
+//              << "Sterbenz shift = " << ToString(emb.SterbenzShift()) << "\n"
               << "embedding:\n"
               << "  edges              = " << emb.EdgeCount() << "\n\n"
               << "Simplify args:\n  " << ToString(args) << "\n\n"

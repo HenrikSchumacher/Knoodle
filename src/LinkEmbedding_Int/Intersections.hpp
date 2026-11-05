@@ -256,11 +256,11 @@ void ComputeIntersections() const
         {
             // This is the range of data in edge_cross that belongs to edge i.
             const Int begin = edge_ptr[i       ];
-            const Int end   = edge_ptr[i+Int{1}];
+            const Int end   = edge_ptr[i+Int(1)];
             const Int n     = end - begin;
             
             // We need to sort only if there are at least two intersections on that edge.
-            if( n <= Int{1} ) { continue; }
+            if( n <= Int(1) ) { continue; }
             
             S.LoadFirstLineSegment(i, EdgeData(i,0), EdgeData(i,1));
             
@@ -274,12 +274,16 @@ void ComputeIntersections() const
                 perm  [a] = a;
                 times [a] = S.ComputeIntersectionTime(j, EdgeData(j,0), EdgeData(j,1));
             }
-            
+
             // Potentially very expensive because `<` requires very long integer multiplication.
             Sort( &perm[0], &perm[n],
-                [&times]( Int a, Int b ) { return (times[a] < times[b]); }
+                [&times]( Int a, Int b )
+                {
+                    // std::sort feels the very strong urge to compare things with themselves. This makes the test less expensive and supresses warnings raised by IntersectionTime* classes.
+                    return (a != b) && (times[a] < times[b]);
+                }
             );
-            
+        
             for( Int a = 0; a < n; ++a )
             {
                 edge_cross[begin + a] = buffer[perm[a]];

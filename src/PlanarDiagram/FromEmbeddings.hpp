@@ -1,37 +1,4 @@
-
-/*!@brief Construction from `KnotEmbedding` object.
- *
- * @param K The input diagram.
- */
-
-template<FloatQ Real, FloatQ BReal>
-static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( mref<KnotEmbedding<Real,Int,BReal>> K )
-{
-    using Knot_T [[maybe_unused]] = KnotEmbedding<Real,Int,BReal>;
-    
-    constexpr auto tag = MethodName("FromKnotEmbedding") + "(" + Knot_T::ClassName() + ")";
-    
-    TOOLS_PTIMER(timer,tag);
-
-    Tensor1<Int,Int> comp_color(Int{1},Int{0});
-    
-    const int err = K.RequireIntersections();
-    
-    if( err != 0 )
-    {
-        eprint(tag, ": RequireIntersections reported error code ", err, ". Returning invalid diagram.");
-        return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
-    }
-    
-    return FromLinkEmbedding_Raw(
-        K.ComponentCount(),
-        K.ComponentPointers().data(),
-        comp_color.data(),
-        K.IntersectionCount(),
-        K.EdgePointers().data(),
-        K.EdgeCrossings().data()
-    );
-}
+public:
 
 /*!@brief Construction from the coordinates of a polygonal curve in 3-space.
  *
@@ -40,22 +7,22 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( mref<KnotEmbedding<Re
  * @param n The number of vertices.
  */
 
-template<FloatQ Real, IntQ ExtInt, FloatQ BReal = float>
+template<typename Real, IntQ ExtInt> requires FloatQ<Real> || IntQ<Real>
 static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinates( cptr<Real> x, const ExtInt n )
 {
     constexpr auto tag = MethodName("FromCoordinates") + "<" + TypeName<Real> + "," + TypeName<ExtInt> + ">";
     
     TOOLS_PTIMER(timer,tag);
 
-    KnotEmbedding<Real,Int,BReal> L ( n );
+    LinkEmbedding<Real,Int> L ( n );
 
     L.ReadVertexCoordinates(x);
 
-    const int err = L.template FindIntersections<true>();
+    const int err = L.template RequireIntersections<true>();
 
     if( err != 0 )
     {
-        eprint(tag, ": FindIntersections reported error code ", err, ". Returning invalid diagram.");
+        eprint(tag, ": RequireIntersections reported error code ", err, ". Returning invalid diagram.");
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
 
@@ -69,36 +36,6 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinates( cptr<Real> x, const Ext
         L.ComponentCount(),
         L.ComponentPointers().data(),
         comp_color.data(),
-        L.IntersectionCount(),
-        L.EdgePointers().data(),
-        L.EdgeCrossings().data()
-    );
-}
-
-/*!@brief Construction from `FromLinkEmbedding` object. Returns a planar diagram and the number of unlinks found in the input.
- */
-
-template<FloatQ Real, FloatQ BReal>
-static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding<Real,Int,BReal>> L )
-{
-    using Link_T [[maybe_unused]] = LinkEmbedding<Real,Int,BReal>;
- 
-    constexpr auto tag = MethodName("FromLinkEmbedding(") + Link_T::ClassName() + ")";
-    
-    TOOLS_PTIMER(timer,tag);
-
-    const int err = L.template RequireIntersections<true>();
-
-    if( err != 0 )
-    {
-        eprint(tag, ": RequireIntersections reported error code ", err, ". Returning invalid diagram.");
-        return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
-    }
-    
-    return FromLinkEmbedding_Raw(
-        L.ComponentCount(),
-        L.ComponentPointers().data(),
-        L.ComponentColors().data(),
         L.IntersectionCount(),
         L.EdgePointers().data(),
         L.EdgeCrossings().data()
@@ -150,7 +87,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
 /*!@brief Construction from coordinates and edges. Returns a planar diagram and the number of unlinks found in the input.
  */
 
-template<FloatQ Real, IntQ ExtInt>
+template<typename Real, IntQ ExtInt> requires FloatQ<Real> || SignedIntQ<Real>
 static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinatesAndEdges(
     cptr<Real> x,
     cptr<ExtInt> edges,
@@ -161,7 +98,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinatesAndEdges(
     
     TOOLS_PTIMER(timer,tag);
 
-    using LinkEmbedding_T = LinkEmbedding<Real,Int,Real>;
+    using LinkEmbedding_T = LinkEmbedding<Real,Int>;
     
     ExtInt * edge_colors = nullptr;
 
@@ -169,7 +106,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinatesAndEdges(
 
     L.ReadVertexCoordinates(x);
 
-    const int err = L.template FindIntersections<true>();
+    const int err = L.template RequireIntersections<true>();
 
     if( err != 0 )
     {
@@ -191,7 +128,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinatesAndEdges(
     );
 }
 
-template<FloatQ Real, IntQ ExtInt>
+template<typename Real, IntQ ExtInt> requires FloatQ<Real> || SignedIntQ<Real>
 [[deprecated("This is a misnomer; renamed to `FromCoordinatesAndEdges`.")]]
 static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
     cptr<Real> x,

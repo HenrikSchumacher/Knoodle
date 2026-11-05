@@ -19,6 +19,10 @@ int main()
     Tools::valprint("working directory", path.string() );
     Tools::valprint("klut directory", klut_path.string() );
     
+    // DEBUGGING
+    Knoodle::Profiler::Clear();
+
+    
     // Load a knot from file.
     std::vector<Int> pd_code;
     
@@ -74,7 +78,6 @@ int main()
         std::ofstream( filename ) << H.DiagramString();
     }
     
-    
     Knoodle::Klut klut (klut_path);
     
     
@@ -119,14 +122,15 @@ int main()
     }
     
     Tools::print( "\n== Demonstration of Reapr ==" );
-    Tools::print( "Reapr applies Simplify and then make a number of attempts to embed, randomly rotate, project, and run Simplify again. Often, the output of Simplify is already as good as it gets. You need a fairly hard knot for Reapr to make a difference. Note that Reapr is _not_ deterministic." );
+    Tools::print( "Reapr applies Simplify and then makes a number of attempts to embed, randomly rotate, project, and run Simplify again. Often, the output of Simplify is already as good as it gets. You need a fairly hard knot for Reapr to make a difference. Note that Reapr is _not_ deterministic." );
     {
         std::string filename ( path / "Diagram_Reapr.txt" );
         Tools::print( "Writing diagram to file ", filename, "." );
         
         PDC_T pdc { PD_T(pd_0) }; // Creating a copy of pd here because PDC_T wants ownership. (Typically, to save memory.)
         
-        pdc.Simplify({.embedding_trials = 10, .rotation_trials = 20});
+//        pdc.Simplify({.embedding_trials = 10, .rotation_trials = 20});
+        pdc.Simplify({.embedding_trials = 10, .rotation_trials = 10});
         
         std::ofstream file ( filename );
         
@@ -152,7 +156,7 @@ int main()
             
             Tools::print(H.DiagramString(), "\n");
         }
-    }    
+    }
 
     return EXIT_SUCCESS;
 }

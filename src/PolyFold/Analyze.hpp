@@ -189,7 +189,18 @@ void Analyze( const LInt i )
         
         T_pd.Tic<V2Q>();
         // We delay the allocation until substantial parts of L have been deallocated.
-        PDC_T PDC ( L );
+//        PDC_T PDC ( L );
+        
+        Int comp_color [1] = {Int{0}};
+        PDC_T PDC = PDC_T::FromLinkEmbedding_Raw(
+            L.ComponentCount(),
+            L.ComponentPointers().data(),
+            &comp_color[0],
+            L.IntersectionCount(),
+            L.EdgePointers().data(),
+            L.EdgeCrossings().data()
+        );
+        
         T_pd.Toc<V2Q>();
     
         // Delete remainder of L to make room for the simplification.

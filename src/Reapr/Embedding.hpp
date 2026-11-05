@@ -44,7 +44,7 @@ LinkEmbedding_T Embedding_impl( cref<PD_T> pd, Matrix_T && A )
                          
     LinkEmbedding_T emb ( std::move(comp_ptr), std::move(comp_color) );
     emb.SetTransformationMatrix(A);
-    emb.template ReadVertexCoordinates<true,true>( &x.data()[0][0] );
+    emb.template ReadVertexCoordinates<true>( &x.data()[0][0] );
 
     return emb;
 }

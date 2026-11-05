@@ -49,9 +49,9 @@ friend std::string ToString( cref<SimplifyPasses_TArgs> targs )
 template<SimplifyPasses_TArgs targs>
 Size_T SimplifyPasses( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
 {
-    [[maybe_unused]] auto tag = [this]() { return this->MethodName("SimplifyPasses"); };
+    [[maybe_unused]] constexpr auto tag = MethodName("SimplifyPasses");
     
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,tag);
     
 #ifdef TOOLS_ENABLE_PROFILER
     logvalprint("targs",ToString(targs));
@@ -60,7 +60,7 @@ Size_T SimplifyPasses( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
 
     if( args.max_dist <= Int(0) ) { return 0; }
     
-    PD_PRINT(tag()+ ": Initial number of crossings = " + ToString(pd_input.CrossingCount()) );
+    PD_PRINT(std::string(tag) + ": Initial number of crossings = " + pd_input.CrossingCount() );
     
     if( args.compressQ ) { pd_input.ConditionalCompress(args.compression_threshold); }
 

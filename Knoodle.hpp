@@ -46,14 +46,16 @@ namespace Knoodle
 
 #include "src/Intersection.hpp"
 
-#include "src/Prosector_Float.hpp"
-#include "src/LinkEmbedding_Int/EdgeCrossing.hpp"
-#include "src/LinkEmbedding.hpp"
-#include "src/KnotEmbedding.hpp" // Like LinkEmbedding, only for knots. A bit more efficient this way.
-
 #include "src/WideInt.hpp"   // Used in Prosector classes.
+#include "src/LinkEmbedding_Int/EdgeCrossing.hpp"
 #include "src/LinkEmbedding_Int.hpp"
-#include "src/LinkEmbedding4.hpp"
+#include "src/LinkEmbedding.hpp"
+
+// The old cruft. Will be removed soon.
+#include "legacy/Prosector_Float.hpp"
+//#include "legacy/LinkEmbedding_Float.hpp"
+#include "legacy/KnotEmbedding_Float.hpp" // Like LinkEmbedding_Float, only for knots. A bit more efficient this way.
+
 
 #include "src/MultiGraphBase.hpp"
 #include "src/MultiGraph.hpp"
@@ -74,7 +76,7 @@ namespace Knoodle
     // declaration in `PassSimplifier` is what it exists for. Henrik approved
     // the access 2026-08-12 -- see handoff/reroute-arc-label-aliasing/.
     template<IntQ Int> class PassOracle;
-    template<FloatQ Real, IntQ Int, FloatQ BReal> class Reapr;
+    template<FloatQ Real, IntQ Int> class Reapr;
     template<typename PD_T> class OrthoDraw;
 
     // Defined downstream (middlestrands project), not in this tree. Declared

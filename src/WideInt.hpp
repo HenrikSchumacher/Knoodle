@@ -579,18 +579,18 @@ namespace Knoodle
         
     public:
         
-        static constexpr std::string MethodName( const std::string & tag )
+        static std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static constexpr std::string ClassName()
+        static constexpr auto ClassName()
         {
-            return std::string("WideInt")
-            + "<" + ToString(limb_count)
+            return ct_string("WideInt")
+            + "<" + to_ct_string(limb_count)
             + "," + TypeName<Limb_T>
             + "," + TypeName<Comp_T>
-            + "," + ToString(signQ)
+            + "," + to_ct_string(signQ)
             + ">";
         }
     };

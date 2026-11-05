@@ -30,14 +30,13 @@ using namespace Tensors;
 using namespace Tools;
 
 using Real  = Real64; // scalar type used for positions of polygon
-using BReal = Real32; // scalar type used for bounding boxes
 using Int   = Int64;  // integer type used, e.g., for indices
 using LInt  = Int64;  // integer type for counting objects
 
 using Complex = Complex64;
 
-using LinkEmbedding_T = LinkEmbedding<Real,Int,BReal>;
 using PDC_T           = PlanarDiagramComplex<Int>;
+using LinkEmbedding_T = PDC_T::LinkEmbedding_T;
 using PD_T            = PDC_T::PD_T;
 using OrthoDraw_T     = OrthoDraw<PD_T>;
 using Alex_T          = Alexander_UMFPACK<Complex,Int>;

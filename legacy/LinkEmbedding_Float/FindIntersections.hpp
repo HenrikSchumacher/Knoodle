@@ -21,6 +21,8 @@ public:
         // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the
         // enties only via operator(i,j,k), so this is safe!
         
+        if( ZeroQ(EdgeCount()) ) { return 0; }
+        
         if constexpr ( countersQ )
         {
             box_box_counter = 0;

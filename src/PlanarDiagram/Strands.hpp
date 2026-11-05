@@ -67,7 +67,7 @@ RaggedList<Int,Int> StrandArcs() const
 template<bool overQ>
 Tensor1<Int,Int> ArcStrands() const
 {
-    TOOLS_PTIMER(timer,overQ ? MethodName("ArcOverStrands") : MethodName("ArcUnderStrands"));
+    TOOLS_PTIMER(timer,COND(overQ, MethodName("ArcOverStrands"), MethodName("ArcUnderStrands")));
 
     Tensor1<Int,Int> A_strand ( MaxArcCount(), Uninitialized );
     Int strand = 0;
