@@ -200,7 +200,7 @@ void Initialize()
         }
     }
     
-    kv<t1>  ("Hierarchical Moves",BoolString(hierarchicalQ));
+//    kv<t1>  ("Hierarchical Moves",BoolString(hierarchicalQ));
     kv<t1>  ("Shift Indices",BoolString(shiftQ));
     kv<t1>  ("Recenter",BoolString(recenterQ));
     kv<t1>  ("Collision Checks",BoolString(checksQ));

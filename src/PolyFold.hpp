@@ -147,7 +147,7 @@ namespace Knoodle
         bool force_deallocQ     = false;
         bool checksQ            = true;
         bool check_jointsQ      = false;
-        bool hierarchicalQ      = false;
+//        bool hierarchicalQ      = false;
         
         bool anglesQ            = false;
         bool squared_gyradiusQ  = false;

@@ -92,12 +92,12 @@ void Sample( const LInt i )
             T_fold.Tic<V2Q>();
             
             // Do `skip` attempts of folding.
-            if( hierarchicalQ )
-            {
-                // Experimental; not guaranteed to sample correctly.
-                counts = T.HierarchicalMove( skip, reflection_probability, checksQ, check_jointsQ );
-            }
-            else
+//            if( hierarchicalQ )
+//            {
+//                // Experimental; not guaranteed to sample correctly.
+//                counts = T.HierarchicalMove( skip, reflection_probability, checksQ, check_jointsQ );
+//            }
+//            else
             {
                 counts = T.FoldRandom( skip, reflection_probability, checksQ, check_jointsQ );
             }
