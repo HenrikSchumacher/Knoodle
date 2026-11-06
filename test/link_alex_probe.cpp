@@ -42,7 +42,7 @@ using Real       = double;
 using Cplx       = std::complex<double>;
 using PDC_T      = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T       = PDC_T::PD_T;
-using Reapr_T    = Knoodle::Reapr<Real, Int, float>;
+using Reapr_T    = Knoodle::Reapr<Real, Int>;
 using LinkAlex_T = knoodle_test::LinkAlexander<Cplx, Int>;
 using LinkFP     = LinkAlex_T::Value;
 

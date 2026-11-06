@@ -52,7 +52,7 @@ using Int     = std::int64_t;
 using Real    = double;
 using PDC_T   = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T    = PDC_T::PD_T;
-using Reapr_T = Knoodle::Reapr<Real, Int, float>;
+using Reapr_T = Knoodle::Reapr<Real, Int>;
 using Klut    = Knoodle::Klut;
 using Clock   = std::chrono::steady_clock;
 using CodeInt = Klut::CodeInt;
@@ -477,7 +477,7 @@ int main(int argc, char* argv[])
         for (std::size_t i = 0; i < iters; ++i)
         {
             auto t0 = Clock::now();
-            auto L = sampler.RandomEquilateralLink<Real, Int, float>(Int(1), polygon_edges);
+            auto L = sampler.RandomEquilateralLink<Real, Int>(Int(1), polygon_edges);
             auto [pd, unlinks] = PD_T::FromLinkEmbedding(L);
             (void)unlinks;
             auto t1 = Clock::now();

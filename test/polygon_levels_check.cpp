@@ -42,7 +42,7 @@ namespace fs = std::filesystem;
 
 using Real       = double;   // homfly_invariance.hpp defines Int/PD_T/PDC_T/Polynomial
 using Cplx       = std::complex<double>;
-using Link_T     = Knoodle::LinkEmbedding<Real, Int, float>;
+using Link_T     = PDC_T::LinkEmbedding_T;   // the exact LinkEmbedding Reapr and Simplify use
 using LinkAlex_T = knoodle_test::LinkAlexander<Cplx, Int>;
 using LinkFP     = LinkAlex_T::Value;
 

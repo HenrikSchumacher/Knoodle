@@ -74,8 +74,12 @@ using Alexander_T = kt::LinkAlexander<std::complex<double>,std::int64_t>;
 //  The classes under test
 // ===========================================================================
 //
-// `LinkEmbedding` is float-only (its template constrains Real_ with FloatQ), so
-// the coordinate axis for it is f64/f32 alone.
+// Class 1 is the old float `LinkEmbedding`, demoted to legacy/ as
+// `LinkEmbedding_Float` in 2026-11 (Henrik). PlanarDiagram no longer projects it
+// (src/PlanarDiagram/FromEmbeddings_Deprecated.hpp is not included), so it is
+// out of every tier: `SupportedQ` declines it and `WithClass` no longer
+// instantiates it. Class 4 is `LinkEmbedding` -- the former LinkEmbedding4,
+// promoted in the same change, and the class Reapr and Simplify now use.
 //
 // Two coordinate configurations advertised by the class documentation do not
 // compile today. Both are kept behind macros so this test picks them up the
@@ -141,22 +145,21 @@ static const char * CoordsName( Coords c )
 
 static std::string ClassName( int cls, Coords c )
 {
-    return "LinkEmbedding" + (cls == 1 ? std::string("") : std::to_string(cls))
-         + "<" + CoordsName(c) + ">";
+    const std::string base = (cls == 1) ? std::string("LinkEmbedding_Float")
+                           : (cls == 4) ? std::string("LinkEmbedding")
+                           : "LinkEmbedding" + std::to_string(cls);
+    return base + "<" + CoordsName(c) + ">";
 }
 
 /// Is this (class, coordinate type) combination buildable in this binary?
 static bool SupportedQ( int cls, Coords c, std::string & why )
 {
-    if( c == Coords::i64 )
+    (void)c;
+    if( cls == 1 )
     {
-        if( cls == 1 )
-        {
-            why = "LinkEmbedding is float-only (its Real_ is constrained by FloatQ)";
-            return false;
-        }
+        why = "LinkEmbedding_Float is legacy; PlanarDiagram no longer projects it";
+        return false;
     }
-    (void)cls;
     return true;
 }
 
@@ -172,7 +175,6 @@ static bool WithClass( int cls, Coords c, Fn && fn )
     {
         switch( cls )
         {
-            case 1: fn.template operator()<LE1_f64>(); return true;
             case 2: fn.template operator()<LE2_f64>(); return true;
             case 3: fn.template operator()<LE3_f64>(); return true;
             case 4: fn.template operator()<LE4_f64>(); return true;
@@ -183,7 +185,6 @@ static bool WithClass( int cls, Coords c, Fn && fn )
     {
         switch( cls )
         {
-            case 1: fn.template operator()<LE1_f32>(); return true;
             case 2: fn.template operator()<LE2_f32>(); return true;
             case 3: fn.template operator()<LE3_f32>(); return true;
             case 4: fn.template operator()<LE4_f32>(); return true;
@@ -194,7 +195,6 @@ static bool WithClass( int cls, Coords c, Fn && fn )
     {
         switch( cls )
         {
-            case 1: fn.template operator()<LE1_i32>(); return true;
             case 2: fn.template operator()<LE2_i32>(); return true;
             case 3: fn.template operator()<LE3_i32>(); return true;
             case 4: fn.template operator()<LE4_i32>(); return true;
@@ -1137,14 +1137,15 @@ static void RotationCheckOne( const Fixture & f, const std::string & label, int 
 
 // --- cross-class ------------------------------------------------------------
 
-/// LinkEmbedding2/3/4 share one perturbation contract, so on any input their
-/// crossing sets must be identical. LinkEmbedding (float, no perturbation) is
-/// compared only on generic input, where every backend should agree.
+/// LinkEmbedding2/3 and LinkEmbedding (class 4) share one perturbation contract,
+/// so on any input their crossing sets must be identical. The legacy float class
+/// (class 1) used to be compared on generic input too; it is out of the tiers
+/// now (see `SupportedQ`).
 static void TierCross( const std::vector<Fixture> & fx, Coords coords,
                        Int rotations, bool in_child, Tally & t, bool verbose )
 {
-    std::printf("\n=== cross-class <%s>: LinkEmbedding2/3/4 agree crossing for crossing "
-                "(and LinkEmbedding too, on generic input) ===\n", CoordsName(coords));
+    std::printf("\n=== cross-class <%s>: LinkEmbedding2/3 and LinkEmbedding agree "
+                "crossing for crossing ===\n", CoordsName(coords));
 
     for( const auto & f : fx )
     {
@@ -1154,7 +1155,7 @@ static void TierCross( const std::vector<Fixture> & fx, Coords coords,
         // participating class, the same way the xfail lookup below does.
         {
             bool skipped = false;
-            for( int cls : {1,2,3,4} )
+            for( int cls : {2,3,4} )
             {
                 const std::string lbl = "cross " + f.name + " " + ClassName(cls,coords);
                 if( SkipKnownCrash(f,"cross",cls,lbl,in_child,t,verbose) )
@@ -1168,17 +1169,13 @@ static void TierCross( const std::vector<Fixture> & fx, Coords coords,
         // from the raw fixture (degenerate, so only 2/3/4 are in scope).
         auto compare = [&]( const kt::Curve & c, const std::string & tag, bool generic )
         {
-            kt::RunResult r1, r2, r3, r4;
+            (void)generic;   // only the legacy float class distinguished it
+            kt::RunResult r2, r3, r4;
             bool built = true;
 
             built &= WithClass(2,coords,[&]<class LE>(){ r2 = kt::RunEmbedding<LE>(c); });
             built &= WithClass(3,coords,[&]<class LE>(){ r3 = kt::RunEmbedding<LE>(c); });
             built &= WithClass(4,coords,[&]<class LE>(){ r4 = kt::RunEmbedding<LE>(c); });
-
-            if( generic )
-            {
-                built &= WithClass(1,coords,[&]<class LE>(){ r1 = kt::RunEmbedding<LE>(c); });
-            }
 
             if( !built ) { return; }
 
@@ -1227,11 +1224,6 @@ static void TierCross( const std::vector<Fixture> & fx, Coords coords,
 
             one("LE2",r2,"LE3",r3);
             one("LE3",r3,"LE4",r4);
-
-            // On a generic projection there are no degeneracies to resolve, so
-            // the floating-point backend must land on the same crossing set as
-            // the exact ones. A disagreement here is a real bug in one of them.
-            if( generic ) { one("LE1",r1,"LE2",r2); }
         };
 
         compare(f.curve,"",/*generic=*/false);
@@ -1641,7 +1633,7 @@ static void Usage()
     std::printf(
         "usage: embedding_check [options]\n"
         "\n"
-        "  --class=LIST       classes to test, e.g. 1,2,3,4        (default 1,2,3,4)\n"
+        "  --class=LIST       classes to test, e.g. 2,3,4          (default 2,3,4; 1 is legacy)\n"
         "  --coords=LIST      coordinate types: f64,f32,i32,i64    (default f64,f32)\n"
         "  --tier=LIST        census,reader,exact,cross,invariant,symmetry,rotation\n                     (default all)\n"
         "  --fixtures=DIR     fixture directory                    (default ./embeddings)\n"
@@ -1683,7 +1675,7 @@ int main( int argc, char ** argv )
 {
     std::setvbuf(stdout,nullptr,_IONBF,0);   // unbuffered: keep output aligned with crashes
 
-    std::vector<int>    classes { 1,2,3,4 };
+    std::vector<int>    classes { 2,3,4 };
     std::vector<Coords> coords  { Coords::f64, Coords::f32, Coords::i64 };
     std::vector<std::string> tiers { "census","reader","exact","cross","invariant",
                                      "symmetry","rotation" };
@@ -1751,7 +1743,7 @@ int main( int argc, char ** argv )
 
     if( !reader_probe.empty() )
     {
-        return ReaderProbeMain<LE1_f64>(reader_probe);
+        return ReaderProbeMain<LE4_f64>(reader_probe);
     }
 
     auto WantTier = [&](const char * name)

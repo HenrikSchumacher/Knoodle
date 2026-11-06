@@ -21,7 +21,7 @@ using Int     = std::int64_t;
 using Real    = double;
 using PDC_T   = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T    = PDC_T::PD_T;
-using Reapr_T = Knoodle::Reapr<Real, Int, float>;
+using Reapr_T = Knoodle::Reapr<Real, Int>;
 using Klut    = Knoodle::Klut;
 using CodeInt = Klut::CodeInt;
 

@@ -3100,14 +3100,14 @@ std::pair<Real,Real> EmbeddingXSpan(const LinkEmb_T& emb)
     const Int n = emb.EdgeCount();
     if (n <= Int(0)) { return {Real(0), Real(0)}; }
 
-    const auto& coords = emb.EdgeCoordinates();
+    const auto& coords = emb.VertexCoordinates();
 
     Real lo = (std::numeric_limits<Real>::max)();
     Real hi = std::numeric_limits<Real>::lowest();
 
     for (Int e = 0; e < n; ++e)
     {
-        const Real x = coords(e, Int(0), Int(0));
+        const Real x = coords(e, Int(0));
         lo = std::min(lo, x);
         hi = std::max(hi, x);
     }
@@ -3308,16 +3308,16 @@ void EmitEmbeddingXYZ(const std::vector<EmbeddedPiece>& pieces, std::ostream& ou
 
     for (const EmittedComponent& c : CollectComponents(pieces))
     {
-        const auto& coords = c.piece->emb.EdgeCoordinates();
+        const auto& coords = c.piece->emb.VertexCoordinates();
 
         if (!first_component) { out << "\n"; }
         first_component = false;
 
         for (Int i = c.i_begin; i < c.i_end; ++i)
         {
-            out << (coords(i,Int(0),Int(0)) + c.piece->x_shift) << "\t"
-                << coords(i,Int(0),Int(1))                      << "\t"
-                << coords(i,Int(0),Int(2))                      << "\n";
+            out << (coords(i,Int(0)) + c.piece->x_shift) << "\t"
+                << coords(i,Int(1))                      << "\t"
+                << coords(i,Int(2))                      << "\n";
         }
     }
 
@@ -3351,7 +3351,7 @@ void EmitWolframEmbedding(const std::vector<EmbeddedPiece>& pieces, std::ostream
 
     for (const EmittedComponent& c : CollectComponents(pieces))
     {
-        const auto& coords = c.piece->emb.EdgeCoordinates();
+        const auto& coords = c.piece->emb.VertexCoordinates();
 
         out << (first_component ? "" : ",")
             << "<|\"Color\"->" << c.color
@@ -3361,9 +3361,9 @@ void EmitWolframEmbedding(const std::vector<EmbeddedPiece>& pieces, std::ostream
         for (Int i = c.i_begin; i < c.i_end; ++i)
         {
             out << ((i > c.i_begin) ? "," : "")
-                << "{" << (coords(i,Int(0),Int(0)) + c.piece->x_shift)
-                << ","  << coords(i,Int(0),Int(1))
-                << ","  << coords(i,Int(0),Int(2)) << "}";
+                << "{" << (coords(i,Int(0)) + c.piece->x_shift)
+                << ","  << coords(i,Int(1))
+                << ","  << coords(i,Int(2)) << "}";
         }
         out << "}|>";
     }

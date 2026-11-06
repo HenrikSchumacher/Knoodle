@@ -12,6 +12,7 @@ inflate_check
 klut_check
 klut_bench
 klut_bench_boost
+alexander_normalization_check
 canon_check
 component_check
 error_tap_check

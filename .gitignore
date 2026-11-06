@@ -93,6 +93,7 @@ test/inflate_fail_*.tsv
 # Built test binaries. Every kind != script row of test/manifest.tsv; the
 # manifest is the source of truth for what exists, and `make clean` removes
 # exactly this set.
+test/alexander_normalization_check
 test/canon_check
 test/component_check
 test/diagram_sanity_check
