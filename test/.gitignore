@@ -3,6 +3,7 @@ plantri58/
 __pycache__/
 *.pyc
 failures/
+logs/
 
 # build artifacts
 build/

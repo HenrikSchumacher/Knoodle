@@ -47,6 +47,7 @@
 cli_contract_check	script	-	cli_contract_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 cli_stdin_check	script	-	cli_stdin_check.py	-	-	-
 hooks_check	script	-	hooks_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
+run_tier_check	script	-	run_tier_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 alexander_normalization_check	test	umfpack	-	-	-	-
 canon_check	test	umfpack	-	-	-	-
 component_check	test	plain	-	-	-	-
