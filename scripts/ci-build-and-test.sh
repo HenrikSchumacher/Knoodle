@@ -53,26 +53,35 @@ for t in knoodlesimplify knoodledraw knoodleidentify; do
     "tools/${t}" --help >/dev/null
 done
 
-# 3. Light self-contained test drivers (no Git-LFS, no UMFPACK/BLAS). These build
-#    from the test/Makefile; the light drivers ignore HOMEBREW_PREFIX.
-make -C test component_check homfly_check plantri_check ${MK[@]+"${MK[@]}"}
-
-# Run the drivers from test/: plantri_check resolves its vendored plantri binary
-# relative to the CWD (vendor/plantri/plantri).
+# 3. The light tier, driven from test/manifest.tsv -- the SAME definition
+#    `make check` uses locally and the pre-push hook will use. Before this,
+#    CI kept its own hand-written list of three drivers, which is two
+#    definitions of "light tier" and they drift.
 #
-# cli_stdin_check is intentionally NOT run here: it verifies the interactive-stdin
-# notice by simulating a terminal with a pty, which is timing/TTY-sensitive and
-# unreliable in headless CI. It stays a local/interactive test; the drivers below
-# are the deterministic correctness signal.
+#    CI cannot run all of it, and says so rather than pretending:
+#
+#      --exclude-needs   the UMFPACK/BLAS link shapes. Several CI images have
+#                        no SuiteSparse, and the light drivers are the ones
+#                        that build without it.
+#      --exclude         tests that need the Git-LFS data (data/Klut,
+#                        data/diagrams), which CI does not fetch; plus
+#                        cli_stdin_check, which simulates a terminal with a pty
+#                        and is timing/TTY-sensitive in headless CI.
+#
+#    run_tier.py lists every skip in its summary, so a CI pass never reads as
+#    a full-tier pass.
+
+CI_EXCLUDE_NEEDS="umfpack,homfly_umfpack,boost_umfpack"
+CI_EXCLUDE="cli_stdin_check,klut_e2e,key_roundtrip_probe,run_tests"
+
+# EXCLUDE_NEEDS filters what `all` BUILDS, using the same manifest column
+# run_tier.py filters what it RUNS -- so the two cannot disagree.
+make -C test all EXCLUDE_NEEDS="${CI_EXCLUDE_NEEDS}" ${MK[@]+"${MK[@]}"}
+make -C test lint
+
 cd test
-
-echo "== component_check (link-component preservation reproducer) =="
-./component_check
-
-echo "== homfly_check (vendored-libhomfly correctness panel) =="
-./homfly_check
-
-echo "== plantri_check (exhaustive diagrams, HOMFLY invariant under Simplify, c<=6) =="
-./plantri_check --up-to-crossing=6
+python3 run_tier.py --tier=light \
+    --exclude-needs="${CI_EXCLUDE_NEEDS}" \
+    --exclude="${CI_EXCLUDE}"
 
 echo "=== CI build + light-tier tests: PASS ==="

@@ -14,17 +14,27 @@ Int ArcCount() const
     return arc_count;
 }
 
+
+Int FirstActiveArc() const
+{
+    Int a = 0;
+    while( !ArcActiveQ(a) && (a < max_arc_count) ) { ++a; }
+    return a;
+}
+
 /*!@brief Expose the arcs that connect the crossings as a reference to a constant `Tensor2` object, which is basically a heap-allocated matrix. Read only.
  *
  * This reference is constant because things can go wild (segfaults, infinite loops) if we allow the user to mess with this data.
  *
  * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way; note that we defined Booleans `Tail = 0` and `Head = 1` for easing the indexing:
  *
- *                        a
- *    Arcs()(a,0) X -------------> X Arcs()(a,0)
- *        ==                             ==
- * Arcs()(a,Tail)                    Arcs()(a,Head)
- *
+ *@verbatim
+                          a
+      Arcs()(a,0) X -------------> X Arcs()(a,0)
+          ==                             ==
+   Arcs()(a,Tail)                    Arcs()(a,Head)
+   @endverbatim
+ *   
  * This means that arc `a` leaves crossing `GetArc()(a,Tail)` and enters `GetArc()(a,Head)`.
  *
  * Beware that an arc can have various states such as `CrossingState_T::Active` or `CrossingState_T::Deactivated`. This information is stored in the corresponding entry of `ArcStates()`.
@@ -84,10 +94,11 @@ bool ArcActiveQ( const Int a ) const
 /*!@brief Return a string with the most essential information of arc `a`.*/
 std::string ArcString( const Int a ) const
 {
-    return "arc " +Tools::ToString(a) +" = { "
-        + Tools::ToString(A_cross(a,Tail)) + ", "
-        + Tools::ToString(A_cross(a,Head)) + " } ("
-        + ToString(A_state[a]) + ", color = " + ToString(A_color[a]) + ")";
+    return OutString::FromMisc( "arc ", a, " = { ", A_cross(a,Tail), ", ", A_cross(a,Head), " } (", ToString(A_state[a]), ", color = ", A_color[a], ")");
+//    return "arc " +Tools::ToString(a) +" = { "
+//        + Tools::ToString(A_cross(a,Tail)) + ", "
+//        + Tools::ToString(A_cross(a,Head)) + " } ("
+//        + ToString(A_state[a]) + ", color = " + ToString(A_color[a]) + ")";
 }
 
 /*!@brief Return the number of active arcs.*/
@@ -120,7 +131,7 @@ void DeactivateArc( const Int a )
     else
     {
 #if defined(PD_DEBUG)
-        wprint(MethodName("DeactivateArc")+": Attempted to deactivate already inactive " + ArcString(a) + ".");
+        Msgr::wprint("DeactivateArc", "Attempted to deactivate already inactive ", ArcString(a), ".");
 #endif
     }
     
@@ -391,9 +402,9 @@ bool CheckNextArc() const
  */
 cref<Tensor1<Int,Int>> ArcNextArc() const
 {
-    std::string tag ("ArcNextArc");
-    
-    TOOLS_PTIMER(timer,MethodName(tag));
+    TOOLS_PTIMER(timer,MethodName("ArcNextArc"));
+
+    const std::string tag ("ArcNextArc");
     
     if( !this->InCacheQ(tag) )
     {

@@ -1,0 +1,46 @@
+#trace v=1
+#comment The SPINOFF case: the curl's component is the curl, so removing the
+#comment crossing leaves a crossingless circle, which a PlanarDiagram cannot
+#comment hold beside crossings -- it is reported in `freed` instead. This
+#comment exercises #spinoffs and the `split:` report.
+#comment
+#comment PROVENANCE. The 5-column PD format CANNOT express a one-crossing
+#comment component, so record 0 was built through PlanarDiagram's array
+#comment constructor: the standard trefoil (crossings 0-2, arcs 0-5) plus a
+#comment detached one-crossing unknot (crossing 3, arcs 6 and 7, ports
+#comment 7,6,7,6, LeftHanded). It passes CheckAll. Record 1 again comes from
+#comment the LIBRARY's LoopRemover (one Step() on darc 12), not from the
+#comment surgery under test, and the two were compared port-by-port when this
+#comment was generated (2026-09-19). Do not hand-edit a #state block.
+#step n=0 summand=0
+#spinoffs n=1
+#move kind=r1 loop=12
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 4
+crossing_count = 4
+max_arc_count = 8
+arc_count = 8
+C_arcs = {{{3,0},{5,2}},{{1,4},{3,0}},{{5,2},{1,4}},{{7,6},{7,6}}}
+C_state = {1,1,1,-1}
+A_cross = {{0,1},{1,2},{2,0},{0,1},{1,2},{2,0},{3,3},{3,3}}
+A_state = {1,1,1,1,1,1,1,1}
+A_color = {0,0,0,0,0,0,1,1}
+last_color_deactivated = -1
+proven_minimalQ = 0
+
+#step n=1 summand=0
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 4
+crossing_count = 3
+max_arc_count = 8
+arc_count = 6
+C_arcs = {{{3,0},{5,2}},{{1,4},{3,0}},{{5,2},{1,4}},{{7,6},{7,6}}}
+C_state = {1,1,1,0}
+A_cross = {{0,1},{1,2},{2,0},{0,1},{1,2},{2,0},{3,3},{3,3}}
+A_state = {1,1,1,1,1,1,0,0}
+A_color = {0,0,0,0,0,0,1,1}
+last_color_deactivated = 1
+proven_minimalQ = 0
+

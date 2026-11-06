@@ -40,7 +40,7 @@ struct KnownKnot
 };
 
 /// Build the "before" diagram from a file's text. Auto-detects format: a '.'
-/// anywhere means a 3-column 3D embedding (projected via FromKnotEmbedding);
+/// anywhere means a 3-column 3D embedding (projected via FromCoordinates);
 /// otherwise a 5-column signed PD code. Sets ok=false on a malformed shape.
 PD_T BuildDiagram(const std::string& text, bool& ok)
 {
@@ -64,7 +64,7 @@ PD_T BuildDiagram(const std::string& text, bool& ok)
             --nverts;
         }
 
-        auto [pd, unlinks] = PD_T::FromKnotEmbedding(coords.data(), nverts);
+        auto [pd, unlinks] = PD_T::FromCoordinates(coords.data(), nverts);
         (void)unlinks;
         ok = pd.ValidQ();
         return pd;

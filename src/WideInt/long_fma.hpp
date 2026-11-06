@@ -1,55 +1,147 @@
 public:
 
 
-/*!@brief Long fused multiply-add routine that computes `r = a * b + c` and returns `r` in a `WideInt` twice as wide as the inputs.*/
+/*!@brief Long fused multiply-add routine that computes `r = a * b + c` and returns `r` in a `WideInt` of appropriate size so that no overflow occurs*/
+template<int other_limb_count>
 TOOLS_FORCE_INLINE constexpr friend
-Prod_T long_fma( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
+WideInt<limb_count+other_limb_count,Limb_T,Comp_T,signQ>
+long_fma(
+    cref<WideInt> a,
+    cref<WideInt<other_limb_count,Limb_T,Comp_T,signQ>> b,
+    cref<WideInt> c
+)
 {
-    // See also https://stackoverflow.com/a/1815371/8248900.
+    using Tools::NegativeQ;
     
     // We do not want to create a sign extension of a and b.
     if constexpr ( signQ )
     {
         // TODO: The fact that the sign of c also needs to be flipped makes the idea of fma less attractive. fused multiply-subtract also did not work better than switching the sign of c.
         
-        if( a.NegativeQ() )
+        if( NegativeQ(a) )
         {
-            if( b.NegativeQ() )
+            if( NegativeQ(b) )
             {
-                return long_fma(-a,-b,c);
+                return long_fma_unsigned(-a,-b,c);
             }
             else
             {
-                return -long_fma(-a,b,-c);
+                return -long_fma_unsigned(-a,b,-c);
             }
         }
         else
         {
-            if( b.NegativeQ() )
+            if( NegativeQ(b) )
             {
-                return -long_fma(a,-b,-c);
+                return -long_fma_unsigned(a,-b,-c);
+            }
+            else
+            {
+                return long_fma_unsigned(a,b,c);
             }
         }
     }
+}
 
-    Prod_T r;
+/*!@brief Long fused multiply-add routine that computes `r = a * b + c` and returns `r` in a `WideInt` of appropriate size so that no overflow occurs. CAUTION: The result will be only correct if operands `a` and `b` are _nonnegative_.*/
+template</*bool checkedQ = true,*/ int other_limb_count>
+TOOLS_FORCE_INLINE constexpr friend
+WideInt<limb_count+other_limb_count,Limb_T,Comp_T,signQ>
+long_fma_unsigned(
+    cref<WideInt> a,
+    cref<WideInt<other_limb_count,Limb_T,Comp_T,signQ>> b,
+    cref<WideInt> c
+)
+{
+    using Tools::NegativeQ;
     
-    for( Idx i = 0; i < limb_count; ++i )
+    assert(!NegativeQ(a));
+    assert(!NegativeQ(b));
+    
+    constexpr Idx m = limb_count;
+    constexpr Idx n = static_cast<Idx>(other_limb_count);
+
+    using Result_T  = WideInt<m+n,Limb_T,Comp_T,signQ>;
+    
+    // See also https://stackoverflow.com/a/1815371/8248900.
+    
+    Result_T r;
+    
+    Comp_T X;
+    for( Idx i = 0; i < m; ++i )
     {
-        Comp_T X (c[i]);
-        for( Idx j = 0; j < limb_count; ++j )
+        X = As_Comp(c[i]);
+        for( Idx j = 0; j < n; ++j )
         {
-            // The following line cannot overflow because all 4 operands occupy only the lower half of a Comp_T. Let B = 2^LimbBitCount(). Then the operands are <= B-1.
-            // So X <= (B-1) + (B-1) + (B-1) * (B-1) = (B+1) * (B-1) = B^2 - 1 <= 2^CompBitCount() - 1;
+            // The following line cannot overflow because each of the four operands occupy only the lower half of a Comp_T. Proof: Let B = 2^LimbBitCount(). Then each of the four operands is <= B-1.
+            // Hence, X <= (B-1) + (B-1) + (B-1) * (B-1) = (B+1) * (B-1) = B^2 - 1 <= 2^CompBitCount() - 1;
             X      = As_Comp(X + As_Comp(r[i+j]) + As_Comp(a[i]) * As_Comp(b[j]) );
             r[i+j] = Lo_Limb(X);
             X      = Hi_Comp(X);
         }
-        r[i + limb_count] = Lo_Limb(X);
+        r[i + n] = Lo_Limb(X);
     }
+    
+//    if constexpr ( checkedQ  )
+//    {
+//        if( Hi_Comp(X) != Limb_T{0} )
+//        {
+//            error("long_fma_unsigned: Overflow");
+//        }
+//    }
     
     return r;
 }
+
+
+
+// Overloads for combining with basic integral types.
+
+/*!@brief Long fused multiply-add routine that computes `r = a * b + c` and returns `r` in a `WideInt` of appropriate size so that no overflow occurs*/
+template<IntQ Int>
+TOOLS_FORCE_INLINE constexpr friend
+WideInt<limb_count+sizeof(Int)/sizeof(Limb_T),Limb_T,Comp_T,signQ>
+long_fma( cref<Int> a, cref<WideInt> b, cref<Int> c )
+{
+    using W = WideInt<sizeof(Int)/sizeof(Limb_T),Limb_T,Comp_T,signQ>;
+    return long_fma( W{a}, b, W{c} );
+}
+
+/*!@brief Long fused multiply-add routine that computes `r = a * b + c` and returns `r` in a `WideInt` of appropriate size so that no overflow occurs*/
+template<IntQ Int>
+TOOLS_FORCE_INLINE constexpr friend WideInt<limb_count+1,Limb_T,Comp_T,signQ>
+long_fma( cref<WideInt> a, cref<Int> b, cref<Int> c )
+{
+    using W = WideInt<sizeof(Int)/sizeof(Limb_T),Limb_T,Comp_T,signQ>;
+    return long_fma( W{b}, a, W{c} );
+}
+
+/*!@brief Long fused multiply-add routine that computes `r = a * b + c` and returns `r` in a `WideInt` of appropriate size so that no overflow occurs*/
+template<IntQ Int>
+TOOLS_FORCE_INLINE constexpr friend WideInt<limb_count+1,Limb_T,Comp_T,signQ>
+long_fma( cref<Int> a, cref<WideInt> b, cref<WideInt> c )
+{
+    using W = WideInt<sizeof(Int)/sizeof(Limb_T),Limb_T,Comp_T,signQ>;
+    return long_fma( b, W{a}, c );
+}
+
+/*!@brief Long fused multiply-add routine that computes `r = a * b + c` and returns `r` in a `WideInt` of appropriate size so that no overflow occurs*/
+template<IntQ Int>
+TOOLS_FORCE_INLINE constexpr friend WideInt<limb_count+1,Limb_T,Comp_T,signQ>
+long_fma( cref<WideInt> a, cref<Int> b, cref<WideInt> c )
+{
+    using W = WideInt<sizeof(Int)/sizeof(Limb_T),Limb_T,Comp_T,signQ>;
+    return long_fma( a, W{b}, c );
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -86,3 +178,5 @@ Prod_T long_fma( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
 //
 //    return r;
 //}
+
+

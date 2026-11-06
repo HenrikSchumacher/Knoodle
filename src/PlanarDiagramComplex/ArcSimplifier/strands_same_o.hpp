@@ -1,3 +1,5 @@
+private:
+
 bool strands_same_o()
 {
     PD_DPRINT("strands_same_o()");

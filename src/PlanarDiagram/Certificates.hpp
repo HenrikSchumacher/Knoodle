@@ -117,21 +117,21 @@ bool CheckProvenMinimalQ() const
         
         if( !alternatingQ )
         {
-            wprint(MethodName("CheckProvenMinimalQ") + ": Diagram is not alternating.");
+            Msgr::wprint("CheckProvenMinimalQ", "Diagram is not alternating.");
         }
         
         bool loop_freeQ = LoopFreeQ();
         
         if( !loop_freeQ )
         {
-            wprint(MethodName("CheckProvenMinimalQ") + ": Diagram is not loop free.");
+            Msgr::wprint("CheckProvenMinimalQ", "Diagram is not loop free.");
         }
         
         bool isthmus_freeQ = IsthmusFreeQ();
         
         if( !isthmus_freeQ )
         {
-            wprint(MethodName("CheckProvenMinimalQ") + ": Diagram is not isthmus free.");
+            Msgr::wprint("CheckProvenMinimalQ", "Diagram is not isthmus free.");
         }
         
         return alternatingQ && loop_freeQ && isthmus_freeQ;

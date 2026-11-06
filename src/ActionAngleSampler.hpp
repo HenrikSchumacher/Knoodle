@@ -434,8 +434,8 @@ namespace Knoodle
         }
         
         
-        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
-        LinkEmbedding<Real2,Int2,BReal2> RandomEquilateralLink(
+        template<FloatQ Real2 = Real, IntQ Int2 = Int>
+        LinkEmbedding<Real2,Int2> RandomEquilateralLink(
             cptr<Real2> component_centers,
             cptr<Int2>  edge_counts,
             const Int2  component_count
@@ -475,15 +475,15 @@ namespace Knoodle
                 }
             }
 
-            LinkEmbedding<Real2,Int2,BReal2> L( std::move(component_ptr), std::move(colors) );
+            LinkEmbedding<Real2,Int2> L( std::move(component_ptr), std::move(colors) );
             
             L.ReadVertexCoordinates(v.data());
             
             return L;
         }
         
-        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
-        LinkEmbedding<Real2,Int2,BReal2> RandomEquilateralLink(
+        template<FloatQ Real2 = Real, IntQ Int2 = Int>
+        LinkEmbedding<Real2,Int2> RandomEquilateralLink(
             const Int component_count, const Int edge_count
         )
         {
@@ -494,7 +494,7 @@ namespace Knoodle
             }
             
             // We add zero vectors here. There should be more efficient ways to do this.
-            return RandomEquilateralLink<Real2,Int2,BReal2>(nullptr,edge_counts.data(),component_count);
+            return RandomEquilateralLink<Real2,Int2>(nullptr,edge_counts.data(),component_count);
         }
         
     public:

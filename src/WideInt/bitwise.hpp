@@ -16,21 +16,25 @@ TOOLS_FORCE_INLINE constexpr friend bool operator==( const This_T & a, const Thi
 //            return true;
 }
 
+///*!@brief Check whether this wide integer is zero.*/
+//TOOLS_FORCE_INLINE constexpr bool ZeroQ() const
+//{
+//    constexpr BitSet_T zero;   // Fills with zeroes; constexpr.
+//    return As_BitSet(*this) == zero;
+//}
+
 /*!@brief Check whether this wide integer is zero.*/
-TOOLS_FORCE_INLINE constexpr bool ZeroQ() const
+TOOLS_FORCE_INLINE constexpr friend
+bool ZeroQ( cref<WideInt> a )
 {
-//    for( Idx k = 0; k < limb_count; ++k )
-//    {
-//        if( limbs[k] != zero_limb ) { return false; }
-//    }
     constexpr BitSet_T zero;   // Fills with zeroes; constexpr.
-    return As_BitSet(*this) == zero;
+    return As_BitSet(a) == zero;
 }
 
-/*!@brief Bitwise NOT-operation; in-place.*/
-TOOLS_FORCE_INLINE constexpr This_T operator~()
+/*!@brief Bitwise NOT-operation.*/
+TOOLS_FORCE_INLINE constexpr friend This_T operator~( cref<This_T> a )
 {
-    BitSet_T b = ~As_BitSet(*this);
+    BitSet_T b = ~As_BitSet(a);
     return This_T(b);
 }
 

@@ -23,15 +23,15 @@ public:
  * Here, `a` is the first arc in that link component, `lc` is the index of the link component, and `lc_begin` is the number of arcs before this link component.
  *
  * @param arc_fun A function to apply to every visited arc. Its argument pattern depends on `crossingsQ`:
- * If `crossingsQ == false`, then it must be of the pattern
+ * If `crossingsQ == false`, then it must be of the following pattern:
  *
- *      `arc_fun( Int a, Int a_idx, Int lc )`.
+ *      `arc_fun( Int a, Int a_idx, Int lc )`
  *
- * If `crossingsQ == true`, then it must be of the pattern
+ * If `crossingsQ == true`, then it must be of the following pattern:
  *
  *      `arc_fun( Int a,   Int a_idx,   Int  lc,
  *                Int c_0, Int c_0_idx, bool c_0_visited,
- *                Int c_1, Int c_1_idx, bool c_1_visitedQ )`.
+ *                Int c_1, Int c_1_idx, bool c_1_visitedQ )`
  *
  * Here the arguments mean the following:
  *      - `a` is the current arc within the link;
@@ -58,10 +58,10 @@ void Traverse(
     LinkCompPre_T && lc_pre, ArcFun_T && arc_fun, LinkCompPost_T && lc_post
 )  const
 {
-    PD_TIMER(timer,MethodName("Traverse")
-                 + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
-                 + "," + (labelQ ? "w/ labels" : "w/o labels")
-                 + ">");
+    PD_TIMER(timer,std::string(MethodName("Traverse"))
+        + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
+        + "," + (labelQ ? "w/ labels" : "w/o labels")
+        + ">");
     
     // Traverse_ByLinkComponents seems to by buggy.
 //    if( this->InCacheQ("ArcTraversalFlags") && this->InCacheQ("LinkComponentArcs") )
@@ -138,7 +138,7 @@ void Traverse_ByNextArc(
     LinkCompPost_T && lc_post
 )  const
 {
-    PD_TIMER(timer,MethodName("Traverse_ByNextArc")
+    PD_TIMER(timer,std::string(MethodName("Traverse_ByNextArc"))
                  + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
                  + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
                  + "," + (start_arc_ou == 0 ?  "0" : (start_arc_ou < 0 ? "under" : "over") )
@@ -221,7 +221,7 @@ void Traverse_ByNextArc_impl(
 {
     [[maybe_unused]] auto tag = []()
     {
-        return MethodName("Traverse_ByNextArc_impl")
+        return std::string(MethodName("Traverse_ByNextArc_impl"))
         + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
         + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
         + "," + (start_arc_ou == 0 ?  "0" : (start_arc_ou < 0 ? "under" : "over") )
@@ -236,7 +236,7 @@ void Traverse_ByNextArc_impl(
     
     if( InvalidQ() )
     {
-        wprint(tag() + ": Trying to traverse an invalid planar diagram. Aborting.");
+        wprint(tag(), ": Trying to traverse an invalid planar diagram. Aborting.");
         
         // Other methods might assume that this is set.
         // In particular, calls to `LinkComponentCount` might go into an infinite loop.

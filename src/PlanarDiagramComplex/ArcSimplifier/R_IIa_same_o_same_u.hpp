@@ -1,3 +1,5 @@
+private:
+
 bool R_IIa_same_o_same_u()
 {
     PD_DPRINT("\t\tR_IIa_same_o_same_u()");

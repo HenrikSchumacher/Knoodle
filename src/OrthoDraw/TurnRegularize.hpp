@@ -210,7 +210,7 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
         {
             const Int target = rot - targets[k];
             
-            if( rot_lut.count(target) <= Size_T(0) ) { continue; }
+            if( rot_lut.count(target) <= Size_T{0} ) { continue; }
             
 
             const Int j = RE_d[q];

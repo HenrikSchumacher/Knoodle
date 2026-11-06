@@ -13,8 +13,7 @@ bool WriteToFile( cref<std::filesystem::path> file, bool preallocateQ = true ) c
 
     if( !stream )
     {
-        eprint(MethodName("WriteToFile") + ": Could not open file "
-               + file.string() + ". Aborting.");
+        Msgr::eprint("WriteToFile", "Could not open file ", file.string(), ". Aborting.");
         return false;
     }
     
@@ -32,8 +31,7 @@ bool WriteToFile( cref<std::filesystem::path> file, bool preallocateQ = true ) c
     
     if( !stream )
     {
-        eprint(MethodName("WriteToFile") + ": Could not write to file "
-               + file.string() + ".");
+        Msgr::eprint("WriteToFile", "Could not write to file ", file.string(), ".");
         return false;
     }
 
@@ -160,4 +158,23 @@ bool WriteToOutString_impl( mref<Tools::OutString> s ) const
     s.template PutChar<check_sizeQ>('\n');
     
     return true;
+}
+
+
+/*!@brief Export to `OutString`, using default options.*/
+friend OutString & operator<<( OutString & s, const PD_T & pd )
+{
+    (void)pd.WriteToOutString(s);
+    return s;
+}
+
+/*!@brief Export to `std::basic_ostream`, using default options.*/
+template<typename C, typename T>
+friend std::basic_ostream<C,T> & operator<<(
+    std::basic_ostream<C,T> & stream, const PD_T & pd
+)
+{
+    OutString s;
+    s << pd;
+    return stream << s;
 }

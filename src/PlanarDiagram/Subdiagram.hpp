@@ -14,13 +14,13 @@ bool CheckArcSelector( ArcSelectorFun_T & select_arcQ ) const
     return true;
 }
 
-
-template<bool check_arc_selectorQ = true, typename ArcSelectorFun_T>
+template<
+    bool check_arc_selectorQ = true,
+    typename ArcSelectorFun_T
+>
 std::pair<PD_T,Tensor1<Int,Int>> Subdiagram( ArcSelectorFun_T && select_arcQ ) const
 {
-    [[maybe_unused]] auto tag = [](){ return MethodName("Subdiagram"); };
-    
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,MethodName("Subdiagram"));
     
     if( InvalidQ() ) { return {InvalidDiagram(),Tensor1<Int,Int>()}; }
     
@@ -33,7 +33,7 @@ std::pair<PD_T,Tensor1<Int,Int>> Subdiagram( ArcSelectorFun_T && select_arcQ ) c
     {
         if( !CheckArcSelector(select_arcQ ) )
         {
-            wprint(tag() + ": Selector function select_arcQ is not valid. Returning invalid diagram.");
+            Msgr::wprint("Subdiagram", "Selector function select_arcQ is not valid. Returning invalid diagram.");
             return {InvalidDiagram(),Tensor1<Int,Int>()};
         }
     }
@@ -169,7 +169,10 @@ std::pair<PD_T,Tensor1<Int,Int>> Subdiagram( ArcSelectorFun_T && select_arcQ ) c
         pd.A_color.Read( &arc_colors[0] );
     }
     
-    return { pd, Tensor1<Int,Int>( &unlink_colors[0], int_cast<Int>(unlink_colors.size()) ) };
+    return {
+        pd,
+        Tensor1<Int,Int>( &unlink_colors[0], int_cast<Int>(unlink_colors.size()) )
+    };
 }
 
 template<bool check_arc_selectorQ = true>

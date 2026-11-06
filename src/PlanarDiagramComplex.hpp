@@ -29,11 +29,11 @@ namespace Knoodle
         using UInt                  = ToUnsigned<Int>;
         
         using Base_T                = CachedObject<1,0,0,0>;
-        using Class_T               = PlanarDiagramComplex<Int>;
+        using Class_T               = PlanarDiagramComplex;
         /*!@brief Alias for `PlanarDiagram`.*/
         using PD_T                  = PlanarDiagram<Int>;
         /*!@brief Alias for `PlanarDiagramComplex`.*/
-        using PDC_T                 = PlanarDiagramComplex<Int>;
+        using PDC_T                 = PlanarDiagramComplex;
         using PD_List_T             = std::vector<PD_T>;
         
         using C_Arcs_T              = PD_T::C_Arcs_T;
@@ -50,18 +50,15 @@ namespace Knoodle
         using OrthoDrawSettings_T   = OrthoDraw_T::Settings_T;
         using Compaction_T          = OrthoDraw_T::CompactionMethod_T;
         /*!@brief Alias for `Reapr`.*/
-        using Reapr_T               = Reapr<double,Int,float>;
+        using Reapr_T               = Reapr<double,Int>;
         using Energy_T              = Reapr_T::Energy_T;
         using ReaprSettings_T       = Reapr_T::Settings_T;
-        /*!@brief Alias for `LinkEmbedding`.*/
         using LinkEmbedding_T       = Reapr_T::LinkEmbedding_T;
         
         
         using PDCode_TArgs_T        = PD_T::PDCode_TArgs_T;
         using FromPDCode_TArgs_T    = PD_T::FromPDCode_TArgs_T;
         
-        
-//        using LinkEmbedding_T       = LinkEmbedding<double,Int,float>;
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
         static constexpr bool Left  = PD_T::Left;
@@ -81,7 +78,11 @@ namespace Knoodle
         friend class ArcSimplifier<Int,4,true >;
         
         friend class PassSimplifier<Int>;
-        
+
+        // Downstream middle-strand rerouting pass; see
+        // handoff/middle-strand-simplifier-friend-access/.
+        friend class MiddleStrandSimplifier<Int>;
+
     private:
         
         // Class data members
@@ -104,9 +105,9 @@ namespace Knoodle
         // Copy assignment operator
         PlanarDiagramComplex & operator=( const PlanarDiagramComplex & other ) = default;
         // Move constructor
-        PlanarDiagramComplex( PlanarDiagramComplex && other ) = default;
+        PlanarDiagramComplex( PlanarDiagramComplex && other ) noexcept = default;
         // Move assignment operator
-        PlanarDiagramComplex & operator=( PlanarDiagramComplex && other ) = default;
+        PlanarDiagramComplex & operator=( PlanarDiagramComplex && other ) noexcept = default;
  
         /*!@brief Initialize from a `PlanarDiagram` and a list of unlink colors, taking ownership.*/
         PlanarDiagramComplex( PD_T && pd, Tensor1<Int,Int> && unlink_colors )
@@ -119,7 +120,8 @@ namespace Knoodle
             pd_list.reserve( ToSize_T(unlink_count) + Size_T(validQ) );
             pd_done.reserve( ToSize_T(unlink_count) + Size_T(validQ) );
 
-            PushDiagramDone( std::move(pd) );
+            // We suppress compression here because it may startle users. Morever, they can compress the input diagram pd if they want.
+            PushDiagramDone( std::move(pd), false );
             
             for( Int unlink = 0; unlink < unlink_count; ++unlink )
             {
@@ -133,7 +135,8 @@ namespace Knoodle
         /*!@brief Initialize from a `PlanarDiagram` and a list of unlink colors, taking ownership.*/
         explicit PlanarDiagramComplex( std::pair<PD_T,Tensor1<Int,Int>> && pd_and_unlink_colors )
         :   PlanarDiagramComplex(
-                std::move(pd_and_unlink_colors.first), std::move(pd_and_unlink_colors.second)
+                std::move(pd_and_unlink_colors.first),
+                std::move(pd_and_unlink_colors.second)
             )
         {}
         
@@ -142,46 +145,24 @@ namespace Knoodle
         :   PlanarDiagramComplex( std::move(pd), Tensor1<Int,Int>() )
         {}
         
+        /*!@brief Initialize from a `PlanarDiagram`, copying it.*/
         explicit PlanarDiagramComplex( const PD_T & pd )
-        :   PlanarDiagramComplex( pd, Tensor1<Int,Int>() )
+        :   PlanarDiagramComplex( PD_T(pd), Tensor1<Int,Int>() )
         {}
         
-        /*!@brief Initialize from a `LinkEmbedding`, taking ownership.*/
-        template<typename Real, typename BReal>
-        explicit PlanarDiagramComplex( LinkEmbedding<Real,Int,BReal> && L )
+        
+        /*!@brief Initialize from a `LinkEmbedding_Int`, taking ownership.*/
+        template<typename Real, typename Prosector_T>  requires FloatQ<Real> || SignedIntQ<Real>
+        explicit PlanarDiagramComplex( LinkEmbedding_Int<Real,Prosector_T> && L )
         :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
         {}
         
-        /*!@brief Initialize from a `LinkEmbedding`.*/
-        template<typename Real, typename BReal>
-        explicit PlanarDiagramComplex( LinkEmbedding<Real,Int,BReal> & L )
+        /*!@brief Initialize from a `LinkEmbedding_Int`.*/
+        template<typename Real, typename Prosector_T>  requires FloatQ<Real> || SignedIntQ<Real>
+        explicit PlanarDiagramComplex( LinkEmbedding_Int<Real,Prosector_T> & L )
         :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
         {}
         
-        /*!@brief Initialize from a `LinkEmbedding2`, taking ownership.*/
-        template<typename Real, typename IReal>
-        explicit PlanarDiagramComplex( LinkEmbedding2<Real,Int,IReal> && L )
-        :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
-        {}
-        
-        /*!@brief Initialize from a `LinkEmbedding2`.*/
-        template<typename Real, typename IReal>
-        explicit PlanarDiagramComplex( LinkEmbedding2<Real,Int,IReal> & L )
-        :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
-        {}
-        
-        /*!@brief Initialize from a `KnotEmbedding`, taking ownership.*/
-        template<typename Real, typename BReal>
-        explicit PlanarDiagramComplex( KnotEmbedding<Real,Int,BReal> && K  )
-        :   PlanarDiagramComplex( PD_T::FromKnotEmbedding(K) )
-        {}
-        
-        /*!@brief Initialize from a `KnotEmbedding`.*/
-        template<typename Real, typename BReal>
-        explicit PlanarDiagramComplex( KnotEmbedding<Real,Int,BReal> & K )
-        :   PlanarDiagramComplex( PD_T::FromKnotEmbedding(K) )
-        {}
-
 #include "PlanarDiagramComplex/Constructors.hpp"
 #include "PlanarDiagramComplex/Lock.hpp"
 #include "PlanarDiagramComplex/Color.hpp"
@@ -191,8 +172,8 @@ namespace Knoodle
 #include "PlanarDiagramComplex/Disconnect.hpp"
 #include "PlanarDiagramComplex/Canonicalize.hpp"
 #include "PlanarDiagramComplex/Simplify.hpp"
-#include "PlanarDiagramComplex/Rerouting_Experimental.hpp"
-//#include "PlanarDiagramComplex/SimplifyLocal2.hpp" // Only for development and debugging.
+//#include "PlanarDiagramComplex/Rerouting_Experimental.hpp"
+
 #include "PlanarDiagramComplex/LinkingNumber.hpp"
 #include "PlanarDiagramComplex/ModifyDiagramList.hpp"
 #include "PlanarDiagramComplex/ModifyDiagram.hpp"
@@ -220,21 +201,21 @@ namespace Knoodle
         /*!@brief Expose the `i`-th diagram in the internal list of `PlanarDiagram`s. Read-only.*/
         cref<PD_T> Diagram( Int i ) const
         {
-            if( i < Int(0) )
+            if( i < Int{0} )
             {
-                eprint(MethodName("Diagram") + ": Index  i < 0. Returning invalid diagram.");
+                Msgr::eprint("Diagram", "Index  i < 0. Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
             
             if( i >= DiagramCount() )
             {
-                eprint(MethodName("Diagram") + ": Index  i = " +ToString(i) + " is greater equal DiagramCount() = " + ToString(DiagramCount()) + " . Returning invalid diagram.");
+                Msgr::eprint("Diagram", "Index  i = ", i, " is greater equal DiagramCount() = ", DiagramCount(), " . Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
             
-            return pd_list[Size_T(i)];
+            return pd_list[ToSize_T(i)];
         }
         
         /*!@brief Expose the `i`-th diagram in the internal list of `PlanarDiagram`s. Read-only.*/
@@ -252,7 +233,7 @@ namespace Knoodle
             }
             else
             {
-                eprint(MethodName("LastDiagram") + ": List of diagrams is empty. Returning invalid diagram.");
+                Msgr::eprint("LastDiagram", "List of diagrams is empty. Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
@@ -322,7 +303,7 @@ namespace Knoodle
             
             if( PDC.DiagramCount() > Int(1) )
             {
-                eprint(MethodName("ToSingleDiagram") + ": Merged complex contains more than one diagram. Something must have gone wrong. Returning invalid complex.");
+                Msgr::eprint("ToSingleDiagram", "Merged complex contains more than one diagram. Something must have gone wrong. Returning invalid complex.");
                 
                 return PD_T();
             }
@@ -343,23 +324,23 @@ namespace Knoodle
         
     private:
         
-        mref<PD_T> Diagram_Private( Int i )
+        mref<PD_T> Diagram_Private( Int idx )
         {
-            if( i < Int(0) )
+            if( idx < Int(0) )
             {
-                eprint(MethodName("Diagram") + ": Index  i < 0. Returning invalid diagram.");
+                Msgr::eprint("Diagram", "Index  idx < 0. Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
             
-            if( i >= DiagramCount() )
+            if( idx >= DiagramCount() )
             {
-                eprint(MethodName("Diagram") + ": Index i = " +ToString(i) + " is greater equal DiagramCount() = " + ToString(DiagramCount()) + ". Returning invalid diagram.");
+                Msgr::eprint("Diagram", "Index idx = ", idx, " is greater equal DiagramCount() = ", DiagramCount(), ". Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
             
-            return pd_list[Size_T(i)];
+            return pd_list[ToSize_T(idx)];
         }
         
     public:
@@ -527,13 +508,15 @@ namespace Knoodle
             }
         }
         
-        void PushDiagramDone( PD_T && pd )
+        void PushDiagramDone( PD_T && pd, const bool compressQ = true )
         {
             if( pd.ValidQ() )
             {
-                // It is maybe a good idea to compress here so save memory.
-                if( pd.crossing_count < pd.max_crossing_count ) { pd.Compress(); }
-                
+//                // It is maybe a good idea to compress here so save memory.
+                if( compressQ && (pd.crossing_count < pd.max_crossing_count) )
+                {
+                    pd.Compress();
+                }
                 pd_done.push_back( std::move(pd) );
             }
             else
@@ -623,15 +606,8 @@ namespace Knoodle
                 
                 if(  pd.ProvenMinimalQ() )
                 {
-                    if( pd.ArcCount() < pd.MaxArcCount() )
-                    {
-                        PushDiagramDone( pd.CreateCompressed() );
-                    }
-                    else
-                    {
-                        pd.ClearCache();
-                        PushDiagramDone( std::move(pd) );
-                    }
+                    pd.ClearCache();
+                    PushDiagramDone( std::move(pd) );
                     continue;
                 }
                 
@@ -663,17 +639,8 @@ namespace Knoodle
                     continue;
                 }
                 
-                if( pd.CrossingCount() < pd.MaxCrossingCount() )
-                {
-                    PushDiagramDone( pd.CreateCompressed() );
-                    continue;
-                }
-                else
-                {
-                    pd.ClearCache();
-                    PushDiagramDone( std::move(pd) );
-                    continue;
-                }
+                pd.ClearCache();
+                PushDiagramDone( std::move(pd) );
                 
             }  // while( !pd_todo.empty() )
             
@@ -689,7 +656,7 @@ namespace Knoodle
                 }
             );
             
-            if( total_counter > Size_T(0) ) { this->ClearCache(); }
+            if( total_counter > Size_T{0} ) { this->ClearCache(); }
             
             return total_counter;
         }
@@ -697,13 +664,28 @@ namespace Knoodle
 
         mref<PassSimplifier_T> GetPassSimplifier( const Dijkstra_T strategy = Dijkstra_T::Bidirectional )
         {
-            if( !this->InCacheQ("GetPassSimplifier") )
+            if( !this->InCacheQ("PassSimplifier") )
             {
-                this->SetCache("GetPassSimplifier", PassSimplifier_T(*this,strategy));
+                this->SetCache("PassSimplifier", PassSimplifier_T(*this,strategy));
             }
 
-            return this->template GetCache<PassSimplifier_T>("GetPassSimplifier").SetDijkstraStrategy(strategy);
+            return this->template GetCache<PassSimplifier_T>("PassSimplifier").SetDijkstraStrategy(strategy);
         }
+        
+        /*!@brief **EXPERIMENTAL:** Attempts to find the shortest path between the faces created by merging the two faces of arc`a` and the faces created by merging the two faces of arc `b`.
+         *
+         * CAUTION: This assumes that `a` and `b` lie on the same link component!
+         *
+         *  @param idx Index of the subdiagram in which the path shall be found.
+         *
+         *  @param a The one end arc of the shortest path we are looking for.
+         *
+         *  @param b The other end arc of the shortest path we are looking for.
+         *
+         *  @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
+         *
+         *  @param strategy The search strategy.
+         */
         
         PassSimplifier_T::Path_T FindShortestPath(
             const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
@@ -712,6 +694,18 @@ namespace Knoodle
             return GetPassSimplifier(strategy).FindShortestPath( pd_list[idx], a, b, max_dist );
         }
         
+        /*!@brief **EXPERIMENTAL:** Attempts to find the arcs that make up a minimally rerouted strand, neglecting the arcs from `a` to `b` when traversed in natural order. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow! (It has to find and mark a the currect path between `a` and `b`, if existent.
+         *
+         *  @param idx Index of the subdiagram in which the path shall be found.
+         *
+         *  @param a The first arc of the input strand.
+         *
+         *  @param b The last arc of the input strand (included).
+         *
+         *  @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
+         *
+         *  @param strategy The search strategy.
+         */
         PassSimplifier_T::Path_T FindShortestRerouting(
             const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
         )
@@ -724,15 +718,12 @@ namespace Knoodle
         /*!@brief Return a string that identifies a class method specified by `tag`. Mostly used for logging and in error messages.*/
         static constexpr std::string MethodName( const std::string & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.*/
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("PlanarDiagramComplex")
-                + "<" + TypeName<Int>
-                + ">";
+            return ct_string("PlanarDiagramComplex<") + TypeName<Int> + ">";
         }
     };
 

@@ -13,7 +13,7 @@
 
 namespace Knoodle
 {    
-    template<FloatQ Real_, IntQ Int_, IntQ LInt_, FloatQ BReal_ = Real_>
+    template<FloatQ Real_, IntQ Int_, IntQ LInt_>
     class PolyFold final
     {
 //        static_assert(SignedIntQ<Int_>,"");
@@ -24,7 +24,6 @@ namespace Knoodle
         using Real   = Real_;
         using Int    = Int_;
         using LInt   = LInt_;
-        using BReal  = BReal_;
         
         static constexpr Int AmbDim = 3;
         
@@ -52,16 +51,15 @@ namespace Knoodle
             }
         >;
         
+        using Class_T                   = PolyFold;
         using PolygonContainer_T        = Tensor2<Real,Int>;
         using Vector_T                  = Tiny::Vector<AmbDim,Real,Int>;
-//        using Link_T                    = Link_2D<Real,Int,BReal>;
-        using Link_T                    = KnotEmbedding<Real,Int,BReal>;
-//        using Link_T                    = LinkEmbedding<Real,Int,BReal>;
-//        using PD_T                      = PlanarDiagram<Int>;
+//        using Link_T                    = LinkEmbedding<Real,Int>;
+        using Link_T                    = KnotEmbedding_Float<Real,Int,float>;
         
         using PDC_T                     = PlanarDiagramComplex<Int>;
         using PD_T                      = PDC_T::PD_T;
-        using IntersectionFlagCounts_T  = Link_T::IntersectionFlagCounts_T;
+        using ProsectorFlagCounts_T     = Link_T::ProsectorFlagCounts_T;
         using FoldFlagCounts_T          = Clisby_T::FoldFlagCounts_T;
         using PRNG_T                    = Clisby_T::PRNG_T;
         
@@ -127,7 +125,7 @@ namespace Knoodle
         
         std::pair<Real,Real> e_dev;
 
-        IntersectionFlagCounts_T acc_intersec_counts;
+        ProsectorFlagCounts_T acc_intersec_counts;
         
         TimeInterval T_run;
         
@@ -149,7 +147,7 @@ namespace Knoodle
         bool force_deallocQ     = false;
         bool checksQ            = true;
         bool check_jointsQ      = false;
-        bool hierarchicalQ      = false;
+//        bool hierarchicalQ      = false;
         
         bool anglesQ            = false;
         bool squared_gyradiusQ  = false;
@@ -227,22 +225,22 @@ print(R"(
                     Run();
                     
                     print("Done.");
-                    valprint<30>("Time elapsed during burn-in",burn_in_time);
-                    valprint<30>("Time elapsed during sampling",total_sampling_time);
-                    valprint<30>("Time elapsed during analysis",total_analysis_time);
-                    valprint<30>("Time elapsed during snapshots",total_snapshot_time);
+                    valprint<true,30>("Time elapsed during burn-in",burn_in_time);
+                    valprint<true,30>("Time elapsed during sampling",total_sampling_time);
+                    valprint<true,30>("Time elapsed during analysis",total_analysis_time);
+                    valprint<true,30>("Time elapsed during snapshots",total_snapshot_time);
                     print(std::string(26 + 24,'-'));
-                    valprint<30>("Time elapsed all together",total_timing);
+                    valprint<true,30>("Time elapsed all together",total_timing);
                 }
             }
             catch( const std::exception & e )
             {
-                eprint(e.what());
+                eprint(ClassName(),"(): ", std::string_view(e.what()));
                 throw;
             }
             catch(...)
             {
-                eprint(ClassName()+"(): Unknown exception.");
+                eprint(ClassName(), "(): Unknown exception.");
                 throw;
             }
         }
@@ -284,19 +282,22 @@ print(R"(
 
     public:
         
-        static constexpr std::string MethodName( const std::string & tag )
+        
+        using Msgr = Tools::Messenger<Class_T>;
+                
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("PolyFold")
-                + "<" + TypeName<Real>
-                + "," + TypeName<Int>
-                + "," + TypeName<LInt>
-                + "," + TypeName<BReal>
-                + ">";
+            return ct_string("PolyFold")
+            + "<" + TypeName<Real>
+            + "," + TypeName<Int>
+            + "," + TypeName<LInt>
+            + ">";
         }
         
     }; // PolyFold

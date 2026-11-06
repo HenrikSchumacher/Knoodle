@@ -1,3 +1,5 @@
+private:
+
 bool R_I_right()
 {
     // TODO: We could also delete all possible further loops iteratively.

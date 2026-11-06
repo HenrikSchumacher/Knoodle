@@ -1,0 +1,52 @@
+# TWO LATTICE KNOTS, COMPLETELY DISJOINT. Two copies of lattice_04, the second
+# translated by (20,0,0) -- far enough that the projections do not meet, so this
+# is a genuinely SPLIT diagram, not merely a two-component one.
+#
+# The point is that every degeneracy of a lattice projection is present twice
+# over, in two components that share no crossing. LinkEmbedding2/3/4 recover
+# 38 crossings, which is 19 + 19 exactly: the per-component counts, with nothing
+# between them. That equality is the check worth having -- a backend that let a
+# spurious crossing leak between two components, or that lost one, would break
+# it while still producing a perfectly legal diagram.
+#
+# It also drives the split-link paths that no other lattice fixture reaches:
+# HOMFLY has to go through the union-find decomposition and delta-rule
+# recombination (raw libhomfly segfaults on split input), and the single-variable
+# Alexander |det| fingerprint correctly declines a split diagram rather than
+# returning the ~1e-16 garbage a naive determinant gives.
+#
+# LinkEmbedding refuses it (error code 5, interval degeneracy) exactly as it
+# refuses a single lattice knot. Correct, and needing no marker.
+#
+# Regenerate:
+#   python3 - <<'EOF'
+#   rows=[l.split() for l in open('lattice_04.crd') if l.strip()]
+#   D=20
+#   out=[" ".join(r) for r in rows] + [""] + [f"{int(r[0])+D} {r[1]} {r[2]}" for r in rows]
+#   open('split_lattice.crd','w').write("\n".join(out)+"\n")
+#   EOF
+# lattice_04 IS THE UNKNOT, so both fixtures are the 2-COMPONENT UNLINK.
+#
+# This flipped twice before it settled, so here is the evidence and the reason
+# the other answer looked right. Four independent in-process routes agree:
+#   HOMFLY of the raw 19-crossing diagram from FromLinkEmbedding   = 1
+#   HOMFLY after a round trip through its own PD code              = 1
+#   HOMFLY reading the emitted 5-column file back                  = 1
+#   PlanarDiagramComplex::Simplify                                 -> 0 crossings
+# and split_lattice's HOMFLY is -L^-1 M^-1 - L^1 M^-1, which is the delta of the
+# 2-component unlink. knoodlesimplify -s=0, -s=1 and -s=2 all agree (-s=2 finds
+# the unknot at 0 crossings).
+#
+# The dissenting voice was knoodlesimplify -s=3, which reports a TREFOIL. That
+# is upstream issue 12: at -s=3 the ArcSimplifier's R_IIa move calls
+# SwitchCrossing, which a locked diagram refuses, and the wrapper discards the
+# failure -- so the move half-applies and the output really is a different knot.
+# It exits 0. DO NOT take a knot type from -s=3 until that is fixed.
+
+note = two disjoint lattice knots; a split diagram, 19 + 19 crossings
+knot = 2-component unlink (lattice_04 is the unknot; see above)
+
+vertical_edges         == 36
+multiple_points        == 32
+max_point_multiplicity == 8
+spatial                == 0

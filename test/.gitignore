@@ -12,6 +12,7 @@ inflate_check
 klut_check
 klut_bench
 klut_bench_boost
+alexander_normalization_check
 canon_check
 component_check
 error_tap_check
@@ -26,6 +27,8 @@ link_alex_probe
 link_inflate_check
 link_split_check
 link_color_roundtrip
+embedding_check
+reapr_corner_probe
 vendor/plantri/plantri
 inflate_fail_*.tsv
 link_inflate_fail_*.tsv
@@ -37,3 +40,10 @@ knoodlesimplify.log
 cluster/cluster.conf
 cluster/*.local
 local_moves_check
+intersection3d_check
+move_trace_check
+orthodecorate_check
+pass_view_check
+oracle_vs_reroute
+ordering_probe
+witness_check

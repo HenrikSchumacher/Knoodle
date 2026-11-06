@@ -43,10 +43,10 @@ namespace Knoodle
         using UInt                      = ToUnsigned<Int>;
         
         using Base_T                    = CachedObject<1,0,0,0>;
-        using Class_T                   = PlanarDiagram<Int>;
+        using Class_T                   = PlanarDiagram;
         
         /*!@brief Alias for `PlanarDiagram`.*/
-        using PD_T                      = PlanarDiagram<Int>;
+        using PD_T                      = PlanarDiagram;
         using PD_List_T                 = std::vector<PD_T>;
         
         /*!@brief Container to store crossings. It essentially behaves like a tensor of dimensions `{CrossingCount(),2,2}`.*/
@@ -82,7 +82,11 @@ namespace Knoodle
         friend class ArcSimplifier<Int,4,true >;
 
         friend class PassSimplifier<Int>;
-            
+
+        // Downstream middle-strand rerouting pass; see
+        // handoff/middle-strand-simplifier-friend-access/.
+        friend class MiddleStrandSimplifier<Int>;
+
         using HeadTail_T = bool;
         
         static constexpr HeadTail_T Tail  = 0;
@@ -172,9 +176,9 @@ namespace Knoodle
         // Copy assignment operator
         PlanarDiagram & operator=( const PlanarDiagram & other ) = default;
         // Move constructor
-        PlanarDiagram( PlanarDiagram && other ) = default;
+        PlanarDiagram( PlanarDiagram && other ) noexcept = default;
         // Move assignment operator
-        PlanarDiagram & operator=( PlanarDiagram && other ) = default;
+        PlanarDiagram & operator=( PlanarDiagram && other ) noexcept  = default;
  
     private:
         
@@ -280,7 +284,6 @@ namespace Knoodle
             crossing_count       = CountActiveCrossings();
             arc_count            = CountActiveArcs();
             
-
             if( (crossing_count == 0)
                 && proven_minimalQ
                 && (last_color_deactivated != Uninitialized)
@@ -292,7 +295,8 @@ namespace Knoodle
             
             if( compressQ )
             {
-                this->template Compress_Private<true>();
+                // We don't want recoloring of arcs; we want to use the input colors.
+                this->template Compress_Private<false>();
             }
         }
         
@@ -450,6 +454,7 @@ namespace Knoodle
 
 
 #include "PlanarDiagram/ResolveCrossing.hpp"
+#include "PlanarDiagram/KauffmanSplit.hpp"
 //#include "PlanarDiagram/VerticalSummandQ.hpp"
         
 #include "PlanarDiagram/DepthFirstSearch.hpp"
@@ -776,18 +781,19 @@ namespace Knoodle
             return sizeof(PlanarDiagram) + AllocatedByteCount();
         }
         
-        /*!@brief Return a string that identifies a class method specified by `tag`. Mostly used for logging and in error messages.*/
-        static constexpr std::string MethodName( const std::string & tag )
+    public:
+        
+        using Msgr = Tools::Messenger<Class_T>;
+                
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.*/
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("PlanarDiagram")
-                + "<" + TypeName<Int>
-                + ">";
+            return ct_string("PlanarDiagram<") + TypeName<Int> + ">";
         }
     };
 

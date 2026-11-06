@@ -1,147 +1,114 @@
 public:
-
-TOOLS_FORCE_INLINE static Sign_T Sign( const Int128 & z )
+    
+static void PrintInfo()
 {
-    return static_cast<Sign_T>(z > 0) - static_cast<Sign_T>(z < 0);
+    std::string s { ClassName() + " uses the following types:" };
+    s.append("\n  Int = ").append(TypeName<  Int>);
+    s.append("\n LInt = ").append(TypeName< LInt>);
+    s.append("\nLLInt = ").append(TypeName<LLInt>);
+    logprint(s);
+    
+//    s.append("\n  Int = ").append(PrettyTypeName<  Int>());
+//    s.append("\n LInt = ").append(PrettyTypeName< LInt>());
+//    s.append("\nLLInt = ").append(PrettyTypeName<LLInt>());
 }
 
-TOOLS_FORCE_INLINE static Sign_T Sign( const Int256 & z )
+// Not used by anyone.
+TOOLS_FORCE_INLINE static LVector3_T cross( cref<Vector3_T> a, cref<Vector3_T> b )
 {
-    return static_cast<Sign_T>(z > 0) - static_cast<Sign_T>(z < 0);
-}
-
-
-TOOLS_FORCE_INLINE static LVector3_T Cross( cref<Vector3_T> x, cref<Vector3_T> y )
-{
-    LInt x_0 { x[0] };
-    LInt x_1 { x[1] };
-    LInt x_2 { x[2] };
-    
-    LInt y_0 { y[0] };
-    LInt y_1 { y[1] };
-    LInt y_2 { y[2] };
-    
-    LVector3_T result {
-        x_1 * y_2 - x_2 * y_1,
-        x_2 * y_0 - x_0 * y_2,
-        x_0 * y_1 - x_1 * y_0
+    return LVector3_T {
+        long_det(a[1],a[2],b[1],b[2]),
+        long_det(a[2],a[0],b[2],b[0]),
+        long_det(a[0],a[1],b[0],b[1])
     };
+}
+
+// Used by Prosector2
+TOOLS_FORCE_INLINE static Sign_T Sign_Perturbed( cref<LVector3_T> cross_prod )
+{
     if constexpr ( verboseQ )
     {
-        logprint(MethodName("Cross")+ " -> { " + Tools::ToString(result[0]) +  ", " + Tools::ToString(result[1]) + ", " + Tools::ToString(result[2]) + " }" );
+        Msgr::logprint("Sign_Perturbed");
     }
-    return result;
-}
-
-static Polynomial3 Det_Perturbed( cref<Vector3_T> x, cref<Vector3_T> y )
-{
-    LVector3_T z = Prosector::Cross(x,y);
     
-    return Polynomial3{ z[2], z[0], z[1] };
-}
-
-TOOLS_FORCE_INLINE static Sign_T DetSign( Int a, Int b, Int c, Int d )
-{
-    const LInt det = LInt{a} * LInt{d} - LInt{b} * LInt{c};
-    if( det > 0 ) { return Sign_T( 1); }
-    if( det < 0 ) { return Sign_T(-1); }
+    Sign_T s;
+    s = Sign<Sign_T>(cross_prod[2]);
+    if( s != Sign_T(0) ) { return s; }
+    s = Sign<Sign_T>(cross_prod[0]);    // Will seldomly get here.
+    if( s != Sign_T(0) ) { return s; }
+    s = Sign<Sign_T>(cross_prod[1]);
+    if( s != Sign_T(0) ) { return s; }
     return Sign_T(0);
 }
 
-// Computes the limit of the determinant of u and v after being projected to the x-y-plane along the perturbed vector `{eps, eps * eps, 1}` for eps -> 0 from the right.
-
-TOOLS_FORCE_INLINE static Sign_T DetSign_Perturbed( cref<Vector3_T> u, cref<Vector3_T> v )
+// Used by Prosector4
+TOOLS_FORCE_INLINE static DepressedCubic Det_Perturbed( cref<Vector3_T> a, cref<Vector3_T> b )
 {
-    if constexpr ( verboseQ ) { logprint(MethodName("DetSign_Perturbed")); }
-    Sign_T sign;
+    return DepressedCubic {
+        long_det(a[0],a[1],b[0],b[1]),
+        long_det(a[1],a[2],b[1],b[2]),
+        long_det(a[2],a[0],b[2],b[0])
+    };
+}
+
+// Used by Prosector4
+// Lazy evaluation of the signs of the determinants.
+TOOLS_FORCE_INLINE static
+Sign_T Sign_Perturbed( cref<Vector3_T> a, cref<Vector3_T> b )
+{
+    if constexpr ( verboseQ )
+    {
+        Msgr::logprint("Sign_Perturbed");
+    }
     
-    if constexpr ( verboseQ ) {logprint("a"); }
-    sign = DetSign(u[0],u[1],v[0],v[1]);
-    if( sign != Sign_T(0) ) { return sign; }
+    Sign_T s;
+    s = Sign<Sign_T>(long_det(a[0],a[1],b[0],b[1]));
+    if( s != Sign_T(0) ) { return s; }
+    s = Sign<Sign_T>(long_det(a[1],a[2],b[1],b[2])); // Will seldomly get here.
+    if( s != Sign_T(0) ) { return s; }
+    s = Sign<Sign_T>(long_det(a[2],a[0],b[2],b[0]));
+    if( s != Sign_T(0) ) { return s; }
+    return Sign_T(0);
+}
+
+// Used by Prosector4
+// Lazy evaluation of the determinants.
+TOOLS_FORCE_INLINE static
+std::pair<Sign_T,LInt> Sign_Det_Perturbed( cref<Vector3_T> a, cref<Vector3_T> b )
+{
+    if constexpr ( verboseQ )
+    {
+        Msgr::logprint("Sign_Det_Perturbed");
+    }
     
+    LInt det = long_det(a[0],a[1],b[0],b[1]);
+    Sign_T s = Sign<Sign_T>(det);
+    if( s != Sign_T(0) ) { return {s,det}; }
     // In a generic situation, we will seldomly arrive at this point.
-    if constexpr ( verboseQ ) { logprint("b"); }
-    sign = DetSign(u[1],u[2],v[1],v[2]);
-    if( sign != Sign_T(0) ) { return sign; }
-    
-    if constexpr ( verboseQ ) { logprint("c"); }
-    sign = DetSign(u[2],u[0],v[2],v[0]);
-    if( sign != Sign_T(0) ) { return sign; }
-    
-    // u and v a collinear in 3-space.
-    
-    return Sign_T(0);
+    s = Sign<Sign_T>(long_det(a[1],a[2],b[1],b[2]));
+    if( s != Sign_T(0) ) { return {s,det}; }
+    s = Sign<Sign_T>(long_det(a[2],a[0],b[2],b[0]));
+    if( s != Sign_T(0) ) { return {s,det}; }
+    return {Sign_T(0),det};
 }
 
 
-
-private:
-
-bool PointOnLineTest( cref<Vector3_T> z, cref<Vector3_T> a_0, cref<Vector3_T> a_1 )
+// Lazy evaluation of the signs of the determinants, using double arithmetic.
+TOOLS_FORCE_INLINE static
+Sign_T Sign_Perturbed_Kahan( cref<Vector3_T> a, cref<Vector3_T> b )
 {
-    if constexpr ( verboseQ ) { logprint(MethodName("PointOnLineTest")); }
-    // Precondition: a_0 != a_1 and z lies on the line through a_0 and a_1.
-    // Find coordinate direction k so that a_0[k] != a_1[k];
-    int k = 0;
-    while((a_0[k] == a_1[k]) && (k < 3)) { ++k; };
-    
-    if( k == 3 )
-    {
-        if constexpr ( verboseQ )
-        {
-            eprint(MethodName("PointOnLineTest") + ": Line segment is denegerate.");
-        }
-        return true;
-    }
-    
-    auto [a,b] = MinMax(a_0[k],a_1[k]);
-    
-    if( (a <= z[k]) && (z[k] <= b) )
-    {
-        if constexpr ( verboseQ )
-        {
-            logprint("Point lies in line segment.");
-        }
-        return true;
-    }
-    else
-    {
-        if constexpr ( verboseQ )
-        {
-            logprint("Point does not lie on line segment.");
-        }
-        return false;
-    }
-}
-
-bool LinesColinearTest()
-{
-    if constexpr ( verboseQ ) { logprint(MethodName("LinesColinearTest")); }
-    
-    // Precondition: x_0 != x_1 and the two lines are colinear.
-    // Find coordinate direction k so that x_0[k] != x_1[k];
-    int k = 0;
-    while( (x_0[k] == x_1[k]) && (k < 3) ) { ++k; };
-    
-    if( k == 3 )
-    {
-        if constexpr ( verboseQ )
-        {
-            eprint(MethodName("LinesColinearTest") + ": Line segment is denegerate.");
-        }
-        return true;
-    }
-    
-    auto [a,b] = MinMax(x_0[k],x_1[k]);
-    auto [c,d] = MinMax(y_0[k],y_1[k]);
-    
-    // Check whether intervals [a,b] and [c,d] intersect.
-    bool result =  (a <= d) && (c <= b);
-    
     if constexpr ( verboseQ )
     {
-        logprint(MethodName("LinesColinearTest") + (result ? "Line segments intersect." : "Line segments do not intersect."));
+        Msgr::logprint("Sign_Perturbed_Kahan");
     }
     
-    return result;
+    Sign_T s;
+    s = DetSign2D_Kahan<Sign_T>(double(a[0]),double(a[1]),double(b[0]),double(b[1]));
+    if( s != Sign_T(0) ) { return s; }
+    // In a generic situation, we will seldomly arrive at this point.
+    s = DetSign2D_Kahan<Sign_T>(double(a[1]),double(a[2]),double(b[1]),double(b[2]));
+    if( s != Sign_T(0) ) { return s; }
+    s = DetSign2D_Kahan<Sign_T>(double(a[2]),double(a[0]),double(b[2]),double(b[0]));
+    if( s != Sign_T(0) ) { return s; }
+    return Sign_T(0);
 }

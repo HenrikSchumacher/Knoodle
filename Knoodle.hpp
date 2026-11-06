@@ -6,7 +6,9 @@
 //      "./submodules/Min-Cost-Flow-Class/MCFSimplex/
 
 
-#define KNOODLE_H
+#ifndef KNOODLE_HPP
+    #define KNOODLE_HPP
+#endif
 
 #ifdef KNOODLE_USE_BOOST_UNORDERED
     #ifndef TOOLS_USE_BOOST_UNORDERED
@@ -44,11 +46,17 @@ namespace Knoodle
 
 #include "src/Intersection.hpp"
 
-#include "src/PlanarLineSegmentIntersector.hpp"
+#include "src/WideInt.hpp"   // Used in Prosector classes.
+#include "src/LinkEmbedding_Int/EdgeCrossing.hpp"
+#include "src/Prosector_Int.hpp"
+#include "src/LinkEmbedding_Int.hpp"
 #include "src/LinkEmbedding.hpp"
-#include "src/KnotEmbedding.hpp" // Like LinkEmbedding, only for knots. A bit more efficient this way.
 
-#include "src/LinkEmbedding2.hpp"
+// The old cruft. Will be removed soon.
+#include "legacy/Prosector_Float.hpp"
+#include "legacy/LinkEmbedding_Float.hpp"
+#include "legacy/KnotEmbedding_Float.hpp" // Like LinkEmbedding_Float, only for knots. A bit more efficient this way.
+
 
 #include "src/MultiGraphBase.hpp"
 #include "src/MultiGraph.hpp"
@@ -58,10 +66,25 @@ namespace Knoodle
 
 namespace Knoodle
 {
+    // Forward declarations. Best to keep this list as short as possible. (Somewhat annoying to maintain.)
+    
     template<IntQ Int> class PlanarDiagram;
     template<IntQ Int> class PlanarDiagramComplex;
-    template<FloatQ Real, IntQ Int, FloatQ BReal> class Reapr;
+
+    // Test-only harness that compares `OrthoDecorate::AfterDiagram` against
+    // `PassSimplifier::Reroute` on the same pass move. Defined in
+    // `test/pass_oracle.hpp`, never in a shipped translation unit; the friend
+    // declaration in `PassSimplifier` is what it exists for. Henrik approved
+    // the access 2026-08-12 -- see handoff/reroute-arc-label-aliasing/.
+    template<IntQ Int> class PassOracle;
+    template<FloatQ Real, IntQ Int> class Reapr;
     template<typename PD_T> class OrthoDraw;
+
+    // Defined downstream (middlestrands project), not in this tree. Declared
+    // here only so PlanarDiagram/PlanarDiagramComplex can befriend it; an
+    // undefined class template that is never instantiated costs nothing.
+    // See handoff/middle-strand-simplifier-friend-access/.
+    template<IntQ Int> class MiddleStrandSimplifier;
 }
 
 #include "src/PlanarDiagramComplex/LoopRemover.hpp"
@@ -70,17 +93,19 @@ namespace Knoodle
 
 #include "src/PlanarDiagram.hpp"
 #include "src/PlanarDiagramComplex.hpp"
+
+// Not included here, to keep compile times down; include them after this file
+// where they are used: src/PassDescriptor.hpp, src/MoveTrace.hpp,
+// src/OrthoDecorate.hpp (the last pulls in PassDescriptor.hpp).
+
 #include "src/OrthoDraw.hpp"
 #include "src/Reapr.hpp"
 
 #include "src/KnotInvariants/AlexanderStrandMatrix.hpp"
 #include "src/KnotInvariants/AlexanderFaceMatrix.hpp"
 
-//#include "src/Alexander.hpp"  // Uses my own Cholesky factorization.
-                                // Not favorable compared to Alexander_UMFPACK.hpp
-
 #ifdef KNOODLE_USE_UMFPACK
-#include "src/KnotInvariants/Alexander_UMFPACK.hpp" // Improved version of the former.
+#include "src/KnotInvariants/Alexander_UMFPACK.hpp"
 #endif
 
 //
@@ -93,3 +118,6 @@ namespace Knoodle
 #include "src/ConformalBarycenterSampler.hpp"
 
 #include "src/Klut.hpp"
+
+
+#include "src/KnotInvariants/LaurentPolynomial.hpp"

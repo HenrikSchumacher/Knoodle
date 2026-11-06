@@ -1,3 +1,5 @@
+private:
+
 bool R_I_center()
 {
     PD_DPRINT("R_I_center()");

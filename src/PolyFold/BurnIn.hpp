@@ -37,15 +37,15 @@ void BurnIn()
         
         T_fold.Tic<V2Q>();
         
-        // Do `burn_in` attempts of folding.
-        if( hierarchicalQ )
-        {
-            // Experimental; not guaranteed to sample correctly.
-            counts = T.HierarchicalMove(
-                burn_in, reflection_probability, checksQ, check_jointsQ
-            );
-        }
-        else
+//        // Do `burn_in` attempts of folding.
+//        if( hierarchicalQ )
+//        {
+//            // Experimental; not guaranteed to sample correctly.
+//            counts = T.HierarchicalMove(
+//                burn_in, reflection_probability, checksQ, check_jointsQ
+//            );
+//        }
+//        else
         {
             counts = T.FoldRandom(
                 burn_in, reflection_probability, checksQ, check_jointsQ
@@ -147,7 +147,7 @@ void BurnIn()
 
     
     print("Burn-in done.");
-    valprint<a>("Burn-In Seconds Elapsed", burn_in_time);
+    valprint<true,a>("Burn-In Seconds Elapsed", burn_in_time);
     print("");
     
 } // BurnIn

@@ -40,7 +40,7 @@ bool SwitchCrossing_Private( const Int c )
     {
         if constexpr ( !silentQ )
         {
-            wprint(MethodName("SwitchCrossing_Private")+": Crossing " + CrossingString(c) + " was already deactivated. Doing nothing.");
+            Msgr::wprint("SwitchCrossing_Private", "Crossing ", CrossingString(c), " was already deactivated. Doing nothing.");
         }
         return false;
     }
@@ -107,14 +107,12 @@ public:
 template<bool silentQ = false, bool assertsQ = true>
 Int CreateLoop( const Int a, const bool side, CrossingState_T handedness )
 {
-    [[maybe_unused]] auto tag = [](){ return MethodName("CreateLoop"); };
-    
     TOOLS_PTIMER(timer,MethodName("CreateLoop"));
     if( InvalidQ() )
     {
         if constexpr ( !silentQ )
         {
-            wprint(tag() + ": Diagram is invalid. Doing nothing.");
+            Msgr::wprint("CreateLoop", "Diagram is invalid. Doing nothing.");
         }
         return Uninitialized;
     }
@@ -123,7 +121,7 @@ Int CreateLoop( const Int a, const bool side, CrossingState_T handedness )
     {
         if constexpr ( !silentQ )
         {
-            wprint(tag() + ": Supplied handedness is `Inactive'. Doing nothing.");
+            Msgr::wprint("CreateLoop", "Supplied handedness is `Inactive'. Doing nothing.");
         }
         return Uninitialized;
     }
@@ -132,7 +130,7 @@ Int CreateLoop( const Int a, const bool side, CrossingState_T handedness )
     {
         if constexpr ( !silentQ )
         {
-            wprint(tag() + ": Index a = " + ToString(a) + " is out of bounds. Doing nothing.");
+            Msgr::wprint("CreateLoop", "Index a = ", a, " is out of bounds. Doing nothing.");
         }
         return Uninitialized;
     }
@@ -141,7 +139,7 @@ Int CreateLoop( const Int a, const bool side, CrossingState_T handedness )
     {
         if constexpr ( !silentQ )
         {
-            wprint(tag() + ": " + ArcString(a) + " is not active. Doing nothing.");
+            Msgr::wprint("CreateLoop", ArcString(a), " is not active. Doing nothing.");
         }
         return Uninitialized;
     }
@@ -182,21 +180,30 @@ Int CreateLoop( const Int a, const bool side, CrossingState_T handedness )
 }
 
 
-/*!@brief **UNSAFE.** Cut arcs `a` and `b` and reconnect the tail of `a` with the tip of `b` and the tail of `b` with the tip of `a`.*/
+/*!@brief **UNSAFE.** Swaps tge head of arcs `a` and `b`, effectively implementing connected sum.
+ *
+ * CAUTION: color information is not adjusted, so the resulting diagram may be color-invalid if `a` and `b` have different colors.
+ *
+ * @verbatim
+     O     O        O<----O
+     ^     |           b
+    a|     |b   =>
+     |     v           a
+     O     O        O---->O
+   @endverbatim
+ */
 template<bool silentQ = false, bool assertsQ = true>
 bool Connect( const Int a, const Int b )
 {
-    [[maybe_unused]] auto tag = [](){ return MethodName("Connect"); };
+    if( LockedQ() ) { LockMessage("Connect"); return false; }
     
-    if( LockedQ() ) { LockMessage("Connect"); return false; } 
-    
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,MethodName("Connect"));
     
     if( InvalidQ() )
     {
         if constexpr ( !silentQ )
         {
-            wprint(tag()+": Diagram is invalid. Doing nothing.");
+            Msgr::wprint("Connect", "Diagram is invalid. Doing nothing.");
         }
         return false;
     }
@@ -205,7 +212,7 @@ bool Connect( const Int a, const Int b )
     {
         if constexpr ( !silentQ )
         {
-            wprint(tag()+": Arc indices a = " + ToString(a) + " and b = " + ToString(b) + " coincide. Doing nothing.");
+            Msgr::wprint("Connect", "Arc indices a = ", a, " and b = ", b, " coincide. Doing nothing.");
         }
         return false;
     }
@@ -214,7 +221,7 @@ bool Connect( const Int a, const Int b )
     {
         if constexpr ( !silentQ )
         {
-            wprint(tag()+": Index a = " + ToString(a) + " is out of bounds. Doing nothing.");
+            Msgr::wprint("Connect", "Index a = ", a, " is out of bounds. Doing nothing.");
         }
         return false;
     }
@@ -223,7 +230,7 @@ bool Connect( const Int a, const Int b )
     {
         if constexpr ( !silentQ )
         {
-            wprint(tag()+": " + ArcString(a) + " is not active. Doing nothing.");
+            Msgr::wprint("Connect", ArcString(a), " is not active. Doing nothing.");
         }
         return false;
     }
@@ -232,7 +239,7 @@ bool Connect( const Int a, const Int b )
     {
         if constexpr ( !silentQ )
         {
-            wprint(tag()+": Index a = " + ToString(b) + " is out of bounds. Doing nothing.");
+            Msgr::wprint("Connect", "Index a = ", b, " is out of bounds. Doing nothing.");
         }
         return false;
     }
@@ -241,7 +248,7 @@ bool Connect( const Int a, const Int b )
     {
         if constexpr ( !silentQ )
         {
-            wprint(tag()+": " + ArcString(b) + " is inactive. Doing nothing.");
+            Msgr::wprint("Connect", ArcString(b), " is inactive. Doing nothing.");
         }
         return false;
     }
@@ -250,7 +257,7 @@ bool Connect( const Int a, const Int b )
     {
         if constexpr ( !silentQ )
         {
-            wprint(tag()+": Colors of " + ArcString(a) + " and " + ArcString(b) + " do not match. Doing nothing.");
+            Msgr::wprint("Connect", ",Colors of ", ArcString(a), " and ", ArcString(b), " do not match. Doing nothing.");
         }
         return false;
     }
@@ -263,7 +270,7 @@ bool Connect( const Int a, const Int b )
     {
         if constexpr ( !silentQ )
         {
-            wprint(tag()+": " + ArcString(a) + " and " + ArcString(b) + " lie on the same link component. Doing nothing.");
+            Msgr::wprint("Connect", ArcString(a), " and ", ArcString(b), " lie on the same link component. Doing nothing.");
         }
         return false;
     }
@@ -281,7 +288,16 @@ bool Connect( const Int a, const Int b )
 private:
 
 /*!@brief **UNSAFE.** Swaps heads or tails of the arcs a and b. No checks are performed and we do not use the locking mechanism. This is why this is a private routine.
- */
+ *
+ * Behavior in case of `headtail == Head`:
+ * @verbatim
+    O     O        O<----O
+    ^     |           b
+   a|     |b   =>
+    |     v           a
+    O     O        O---->O
+   @endverbatim
+*/
 
 void ArcSwap_Private( const Int a, const bool headtail, const Int b )
 {
@@ -296,7 +312,16 @@ void ArcSwap_Private( const Int a, const bool headtail, const Int b )
 }
 
 /*!@brief **UNSAFE.** Swaps heads or tails of the arcs a and b. No checks are performed and we do not use the locking mechanism. This is why this is a private routine.
- */
+ *
+ * Behavior in case of `headtail == Head`:
+ * @verbatim
+    O     O        O<----O
+    ^     |           b
+   a|     |b   =>
+    |     v           a
+    O     O        O---->O
+   @endverbatim
+*/
 
 template<bool headtail>
 void ArcSwap_Private( const Int a, const Int b )

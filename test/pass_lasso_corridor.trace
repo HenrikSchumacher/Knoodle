@@ -1,0 +1,22 @@
+#trace v=1
+#knoodle version=lasso-fixture
+
+#step n=0 summand=0
+#comment A lasso whose corridor CROSSES two arcs: anchors both crossing 3 of
+#comment a 5-crossing projection of a random 12-gon (seed 20260925, p17).
+#comment prove_check swaps this #move for an NSI2 refusal and for a lasso
+#comment whose corridor visits face 3 twice -- that one changes HOMFLY.
+#move kind=pass strand=15,17,19 depart=14 cross=1:o,12:o land=18
+#state lines=12
+PlanarDiagram<I64>
+max_crossing_count = 5
+crossing_count = 5
+max_arc_count = 10
+arc_count = 10
+C_arcs = {{{7,0},{9,6}},{{1,8},{7,0}},{{2,5},{4,1}},{{4,3},{2,3}},{{9,6},{5,8}}}
+C_state = {1,1,1,-1,-1}
+A_cross = {{0,1},{1,2},{2,3},{3,3},{3,2},{2,4},{4,0},{0,1},{1,4},{4,0}}
+A_state = {1,1,1,1,1,1,1,1,1,1}
+A_color = {0,0,0,0,0,0,0,0,0,0}
+last_color_deactivated = -1
+proven_minimalQ = 0

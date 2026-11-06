@@ -161,7 +161,7 @@ PDC_T ConnectedSum() const
         {
             if( a == b )
             {
-                eprint(MethodName("ConnectedSum")+": a == b.");
+                eprint(MethodName("ConnectedSum"), ": a == b.");
                 continue;
             }
             

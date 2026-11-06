@@ -29,29 +29,28 @@ static PDC_T FromExtendedGaussCode(
 }
 
 /*!@brief Initialize with a single knot from the polygonal line with `n` edges and coordinates stored in the buffer `x` (interleaved layout).*/
-template<typename Real, IntQ ExtInt>
+template<typename Real, IntQ ExtInt> requires FloatQ<Real> || SignedIntQ<Real>
 static PDC_T FromCoordinates( cptr<Real> x, const ExtInt n )
 {
     return PDC_T( PD_T::FromCoordinates(x,n) );
 }
 
 /*!@brief Initialize with a simplicial complex with `n` edges stored in the buffer `edges` (interleaved layout) and vertex coordinates stored in the buffer `x` (interleaved layout).*/
-template<typename Real, IntQ ExtInt>
+template<typename Real, IntQ ExtInt> requires FloatQ<Real> || SignedIntQ<Real>
 static PDC_T FromCoordinatesAndEdges( cptr<Real> x, cptr<ExtInt> edges, const ExtInt n )
 {
     return PDC_T( PD_T::FromCoordinatesAndEdges(x,edges,n) );
 }
 
 /*!@brief For internal use only. Users should not call this. Testing makes it necessary to make this public. */
-template<IntQ ExtInt, IntQ ExtInt2>
+template<IntQ ExtInt>
 static PDC_T FromLinkEmbedding_Raw(
     const ExtInt  component_count_,
     cptr<ExtInt>  component_ptr,
     cptr<ExtInt>  component_color,
     const ExtInt  crossing_count_,
     cptr<ExtInt>  edge_ptr,
-    cptr<ExtInt>  edge_intersections,
-    cptr<ExtInt2> edge_state
+    cptr<EdgeCrossing<ExtInt>> edge_cross
 )
 {
     return PDC_T( PD_T::FromLinkEmbedding_Raw(
@@ -60,7 +59,6 @@ static PDC_T FromLinkEmbedding_Raw(
         component_color,
         crossing_count_,
         edge_ptr,
-        edge_intersections,
-        edge_state
+        edge_cross
     ) );
 }

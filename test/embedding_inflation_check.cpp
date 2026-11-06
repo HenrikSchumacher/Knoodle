@@ -90,10 +90,9 @@
 
 using Int     = std::int64_t;
 using Real    = double;
-using BReal   = float;
 using PDC_T   = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T    = PDC_T::PD_T;
-using Reapr_T = Knoodle::Reapr<Real, Int, BReal>;
+using Reapr_T = Knoodle::Reapr<Real, Int>;
 
 namespace {
 
@@ -149,6 +148,9 @@ Real MeanNorm( const Knoodle::Tensor2<Real,Int> & v, const Int m )
 
 // Centre of mass of the embedding's actual geometry: the internal Sterbenz
 // translation is removed, so what remains should be moved only by the rotation.
+// Only the legacy float class (legacy/LinkEmbedding_Float) has that shift; the
+// exact LinkEmbedding_Int that Reapr now returns never translates its input, so
+// for it the raw centroid is already the honest one.
 template<typename Emb_T>
 Real CentroidNorm( Emb_T & emb, Knoodle::Tensor2<Real,Int> & scratch )
 {
@@ -162,11 +164,17 @@ Real CentroidNorm( Emb_T & emb, Knoodle::Tensor2<Real,Int> & scratch )
         for( int k = 0; k < 3; ++k ) { c[k] += scratch(i,k); }
     }
 
-    const auto shift = emb.SterbenzShift();
+    Real shift[3] = { Real(0), Real(0), Real(0) };
+    if constexpr ( requires { emb.SterbenzShift(); } )
+    {
+        const auto s = emb.SterbenzShift();
+        for( int k = 0; k < 3; ++k ) { shift[k] = static_cast<Real>(s[k]); }
+    }
+
     Real n = Real(0);
     for( int k = 0; k < 3; ++k )
     {
-        const Real t = c[k] / static_cast<Real>(m) - static_cast<Real>(shift[k]);
+        const Real t = c[k] / static_cast<Real>(m) - shift[k];
         n += t * t;
     }
     return std::sqrt(n);

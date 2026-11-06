@@ -11,6 +11,8 @@ static PDC_T FromFile( cref<std::filesystem::path> file )
 // This might look inflexible, but it is too easy to shoot oneself into the foot if we allow also shorter codes here.
 static PDC_T FromInString( mref<Tools::InString> s )
 {
+    constexpr auto tag = MethodName("FromInString");
+    
     PDC_T pdc;
     
     // Currently, we have only two parsing modes here. But we might need more if we want to use abbreviations for certain subdiagrams or if we want allow also MacLeod codes for knot summands.
@@ -41,7 +43,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
         mode = ParsingMode_T::None;
     };
     
-    auto push_diagram = [&crossing_counter,&proven_minimalQ,&pd_buffer,&pdc,&input_diagram_counter,&mode,clear]()
+    auto push_diagram = [&crossing_counter,&proven_minimalQ,&pd_buffer,&pdc,&input_diagram_counter,&mode,clear,&tag]()
     {
         // Only push if a subdiagram has already been started.
         // For example, if the first subdiagram stored in a file is an unlink, then this prevents pushing two unlinks.
@@ -57,7 +59,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
         }
         else
         {
-            wprint(MethodName("FromInString") + ": Input diagram " + ToString(input_diagram_counter) + " unknot with invalid color and thus discarded.");
+            wprint(tag, ": Input diagram ", input_diagram_counter, " unknot with invalid color and thus discarded.");
         }
         
         clear(); // Needed to track input_diagram_counter and to set default for last_color_deactivated.
@@ -78,7 +80,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
             
             if (mode != ParsingMode_T::None )
             {
-                eprint(MethodName("FromInString") + ": Found character 'u' on input string while in not being in mode ParsingMode_T::None.");
+                eprint(tag, ": Found character 'u' on input string while in not being in mode ParsingMode_T::None.");
                 failedQ = true;
                 break;
             }
@@ -90,7 +92,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
             s.SkipWhiteSpace();
             if( last_color_deactivated == PD_T::InvalidColor )
             {
-                wprint(MethodName("FromInString") + ": Input diagram " + ToString(input_diagram_counter) + " diagram is invalid and thus discarded.");
+                wprint(tag, ": Input diagram ", input_diagram_counter, " diagram is invalid and thus discarded.");
             }
             else
             {
@@ -110,7 +112,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
             
             if (mode != ParsingMode_T::None )
             {
-                eprint(MethodName("FromInString") + ": Found character 's' on input string while `mode != ParsingMode_T::None`.");
+                eprint(tag, ": Found character 's' on input string while `mode != ParsingMode_T::None`.");
                 failedQ = true;
                 break;
             }
@@ -139,7 +141,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
         {
             // We read pd code only in `Subdiagram` mode.
             
-            eprint(MethodName("FromInString") + ": Not in mode `ParsingMode_T::Subdiagram` when attempting to read pd codes.");
+            eprint(tag, ": Not in mode `ParsingMode_T::Subdiagram` when attempting to read pd codes.");
             failedQ = true;
             break;
         }
@@ -165,7 +167,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
     
     if( failedQ || s.FailedQ() )
     {
-        eprint(MethodName("Read") + ": Reading failed. Returning invalid object.");
+        eprint(tag, ": Reading failed. Returning invalid object.");
         return PDC_T();
     }
     

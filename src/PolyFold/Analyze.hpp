@@ -146,9 +146,9 @@ void Analyze( const LInt i )
         
         T_intersection.Toc<V2Q>();
         
-        const IntersectionFlagCounts_T intersection_flag_counts = L.IntersectionFlagCounts();
+        const ProsectorFlagCounts_T prosector_flag_counts = L.IntersectionFlagCounts();
         
-        acc_intersec_counts += intersection_flag_counts;
+        acc_intersec_counts += prosector_flag_counts;
         
         if( (err != 0) || V1Q )
         {
@@ -160,7 +160,7 @@ void Analyze( const LInt i )
                 log << L.template AllocatedByteCountDetails<t2>();
                 
                 PrintIntersectionFlagCounts<t2>(
-                    "Intersection Flag Counts", intersection_flag_counts
+                    "Intersection Flag Counts", prosector_flag_counts
                 );
                 
                 PrintIntersectionFlagCounts<t2>(
@@ -189,7 +189,18 @@ void Analyze( const LInt i )
         
         T_pd.Tic<V2Q>();
         // We delay the allocation until substantial parts of L have been deallocated.
-        PDC_T PDC ( L );
+//        PDC_T PDC ( L );
+        
+        Int comp_color [1] = {Int{0}};
+        PDC_T PDC = PDC_T::FromLinkEmbedding_Raw(
+            L.ComponentCount(),
+            L.ComponentPointers().data(),
+            &comp_color[0],
+            L.IntersectionCount(),
+            L.EdgePointers().data(),
+            L.EdgeCrossings().data()
+        );
+        
         T_pd.Toc<V2Q>();
     
         // Delete remainder of L to make room for the simplification.

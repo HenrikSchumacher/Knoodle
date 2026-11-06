@@ -388,8 +388,8 @@ namespace Knoodle
         }
         
         
-        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
-        std::pair<LinkEmbedding<Real2,Int2,BReal2>,Real2> RandomEquilateralLink(
+        template<FloatQ Real2 = Real, IntQ Int2 = Int>
+        std::pair<LinkEmbedding<Real2,Int2>,Real2> RandomEquilateralLink(
             cptr<Real2> component_centers,
             const Int2  component_count,
             const bool  quotient_space_weightQ = true
@@ -435,29 +435,29 @@ namespace Knoodle
                 }
             }
 
-            LinkEmbedding<Real2,Int2,BReal2> link ( std::move(component_ptr), std::move(colors) );
+            LinkEmbedding<Real2,Int2> link ( std::move(component_ptr), std::move(colors) );
             
             link.ReadVertexCoordinates(q.data());
             
             return {link,static_cast<Real2>(K_prod)};
         }
         
-        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
-        std::pair<LinkEmbedding<Real2,Int2,BReal2>,Real2> RandomEquilateralLink(
+        template<FloatQ Real2 = Real, IntQ Int2 = Int>
+        std::pair<LinkEmbedding<Real2,Int2>,Real2> RandomEquilateralLink(
             const Int2  component_count,
             const bool  quotient_space_weightQ = true
         )
         {
-            return RandomEquilateralLink<Real2,Int2,BReal2>( nullptr, component_count, quotient_space_weightQ);
+            return RandomEquilateralLink<Real2,Int2>( nullptr, component_count, quotient_space_weightQ);
         }
         
-        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
-        std::pair<LinkEmbedding<Real2,Int2,BReal2>,Real2> RandomEquilateralKnot(
+        template<FloatQ Real2 = Real, IntQ Int2 = Int>
+        std::pair<LinkEmbedding<Real2,Int2>,Real2> RandomEquilateralKnot(
             const Int component_count
         )
         {
             // We add zero vectors here. There should be more efficient ways to do this.
-            return RandomEquilateralLink<Real2,Int2,BReal2>(component_count,component_count);
+            return RandomEquilateralLink<Real2,Int2>(component_count,component_count);
         }
         
     

@@ -10,8 +10,10 @@
 //   (4) a multi-component link : two different-colored knots -> LinkOutOfScope.
 #include "../Knoodle.hpp"
 #include "../tools/klut_identify.hpp"
+#include "diagram_sanity.hpp"
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -22,10 +24,33 @@ using Int     = std::int64_t;
 using Real    = double;
 using PDC_T   = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T    = PDC_T::PD_T;
-using Reapr_T = Knoodle::Reapr<Real, Int, float>;
+using Reapr_T = Knoodle::Reapr<Real, Int>;
 using Klut    = Knoodle::Klut;
 using Key     = std::vector<Knoodle::UInt8>;
 namespace ki  = klut_identify;
+
+// Identify() consumes its input and returns only ids + PD codes, so the sanity
+// checks run at the test boundary: every diagram/complex we hand it must be
+// sane going in. Corruption is a hard failure, never a skipped sample.
+static void RequireSanity(const PD_T& pd, const char* where)
+{
+    std::string why;
+    if (!KnoodleTest::DiagramSanityQ(pd, &why))
+    {
+        std::cerr << "FATAL: diagram sanity failure at " << where << ":\n" << why;
+        std::exit(1);
+    }
+}
+
+static void RequireSanity(PDC_T& pdc, const char* where)
+{
+    std::string why;
+    if (!KnoodleTest::ComplexSanityQ(pdc, &why))
+    {
+        std::cerr << "FATAL: diagram sanity failure at " << where << ":\n" << why;
+        std::exit(1);
+    }
+}
 
 static std::uint64_t mix(std::uint64_t x)
 {
@@ -75,15 +100,30 @@ int main(int argc, char** argv)
     for (int i = 1; i < argc; ++i)
     {
         std::string a(argv[i]);
-        if      (a.rfind("--per-c=", 0)    == 0) per_c = std::stoll(a.substr(8));
-        else if (a.rfind("--c-max=", 0)    == 0) c_max = std::stoll(a.substr(8));
-        else if (a.rfind("--klut-dir=", 0) == 0) g_dir = a.substr(11);
+        if      (a.rfind("--per-c=", 0)    == 0)
+        {
+            per_c = std::stoll(a.substr(8));
+        }
+        else if (a.rfind("--c-max=", 0)    == 0)
+        {
+            c_max = std::stoll(a.substr(8));
+        }
+        else if (a.rfind("--klut-dir=", 0) == 0)
+        {
+            g_dir = a.substr(11);
+        }
     }
 
     Klut klut{ std::filesystem::path(g_dir), static_cast<Knoodle::Size_T>(c_max) };
+    
     klut.RequireSubtables();   // LoadSubtables is deprecated for this spelling
+    
     Reapr_T reapr{};
-    auto idOf = [&](const Key& key) { auto [c, id] = klut.FindID(FromKey(key)); (void)c; return id; };
+    auto idOf = [&](const Key& key)
+    {   auto [c, id] = klut.FindID(FromKey(key));
+        (void)c;
+        return id;
+    };
 
     long fails = 0;
 
@@ -91,6 +131,7 @@ int main(int argc, char** argv)
     {
         long tested = 0, ok = 0, escalated = 0, total_reapr = 0;
         for (Int c = 3; c <= c_max; ++c)
+        {
             for (Int k = 0; k < per_c; ++k)
             {
                 Key key = ReadKey(c, k);
@@ -98,13 +139,14 @@ int main(int argc, char** argv)
                 PD_T m = FromKey(key);
                 if (!m.ValidQ()) { continue; }
                 const Klut::ID_T src = idOf(key);
-
+                
                 reapr.RandomEngine() = Knoodle::PRNG_T(mix(static_cast<std::uint64_t>(c * 1000 + k)));
                 auto emb = reapr.Embedding(m);
                 emb.Transform( reapr.RandomRotation() );
                 auto [P, unlinks] = PD_T::FromLinkEmbedding(emb);
                 if (!P.ValidQ() || unlinks.Size() > Int(0)
                     || P.LinkComponentCount() > Int(1) || P.DiagramComponentCount() > Int(1)) { continue; }
+                RequireSanity(P, "embed+reproject perturbation (case 1)");
 
                 // std::move, not `PDC_T pdc { P }`: an lvalue selects the
                 // `const PD_T &` overload, which delegates to a 2-argument
@@ -122,8 +164,9 @@ int main(int argc, char** argv)
                 if (r.status == ki::IdentifyResult::Status::Knot && ai
                     && ids.size() == 1 && ids[0] == src) { ++ok; }
             }
+        }
         const bool pass = (ok == tested && tested > 0);
-        if (!pass) ++fails;
+        if (!pass) { ++fails; }
         std::cout << "(1) single knots          : " << ok << "/" << tested
                   << (pass ? "  PASS" : "  FAIL")
                   << "  [escalated " << escalated << " (" << total_reapr << " reapr calls); "
@@ -156,21 +199,28 @@ int main(int argc, char** argv)
         csA.Unlock();
         for (const auto& key : keys) { csA.Push(FromKey(key, Int(0))); }
         csA.Lock();
-        bool aiA; auto idsA = SortedIds(ki::Identify(klut, std::move(csA), reapr), aiA);
+
+        RequireSanity(csA, "multi-diagram connect sum (case 2, form A)");
+        bool aiA;
+        auto idsA = SortedIds(ki::Identify(klut, std::move(csA), reapr), aiA);
 
         // form B: the single spliced diagram (farfalle), must decompose under Identify
         PDC_T tmp;
         tmp.Unlock();
         for (const auto& key : keys) { tmp.Push(FromKey(key, Int(0))); }
         tmp.Lock();
+        
         PDC_T csB;
         csB.Unlock();
         csB.Push(tmp.ToSingleDiagram());
         csB.Lock();
-        bool aiB; auto idsB = SortedIds(ki::Identify(klut, std::move(csB), reapr), aiB);
 
-        const bool okA = aiA && idsA == expect;
-        const bool okB = aiB && idsB == expect;
+        RequireSanity(csB, "spliced single diagram (case 2, form B)");
+        bool aiB;
+        auto idsB = SortedIds(ki::Identify(klut, std::move(csB), reapr), aiB);
+
+        const bool okA = (aiA && idsA == expect);
+        const bool okB = (aiB && idsB == expect);
         std::cout << "    " << label << " : multi-diagram " << (okA ? "ok" : "FAIL")
                   << " | single-diagram " << (okB ? "ok" : "FAIL") << "\n";
         return okA && okB;
@@ -181,18 +231,28 @@ int main(int argc, char** argv)
     {
         Key k3 = ReadKey(3, 0), k4 = ReadKey(4, 0), k5 = ReadKey(5, 0), k5b = ReadKey(5, 1);
         bool pass = true;
-        if (!k3.empty() && !k4.empty()) pass &= check_connect_sum({k3, k4},      "3_1 # 4_1");
-        if (!k3.empty())                pass &= check_connect_sum({k3, k3},      "3_1 # 3_1 (multiplicity)");
-        if (!k5.empty() && !k5b.empty())pass &= check_connect_sum({k5, k5b},     "5_1 # 5_2");
+        if (!k3.empty() && !k4.empty())
+        {
+            pass &= check_connect_sum({k3, k4},      "3_1 # 4_1");
+        }
+        if (!k3.empty())
+        {
+            pass &= check_connect_sum({k3, k3},      "3_1 # 3_1 (multiplicity)");
+        }
+        if (!k5.empty() && !k5b.empty())
+        {
+            pass &= check_connect_sum({k5, k5b},     "5_1 # 5_2");
+        }
         if (!k3.empty() && !k4.empty() && !k5.empty())
-                                        pass &= check_connect_sum({k3, k4, k5},  "3_1 # 4_1 # 5_1 (triple)");
-        if (!pass) ++fails;
+        {
+            pass &= check_connect_sum({k3, k4, k5},  "3_1 # 4_1 # 5_1 (triple)");
+        }
+        if (!pass) { ++fails; }
     }
 
     // ---- (3) the unknot --------------------------------------------------------
     {
-        PDC_T pdc { PD_T::Unknot(Int(0)) };  // No need to use push (which is considered UNSAFE); just use constructor.
-//        PDC_T pdc; pdc.Push(PD_T::Unknot(Int(0)));
+        PDC_T pdc { PD_T::Unknot(Int(0)) };
         auto r = ki::Identify(klut, std::move(pdc), reapr);
         const bool pass = (r.status == ki::IdentifyResult::Status::Knot && r.summands.empty());
         if (!pass) ++fails;
@@ -204,30 +264,17 @@ int main(int argc, char** argv)
         Key k3 = ReadKey(3, 0);
         PDC_T pdc;
         {
-            // TEMPORARY. Push is UNSAFE and needs an unlocked complex, and the
-            // line here used to be:
-            //
-            //     ScopedUnlock(pdc);
-            //
-            // `ScopedUnlock` is described in the class documentation of both
-            // PlanarDiagram and PlanarDiagramComplex, but no such type is in the
-            // tree, so this file did not compile. It is very likely written and
-            // simply not pushed yet. Using the plain Unlock()/Lock() pair in the
-            // meantime so the test runs; restore the guard once the type lands.
-            //
-            // (Worth noting for whoever restores it: the old line would not have
-            // worked even with the type present. `ScopedUnlock(pdc);` declares a
-            // variable named pdc rather than guarding anything, and a temporary
-            // would have re-locked before the Push. The guarded spelling is
-            // `ScopedUnlock unlocker (pdc);`.)
-            pdc.Unlock();
+            // I recommend preferring construction of a ScopedUnlock instance over manual Unlock()/Lock() calls. In the long run, RAII types are safer. The only issue is to declare it right (`ScopedUnlock (pdc)` wont't work!.
+            // `ScopedUnlock` has a little bit more overhead, but its destructor runs a small sanity check. No issue if the bracketed code passages is as short as here. But for longer code it certainly helps to reduce complexity.
+            // Plus, it is good to have a test case for it.
+            Knoodle::ScopedUnlock unlocker (pdc);
             pdc.Push(FromKey(k3, Int(0)));
             pdc.Push(FromKey(k3, Int(1)));  // 2 colors = link
-            pdc.Lock();
         }
+        RequireSanity(pdc, "two-color link complex (case 4)");
         auto r = ki::Identify(klut, std::move(pdc), reapr);
         const bool pass = (r.status == ki::IdentifyResult::Status::LinkOutOfScope);
-        if (!pass) ++fails;
+        if (!pass) { ++fails; }
         std::cout << "(4) link -> out of scope  : " << (pass ? "PASS\n" : "FAIL\n");
     }
 

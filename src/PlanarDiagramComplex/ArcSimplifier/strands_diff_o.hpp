@@ -1,3 +1,5 @@
+private:
+
 bool strands_diff_o()
 {
     PD_DPRINT("strands_diff_o()");

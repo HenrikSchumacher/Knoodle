@@ -43,17 +43,15 @@ friend std::string ToString( cref<SimplifyPasses_TArgs> targs )
 
 // TODO: If a loops is removed that does not finish a component, we can try to restart as well.
 
-/*!@brief This is the main routine of the class. It is supposed to reroute all over/understrands to shorter strands, if possible. It does so by traversing the diagram and looking for over/understrand. When a complete strand is detected, it runs Dijkstra's algorithm in the dual graph of the diagram _without the currect strand_. If a shorter path is detected, the strand is rerouted. The returned integer is a rough(!) indicator of how many changes accoured. 0 is returned only of no changes have been made and if there is no need to call this function again. A positive value indicates that it would be worthwhile to call this function again (maybe after some further simplifications).
- *
- *
+/*!@brief This is the main routine of the class. It is supposed to reroute all over/understrands to shorter strands, if possible. It does so by traversing the diagram and looking for over/understrands. When a complete strand is detected, it runs Dijkstra's algorithm in the dual graph of the diagram _without the current strand_. If a shorter path is detected, the strand is rerouted. The returned integer is a rough(!) indicator of how many changes accoured. `0` is returned only of no changes have been made and if there is no need to call this function again. A positive value indicates that it would be worthwhile to call this function again (maybe after some further simplifications).
  */
 
 template<SimplifyPasses_TArgs targs>
 Size_T SimplifyPasses( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
 {
-    [[maybe_unused]] auto tag = [this]() { return this->MethodName("SimplifyPasses"); };
+    [[maybe_unused]] constexpr auto tag = MethodName("SimplifyPasses");
     
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,tag);
     
 #ifdef TOOLS_ENABLE_PROFILER
     logvalprint("targs",ToString(targs));
@@ -62,7 +60,7 @@ Size_T SimplifyPasses( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
 
     if( args.max_dist <= Int(0) ) { return 0; }
     
-    PD_PRINT(tag()+ ": Initial number of crossings = " + ToString(pd_input.CrossingCount()) );
+    PD_PRINT(std::string(tag) + ": Initial number of crossings = " + pd_input.CrossingCount() );
     
     if( args.compressQ ) { pd_input.ConditionalCompress(args.compression_threshold); }
 
@@ -90,9 +88,9 @@ Size_T SimplifyPasses( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
             ++a_ptr;
         }
 
-        if( a_ptr >= pd_max_arc_count ) [[unlikely]]
+        if( a_ptr >= pd_max_arc_count )
         {
-            PD_PRINT("Breaking many loop because we marked all active arcs; we ar done for this round.");
+            PD_PRINT("Breaking loop because we marked all active arcs; we are done for this round.");
             break;
         }
         
@@ -194,7 +192,7 @@ Size_T SimplifyPasses( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
                 }
                 
                 // We may try to start at the and of the strand, but `pass.next` must be active for this.
-                if( !ArcActiveQ(pass.next) ) [[unlikely]]
+                if( !ArcActiveQ(pass.next) )
                 {
                     PD_PRINT("Breaking because " + ArcString(pass.next)+ " is inactive.");
                     break; // Search new arc by incrementing a_ptr.
@@ -222,7 +220,7 @@ Size_T SimplifyPasses( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
             PD_ASSERT(pd->ArcOverQ(pass.next,Tail) != overQ);
             
             // Rerouting arcs that we have been marked recently is a bad idea.
-            if( ArcRecentlyMarkedQ(pass.next) ) [[unlikely]]
+            if( ArcRecentlyMarkedQ(pass.next) )
             {
                 PD_PRINT("Breaking because " + ArcString(pass.next)+ " has been visited recently.");
                 break; // Search new arc by incrementing a_ptr.

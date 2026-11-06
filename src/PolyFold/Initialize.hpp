@@ -200,7 +200,7 @@ void Initialize()
         }
     }
     
-    kv<t1>  ("Hierarchical Moves",BoolString(hierarchicalQ));
+//    kv<t1>  ("Hierarchical Moves",BoolString(hierarchicalQ));
     kv<t1>  ("Shift Indices",BoolString(shiftQ));
     kv<t1>  ("Recenter",BoolString(recenterQ));
     kv<t1>  ("Collision Checks",BoolString(checksQ));
@@ -309,7 +309,7 @@ void Initialize()
                 );
             }
             
-            print("Exporting test pivots to file " + pivot_test_file.string() + ".");
+            print("Exporting test pivots to file ", pivot_test_file.string(), ".");
             
             {
                 const auto [p,q] = T.RandomPivots();
@@ -404,7 +404,17 @@ void Initialize()
             kv<t3,0>("Class", PD_T::ClassName());
         
         // We delay the allocation until substantial parts of L have been deallocated.
-        PDC_T PDC ( L );
+//        PDC_T PDC ( L );
+        
+        Int comp_color [1] = {Int{0}};
+        PDC_T PDC = PDC_T::FromLinkEmbedding_Raw(
+            L.ComponentCount(),
+            L.ComponentPointers().data(),
+            &comp_color[0],
+            L.IntersectionCount(),
+            L.EdgePointers().data(),
+            L.EdgeCrossings().data()
+        );
 
         if( force_deallocQ )
         {
@@ -452,12 +462,12 @@ void Initialize()
     expected_byte_count = static_cast<Size_T>(double(expected_byte_count) * 1.1);
     
     print("Initialization done.");
-    valprint<a>("Maximum Byte Count", max_byte_count);
-    valprint<a>("Expected Byte Count", force_deallocQ ? expected_byte_count : max_byte_count);
+    valprint<true,a>("Maximum Byte Count", max_byte_count);
+    valprint<true,a>("Expected Byte Count", force_deallocQ ? expected_byte_count : max_byte_count);
     
     if( !force_deallocQ )
     {
-        print("Run with command-line option \"-m\" to run with forced deallocation to reduce Expected Byte Count to " + ToString(expected_byte_count) + ".");
+        print("Run with command-line option \"-m\" to run with forced deallocation to reduce Expected Byte Count to ", expected_byte_count, ".");
     }
     
     print("");

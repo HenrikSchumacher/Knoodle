@@ -10,6 +10,7 @@
 namespace Knoodle
 {
     
+    /*!@brief A class to numerically evaluate the Alexander polynomial using sparse matrix arithmetic. Our Alexander polynomial is normalized so that `A(1/t) = A(t)` and `A(1) = 1`.*/
     template<typename Scal_, IntQ Int_>
     class Alexander_UMFPACK final
     {
@@ -25,9 +26,9 @@ namespace Knoodle
         
         using Complex = Scalar::Complex<Real>;
 
-        using E_T     = Int64; // Integer for storing exponents.
+        using Exponent_T   = Int64; // Integer for storing exponents.
         
-        using Multiplier_T = ProductAccumulator<Scal,E_T>;
+        using Multiplier_T = ProductAccumulator<Scal,Exponent_T>;
         
         using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt,Sequential>;
         using Pattern_T         = Sparse::MatrixCSR<Complex,Int,LInt,Sequential>;
@@ -92,16 +93,16 @@ namespace Knoodle
 
         template<typename ExtScal, IntQ ExtInt>
         int Alexander(
-            cref<PD_T> pd,
+            cref<PD_T>    pd,
             ExtScal       arg,
             mref<ExtScal> mantissa,
             mref<ExtInt>  exponent,
-            bool multiply_toQ
+            bool          multiply_toQ
         ) const
         {
             if( pd.LinkComponentCount() > Int(1) )
             {
-                eprint(MethodName("Alexander") + ": Argument pd represents a multiple-component link for with the Alexander polynomial is not defined. Aborting.");
+                eprint(MethodName("Alexander"), ": Argument pd represents a multiple-component link for with the Alexander polynomial is not defined. Aborting.");
                 return 1;
             }
             
@@ -126,7 +127,7 @@ namespace Knoodle
             ExtInt        arg_count,
             mptr<ExtScal> mantissas,
             mptr<ExtInt>  exponents,
-            bool multiply_toQ
+            bool          multiply_toQ
         ) const
         {
             if( pd.LinkComponentCount() > Int(1) )
@@ -162,9 +163,9 @@ namespace Knoodle
             return ClassName() + "::" + tag;
         }
         
-        static constexpr std::string ClassName()
+        static constexpr auto ClassName()
         {
-            return std::string("Alexander_UMFPACK")
+            return ct_string("Alexander_UMFPACK")
                 + "<" + TypeName<Scal>
                 + "," + TypeName<Int>
                 + "," + TypeName<LInt>

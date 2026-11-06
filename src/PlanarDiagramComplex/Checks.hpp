@@ -2,8 +2,6 @@ public:
 
 bool CheckAll()
 {
-    auto tag = [](){ return MethodName("CheckAll"); };
-    
     bool passedQ = CheckValid();
     
     for( PD_T & pd : pd_list )
@@ -11,14 +9,7 @@ bool CheckAll()
         passedQ = passedQ && pd.CheckAll();
     }
     
-    if( passedQ )
-    {
-        logprint(tag()+": passed.");
-    }
-    else
-    {
-        eprint(tag()+": failed.");
-    }
+    Msgr::logprint("CheckAll", passedQ ? "passed." : "failed.");
     
     return passedQ;
 }

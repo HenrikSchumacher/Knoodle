@@ -1,3 +1,5 @@
+private:
+
 bool two_triangles_same_u()
 {
     [[maybe_unused]] auto tag = [](){ return MethodName("two_triangles_same_u"); };

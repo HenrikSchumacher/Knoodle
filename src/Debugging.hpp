@@ -70,11 +70,12 @@ namespace Knoodle
     static           Size_T PD_error_counter   =  0;
 
     
-    static inline void pd_eprint( const std::string & s )
+    template<typename ...Args>
+    static inline void pd_eprint( const Args &... args )
     {
         ++Knoodle::PD_error_counter;
         
-        Tools::eprint(s);
+        Tools::eprint(args...);
         
         if( Knoodle::PD_error_counter >= Knoodle::PD_max_error_count )
         {

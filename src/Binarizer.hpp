@@ -122,7 +122,7 @@ namespace Knoodle
             {
                 UInt64 k = 0;
                 
-                for( Size_T j = digit_count; j -->Size_T(0); )
+                for( Size_T j = digit_count; j -->Size_T{0}; )
                 {
                     k = (k << digit_bit_count);
 

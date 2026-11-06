@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "2710"
+   LastUpgradeVersion = "2720"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -15,9 +15,8 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "AF7FD1D42D87464900D802C0"
+               BlueprintIdentifier = "AF2DFB61309CB6B30045C4A1"
                BuildableName = "PolyFold"
-               BlueprintName = "PolyFold"
                ReferencedContainer = "container:Knoodle.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -40,53 +39,21 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES"
-      viewDebuggingEnabled = "No">
+      viewDebuggingEnabled = "No"
+      queueDebuggingEnabled = "No">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "AF7FD1D42D87464900D802C0"
+            BlueprintIdentifier = "AF2DFB61309CB6B30045C4A1"
             BuildableName = "PolyFold"
-            BlueprintName = "PolyFold"
             ReferencedContainer = "container:Knoodle.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-d1.0 -n100000 -b1 -s1 -N100 /Users/Henrik/PolyFoldExperiments/XCode -cgem -v1 -H1 -P-1"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-d1.0 -n100000 -b25000 -s10000 -N1000 /Users/Henrik/PolyFoldExperiments/XCode -cgemaG -v1 -P-1"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-d1.0 -n16000000 -b1 -s100000 -N100 /Users/Henrik/PolyFoldExperiments/XCode -cgemaG -v0 -P-1 -R0.5"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-d1.0 -n1000 -b100 -s100 -N100 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R0.5 --tally-unknots 1 --tally-trefoils 1 --tally-f8 1"
+            argument = "-"
             isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-d1.0 -n64 -b1000000 -s1000 -N100000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R0.5  -j1 -T&quot;R0.5_j1&quot;"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-d1.0 -n64 -b1000000 -s1000 -N100000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R0  -j1 -T&quot;R0_j1&quot;"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-d1.0 -n64 -b1000000 -s1000 -N100000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R0 -j0 -T&quot;R0_j0&quot;"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-d1.0 -n256 -b1000000 -s1000 -N10000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 --gaussian-angles 1.5707963267948966 --test-angles 10000000 --gaussian-pivots 64 --test-pivots 10000000"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-d1.0 -n100000 -b10000 -s10000 -N10000 /Users/Henrik/PolyFoldExperiments/XCode -cMGgema -v0 -P1000  -R0 --clisby-pivots --tally-unknots 1 --tally-trefoils 1 --tally-f8 1"
-            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>
@@ -100,9 +67,8 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "AF7FD1D42D87464900D802C0"
+            BlueprintIdentifier = "AF2DFB61309CB6B30045C4A1"
             BuildableName = "PolyFold"
-            BlueprintName = "PolyFold"
             ReferencedContainer = "container:Knoodle.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
