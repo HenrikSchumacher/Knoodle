@@ -81,7 +81,9 @@ private:
          *  So `k >= 1` should be sufficient for this and for any bit count `n`.
          */
         
+        // If the inputs are too large, we might have to scale down.
         scaling_exponent = m - static_cast<int>(std::ceil(std::log2(MaxModulus())));
+        
         
         // Scaling by a power of 2 does not incur any rounding, execept we have excessively small numbers here.
         scaling_factor = std::pow(Real(2),scaling_exponent);
@@ -92,39 +94,48 @@ private:
 
         rounding_error = 0;
         
-        // We may omit scaling in the floating-point case only if the inputs are integer values and not too big.
-        bool scaleQ = !(input_integralQ && (scaling_exponent >= 0));
+        TOOLS_DUMP(input_integralQ);
+        
+        // We may omit scaling in the floating-point case only if the inputs are integer values and not too big, i.e., when we would scale up.
+        bool scaleQ = !(input_integralQ && (scaling_exponent >= 0) );
         
         [[maybe_unused]] IVector3_T int_lo;
         
+        
+        // TODO: What do we really want here? std::nearbyint or std::round? I don't think we want to have it dependent on current rounding mode?
         if constexpr ( mortonQ )
         {
             if constexpr ( FloatQ<Real> )
             {
                 if( scaleQ )
                 {
-                    int_lo[0] = static_cast<Int>(std::nearbyint(global_lo[0] * scaling_factor));
-                    int_lo[1] = static_cast<Int>(std::nearbyint(global_lo[1] * scaling_factor));
-                    int_lo[2] = static_cast<Int>(std::nearbyint(global_lo[2] * scaling_factor));
+                    int_lo[0] = static_cast<IReal>(std::nearbyint(global_lo[0] * scaling_factor));
+                    int_lo[1] = static_cast<IReal>(std::nearbyint(global_lo[1] * scaling_factor));
+                    int_lo[2] = static_cast<IReal>(std::nearbyint(global_lo[2] * scaling_factor));
                 }
                 else
                 {
-                    // We know that all entries of `lo_global` have exact integer values; so we can simply cast to `IReal`.
-                    global_lo.Write( &int_lo[0] );
+                    // Just round without scaling.
+                    int_lo[0] = static_cast<IReal>(std::nearbyint(global_lo[0]));
+                    int_lo[1] = static_cast<IReal>(std::nearbyint(global_lo[1]));
+                    int_lo[2] = static_cast<IReal>(std::nearbyint(global_lo[2]));
                 }
             }
             else
             {
-                global_lo.Write( &int_lo[0] );
+                // We have exact integer values; so no rounding needed.
+                int_lo[0] = static_cast<IReal>(global_lo[0]);
+                int_lo[1] = static_cast<IReal>(global_lo[1]);
+                int_lo[2] = static_cast<IReal>(global_lo[2]);
             }
         }
         
         for( Int i = 0; i < edge_count; ++i )
         {
-            x.Read(vertex_coords.data(i));
-            
             if constexpr ( FloatQ<Real> )
             {
+                x.Read(vertex_coords.data(i));
+                
                 if( scaleQ )
                 {
                     y[0] = std::nearbyint(x[0] * scaling_factor);
@@ -134,24 +145,36 @@ private:
                     err[0] = Max( err[0], Abs(std::fma(-scaling_factor,x[0],y[0])) );
                     err[1] = Max( err[1], Abs(std::fma(-scaling_factor,x[1],y[1])) );
                     err[2] = Max( err[2], Abs(std::fma(-scaling_factor,x[2],y[2])) );
-                    
-                    if constexpr ( mortonQ ) { y -= int_lo; }
-                    
-                    y.Write(edge_coords.data(i)); // static_cast<IReal> will be called automaticaly
                 }
                 else
                 {
-                    (void)y;
-                    if constexpr ( mortonQ ) { x -= int_lo; }
-                    // We know that all entries of `x` have exact integer values; so we can simply cast to `IReal`. No rounding error occurs.
-                    x.Write(edge_coords.data(i)); // static_cast<IReal> will be called automatically
+                    y[0] = std::nearbyint(x[0]);
+                    y[1] = std::nearbyint(x[1]);
+                    y[2] = std::nearbyint(x[2]);
+                    
+                    err[0] = Max( err[0], Abs(y[0] - x[0]) );
+                    err[1] = Max( err[1], Abs(y[1] - x[1]) );
+                    err[2] = Max( err[2], Abs(y[2] - x[2]) );
                 }
             }
             else
             {
-                (void)y;
-                if constexpr ( mortonQ ) { x -= int_lo; }
-                x.Write(edge_coords.data(i));   // static_cast<IReal> will be called automatically
+                y.Read(vertex_coords.data(i));
+            }
+            
+            // The integer coordinates are stored in y now. In case of Morton ordering, have still to shift them.
+            
+            if constexpr ( mortonQ )
+            {
+                edge_coords(i,0) = static_cast<IReal>(y[0]) - int_lo[0];
+                edge_coords(i,1) = static_cast<IReal>(y[1]) - int_lo[1];
+                edge_coords(i,2) = static_cast<IReal>(y[2]) - int_lo[2];
+            }
+            else
+            {
+                edge_coords(i,0) = static_cast<IReal>(y[0]);
+                edge_coords(i,1) = static_cast<IReal>(y[1]);
+                edge_coords(i,2) = static_cast<IReal>(y[2]);
             }
             
         } // for( Int i = 0; i < edge_count; ++i )
