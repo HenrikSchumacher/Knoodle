@@ -715,8 +715,10 @@ namespace Knoodle
        
     public:
         
-        /*!@brief Return a string that identifies a class method specified by `tag`. Mostly used for logging and in error messages.*/
-        static consteval std::string MethodName( const std::string & tag )
+        using Msgr = Tools::Messenger<Class_T>;
+        
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
             return Msgr::MethodName(tag);
         }
