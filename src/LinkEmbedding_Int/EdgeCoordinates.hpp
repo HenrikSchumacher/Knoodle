@@ -92,16 +92,22 @@ private:
         Vector3_T  y;
         Vector3_T  err {0};
         IVector3_T iy;
+        [[maybe_unused]] IVector3_T int_lo;
         
         rounding_error = 0;
         
         // We may omit scaling in the floating-point case only if the inputs are integer values and not too big, i.e., when we would scale up.
         bool scaleQ = !(input_integralQ && (scaling_exponent >= 0) );
         
-        [[maybe_unused]] IVector3_T int_lo;
         
+        // If we do not scale, then we need to adjust scaling_factor because, otherwise, RelativeRoundingError() might be wrong.
+        if( !scaleQ )
+        {
+            scaling_factor = 1;
+        }
+            
         
-        // TODO: What do we really want here? std::nearbyint or std::round? I don't think we want to have it dependent on current rounding mode?
+        // TODO: What do we really want here? std::nearbyint or std::round? I don't think we want it to be dependent on current rounding mode?
         if constexpr ( mortonQ )
         {
             if constexpr ( FloatQ<Real> )
