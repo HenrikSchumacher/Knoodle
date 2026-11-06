@@ -7,7 +7,7 @@ public:
  * @param n The number of vertices.
  */
 
-template<typename Real, IntQ ExtInt> requires FloatQ<Real> || IntQ<Real>
+template<typename Real, IntQ ExtInt> requires FloatQ<Real> || SignedIntQ<Real>
 static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinates( cptr<Real> x, const ExtInt n )
 {
     constexpr auto tag = MethodName("FromCoordinates") + "<" + TypeName<Real> + "," + TypeName<ExtInt> + ">";
@@ -44,7 +44,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinates( cptr<Real> x, const Ext
 
 /*!@brief Construction from `FromLinkEmbedding_Int` object. Returns a planar diagram and the number of unlinks found in the input.
  */
-template<typename Real, typename Prosector_T, bool mortonQ>
+template<typename Real, typename Prosector_T, bool mortonQ> requires FloatQ<Real> || SignedIntQ<Real>
 static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
     mref<LinkEmbedding_Int<Real,Prosector_T,mortonQ>> L
 )

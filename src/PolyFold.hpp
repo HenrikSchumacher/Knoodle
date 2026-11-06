@@ -54,11 +54,8 @@ namespace Knoodle
         using Class_T                   = PolyFold;
         using PolygonContainer_T        = Tensor2<Real,Int>;
         using Vector_T                  = Tiny::Vector<AmbDim,Real,Int>;
-//        using Link_T                    = Link_2D<Real,Int,BReal>;
 //        using Link_T                    = LinkEmbedding<Real,Int>;
         using Link_T                    = KnotEmbedding_Float<Real,Int,float>;
-//        using Link_T                    = LinkEmbedding_Float<Real,Int,BReal>;
-//        using PD_T                      = PlanarDiagram<Int>;
         
         using PDC_T                     = PlanarDiagramComplex<Int>;
         using PD_T                      = PDC_T::PD_T;

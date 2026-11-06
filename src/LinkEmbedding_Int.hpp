@@ -1,7 +1,5 @@
 #pragma  once
 
-#include "Prosector_Int.hpp"
-
 namespace Knoodle
 {
     /*!@brief Given to vectors `u`, `v` of unsigned integers, this function returns `true` if `u` is stricly less than `v` in Morton ordering, i.e., in the ordering obtained by the Z-shaped curve.*/

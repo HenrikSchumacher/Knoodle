@@ -47,7 +47,7 @@ Real RelativeRoundingError() const
 {
     if constexpr ( FloatQ<Real> )
     {
-        return (rounding_error * scaling_factor) / MaxModulus();
+        return rounding_error / (scaling_factor * MaxModulus());
     }
     else
     {

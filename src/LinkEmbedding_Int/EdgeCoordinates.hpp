@@ -167,7 +167,7 @@ private:
             std::sort( &p[0], &p[edge_count],
                 [this]( Int i, Int j )
                 {
-                    return less_Morton<2>(
+                    return (i != j) && less_Morton<2>(
                         reinterpret_cast<UInt *>(edge_coords.data(i)),
                         reinterpret_cast<UInt *>(edge_coords.data(j))
                     );

@@ -1,10 +1,8 @@
 #pragma once
 
-#include "Prosector3.hpp"
-
 namespace Knoodle
 {
-    /*!@brief Type alias of `LinkEmbedding_Int` with backend that uses wide integers classes `WideInt`, our implementation of wide integers. This is optimized towards useing native integer classes or the compiler extension`__int128` as long as possible. Only starting with 192-bit integers, `WideInt` is used.*/
+    /*!@brief Type alias of `LinkEmbedding_Int` with backend that uses wide integers classes `WideInt`, our implementation of wide integers. This is optimized towards using native integer classes or the compiler extension`__int128` as long as possible. Only starting with 192-bit integers, `WideInt` is used.*/
     template<
         typename   Real  = Real64,
         IntQ       Int   = Int64,
@@ -14,6 +12,6 @@ namespace Knoodle
             std::conditional_t<SameQ<Real,Real32>, Int32, Real>
         >
     >
-    using LinkEmbedding3 = LinkEmbedding_Int<Real,Prosector3<IReal,Int>>;
+    using LinkEmbedding3 = LinkEmbedding_Int<Real,Prosector_Int<IReal,Int>,true>;
     
 } // namespace Knoodle

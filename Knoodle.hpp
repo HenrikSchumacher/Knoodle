@@ -48,6 +48,7 @@ namespace Knoodle
 
 #include "src/WideInt.hpp"   // Used in Prosector classes.
 #include "src/LinkEmbedding_Int/EdgeCrossing.hpp"
+#include "src/Prosector_Int.hpp"
 #include "src/LinkEmbedding_Int.hpp"
 #include "src/LinkEmbedding.hpp"
 

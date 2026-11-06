@@ -29,14 +29,14 @@ static PDC_T FromExtendedGaussCode(
 }
 
 /*!@brief Initialize with a single knot from the polygonal line with `n` edges and coordinates stored in the buffer `x` (interleaved layout).*/
-template<typename Real, IntQ ExtInt>
+template<typename Real, IntQ ExtInt> requires FloatQ<Real> || SignedIntQ<Real>
 static PDC_T FromCoordinates( cptr<Real> x, const ExtInt n )
 {
     return PDC_T( PD_T::FromCoordinates(x,n) );
 }
 
 /*!@brief Initialize with a simplicial complex with `n` edges stored in the buffer `edges` (interleaved layout) and vertex coordinates stored in the buffer `x` (interleaved layout).*/
-template<typename Real, IntQ ExtInt>
+template<typename Real, IntQ ExtInt> requires FloatQ<Real> || SignedIntQ<Real>
 static PDC_T FromCoordinatesAndEdges( cptr<Real> x, cptr<ExtInt> edges, const ExtInt n )
 {
     return PDC_T( PD_T::FromCoordinatesAndEdges(x,edges,n) );
