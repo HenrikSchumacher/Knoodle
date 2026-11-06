@@ -716,7 +716,7 @@ namespace Knoodle
     public:
         
         /*!@brief Return a string that identifies a class method specified by `tag`. Mostly used for logging and in error messages.*/
-        static constexpr std::string MethodName( const std::string & tag )
+        static consteval std::string MethodName( const std::string & tag )
         {
             return Msgr::MethodName(tag);
         }
