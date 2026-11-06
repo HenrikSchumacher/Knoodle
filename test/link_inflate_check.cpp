@@ -43,7 +43,7 @@ namespace {
 // Int, PDC_T, PD_T, Polynomial come from homfly_invariance.hpp (same anon ns).
 using Real       = double;
 using Cplx       = std::complex<double>;
-using Reapr_T    = Knoodle::Reapr<Real, Int, float>;
+using Reapr_T    = Knoodle::Reapr<Real, Int>;
 using LinkAlex_T = knoodle_test::LinkAlexander<Cplx, Int>;
 using LinkFP     = LinkAlex_T::Value;
 using Clock      = std::chrono::steady_clock;

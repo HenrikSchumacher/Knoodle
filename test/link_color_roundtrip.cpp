@@ -24,9 +24,9 @@
 using Int    = std::int64_t;
 using Real   = double;
 
-using PDC_T           = PlanarDiagramComplex<Int>;
-using PD_T            = PDC_T::PD_T;
-using LinkEmbedding_T = PDC_T::LinkEmbedding_T; // That's the default type we use every, e.g., in Reapr.
+using PDC_T  = Knoodle::PlanarDiagramComplex<Int>;
+using PD_T   = PDC_T::PD_T;
+using Link_T = PDC_T::LinkEmbedding_T; // the default type, the one Reapr uses
 
 namespace
 {
@@ -59,7 +59,7 @@ Link_T MakeTwoComponentLink()
         5.0, 5.0, 1.0,   6.0, 5.0, 1.0,   5.0, 6.0, 1.0,      // component 1
     };
 
-    link.template ReadVertexCoordinates<false,true>( &coords[0] );
+    link.template ReadVertexCoordinates<false>( &coords[0] );
 
     return link;
 }
