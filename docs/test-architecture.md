@@ -414,7 +414,7 @@ macOS crash report on every run), one that fails without ever printing `FAIL`,
 one that does no work, one never built -- runs the real runner on it
 (`--manifest`, `--log-dir`) and checks what the report and the logs say.
 
-Two runner bugs were fixed alongside:
+Three runner bugs were fixed alongside:
 
 * **Git's hook environment is stripped.** Inside a hook git exports `GIT_DIR`
   (and sometimes `GIT_WORK_TREE`, `GIT_INDEX_FILE`, ...). A `git` run from
@@ -425,6 +425,10 @@ Two runner bugs were fixed alongside:
 * **`--only` no longer stamps.** A run of one test used to write the stamp for
   the whole tier. Stamps are now written only for a full, unskipped run of the
   real manifest.
+* **A stamp names the commit the run started at.** HEAD used to be read when
+  the run ended, so a commit made during a 12-minute heavy run was stamped as
+  if it had been tested. The runner now records HEAD and the clean-tree state
+  at the start and stamps only if both are unchanged at the end.
 
 ## 8. Push policy and hooks
 
@@ -498,7 +502,8 @@ is a warning-shaped refusal with an obvious one-line fix.
 * **Stamps.** A clean tier run writes `test/.stamps/<tier>-<sha>`, but only if
   the worktree is clean **and nothing was skipped**: a stamp against a dirty tree
   would certify code that was never run, and a platform-limited subset covered
-  less than the tier claims. The hook skips a tier whose stamp matches `HEAD`.
+  less than the tier claims. HEAD must also be the commit the run started at
+  (§7a). The hook skips a tier whose stamp matches `HEAD`.
   One mechanism serves both the push gate and the release gate. Gitignored --
   a stamp certifies one checkout, not a commit in the abstract.
 * **A red push leaves its evidence.** The hook keeps the whole `make check`

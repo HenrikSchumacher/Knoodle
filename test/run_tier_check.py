@@ -26,8 +26,9 @@ reader is shown:
   pass_check, env_check   pass; env_check reports whether it saw GIT_DIR.
 
 It also checks the logs (full stdout AND stderr, per test), failed.txt, that a
-fake manifest never stamps the real tree, and that git's hook variables are
-stripped before tests run.
+fake manifest never stamps the real tree, that git's hook variables are
+stripped before tests run, and that a stamp names the commit the run STARTED
+at, never one made while it ran.
 
 Run: python3 run_tier_check.py
 """
@@ -230,10 +231,50 @@ def test_green_suite_does_not_stamp():
               "a green fake manifest does not stamp")
 
 
+def test_stamp_names_the_commit_that_ran():
+    """write_stamp against stubbed tree states, stamping into a temp dir.
+
+    On 2026-11-06 a 12-minute heavy run stamped a commit made 8 minutes into
+    it: HEAD was read only at the end. The first case is the positive control,
+    so the refusals below cannot pass merely because nothing ever stamps.
+    """
+    import contextlib
+    import io
+    sys.path.insert(0, HERE)
+    import run_tier
+
+    A, B = "a" * 40, "b" * 40
+    cases = [
+        ("same commit, clean throughout -> stamped", (A, ""), (A, ""), True),
+        ("HEAD moved during the run -> no stamp", (A, ""), (B, ""), False),
+        ("tree dirty at the end -> no stamp", (A, ""), (A, " M x.cpp"), False),
+        ("tree dirty at the start -> no stamp", (A, " M x.cpp"), (A, ""), False),
+    ]
+    section("a stamp names the commit the run started at")
+    saved = run_tier.STAMPS, run_tier.tree_state
+    try:
+        for what, start, end, want in cases:
+            with tempfile.TemporaryDirectory() as d:
+                run_tier.STAMPS = d
+                run_tier.tree_state = lambda end=end: end
+                msg = io.StringIO()
+                with contextlib.redirect_stdout(msg):
+                    run_tier.write_stamp("light", start)
+                got = os.listdir(d)
+                ok = got == [f"light-{end[0]}"] if want else got == []
+                check(ok, f"{what} (stamps: {got})")
+                if what.startswith("HEAD moved"):
+                    check("HEAD moved" in msg.getvalue(),
+                          "a moved HEAD is reported as the reason for no stamp")
+    finally:
+        run_tier.STAMPS, run_tier.tree_state = saved
+
+
 def main():
     print("run_tier_check -- the tier runner's report, against a fake suite")
     test_red_suite()
     test_green_suite_does_not_stamp()
+    test_stamp_names_the_commit_that_ran()
     print(f"\n{'RUN_TIER CHECK OK' if fails == 0 else 'RUN_TIER CHECK FAILED'}"
           f" ({checks} checks, {fails} failed)")
     return 0 if fails == 0 else 1

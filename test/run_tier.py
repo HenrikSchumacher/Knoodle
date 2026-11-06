@@ -206,22 +206,8 @@ def excerpt(out, err):
 STAMPS = os.path.join(HERE, ".stamps")
 
 
-def write_stamp(tier):
-    """Record that `tier` passed cleanly at this exact commit.
-
-    The pre-push hook reads these to avoid re-running a tier it already has an
-    answer for, and the release gate reads the heavy one to refuse a version tag
-    that has never been through it.
-
-    Three conditions, all necessary for the stamp to mean anything:
-
-      * the worktree must be CLEAN. A stamp for HEAD when the tree has
-        uncommitted edits would certify code that was never run.
-      * the run must have skipped nothing. A platform-limited subset covered
-        less than the tier claims, so it cannot stand in for it.
-      * it must have been the whole tier, from the real manifest -- not an
-        --only subset, and not a test manifest (main() checks both).
-    """
+def tree_state():
+    """(HEAD sha, uncommitted changes) for this checkout; ("", "") without git."""
     try:
         sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=HERE, env=CLEAN_ENV,
                              capture_output=True, text=True).stdout.strip()
@@ -229,10 +215,40 @@ def write_stamp(tier):
                                cwd=HERE, env=CLEAN_ENV,
                                capture_output=True, text=True).stdout.strip()
     except OSError:
+        return "", ""
+    return sha, dirty
+
+
+def write_stamp(tier, at_start):
+    """Record that `tier` passed cleanly at this exact commit.
+
+    The pre-push hook reads these to avoid re-running a tier it already has an
+    answer for, and the release gate reads the heavy one to refuse a version tag
+    that has never been through it.
+
+    Four conditions, all necessary for the stamp to mean anything:
+
+      * the worktree must be CLEAN. A stamp for HEAD when the tree has
+        uncommitted edits would certify code that was never run.
+      * it must be the SAME commit, still clean, that the run STARTED at
+        (`at_start`, from tree_state()). On 2026-11-06 a 12-minute heavy run
+        stamped a commit made 8 minutes into it -- certifying code the run
+        never saw -- because HEAD was read only at the end.
+      * the run must have skipped nothing. A platform-limited subset covered
+        less than the tier claims, so it cannot stand in for it.
+      * it must have been the whole tier, from the real manifest -- not an
+        --only subset, and not a test manifest (main() checks both).
+    """
+    start_sha, start_dirty = at_start
+    sha, dirty = tree_state()
+    if not sha or not start_sha:
         return
-    if not sha or dirty:
-        if dirty:
-            print("\n(no stamp written: the worktree has uncommitted changes)")
+    if dirty or start_dirty:
+        print("\n(no stamp written: the worktree has uncommitted changes)")
+        return
+    if sha != start_sha:
+        print(f"\n(no stamp written: HEAD moved from {start_sha[:12]} to {sha[:12]} "
+              f"during the run, so this run did not test {sha[:12]})")
         return
     os.makedirs(STAMPS, exist_ok=True)
     with open(os.path.join(STAMPS, f"{tier}-{sha}"), "w") as f:
@@ -320,6 +336,9 @@ def main():
 
     print(f"run_tier: {args.tier} tier, {len(rows)} targets, {args.jobs} at a time\n")
 
+    # What is being tested: the stamp at the end must name THIS commit, so a
+    # commit made while the tier runs is not certified by it.
+    at_start = tree_state()
     t0 = time.monotonic()
     results = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
@@ -398,7 +417,7 @@ def main():
 
     ok = not (failed or missing or no_work)
     if ok and not skipped and not args.only and manifest == os.path.abspath(MANIFEST):
-        write_stamp(args.tier)
+        write_stamp(args.tier, at_start)
 
     return 0 if ok else 1
 
