@@ -88,13 +88,12 @@ private:
         // Scaling by a power of 2 does not incur any rounding, execept we have excessively small numbers here.
         scaling_factor = std::pow(Real(2),scaling_exponent);
         
-        Vector3_T x;
-        Vector3_T y;
-        Vector3_T err {0};
-
-        rounding_error = 0;
+        Vector3_T  x;
+        Vector3_T  y;
+        Vector3_T  err {0};
+        IVector3_T iy;
         
-        TOOLS_DUMP(input_integralQ);
+        rounding_error = 0;
         
         // We may omit scaling in the floating-point case only if the inputs are integer values and not too big, i.e., when we would scale up.
         bool scaleQ = !(input_integralQ && (scaling_exponent >= 0) );
@@ -156,26 +155,19 @@ private:
                     err[1] = Max( err[1], Abs(y[1] - x[1]) );
                     err[2] = Max( err[2], Abs(y[2] - x[2]) );
                 }
+                
+                iy.Read(&y[0]); // Automatic cast to IReal.
             }
             else
             {
-                y.Read(vertex_coords.data(i));
+                (void)x;
+                (void)y;
+                iy.Read(vertex_coords.data(i)); // Automatic cast to IReal.
             }
             
-            // The integer coordinates are stored in y now. In case of Morton ordering, have still to shift them.
-            
-            if constexpr ( mortonQ )
-            {
-                edge_coords(i,0) = static_cast<IReal>(y[0]) - int_lo[0];
-                edge_coords(i,1) = static_cast<IReal>(y[1]) - int_lo[1];
-                edge_coords(i,2) = static_cast<IReal>(y[2]) - int_lo[2];
-            }
-            else
-            {
-                edge_coords(i,0) = static_cast<IReal>(y[0]);
-                edge_coords(i,1) = static_cast<IReal>(y[1]);
-                edge_coords(i,2) = static_cast<IReal>(y[2]);
-            }
+            // The integer coordinates are stored in iy now. In case of Morton ordering, we have still to shift them.
+            if constexpr ( mortonQ ) { iy -= int_lo; }
+            iy.Write(edge_coords.data(i));
             
         } // for( Int i = 0; i < edge_count; ++i )
         
