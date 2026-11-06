@@ -237,7 +237,7 @@ Alexander_Strands_Normalization( cref<PD_T> pd ) const
             
             if( failure_count > max_failure_count )
             {
-                eprint(MethodName("Alexander_Strands_Normalization"), ": Could not determine the normalizing power of t. There seems to be too much rounding error. Returning NaN.");
+                Msgr::eprint("Alexander_Strands_Normalization", "Could not determine the normalizing power of t. There seems to be too much rounding error. Returning NaN.");
                 
                 a = Multiplier_T( Scal(std::numeric_limits<Real>::quiet_NaN()) );
             }

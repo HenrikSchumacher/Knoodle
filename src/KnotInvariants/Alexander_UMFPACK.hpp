@@ -21,11 +21,11 @@ namespace Knoodle
         using Int     = Int_;
         using LInt    = Int_;
         
-        using Int_UMF  = ToSigned<Int>;
-
-        
+        using Int_UMF = ToSigned<Int>;
         using Complex = Scalar::Complex<Real>;
 
+        using Class_T = Alexander_UMFPACK;
+        
         using Exponent_T   = Int64; // Integer for storing exponents.
         
         using Multiplier_T = ProductAccumulator<Scal,Exponent_T>;
@@ -102,7 +102,7 @@ namespace Knoodle
         {
             if( pd.LinkComponentCount() > Int(1) )
             {
-                eprint(MethodName("Alexander"), ": Argument pd represents a multiple-component link for with the Alexander polynomial is not defined. Aborting.");
+                Msgr::eprint("Alexander","Argument pd represents a multiple-component link for with the Alexander polynomial is not defined. Aborting.");
                 return 1;
             }
             
@@ -132,23 +132,19 @@ namespace Knoodle
         {
             if( pd.LinkComponentCount() > Int(1) )
             {
-                eprint(MethodName("Alexander") + ": Argument pd represents a multiple-component link for with the Alexander polynomial is not defined. Aborting.");
+                Msgr::eprint("Alexander","Argument pd represents a multiple-component link for with the Alexander polynomial is not defined. Aborting.");
                 return 1;
             }
             
             if( pd.CrossingCount() > sparsity_threshold + 1 )
             {
                 // Use sparse code path.
-                Alexander_Strands<true >(
-                    pd, args, arg_count, mantissas, exponents, multiply_toQ
-                );
+                Alexander_Strands<true >( pd, args, arg_count, mantissas, exponents, multiply_toQ );
             }
             else
             {
                 // Use dense code path.
-                Alexander_Strands<false>(
-                    pd, args, arg_count, mantissas, exponents, multiply_toQ
-                );
+                Alexander_Strands<false>( pd, args, arg_count, mantissas, exponents, multiply_toQ );
             }
             
             return 0;
@@ -158,12 +154,16 @@ namespace Knoodle
         
     public:
         
-        static constexpr std::string MethodName( const std::string & tag )
+        
+        using Msgr = Tools::Messenger<Class_T>;
+                
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr auto ClassName()
+        static consteval auto ClassName()
         {
             return ct_string("Alexander_UMFPACK")
                 + "<" + TypeName<Scal>

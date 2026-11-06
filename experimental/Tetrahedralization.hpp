@@ -142,14 +142,16 @@ namespace Knoodle
 
     public:
         
-        /*!@brief Return a string that identifies a class method specified by `tag`. Mostly used for logging and in error messages.*/
-        static constexpr std::string MethodName( const std::string & tag )
+        
+        using Msgr = Tools::Messenger<Class_T>;
+                
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.*/
-        static constexpr auto ClassName()
+        static consteval auto ClassName()
         {
             return ct_string("PlanarDiagram")
                 + "<" + TypeName<Int>
