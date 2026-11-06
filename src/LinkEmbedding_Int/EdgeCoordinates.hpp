@@ -90,6 +90,9 @@ private:
         Vector3_T y;
         Vector3_T err {0};
 
+        // The Morton translation by `int_lo` must happen in `IReal`, after the cast. The scaled coordinates are integers of up to `m` bits, and `y - int_lo` is in general not representable in `Real` (a `float` has 24 mantissa bits), so subtracting in `Real` would round the coordinates -- silently, after `rounding_error` has been measured.
+        IVector3_T iy;
+
         rounding_error = 0;
         
         // We may omit scaling in the floating-point case only if the inputs are integer values and not too big.
@@ -103,9 +106,9 @@ private:
             {
                 if( scaleQ )
                 {
-                    int_lo[0] = static_cast<Int>(std::nearbyint(global_lo[0] * scaling_factor));
-                    int_lo[1] = static_cast<Int>(std::nearbyint(global_lo[1] * scaling_factor));
-                    int_lo[2] = static_cast<Int>(std::nearbyint(global_lo[2] * scaling_factor));
+                    int_lo[0] = static_cast<IReal>(std::nearbyint(global_lo[0] * scaling_factor));
+                    int_lo[1] = static_cast<IReal>(std::nearbyint(global_lo[1] * scaling_factor));
+                    int_lo[2] = static_cast<IReal>(std::nearbyint(global_lo[2] * scaling_factor));
                 }
                 else
                 {
@@ -135,23 +138,25 @@ private:
                     err[1] = Max( err[1], Abs(std::fma(-scaling_factor,x[1],y[1])) );
                     err[2] = Max( err[2], Abs(std::fma(-scaling_factor,x[2],y[2])) );
                     
-                    if constexpr ( mortonQ ) { y -= int_lo; }
-                    
-                    y.Write(edge_coords.data(i)); // static_cast<IReal> will be called automaticaly
+                    y.Write(&iy[0]); // static_cast<IReal> will be called automatically
+                    if constexpr ( mortonQ ) { iy -= int_lo; }
+                    iy.Write(edge_coords.data(i));
                 }
                 else
                 {
                     (void)y;
-                    if constexpr ( mortonQ ) { x -= int_lo; }
                     // We know that all entries of `x` have exact integer values; so we can simply cast to `IReal`. No rounding error occurs.
-                    x.Write(edge_coords.data(i)); // static_cast<IReal> will be called automatically
+                    x.Write(&iy[0]); // static_cast<IReal> will be called automatically
+                    if constexpr ( mortonQ ) { iy -= int_lo; }
+                    iy.Write(edge_coords.data(i));
                 }
             }
             else
             {
                 (void)y;
-                if constexpr ( mortonQ ) { x -= int_lo; }
-                x.Write(edge_coords.data(i));   // static_cast<IReal> will be called automatically
+                x.Write(&iy[0]);   // static_cast<IReal> will be called automatically
+                if constexpr ( mortonQ ) { iy -= int_lo; }
+                iy.Write(edge_coords.data(i));
             }
             
         } // for( Int i = 0; i < edge_count; ++i )
