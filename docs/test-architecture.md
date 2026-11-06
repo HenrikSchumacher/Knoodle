@@ -408,10 +408,11 @@ lines under them. `embedding_check` now also prints its known failures first and
 its real failures last, so even a reader of the raw log sees them at the end.
 
 **`run_tier_check`** keeps this true. It builds a fake suite in a temporary
-directory -- a test that fails early and ends with an xfail list, one that
-aborts after an assertion, one that fails without ever printing `FAIL`, one that
-does no work, one never built -- runs the real runner on it (`--manifest`,
-`--log-dir`) and checks what the report and the logs say.
+directory -- a test that fails early and ends with an xfail list, one that is
+killed by a signal after an assertion (SIGTERM, never `abort()`, which files a
+macOS crash report on every run), one that fails without ever printing `FAIL`,
+one that does no work, one never built -- runs the real runner on it
+(`--manifest`, `--log-dir`) and checks what the report and the logs say.
 
 Two runner bugs were fixed alongside:
 

@@ -13,8 +13,13 @@ reader is shown:
   fail_check     prints a FAIL (and an XPASS) early, then pages of PASS lines,
                  then an XFAIL summary at the very end -- the 2026-11-06 shape.
                  The report must show the FAIL and XPASS, and no XFAIL.
-  crash_check    an assertion on stderr, then abort(). The report must say
-                 SIGABRT, not -6, and show the stderr line.
+  crash_check    an assertion on stderr, then death by a signal. The report
+                 must say SIGTERM, not -15, and show the stderr line.
+
+                 SIGTERM and NOT abort(): on macOS every abort() files a
+                 "Python quit unexpectedly" crash report, and this runs in every
+                 `make check`. The first version used os.abort() and left one
+                 crash report per push on 2026-11-06.
   quiet_check    exits 3 without ever printing FAIL: the tail is the fallback.
   nowork_check   exits 0 but its stdout misses the work pattern.
   missing_check  a kind=test whose binary does not exist.
@@ -69,12 +74,13 @@ FAKES = {
         'sys.exit(1)\n'),
 
     "crash_check.py": (
-        'import os, sys\n'
+        'import os, signal, sys\n'
         'print("crash_check starting")\n'
         'sys.stdout.flush()\n'
         'sys.stderr.write("Assertion failed: (n > 0), function Widget\\n")\n'
         'sys.stderr.flush()\n'
-        'os.abort()\n'),
+        '# SIGTERM, not abort(): see the docstring (macOS crash reports).\n'
+        'os.kill(os.getpid(), signal.SIGTERM)\n'),
 
     "quiet_check.py": (
         'import sys\n'
@@ -166,7 +172,7 @@ def test_red_suite():
               "fail_check: the report names the log")
 
         cb = blocks.get("crash_check", "")
-        check("killed by SIGABRT" in cb, "crash_check: a crash is named by its signal")
+        check("killed by SIGTERM" in cb, "crash_check: a crash is named by its signal")
         check("Assertion failed: (n > 0)" in cb, "crash_check: stderr is shown")
 
         qb = blocks.get("quiet_check", "")
@@ -190,7 +196,7 @@ def test_red_suite():
         clog = open(os.path.join(light, "crash_check.log")).read()
         check("==== stderr ====" in clog and "Assertion failed" in clog.split("==== stderr ====")[1],
               "crash_check.log holds stderr, under its own heading")
-        check("killed by SIGABRT" in clog, "the log header records how the test ended")
+        check("killed by SIGTERM" in clog, "the log header records how the test ended")
         check(os.path.exists(os.path.join(light, "pass_check.log")),
               "passing tests get a log too")
 
