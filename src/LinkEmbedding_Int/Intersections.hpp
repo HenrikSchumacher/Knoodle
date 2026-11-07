@@ -9,14 +9,14 @@ public:
 template<bool verboseQ = true> // whether to print errors and warnings
 [[nodiscard]] int RequireIntersections( bool force_recomputeQ = false ) const
 {
-    if( !vertex_coords_loadedQ )
-    {
-        Msgr::wprint("RequireIntersections","Failed to compute intersections because no vertex coordinates have been loaded, yet.");
-        return 1;
-    }
-    
     if( force_recomputeQ || !intersections_computedQ )
     {
+        if( !vertex_coords_loadedQ )
+        {
+            Msgr::wprint("RequireIntersections","Failed to compute intersections because no vertex coordinates have been loaded, yet.");
+            return 1;
+        }
+        
         ComputeIntersections();
     }
     
@@ -184,16 +184,17 @@ void ComputeIntersections() const
     
     edge_ptr.SetZero();
     
-    intersections.RequireCapacity( Int{2} * EdgeCount() );
-    
     // Potentially to be replaced by `FindIntersectingEdges_SweepLine()`.
     {
         RequireBoundingBoxes();
         
         if( !bounding_boxes_computedQ )
         {
-            Msgr::wprint("ComputeIntersections","Boundung boxes not computed, yet. Aborting.");
+            Msgr::wprint("ComputeIntersections", "Bounding boxes not computed, yet. Aborting.");
+            return;
         }
+        
+        intersections.RequireCapacity( Int{2} * EdgeCount() );
         
         FindIntersectingEdges_DFS();
     }

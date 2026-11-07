@@ -26,14 +26,6 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinates( cptr<Real> x, const Ext
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
 
-    // Read these before DeleteTree: it marks the vertex coordinates as unloaded,
-    // so afterwards each accessor's RequireIntersections() call warns "no vertex
-    // coordinates have been loaded, yet" -- three warnings on every 3D input.
-    // DeleteTree keeps the data itself, so the pointers stay valid.
-    const Int    L_crossing_count = L.IntersectionCount();
-    const auto * L_edge_ptr       = L.EdgePointers().data();
-    const auto * L_edge_cross     = L.EdgeCrossings().data();
-
     // Deallocate tree-related data in L to make room for the PD_T.
     L.DeleteTree();
 
@@ -44,9 +36,9 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinates( cptr<Real> x, const Ext
         L.ComponentCount(),
         L.ComponentPointers().data(),
         comp_color.data(),
-        L_crossing_count,
-        L_edge_ptr,
-        L_edge_cross
+        L.IntersectionCount(),
+        L.EdgePointers().data(),
+        L.EdgeCrossings().data()
     );
 }
 
@@ -122,11 +114,6 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinatesAndEdges(
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
 
-    // Read these before DeleteTree (see FromCoordinates above).
-    const Int    L_crossing_count = L.IntersectionCount();
-    const auto * L_edge_ptr       = L.EdgePointers().data();
-    const auto * L_edge_cross     = L.EdgeCrossings().data();
-
     // Deallocate tree-related data in L to make room for the planar diagram.
     L.DeleteTree();
 
@@ -135,9 +122,9 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinatesAndEdges(
         L.ComponentCount(),
         L.ComponentPointers().data(),
         L.ComponentColors().data(),
-        L_crossing_count,
-        L_edge_ptr,
-        L_edge_cross
+        L.IntersectionCount(),
+        L.EdgePointers().data(),
+        L.EdgeCrossings().data()
     );
 }
 

@@ -6,10 +6,13 @@ public:
 // stale limbs, and every 3D input tripped `assert(!NegativeQ(b))` in `long_fma_unsigned`.
 // The loops over limbs below compile to the same few instructions.
 
+// It is tempting to use std::bitset here to vectorize bitwise operations, but compilers are clever enough to see that these loop operations are meant to perform bitwise operations and to optimize accordingly.
+
 /*!@brief Test for equality.*/
-TOOLS_FORCE_INLINE constexpr friend bool operator==( const This_T & a, const This_T & b )
+TOOLS_FORCE_INLINE constexpr friend bool operator==( const WideInt & a, const WideInt & b )
 {
-    // For the equality operator it may be better to start at the bottom as leading bits are often 0.
+    // We start comparison at the least significant limb `a[0]` because leading limbs may often be 0.
+    // Alas, the compiler typically transforms this into byte-wise memory comparison without early exit.
     for( Idx i = 0; i < limb_count; ++i )
     {
         if( a[i] != b[i] ) { return false; }
@@ -18,73 +21,87 @@ TOOLS_FORCE_INLINE constexpr friend bool operator==( const This_T & a, const Thi
     return true;
 }
 
-///*!@brief Check whether this wide integer is zero.*/
-//TOOLS_FORCE_INLINE constexpr bool ZeroQ() const
-//{
-//    constexpr BitSet_T zero;   // Fills with zeroes; constexpr.
-//    return As_BitSet(*this) == zero;
-//}
-
 /*!@brief Check whether this wide integer is zero.*/
 TOOLS_FORCE_INLINE constexpr friend
-bool ZeroQ( cref<WideInt> a )
+bool ZeroQ( const WideInt & a )
 {
     for( Idx i = 0; i < limb_count; ++i )
     {
         if( a[i] != zero_limb ) { return false; }
     }
-
     return true;
 }
 
 /*!@brief Bitwise NOT-operation.*/
-TOOLS_FORCE_INLINE constexpr friend This_T operator~( cref<This_T> a )
+TOOLS_FORCE_INLINE constexpr friend WideInt operator~( const WideInt & a )
 {
-    This_T b;
-
+    WideInt b;
     for( Idx i = 0; i < limb_count; ++i )
     {
         b[i] = static_cast<Limb_T>(~a[i]);
     }
-
     return b;
 }
 
 /*!@brief Bitwise AND-operation; in-place.*/
-TOOLS_FORCE_INLINE constexpr This_T & operator&=( cref<This_T> a )
+TOOLS_FORCE_INLINE constexpr WideInt & operator&=( const WideInt & a )
 {
-    As_BitSet(*this) &= As_BitSet(a);
+    for( Idx i = 0; i < limb_count; ++i )
+    {
+        limbs[i] &= a[i];
+    }
     return *this;
 }
 
 /*!@brief Bitwise OR-operation; in-place.*/
-TOOLS_FORCE_INLINE constexpr This_T & operator|=( cref<This_T> a )
+TOOLS_FORCE_INLINE constexpr WideInt & operator|=( const WideInt & a )
 {
-    As_BitSet(*this) |= As_BitSet(a);
+    for( Idx i = 0; i < limb_count; ++i )
+    {
+        limbs[i] |= a[i];
+    }
     return *this;
 }
 
 /*!@brief Bitwise XOR-operation; in-place.*/
-TOOLS_FORCE_INLINE constexpr This_T operator^=( cref<This_T> a )
+TOOLS_FORCE_INLINE constexpr WideInt operator^=( const WideInt & a )
 {
-    As_BitSet(*this) ^= As_BitSet(a);
+    for( Idx i = 0; i < limb_count; ++i )
+    {
+        limbs[i] ^= a[i];
+    }
     return *this;
 }
 
 /*!@brief Bitwise AND-operation.*/
-TOOLS_FORCE_INLINE constexpr friend This_T operator&( cref<This_T> a, cref<This_T> b )
+TOOLS_FORCE_INLINE constexpr friend WideInt operator&( const WideInt & a, const WideInt & b )
 {
-    return This_T(As_BitSet_T(a) & As_BitSet(b));
+    WideInt c;
+    for( Idx i = 0; i < limb_count; ++i )
+    {
+        c[i] = a[i] & b[i];
+    }
+    return c;
 }
 
 /*!@brief Bitwise OR-operation.*/
-TOOLS_FORCE_INLINE constexpr friend This_T operator|( cref<This_T> a, cref<This_T> b )
+TOOLS_FORCE_INLINE constexpr friend WideInt operator|( const WideInt & a, const WideInt & b )
 {
-    return This_T(As_BitSet_T(a) | As_BitSet(b));
+    WideInt c;
+    for( Idx i = 0; i < limb_count; ++i )
+    {
+        c[i] = a[i] | b[i];
+    }
+    return c;
 }
 
 /*!@brief Bitwise XOR-operation.*/
-TOOLS_FORCE_INLINE constexpr friend This_T operator^( cref<This_T> a, cref<This_T> b )
+TOOLS_FORCE_INLINE constexpr friend WideInt operator^( const WideInt & a, const WideInt & b )
 {
-    return This_T(As_BitSet_T(a) ^ As_BitSet(b));
+    WideInt c;
+    for( Idx i = 0; i < limb_count; ++i )
+    {
+        c[i] = a[i] ^ b[i];
+    }
+    return c;
 }
