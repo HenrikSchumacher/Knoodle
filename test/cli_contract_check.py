@@ -399,6 +399,33 @@ def test_draw_is_a_filter():
     check(out.strip() == "", "knoodledraw writes nothing to stdout on bad input")
 
 
+def test_3d_input_is_quiet():
+    section("3D input")
+
+    # A clean 3D polygon must give a diagram and say nothing on stderr. v1.1.0
+    # printed "RequireIntersections: Failed to compute intersections because no
+    # vertex coordinates have been loaded, yet" three times on EVERY 3D input:
+    # PlanarDiagram::FromCoordinates called the embedding's accessors after
+    # DeleteTree(), which marks the coordinates unloaded. The answer was right;
+    # the warnings read as a failure. (Also the input that aborted gcc builds of
+    # v1.1.0 -- see wideint_check.)
+    import math
+    lines = []
+    for i in range(24):
+        a = 2.0 * math.pi * i / 24.0
+        lines.append(f"{math.sin(a) + 2.0 * math.sin(2.0 * a):.10g} "
+                     f"{math.cos(a) - 2.0 * math.cos(2.0 * a):.10g} "
+                     f"{-math.sin(3.0 * a):.10g}")
+    trefoil_3d = "\n".join(lines) + "\n"
+
+    rc, out, err = run([SIMPLIFY, "--streaming-mode"], trefoil_3d)
+    check(rc == 0, "3D trefoil: exits 0")
+    check(len(data_lines(out)) == 3,
+          f"3D trefoil: simplifies to 3 crossings; got {len(data_lines(out))}")
+    noise = [l for l in err.splitlines() if "WARNING" in l or "ERROR" in l]
+    check(noise == [], f"3D trefoil: nothing on stderr; got {noise[:2]}")
+
+
 def main():
     print("cli_contract_check -- tool output, exit codes and round-tripping")
 
@@ -409,6 +436,7 @@ def main():
     test_output_is_readable_again()
     test_column_counts()
     test_failure_looks_like_failure()
+    test_3d_input_is_quiet()
     test_help()
     test_flag_spellings()
     test_draw_is_a_filter()
