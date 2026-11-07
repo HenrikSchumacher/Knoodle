@@ -212,12 +212,19 @@ polygons: polygons/make_polygons
 # Both build everything first, tools included: klut_e2e, cli_contract_check,
 # cli_stdin_check and run_tests all drive the real binaries in ../tools.
 #
+# `tools` builds PolyFold too (devel/PolyFold), for polyfold_check. Until
+# v1.1.0 nothing here built it and only the Homebrew formula did -- from a
+# release tag -- so PolyFold broke twice without a test noticing. A PolyFold
+# compile error now fails the tier before any test runs. It needs
+# boost_program_options and UMFPACK; CI does not call this target.
+#
 # The light tier REDUCES every test rather than skipping any. Skipping is how
 # `all` came to build 2 of 23 targets.
 # ---------------------------------------------------------------------------
 
 tools:
 	@$(MAKE) -C ../tools all
+	@$(MAKE) -C ../devel/PolyFold polyfold
 
 check: all tools lint
 	@python3 run_tier.py --tier=light

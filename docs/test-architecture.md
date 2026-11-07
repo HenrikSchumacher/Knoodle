@@ -275,6 +275,36 @@ Clause 3. Assertions on shape rather than mathematics:
 * `knoodledraw` works as a Unix filter on `knoodlesimplify`'s output, and refuses
   garbage rather than drawing it.
 
+### 5d. What the Homebrew formula builds — `polyfold_check`, `release_tarball_check`
+
+**Added at v1.1.0.** Until then the suite tested the four `tools/` binaries
+built from a checkout, and nothing else the formula ships. PolyFold was built
+only by the formula, and the release tarball only by the release workflow --
+both from a tag, after it was public. So both broke unseen: PolyFold did not
+compile at all (a path left behind by the move to `devel/PolyFold`, and a
+dangling `hierarchicalQ` from a later commit), and the tarball script's
+allowlist still named two paths that no longer existed.
+
+* `make -C test tools` builds `devel/PolyFold` as well as `tools/`, so a
+  PolyFold compile error fails both tiers before any test runs. Its makefile
+  now has `-MMD -MP` header tracking like `tools/Makefile`, so an edit in
+  `src/` rebuilds it (verified by putting the `hierarchicalQ` line back).
+  `polyfold_check` then runs the formula's own smoke invocation and asserts on
+  the `Info.m` it writes (2 samples, each with a squared gyradius), plus
+  `--help` and the `--extend` output path. `needs=boost_umfpack`, so CI skips
+  it, and says so.
+* `release_tarball_check` has two depths. **Light**, and CI: a static check, no
+  network, well under a second -- every entry of the script's `SHIP` list
+  exists and is tracked, the formula's build entry points are inside it, and no
+  quoted `#include` in shipped code resolves to a file outside it. Verified
+  non-vacuous: the pre-v1.1.0 allowlist fails it 5 ways. **Heavy**
+  (`--build`): run the script, unpack the tarball, build the four tools and
+  PolyFold from the unpacked tree with `KNOODLE_VERSION` unset, and run the
+  formula's checks against those binaries (`--help`, `knoodleidentify` finding
+  its KLUT from a scratch directory, the PolyFold smoke run, the tarball's
+  `VERSION` compiled into every binary). The release gate requires the heavy
+  tier, so a tag can no longer go out with a tarball that does not build.
+
 ## 6. The stderr scan
 
 "Silently refused" is the wrong description of a locked complex, and it has been
