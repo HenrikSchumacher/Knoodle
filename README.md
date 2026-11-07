@@ -34,10 +34,10 @@ Please contact us if you are interested and need support.
 
 # PolyFold
 
-The command-line tool _PolyFold_ can be compiled by running `make` in the subdirectory PolyFold. After compiling:
+The command-line tool _PolyFold_ can be compiled by running `make` in the subdirectory `devel/PolyFold`. After compiling:
 
 ```
-./PolyFold --help
+./polyfold --help
 
 Allowed options:
   -h [ --help ]                   produce help message
