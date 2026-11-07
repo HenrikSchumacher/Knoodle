@@ -46,6 +46,7 @@
 #target	kind	needs	source	light-args	heavy-args
 cli_contract_check	script	-	cli_contract_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 cli_stdin_check	script	-	cli_stdin_check.py	-	-	-
+lattice_input_check	script	-	lattice_input_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 hooks_check	script	-	hooks_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 polyfold_check	script	boost_umfpack	polyfold_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 release_tarball_check	script	-	release_tarball_check.py	-	--build	\([1-9][0-9]* checks, 0 failed\)

@@ -12,9 +12,12 @@
 #include "../src/OrthoDraw.hpp"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cctype>
 #include <chrono>
+#include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -57,8 +60,16 @@ using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T        = PDC_T::PD_T;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Energy_T    = PDC_T::Energy_T;
-using Reapr_T     = Knoodle::Reapr<Real, Int>;  // only used for RandomRotation()
+using Reapr_T     = Knoodle::Reapr<Real, Int>;
+// Floating-point 3D input. Since the LinkEmbedding promotion this is
+// LinkEmbedding_Int on Prosector_Int<Int64>: the coordinates are scaled by a
+// power of 2, rounded onto an integer grid, and projected with exact
+// predicates and simulation of simplicity (src/LinkEmbedding.hpp).
 using LinkEmb_T   = Reapr_T::LinkEmbedding_T;
+// Integer-coordinate (lattice) input skips the scaling and rounding: the same
+// class with integer coordinates, projected exactly as given. The same
+// projector knoodleprove trusts (trace_verify.hpp, ProjectLattice).
+using LatticeEmb_T = Knoodle::LinkEmbedding<std::int64_t, Int>;
 
 // The timing aliases live in a named namespace rather than at global scope.
 // Apple's <MacTypes.h> (pulled in transitively by <Accelerate/Accelerate.h>,
@@ -139,6 +150,11 @@ struct InputKnot
     // For 3D geometry input
     bool              had_3d_geometry = false;
     Int               vertex_count_3d = 0;
+    Int               component_count_3d = 0;  ///< blank-line-separated components
+
+    /// 3D input whose colors carry information: several components, or an
+    /// explicit '#color' line. knoodlesimplify writes such input with colors.
+    bool              colored_3d = false;
 
     int               input_column_count = 0; ///< Detected column format (3/4/5/6/7)
 
@@ -1131,80 +1147,371 @@ int DetectFormat(const std::vector<Real>& values, bool has_float)
     return 0;  // Unknown
 }
 
-/**
- * @brief Create a PlanarDiagram from 3D vertex coordinates.
- *
- * @param vertices Flat array of 3D coordinates (x, y, z, x, y, z, ...).
- * @param randomize_projection Whether to apply a random shear to the projection.
- * @param rng Random number generator.
- * @return The constructed PlanarDiagram, or an invalid diagram on error.
- */
-PD_T CreateDiagramFrom3D(const std::vector<Real>& vertices,
-                         bool randomize_projection,
-                         Knoodle::PRNG_T& rng)
+//==============================================================================
+// 3D input
+//==============================================================================
+//
+// Both shapes of 3D input end up here: 3-column data (one closed polygon per
+// blank-line-separated block, ReadKnot) and .kndlxyz files (ReadXYZFile). They
+// differ only in how --randomize-projection perturbs them, which is the
+// RandomTurn_T the caller passes.
+
+/// 3D input as read: the coordinates, where each component starts, and its color.
+struct Geometry3D
 {
-    Int vertex_count = static_cast<Int>(vertices.size() / 3);
+    std::vector<Real> xyz;                    ///< x, y, z per vertex
+    std::vector<Int>  ptr { 0 };              ///< component k is vertices [ptr[k], ptr[k+1])
+    std::vector<Int>  colors;                 ///< one per component
+    bool              colors_declared = false;///< colors came from '#color' lines
 
-    if (vertex_count < 3)
+    Int ComponentCount() const { return static_cast<Int>(ptr.size()) - 1; }
+    Int VertexCount()    const { return static_cast<Int>(xyz.size() / 3); }
+};
+
+/// How --randomize-projection perturbs 3D input before it is projected.
+enum class RandomTurn_T
+{
+    None,      ///< project down the z-axis as given
+    Shear,     ///< (x + a z, y + b z, z), a and b uniform in (-1/2, 1/2)
+    Rotation   ///< a uniformly random rotation
+};
+
+/// What projecting 3D input gave.
+struct Projection3D
+{
+    std::vector<PD_T> diagrams;       ///< diagrams with at least one crossing
+    std::vector<Int>  unknot_colors;  ///< one per crossingless diagram, its color
+};
+
+using LatticeMatrix_T = std::array<std::array<std::int64_t, 3>, 3>;
+
+/**
+ * @brief Is every coordinate an integer that a double holds exactly?
+ *
+ * The test is on VALUES, not on how they were spelled: "1.0 2.0 3.0" is a
+ * lattice vertex too. Beyond 2^53 a parsed double no longer pins down the
+ * integer that was written, so such input stays on the floating-point path.
+ */
+bool LatticeCoordinatesQ(const Real* x, std::size_t n)
+{
+    constexpr Real limit = 9007199254740992.0;  // 2^53
+
+    for (std::size_t i = 0; i < n; ++i)
     {
-        LogError("3D geometry requires at least 3 vertices");
-        return PD_T();
+        // Written so that NaN fails too.
+        if (!(std::abs(x[i]) < limit) || std::trunc(x[i]) != x[i]) return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Multiply every vertex by the integer matrix M, exactly.
+ *
+ * @return false if a coordinate would leave Prosector_Int's headroom (60 bits
+ *         for Int64; we stop at 58, as redraw_view.hpp does).
+ */
+bool TransformLattice(std::vector<std::int64_t>& xyz, const LatticeMatrix_T& M)
+{
+    using W_T = __int128;
+    constexpr W_T lim = W_T(1) << 58;
+
+    for (std::size_t v = 0; v + 2 < xyz.size(); v += 3)
+    {
+        const W_T x[3] = {xyz[v], xyz[v + 1], xyz[v + 2]};
+        W_T y[3];
+
+        for (int i = 0; i < 3; ++i)
+        {
+            y[i] = W_T(M[i][0]) * x[0] + W_T(M[i][1]) * x[1] + W_T(M[i][2]) * x[2];
+            if (y[i] >= lim || y[i] <= -lim) return false;
+        }
+        for (int i = 0; i < 3; ++i) xyz[v + i] = static_cast<std::int64_t>(y[i]);
+    }
+    return true;
+}
+
+/**
+ * @brief The random shear of the floating-point path, (x + a z, y + b z, z)
+ *        with a, b uniform in (-1/2, 1/2), as an integer matrix.
+ *
+ * a and b are quantized to multiples of 1/N and x, y scaled by N, which does
+ * not change the diagram: (N x + A z, N y + B z, z). det = N^2 > 0, so the
+ * knot is not mirrored. Same draws from rng as the floating-point path.
+ */
+LatticeMatrix_T RandomLatticeShear(Knoodle::PRNG_T& rng)
+{
+    constexpr std::int64_t N = std::int64_t(1) << 16;
+
+    std::uniform_real_distribution<Real> dist(-0.5, 0.5);
+    const std::int64_t A = std::llround(dist(rng) * N);
+    const std::int64_t B = std::llround(dist(rng) * N);
+
+    return {{ {N, 0, A}, {0, N, B}, {0, 0, 1} }};
+}
+
+/**
+ * @brief A uniformly random rotation, as an integer matrix.
+ *
+ * For an integer quaternion q = (w, x, y, z), |q|^2 R(q/|q|) has integer
+ * entries, so the rotated curve is still a lattice curve, exactly; scaling by
+ * |q|^2 does not change the diagram. q is a uniform direction on S^3 rounded
+ * at radius 256: within ~1/256 radian of a uniform rotation, with coordinates
+ * growing by |q|^2 ~ 2^16. det = |q|^6 > 0, so the link is not mirrored.
+ */
+LatticeMatrix_T RandomLatticeRotation(Knoodle::PRNG_T& rng)
+{
+    constexpr Real radius = 256;
+
+    std::normal_distribution<Real> gaussian(0, 1);
+    Real g[4];
+    Real norm = 0;
+    do
+    {
+        norm = 0;
+        for (Real& gi : g) { gi = gaussian(rng); norm += gi * gi; }
+    }
+    while (norm == 0);
+    norm = std::sqrt(norm);
+
+    // Some |g_i| / norm >= 1/2, so q != 0.
+    std::int64_t q[4];
+    for (int i = 0; i < 4; ++i) q[i] = std::llround(radius * g[i] / norm);
+
+    const std::int64_t w = q[0], x = q[1], y = q[2], z = q[3];
+
+    return {{
+        { w*w + x*x - y*y - z*z, 2 * (x*y - w*z),         2 * (x*z + w*y)         },
+        { 2 * (x*y + w*z),       w*w - x*x + y*y - z*z,   2 * (y*z - w*x)         },
+        { 2 * (x*z - w*y),       2 * (y*z + w*x),         w*w - x*x - y*y + z*z   }
+    }};
+}
+
+/**
+ * @brief Drop each vertex that repeats the one before it (cyclically, within
+ *        each component), so no edge has length zero.
+ *
+ * The polygon is the same point set, so this is exact, for integer and
+ * floating-point coordinates alike (the comparison is ==, not a tolerance).
+ * It matters because Prosector_Int mishandles zero-length edges: it rejects
+ * them as 3D self-intersections, or trips an assertion in LinesColinearTest
+ * (test/embeddings/deg_zero_length and deg_stacked_points; upstream issue 11).
+ *
+ * @param xyz Coordinates, 3 per vertex; compacted in place.
+ * @param ptr Component pointers into the vertices; rewritten to match.
+ */
+template<typename T>
+void DropRepeatedVertices(std::vector<T>& xyz, std::vector<Int>& ptr)
+{
+    auto same = [&xyz](std::size_t u, std::size_t v)
+    {
+        return xyz[3 * u] == xyz[3 * v] && xyz[3 * u + 1] == xyz[3 * v + 1]
+            && xyz[3 * u + 2] == xyz[3 * v + 2];
+    };
+
+    std::vector<Int> new_ptr{0};
+    std::size_t out = 0;  // vertices kept so far; never ahead of v below
+
+    for (std::size_t c = 0; c + 1 < ptr.size(); ++c)
+    {
+        const std::size_t begin = out;
+
+        for (auto v = static_cast<std::size_t>(ptr[c]); v < static_cast<std::size_t>(ptr[c + 1]); ++v)
+        {
+            if (out > begin && same(out - 1, v)) continue;
+            for (std::size_t k = 0; k < 3; ++k) xyz[3 * out + k] = xyz[3 * v + k];
+            ++out;
+        }
+        // The closing edge, last vertex back to the first.
+        while (out - begin > 1 && same(out - 1, begin)) --out;
+
+        new_ptr.push_back(static_cast<Int>(out));
     }
 
-    // Check if last vertex equals first (closed polygon marker)
-    const Real* first = vertices.data();
-    const Real* last  = vertices.data() + 3 * (vertex_count - 1);
+    xyz.resize(3 * out);
+    ptr = std::move(new_ptr);
+}
 
-    constexpr Real eps = 1e-10;
-    bool closed_marker = (std::abs(first[0] - last[0]) < eps &&
-                          std::abs(first[1] - last[1]) < eps &&
-                          std::abs(first[2] - last[2]) < eps);
+/**
+ * @brief Project a link embedding and sort what comes out into diagrams with
+ *        crossings and crossingless (unknot) components.
+ *
+ * @return nullopt if the embedding is not one (it meets itself in 3-space);
+ *         the library has already said why, on stderr.
+ */
+template<typename Emb_T>
+std::optional<Projection3D> ProjectEmbedding(Emb_T& L)
+{
+    // An invalid pd with a list of unlink colors is the all-crossingless case,
+    // not a failure; PDC_T's constructor turns those colors into anelli.
+    PDC_T pdc(PD_T::FromLinkEmbedding(L));
 
-    if (closed_marker)
+    if (pdc.DiagramCount() == Int(0)) return std::nullopt;
+
+    // A split link projects to ONE diagram with several diagram components,
+    // which OrthoDraw refuses -- and knoodledraw, reaching it anyway,
+    // segfaulted. Give each diagram component its own diagram. The pieces
+    // never share a color, so nothing downstream mistakes them for summands
+    // of one component.
+    pdc.Split();
+
+    Projection3D result;
+    for (Int i = 0; i < pdc.DiagramCount(); ++i)
     {
-        --vertex_count;  // Don't include duplicate vertex
+        Knoodle::cref<PD_T> pd = pdc.Diagram(i);
+        if (pd.CrossingCount() > Int(0)) { result.diagrams.push_back(PD_T(pd)); }
+        else                             { result.unknot_colors.push_back(pd.FirstColor()); }
+    }
+    return result;
+}
+
+/**
+ * @brief Project 3D input to diagrams.
+ *
+ * If every coordinate is an integer, the link is projected exactly through
+ * LatticeEmb_T, and a random turn is an exact integer matrix
+ * (RandomLatticeShear, RandomLatticeRotation). Otherwise it goes through the
+ * floating-point LinkEmb_T, with the shear applied in floating point and the
+ * rotation by Reapr's RandomRotation.
+ *
+ * Either way, a vertex that repeats the one before it is dropped first
+ * (DropRepeatedVertices), which is exact.
+ *
+ * @param g    The input; a component may end with a copy of its first vertex
+ *             (a closing marker), which is dropped.
+ * @param turn How to perturb the projection; the whole link turns at once.
+ * @return The diagrams, or nullopt (after LogError) on failure.
+ */
+std::optional<Projection3D> ProjectGeometry(Geometry3D g,
+                                            RandomTurn_T turn,
+                                            Knoodle::PRNG_T& rng)
+{
+    using T_T = Knoodle::Tensor1<Int, Int>;
+
+    if (g.ComponentCount() < 1)
+    {
+        LogError("3D geometry has no vertices");
+        return std::nullopt;
     }
 
-    // Create transformed coordinates if needed
-    std::vector<Real> coords(vertices.begin(), vertices.begin() + 3 * vertex_count);
-
-    if (randomize_projection)
+    // A closing marker: a last vertex within 1e-10 of the first. Dropping it is
+    // not quite exact (DropRepeatedVertices below catches the exact repeats);
+    // it is the historical rule, kept for input written with a near-copy.
     {
-        // Apply shear: (x, y, z) -> (x + eps_x * z, y + eps_y * z, z)
+        constexpr Real eps = 1e-10;
+        std::vector<Int> keep { 0 };
+        std::vector<Real> xyz;
+        xyz.reserve(g.xyz.size());
+
+        for (Int c = 0; c < g.ComponentCount(); ++c)
+        {
+            Int b = g.ptr[c];
+            Int e = g.ptr[c + 1];
+            if (e - b > 1)
+            {
+                const Real* first = &g.xyz[3 * b];
+                const Real* last  = &g.xyz[3 * (e - 1)];
+                if (std::abs(first[0] - last[0]) < eps
+                    && std::abs(first[1] - last[1]) < eps
+                    && std::abs(first[2] - last[2]) < eps)
+                {
+                    --e;
+                }
+            }
+            xyz.insert(xyz.end(), g.xyz.begin() + 3 * b, g.xyz.begin() + 3 * e);
+            keep.push_back(static_cast<Int>(xyz.size() / 3));
+        }
+        g.xyz = std::move(xyz);
+        g.ptr = std::move(keep);
+    }
+
+    auto check_sizes = [](const std::vector<Int>& ptr) -> bool
+    {
+        for (std::size_t c = 0; c + 1 < ptr.size(); ++c)
+        {
+            if (ptr[c + 1] - ptr[c] < 3)
+            {
+                LogError("3D geometry: component " + std::to_string(c)
+                         + " has fewer than 3 distinct vertices");
+                return false;
+            }
+        }
+        return true;
+    };
+
+    if (LatticeCoordinatesQ(g.xyz.data(), g.xyz.size()))
+    {
+        // Integral doubles below 2^53: the conversion is exact.
+        std::vector<std::int64_t> xyz(g.xyz.begin(), g.xyz.end());
+
+        if (turn != RandomTurn_T::None)
+        {
+            const LatticeMatrix_T M = (turn == RandomTurn_T::Shear)
+                                    ? RandomLatticeShear(rng)
+                                    : RandomLatticeRotation(rng);
+            if (!TransformLattice(xyz, M))
+            {
+                LogError("Lattice coordinates too large for an exact random "
+                         + std::string(turn == RandomTurn_T::Shear ? "shear" : "rotation"));
+                return std::nullopt;
+            }
+        }
+
+        DropRepeatedVertices(xyz, g.ptr);
+        if (!check_sizes(g.ptr)) return std::nullopt;
+
+        LatticeEmb_T L(T_T(g.ptr.data(), static_cast<Int>(g.ptr.size())),
+                       T_T(g.colors.data(), static_cast<Int>(g.colors.size())));
+        L.ReadVertexCoordinates(xyz.data());
+        auto result = ProjectEmbedding(L);
+        if (!result) LogError("3D geometry is not an embedding (it meets itself in 3-space)");
+        return result;
+    }
+
+    if (turn == RandomTurn_T::Shear)
+    {
         std::uniform_real_distribution<Real> dist(-0.5, 0.5);
-        Real eps_x = dist(rng);
-        Real eps_y = dist(rng);
-
-        for (Int i = 0; i < vertex_count; ++i)
+        const Real a = dist(rng);
+        const Real b = dist(rng);
+        for (std::size_t v = 0; v + 2 < g.xyz.size(); v += 3)
         {
-            Real z = coords[3 * i + 2];
-            coords[3 * i + 0] += eps_x * z;
-            coords[3 * i + 1] += eps_y * z;
+            const Real z = g.xyz[v + 2];
+            g.xyz[v + 0] += a * z;
+            g.xyz[v + 1] += b * z;
         }
     }
 
-    // Create PlanarDiagram from 3D coordinates using static factory
-    auto [pd, unlinks] = PD_T::FromCoordinates(coords.data(), vertex_count);
+    DropRepeatedVertices(g.xyz, g.ptr);
+    if (!check_sizes(g.ptr)) return std::nullopt;
 
-    if (!pd.ValidQ())
+    LinkEmb_T L(T_T(g.ptr.data(), static_cast<Int>(g.ptr.size())),
+                T_T(g.colors.data(), static_cast<Int>(g.colors.size())));
+    L.ReadVertexCoordinates(g.xyz.data());
+
+    if (turn == RandomTurn_T::Rotation)
     {
-        // FromCoordinates returns an invalid pd alongside a populated
-        // `unlinks` color list precisely when every component turned out to
-        // have zero self-intersections (see PlanarDiagramComplex's own
-        // pair-consuming constructor, which treats this combination as "all
-        // trivial anelli", not an error). A single 3D curve is exactly one
-        // component, so unlinks.Size() > 0 here means "this curve is the
-        // unknot", not a real FindIntersections failure.
-        if (unlinks.Size() > 0)
-        {
-            return PD_T::Unknot(unlinks[0]);
-        }
-
-        LogError("FromCoordinates failed to create a valid diagram");
-        return PD_T();
+        // The whole embedding at once, never each component on its own.
+        Reapr_T reapr;
+        L.Transform(reapr.RandomRotation());
     }
 
-    return pd;
+    auto result = ProjectEmbedding(L);
+    if (!result) LogError("3D geometry is not an embedding (it meets itself in 3-space)");
+    return result;
+}
+
+/**
+ * @brief Fill an InputKnot's 3D fields from the input and its projection.
+ */
+void StoreProjection(InputKnot& knot, const Geometry3D& g, Projection3D&& p)
+{
+    knot.had_3d_geometry    = true;
+    knot.vertex_count_3d    = g.VertexCount();
+    knot.component_count_3d = g.ComponentCount();
+    knot.colored_3d         = (g.ComponentCount() > 1) || g.colors_declared;
+
+    for (PD_T& pd : p.diagrams) { knot.summands.push_back(std::move(pd)); }
+    knot.unknot_colors.insert(knot.unknot_colors.end(),
+                              p.unknot_colors.begin(), p.unknot_colors.end());
 }
 
 /**
@@ -1247,8 +1554,14 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
  *
  * Reads until EOF, a 'k' line, or stream error.
  *
+ * In 3-column (3D) data a blank line ends a component, as in a .kndlxyz file,
+ * and a '#color <int>' line at the start of a component sets its color (for
+ * every component or for none; by default component k has color k). Any other
+ * line starting with '#' is a comment, as is everything from a '%' on. In the
+ * PD-code formats blank lines carry no meaning.
+ *
  * @param input The input stream.
- * @param randomize_projection Whether to apply random shear to 3D projection.
+ * @param randomize_projection Whether to apply a random shear to 3D input.
  * @param rng Random number generator.
  * @param source_name Description of the source (filename or "stdin").
  * @param[out] reached_eof Set to true if we hit EOF.
@@ -1265,13 +1578,29 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
     reached_eof = false;
 
     // Current summand data
-    std::vector<Real>  geometry_vertices;
+    Geometry3D         geometry;
+    std::optional<Int> pending_color;            // from '#color', for the next component
+    bool               undeclared_color = false; // some component had no '#color'
     std::vector<Int>   pd_crossings;
     Int                pd_crossing_count = 0;
     int                detected_format = 0;  // 0=unknown, 3=geometry, 4/5=PD code
     bool               in_summand = false;
     bool               first_data_seen = false;  // first *data* line (sets format)
     bool               saw_content = false;      // any 's' marker or data line
+
+    // Vertices read since the last component ended.
+    auto open_component_size = [&geometry]() -> Int
+    {
+        return geometry.VertexCount() - geometry.ptr.back();
+    };
+
+    auto close_component = [&]()
+    {
+        if (open_component_size() > 0)
+        {
+            geometry.ptr.push_back(geometry.VertexCount());
+        }
+    };
 
     // Lambda to finalize current summand
     auto finalize_summand = [&]() -> bool
@@ -1280,7 +1609,7 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
 
         // An 's' marker with no data lines is an unknot summand
         // (knoodlesimplify writes unknots as bare 's' lines).
-        if (geometry_vertices.empty() && pd_crossing_count == 0)
+        if (geometry.xyz.empty() && pd_crossing_count == 0)
         {
             result.unknot_colors.push_back(PD_T::Uninitialized);
             in_summand = false;
@@ -1290,26 +1619,39 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
         if (detected_format == 3)
         {
             // 3D geometry
-            if (!geometry_vertices.empty())
+            if (!geometry.xyz.empty())
             {
-                if (!result.summands.empty())
+                if (result.had_3d_geometry || !result.summands.empty())
                 {
                     LogError("3D geometry input cannot have multiple summands");
                     return false;
                 }
 
-                result.had_3d_geometry = true;
-                result.vertex_count_3d = static_cast<Int>(geometry_vertices.size() / 3);
+                close_component();
 
-                PD_T pd = CreateDiagramFrom3D(geometry_vertices, randomize_projection, rng);
-                if (!pd.ValidQ())
+                if (pending_color)
+                {
+                    LogError("'#color' line with no component after it");
+                    return false;
+                }
+                if (geometry.colors_declared && undeclared_color)
+                {
+                    LogError("'#color' must be given for every component or for none");
+                    return false;
+                }
+
+                auto projected = ProjectGeometry(
+                    geometry,
+                    randomize_projection ? RandomTurn_T::Shear : RandomTurn_T::None,
+                    rng);
+                if (!projected)
                 {
                     LogError("Failed to create diagram from 3D geometry");
                     return false;
                 }
 
-                result.summands.push_back(std::move(pd));
-                geometry_vertices.clear();
+                StoreProjection(result, geometry, std::move(*projected));
+                geometry = Geometry3D();
             }
         }
         else if (detected_format == 4 || detected_format == 5 ||
@@ -1342,10 +1684,56 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
 
     while (std::getline(input, line))
     {
+        // A truly blank line ends a 3D component (not a comment-only line,
+        // which CleanLine also empties). Elsewhere blank lines mean nothing.
+        if (Trim(line).empty())
+        {
+            if (detected_format == 3) { close_component(); }
+            continue;
+        }
+
         std::string cleaned = CleanLine(line);
 
-        // Skip empty lines
+        // Skip comment-only lines
         if (cleaned.empty()) continue;
+
+        // '#color <int>' sets the color of the 3D component that follows, as
+        // in a .kndlxyz file; any other '#' line is a comment.
+        if (cleaned[0] == '#')
+        {
+            if (!cleaned.starts_with("#color")) continue;
+
+            if (first_data_seen && detected_format != 3)
+            {
+                LogError("'#color' applies only to 3D geometry: " + cleaned);
+                return std::nullopt;
+            }
+            if (open_component_size() > 0)
+            {
+                LogError("'#color' must start a component (after a blank line): " + cleaned);
+                return std::nullopt;
+            }
+            if (pending_color)
+            {
+                LogError("Two '#color' lines for one component: " + cleaned);
+                return std::nullopt;
+            }
+
+            const std::string value = Trim(std::string_view(cleaned).substr(6));
+            try
+            {
+                std::size_t pos = 0;
+                const long long c = std::stoll(value, &pos);
+                if (pos != value.size()) { throw std::invalid_argument(value); }
+                pending_color = static_cast<Int>(c);
+            }
+            catch (const std::exception&)
+            {
+                LogError("Malformed '#color' line: " + cleaned);
+                return std::nullopt;
+            }
+            continue;
+        }
 
         // Check for markers
         if (cleaned == "k" || cleaned == "K")
@@ -1472,9 +1860,24 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
         // Store data
         if (detected_format == 3)
         {
+            if (open_component_size() == 0)
+            {
+                // First vertex of a component: settle its color.
+                if (pending_color)
+                {
+                    geometry.colors.push_back(*pending_color);
+                    geometry.colors_declared = true;
+                    pending_color.reset();
+                }
+                else
+                {
+                    geometry.colors.push_back(geometry.ComponentCount());
+                    undeclared_color = true;
+                }
+            }
             for (Real v : values)
             {
-                geometry_vertices.push_back(v);
+                geometry.xyz.push_back(v);
             }
         }
         else
@@ -1515,6 +1918,62 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
     }
 
     return result;
+}
+
+/**
+ * @brief Read a .kndlxyz file (a multi-component 3D link embedding) as one knot.
+ *
+ * The file is parsed by LinkEmb_T's own reader (blank lines between
+ * components, optional '#color' lines) and projected by ProjectGeometry, the
+ * same code as 3-column input; --randomize-projection is a random rotation
+ * here rather than a shear. Its components are always written with colors.
+ *
+ * @return The knot, or nullopt (after LogError) on failure.
+ */
+[[maybe_unused]] std::optional<InputKnot> ReadXYZFile(const std::filesystem::path& path,
+                                                      bool randomize_projection,
+                                                      Knoodle::PRNG_T& rng)
+{
+    auto in = LinkEmb_T::FromFile(path);
+
+    if (!in.ValidQ() || in.VertexCount() <= Int(0))
+    {
+        LogError("Failed to read .kndlxyz file: " + path.string());
+        return std::nullopt;
+    }
+
+    // The reader builds its embedding from component pointers, so its vertex
+    // order is the file's.
+    Geometry3D g;
+    const Real* x = in.VertexCoordinates().data();
+    g.xyz.assign(x, x + 3 * static_cast<std::size_t>(in.VertexCount()));
+
+    const auto& ptr    = in.ComponentPointers();
+    const auto& colors = in.ComponentColors();
+    g.ptr.assign(ptr.data(), ptr.data() + ptr.Size());
+    g.colors.assign(colors.data(), colors.data() + colors.Size());
+
+    auto projected = ProjectGeometry(
+        g, randomize_projection ? RandomTurn_T::Rotation : RandomTurn_T::None, rng);
+    if (!projected)
+    {
+        LogError("Failed to create diagram from .kndlxyz file: " + path.string());
+        return std::nullopt;
+    }
+
+    InputKnot knot;
+    knot.source_description = path.string();
+    knot.input_column_count = 3;
+    StoreProjection(knot, g, std::move(*projected));
+    knot.colored_3d = true;
+
+    for (const auto& pd : knot.summands)
+    {
+        const Int cc = pd.CrossingCount();
+        knot.crossing_counts.push_back(cc);
+        knot.total_crossings += cc;
+    }
+    return knot;
 }
 
 } // anonymous namespace

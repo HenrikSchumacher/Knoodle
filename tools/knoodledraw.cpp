@@ -272,8 +272,8 @@ void PrintUsage()
     std::cerr << "                              --format=wl. The emitted curves have the same link\n";
     std::cerr << "                              type as the input diagram: connect-sum summands are\n";
     std::cerr << "                              rejoined, split pieces are translated apart.\n";
-    std::cerr << "  --reapr-energy=E            tv (default), dirichlet, bending, height,\n";
-    std::cerr << "                              tv_clp, tv_mcf\n";
+    std::cerr << "  --reapr-energy=E            One of " << ValidEnergies() << "\n";
+    std::cerr << "                              (default: TV; this build's list)\n";
     std::cerr << "  --reapr-scaling=X           3D grid scaling in Reapr (default: 1.0)\n";
     std::cerr << "                              Note: the layout/label/highlight flags above are\n";
     std::cerr << "                              2D-only and do not apply to --embedding.\n";
@@ -300,11 +300,15 @@ void PrintUsage()
     std::cerr << "  5 columns: signed PD code (4 arcs + handedness)\n";
     std::cerr << "  6 columns: unsigned PD code + link component colors\n";
     std::cerr << "  7 columns: signed PD code + link component colors\n";
-    std::cerr << "  3 columns: 3D geometry (x, y, z coordinates)\n";
-    std::cerr << "  .kndlxyz:  multi-component 3D link embedding\n";
+    std::cerr << "  3 columns: 3D geometry (x, y, z coordinates); a blank line starts\n";
+    std::cerr << "             a new link component\n";
+    std::cerr << "  .kndlxyz:  multi-component 3D link embedding (3 columns, blank-line-\n";
+    std::cerr << "             separated components, optional '#color N' lines)\n";
     std::cerr << "\n";
     std::cerr << "Input options:\n";
-    std::cerr << "  --randomize-projection      Apply random shear to 3D geometry projection\n";
+    std::cerr << "  --randomize-projection      Perturb 3D input before projecting it: a random\n";
+    std::cerr << "                              shear for 3-column data, a random rotation for\n";
+    std::cerr << "                              .kndlxyz files (exact for integer coordinates)\n";
     std::cerr << "\n";
     std::cerr << "Other:\n";
     std::cerr << "  -h, --help                  Show this help message\n";
@@ -522,7 +526,7 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             else
             {
                 std::cerr << "Error: Unknown --reapr-energy value: " << val << "\n";
-                std::cerr << "  Valid: tv, dirichlet, bending, height, tv_clp, tv_mcf\n";
+                std::cerr << "  Valid: " << ValidEnergies() << "\n";
                 return std::nullopt;
             }
         }
@@ -3200,11 +3204,14 @@ std::vector<EmbeddedPiece> BuildEmbedding(const std::vector<PD_T>& summands,
         // PlanarDiagramComplex/Simplify.hpp does before reprojecting one.
         // Reapr's raw output takes x and y straight off the OrthoDraw grid, so
         // the over/under "jump" it inserts at each crossing is an exactly
-        // vertical edge -- which projects to a POINT. FindIntersections then
-        // rejects the whole embedding ("Detected N degenerate edges"), meaning
-        // an unrotated emission could not be read back by Knoodle itself.
-        // (Reapr already randomizes by default via permute_randomQ, so this
-        // costs no determinism that was on offer.)
+        // vertical edge, which projects to a point. Knoodle itself no longer
+        // needs the rotation to read that back: since the LinkEmbedding
+        // promotion the exact projector resolves such degeneracies by symbolic
+        // perturbation (100 of 100 unrotated trefoil and figure-eight
+        // embeddings projected, 2026-11-07). It is kept so the emitted curves
+        // stay in general position for other readers, and so the output does
+        // not change. (Reapr already randomizes by default via
+        // permute_randomQ, so this costs no determinism that was on offer.)
         LinkEmb_T emb = reapr.Embedding(pd, reapr.RandomRotation());
         if (!emb.ValidQ() || emb.EdgeCount() <= Int(0)) { continue; }
 
@@ -4543,60 +4550,28 @@ bool ProcessStream(std::istream& input,
 
 /**
  * @brief Process a .kndlxyz file (multi-component 3D link embedding).
+ *
+ * Read and projected by knoodle_io.hpp's ReadXYZFile -- the same code as
+ * 3-column input, which also separates crossingless components into
+ * unknot_colors (OrthoDraw_T cannot be built from a 0-crossing diagram).
  */
-bool ProcessXYZFile(const std::string& filepath, const Config& config, Real& x_cursor)
+bool ProcessXYZFile(const std::string& filepath, const Config& config,
+                    Knoodle::PRNG_T& rng, Real& x_cursor)
 {
-    LinkEmb_T link = LinkEmb_T::FromFile(std::filesystem::path(filepath));
+    auto input_knot = ReadXYZFile(std::filesystem::path(filepath),
+                                  config.randomize_projection, rng);
+    if (!input_knot) { return false; }
 
-    if (config.randomize_projection)
-    {
-        // Rotate the whole embedding at once (not each component independently,
-        // which would distort the link's actual geometric arrangement) with a
-        // proper random rotation -- the same mechanism already used elsewhere
-        // (PlanarDiagramComplex/Simplify.hpp: emb.Transform(reapr.RandomRotation())).
-        Reapr_T reapr;
-        link.Transform(reapr.RandomRotation());
-    }
-
-    PDC_T pdc(std::move(link));
-
-    if (pdc.DiagramCount() == 0)
-    {
-        std::cerr << "Error: Failed to create diagram from .kndlxyz file: " << filepath << "\n";
-        return false;
-    }
-
-    // A trivial (0-crossing, unknot) diagram in the complex must NOT reach
-    // OrthoDraw_T's constructor -- unlike the streaming/ReadKnot path (which
-    // already separates these into unknot_colors before any diagram is
-    // built), pdc.Diagram(i) here can be trivial, and constructing an OrthoDraw
-    // from a 0-crossing PlanarDiagram crashes. Filter it out here instead, the
-    // same way ReadKnot does -- and since .kndlxyz components are colored
-    // automatically (by component order), each trivial diagram's color is
-    // recorded rather than discarded.
-    std::vector<PD_T> summands;
-    std::vector<Int>  unknot_colors;
-    for (Int i = 0; i < pdc.DiagramCount(); ++i)
-    {
-        PD_T pd(pdc.Diagram(i));
-        if (pd.CrossingCount() > Int(0))
-        {
-            summands.push_back(std::move(pd));
-        }
-        else
-        {
-            unknot_colors.push_back(pd.FirstColor());
-        }
-    }
-
-    // .kndlxyz components are colored automatically (by component order), so the
-    // connect-sum rejoining in BuildEmbedding is always safe on this path.
+    // .kndlxyz components are colored automatically (by component order, or by
+    // '#color'), so the connect-sum rejoining in BuildEmbedding is always safe
+    // on this path.
     if (config.embedding_mode)
     {
-        return EmbedKnot(summands, unknot_colors, /*coloredQ=*/true, config, x_cursor);
+        return EmbedKnot(input_knot->summands, input_knot->unknot_colors,
+                         /*coloredQ=*/true, config, x_cursor);
     }
 
-    return DrawKnot(summands, config, unknot_colors);
+    return DrawKnot(input_knot->summands, config, input_knot->unknot_colors);
 }
 
 } // anonymous namespace
@@ -4687,7 +4662,7 @@ int main(int argc, char* argv[])
             std::filesystem::path fpath(filename);
             if (fpath.extension() == ".kndlxyz")
             {
-                if (!ProcessXYZFile(filename, config, x_cursor))
+                if (!ProcessXYZFile(filename, config, rng, x_cursor))
                 {
                     success = false;
                 }

@@ -81,7 +81,7 @@ struct Config
     // Input options
     std::vector<std::string> input_files;    ///< Input file paths
     bool streaming_mode       = false;       ///< Read from stdin, write to stdout
-    bool randomize_projection = false;       ///< Apply random shear to 3D projection
+    bool randomize_projection = false;       ///< Random shear (3-column) / rotation (.kndlxyz) of 3D input
 
     // Output options
     std::optional<std::string> output_file;  ///< Single output file (if specified)
@@ -169,13 +169,17 @@ void PrintUsage()
     Log("  5 columns: signed PD code (4 arcs + handedness)");
     Log("  6 columns: unsigned PD code + link component colors");
     Log("  7 columns: signed PD code + link component colors");
-    Log("  3 columns: 3D geometry (x, y, z coordinates)");
-    Log("  .kndlxyz:  multi-component 3D link embedding");
+    Log("  3 columns: 3D geometry (x, y, z coordinates); a blank line starts");
+    Log("             a new link component");
+    Log("  .kndlxyz:  multi-component 3D link embedding (3 columns, blank-line-");
+    Log("             separated components, optional '#color N' lines)");
     Log("");
     Log("Input options:");
     Log("  --input=FILE                Specify input file (can use multiple times)");
     Log("  --streaming-mode            Read from stdin, write to stdout");
-    Log("  --randomize-projection      Apply random shear to 3D geometry projection");
+    Log("  --randomize-projection      Perturb 3D input before projecting it: a random");
+    Log("                              shear for 3-column data, a random rotation for");
+    Log("                              .kndlxyz files (exact for integer coordinates)");
     Log("");
     Log("Output options:");
     Log("  --output=FILE               Write all output to FILE");

@@ -17,6 +17,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -321,8 +322,135 @@ static void TestReadKnot3D()
     {
         check(k2->had_3d_geometry, "and is flagged as such");
         check(k2->vertex_count_3d == Int(4), "4 vertices");
-        check(!k2->summands.empty() && k2->summands[0].CrossingCount() == Int(0),
-              "a planar square is a valid 0-crossing diagram, not a parse error");
+        // A crossingless component is an unknot summand with its color, the
+        // way the PDC-native path reports anelli -- not a 0-crossing diagram,
+        // which OrthoDraw cannot be built from.
+        check(k2->summands.empty() && k2->unknot_colors.size() == 1
+              && k2->unknot_colors[0] == Int(0),
+              "a planar square is one unknot summand of color 0, not a parse error");
+    }
+}
+
+// The Hopf link of test/embeddings/deg_hopf_flat, as a .kndlxyz: two squares,
+// a blank line between them.
+static const char * kHopf =
+    "0 0 0\n4 0 0\n4 4 0\n0 4 0\n"
+    "\n"
+    "2 2 -2\n2 2 2\n8 2 2\n8 2 -2\n";
+
+// Every color the arcs of `pd` carry.
+static std::set<Int> ArcColorSet( const PD_T & pd )
+{
+    std::set<Int> colors;
+    const auto & c = pd.ArcColors();
+    for( Int a = 0; a < c.Size(); ++a )
+    {
+        if( pd.ArcActiveQ(a) ) { colors.insert(c[a]); }
+    }
+    return colors;
+}
+
+static void TestReadKnotComponents()
+{
+    section("ReadKnot -- blank lines separate 3D components");
+    bool eof = false;
+
+    // Until 2026-11 blank lines were skipped here too, so a multi-component
+    // .kndlxyz piped on stdin (or given to knoodleidentify at all) became ONE
+    // closed curve through both squares, and a Hopf link read as the unknot.
+    {
+        auto k = Read(kHopf, eof);
+        check(k.has_value(), "a two-component 3D link reads");
+        if( k )
+        {
+            check(k->component_count_3d == Int(2), "two components");
+            check(k->colored_3d, "and its colors are significant");
+            check(k->vertex_count_3d == Int(8), "8 vertices");
+            check(k->summands.size() == 1 && k->summands[0].CrossingCount() == Int(2),
+                  "the Hopf link projects to one 2-crossing diagram");
+            if( k->summands.size() == 1 )
+            {
+                check(k->summands[0].LinkComponentCount() == Int(2),
+                      "with two link components");
+                check(ArcColorSet(k->summands[0]) == std::set<Int>({0, 1}),
+                      "colored 0 and 1 by component order");
+            }
+        }
+    }
+    {
+        // Runs of blank lines, and blank lines before the first and after the
+        // last vertex, are one separator or none.
+        auto k = Read("\n\n0 0 0\n4 0 0\n4 4 0\n0 4 0\n\n\n\n"
+                      "2 2 -2\n2 2 2\n8 2 2\n8 2 -2\n\n", eof);
+        check(k.has_value() && k->component_count_3d == Int(2)
+              && k->summands.size() == 1 && k->summands[0].CrossingCount() == Int(2),
+              "extra blank lines change nothing");
+    }
+    {
+        // A comment-only line is not a blank line: it does not split.
+        auto k = Read("0 0 0\n4 0 0\n% a comment\n4 4 0\n0 4 0\n", eof);
+        check(k.has_value() && k->component_count_3d == Int(1),
+              "a '%' comment line inside a component does not end it");
+    }
+    {
+        // .kndlxyz's '#color' lines; other '#' lines are comments.
+        auto k = Read("# a comment\n#color 7\n0 0 0\n4 0 0\n4 4 0\n0 4 0\n"
+                      "\n#color 3\n2 2 -2\n2 2 2\n8 2 2\n8 2 -2\n", eof);
+        check(k.has_value(), "'#color' lines and '#' comments read");
+        if( k && k->summands.size() == 1 )
+        {
+            check(ArcColorSet(k->summands[0]) == std::set<Int>({3, 7}),
+                  "'#color' sets each component's color");
+        }
+    }
+    {
+        // Far apart: a split link, two crossingless components.
+        auto k = Read("0 0 0\n1 0 0\n1 1 0\n0 1 0\n\n10 0 0\n11 0 0\n11 1 0\n10 1 0\n", eof);
+        check(k.has_value() && k->summands.empty() && k->unknot_colors.size() == 2,
+              "two distant squares are two unknot summands");
+        if( k && k->unknot_colors.size() == 2 )
+        {
+            check(k->unknot_colors[0] != k->unknot_colors[1],
+                  "with different colors");
+        }
+    }
+
+    // --- repeated vertices. A vertex equal to the one before it is a
+    // zero-length edge, which Prosector_Int rejects or asserts on (upstream
+    // issue 11). Dropping it is exact, and now happens on the float path too.
+    {
+        auto k = Read("0.5 0.5 0.5\n4.5 0.5 0.5\n4.5 0.5 0.5\n4.5 4.5 0.5\n0.5 4.5 0.5\n0.5 0.5 0.5\n", eof);
+        check(k.has_value() && k->unknot_colors.size() == 1,
+              "a float square with a repeated vertex and a closing copy is the unknot");
+    }
+    {
+        // test/embeddings/deg_stacked_points shifted off the lattice: it used
+        // to abort in LinesColinearTest.
+        auto k = Read("0.5 0.5 0.5\n4.5 0.5 0.5\n4.5 0.5 0.5\n4.5 4.5 0.5\n"
+                      "4.5 4.5 5.5\n4.5 0.5 5.5\n4.5 0.5 5.5\n0.5 0.5 5.5\n", eof);
+        // Two of its edges overlap in projection, which the projector resolves
+        // into a 1-crossing curl; only that it reads is in question here.
+        check(k.has_value() && k->component_count_3d == Int(1)
+              && k->total_crossings <= Int(1),
+              "deg_stacked_points off the lattice reads (an unknot, at most a curl)");
+    }
+
+    // --- refusals
+    {
+        auto k = Read("#color 1\n0 0 0\n4 0 0\n4 4 0\n0 4 0\n\n2 2 -2\n2 2 2\n8 2 2\n8 2 -2\n", eof);
+        check(!k.has_value(), "'#color' on some components but not all is refused");
+    }
+    {
+        auto k = Read("0 0 0\n4 0 0\n#color 1\n4 4 0\n0 4 0\n", eof);
+        check(!k.has_value(), "'#color' in the middle of a component is refused");
+    }
+    {
+        auto k = Read(std::string(kTrefoil) + "#color 1\n", eof);
+        check(!k.has_value(), "'#color' in a PD code is refused");
+    }
+    {
+        auto k = Read("0 0 0\n4 0 0\n4 0 0\n\n2 2 -2\n2 2 2\n8 2 2\n", eof);
+        check(!k.has_value(), "a component with fewer than 3 distinct vertices is refused");
     }
 }
 
@@ -336,6 +464,7 @@ int main()
     TestDetectFormat();
     TestReadKnot();
     TestReadKnot3D();
+    TestReadKnotComponents();
 
     std::printf("\n%s (%d checks, %d failed)\n",
                 fails == 0 ? "KNOODLE IO CHECK OK" : "KNOODLE IO CHECK FAILED",

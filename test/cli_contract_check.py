@@ -426,6 +426,96 @@ def test_3d_input_is_quiet():
     check(noise == [], f"3D trefoil: nothing on stderr; got {noise[:2]}")
 
 
+# A Hopf link as a .kndlxyz: two squares, a blank line between them -- once on
+# the integer lattice, once off it (the floating-point path).
+HOPF_XYZ = {
+    "lattice": "0 0 0\n2 0 0\n2 2 0\n0 2 0\n\n1 1 -1\n3 1 -1\n3 1 1\n1 1 1\n",
+    "float":   ("0.05 0.01 0.02\n2.03 0.02 -0.01\n2.01 2.04 0.03\n0.02 1.97 0.01\n\n"
+                "1.01 1.02 -1.03\n3.02 0.98 -1.01\n2.99 1.03 1.02\n1.03 0.99 0.97\n"),
+}
+
+
+def colors_of(rows):
+    return {r[5] for r in rows if len(r) == 7} | {r[6] for r in rows if len(r) == 7}
+
+
+def test_3d_routes_agree():
+    section("3D input: every route reads the same link")
+
+    # Until 2026-11 ReadKnot skipped blank lines, so a .kndlxyz on stdin -- or
+    # given to knoodleidentify at all, which has no extension routing -- became
+    # ONE closed curve through both squares: the Hopf link came out as the
+    # unknot (`s`, `<||>`), while `knoodlesimplify FILE.kndlxyz` was right.
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        for kind, text in HOPF_XYZ.items():
+            outs = {}
+            # stdin, streaming
+            rc, out, err = run([SIMPLIFY, "--streaming-mode", "-s=0"], text)
+            check(rc == 0, f"Hopf ({kind}) on stdin: exits 0 (rc={rc}): {err.strip()[:160]}")
+            outs["stdin"] = data_lines(out)
+            # a .kndlxyz file, and the same text as a .tsv file
+            for ext in ("kndlxyz", "tsv"):
+                src = os.path.join(tmp, f"hopf_{kind}.{ext}")
+                dst = os.path.join(tmp, f"hopf_{kind}_{ext}.out")
+                with open(src, "w") as f:
+                    f.write(text)
+                rc, _, err = run([SIMPLIFY, "-q", "-s=0", f"--output={dst}", src])
+                check(rc == 0, f"Hopf ({kind}) as .{ext}: exits 0 (rc={rc}): {err.strip()[:160]}")
+                outs[ext] = data_lines(open(dst).read()) if os.path.exists(dst) else []
+
+            for route, rows in outs.items():
+                check(len(rows) in (2, 3) and all(len(r) == 7 for r in rows)
+                      and colors_of(rows) == {"0", "1"},
+                      f"Hopf ({kind}) via {route}: a 2-colour link diagram, got {rows}")
+            check(outs["stdin"] == outs["kndlxyz"] == outs["tsv"],
+                  f"Hopf ({kind}): stdin, .kndlxyz and .tsv give the same diagram")
+
+            rc, out, err = run([SIMPLIFY, "--streaming-mode"], text)
+            rows = data_lines(out)
+            check(rc == 0 and len(rows) == 2 and colors_of(rows) == {"0", "1"},
+                  f"Hopf ({kind}) simplifies to the 2-crossing Hopf link, got {rows}")
+
+            src = os.path.join(tmp, f"hopf_{kind}.kndlxyz")
+            for how, cmd, stdin in (("file", [IDENTIFY, src], ""), ("stdin", [IDENTIFY], text)):
+                rc, out, err = run(cmd, stdin)
+                check(rc == 0 and out.strip().startswith("<| Link["),
+                      f"knoodleidentify Hopf ({kind}) from {how}: a Link, got {out.strip()[:60]!r}")
+
+            for how, cmd, stdin in (("file", [DRAW, src], ""), ("stdin", [DRAW], text)):
+                rc, out, err = run(cmd, stdin)
+                check(rc == 0 and out.strip() != "",
+                      f"knoodledraw Hopf ({kind}) from {how}: draws (rc={rc}): {err.strip()[:160]}")
+
+    # A trefoil beside a distant square is a split LINK, not a trefoil: the
+    # square projects crossingless, so only the component count shows it.
+    import math
+    tref = []
+    for i in range(24):
+        a = 2.0 * math.pi * i / 24.0
+        tref.append(f"{math.sin(a) + 2.0 * math.sin(2.0 * a):.10g} "
+                    f"{math.cos(a) - 2.0 * math.cos(2.0 * a):.10g} "
+                    f"{-math.sin(3.0 * a):.10g}")
+    split = "\n".join(tref) + "\n\n20 0 0\n21 0 0\n21 1 0\n20 1 0\n"
+    rc, out, err = run([IDENTIFY], split)
+    check(rc == 0 and out.strip().startswith("<| Link["),
+          f"knoodleidentify: a trefoil beside a square is a Link, got {out.strip()[:60]!r}")
+    rc, out, err = run([DRAW], split)
+    check(rc == 0 and out.strip() != "",
+          f"knoodledraw draws a trefoil beside a square (rc={rc}): {err.strip()[:160]}")
+
+    # A repeated vertex off the lattice: a zero-length edge, which aborted in
+    # LinesColinearTest (exit 134) before the float path dropped repeats too.
+    stacked = ("0.5 0.5 0.5\n4.5 0.5 0.5\n4.5 0.5 0.5\n4.5 4.5 0.5\n"
+               "4.5 4.5 5.5\n4.5 0.5 5.5\n4.5 0.5 5.5\n0.5 0.5 5.5\n")
+    for name, cmd in (("knoodlesimplify", [SIMPLIFY, "--streaming-mode"]),
+                      ("knoodleidentify", [IDENTIFY]),
+                      ("knoodledraw", [DRAW])):
+        rc, out, err = run(cmd, stacked)
+        check(rc == 0, f"{name}: a float polygon with repeated vertices exits 0 (rc={rc}):"
+                       f" {err.strip()[:160]}")
+
+
 def main():
     print("cli_contract_check -- tool output, exit codes and round-tripping")
 
@@ -437,6 +527,7 @@ def main():
     test_column_counts()
     test_failure_looks_like_failure()
     test_3d_input_is_quiet()
+    test_3d_routes_agree()
     test_help()
     test_flag_spellings()
     test_draw_is_a_filter()

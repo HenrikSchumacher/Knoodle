@@ -2,8 +2,8 @@
  * @file knoodleidentify.cpp
  * @brief knoodleidentify - identify knot diagrams via the KLUT (Knot LookUp Table).
  *
- * Reads RAW knot/link diagrams (PD codes or 3D embeddings, same input formats as
- * knoodlesimplify) from stdin or files, runs the KLUT identify protocol on each
+ * Reads RAW knot/link diagrams (PD codes or 3D polygons, as knoodlesimplify reads
+ * them from a stream; a .kndlxyz file reads as it is) from stdin or files, runs the KLUT identify protocol on each
  * (decompose -> simplify -> escalate with Reapr -> look each prime summand up),
  * and emits one identification per input knot.
  *
@@ -65,7 +65,7 @@ struct Config
     bool expanded       = false;             ///< '#'-joined per-summand output
     bool tsv            = false;             ///< Per-summand TSV output
     bool quiet          = false;             ///< Suppress stderr summary/warnings
-    bool randomize_projection = false;       ///< Apply random shear to 3D geometry projection
+    bool randomize_projection = false;       ///< Random shear of 3D input before projecting
     ki::Size_T escalation_rounds = ki::IdentifyParams{}.cap;      ///< Reapr escalation rounds per candidate
     Int        escalation_band   = ki::IdentifyParams{}.deep_cx;  ///< deep rounds only while stalled <= this
     ki::Size_T rotation_trials   = ki::IdentifyParams{}.rot;      ///< reprojections per embedding
@@ -89,10 +89,12 @@ void PrintUsage()
         "  knoodleidentify diagrams.tsv       # identify diagrams from a file\n"
         "  knoodleidentify                    # read diagrams from the terminal (Ctrl-D)\n"
         "\n"
-        "Reads RAW knot/link diagrams (PD codes or 3D embeddings, same formats as\n"
-        "knoodlesimplify; 'k' separates diagrams) from stdin or the given files,\n"
-        "runs the KLUT identify protocol on each (decompose, simplify, escalate\n"
-        "with Reapr, look each prime summand up), and writes one line per knot.\n"
+        "Reads RAW knot/link diagrams from stdin or the given files, 'k' between\n"
+        "diagrams: PD codes (4-7 columns, as knoodlesimplify reads them) or 3D\n"
+        "polygons (3 columns; a blank line starts a new link component, so a\n"
+        ".kndlxyz file reads as it is). It runs the KLUT identify protocol on\n"
+        "each (decompose, simplify, escalate with Reapr, look each prime summand\n"
+        "up), and writes one line per knot.\n"
         "\n"
         "Self-contained: it simplifies internally -- feed it the SAME stream you\n"
         "would feed knoodlesimplify (generator | knoodleidentify), not the output\n"
@@ -128,7 +130,8 @@ void PrintUsage()
         "  --tsv               Per-summand output: knot_index, summand_index,\n"
         "                      crossing_count, name (tab-separated).\n"
         "  --quiet             Suppress the stderr summary and per-summand warnings.\n"
-        "  --randomize-projection  Apply random shear to 3D geometry projection.\n"
+        "  --randomize-projection  Apply a random shear to 3D input before projecting\n"
+        "                      it (exact for integer coordinates).\n"
         "  -h, --help          Show this help.\n"
         "\n"
         "Knot symbols (default / --tsv); c=crossings, i=index, the third field is the\n"
@@ -650,13 +653,28 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
         const Int input_crossings =
             (pdc.DiagramCount() > Int(0)) ? pdc.CrossingCount() : Int(0);
 
-        ki::IdentifyParams params;
-        params.cap     = config.escalation_rounds;
-        params.deep_cx = config.escalation_band;
-        params.rot     = config.rotation_trials;
+        // 3D input knows its component count exactly. A split link -- a knot
+        // beside a distant circle, say -- projects to the knot's diagram plus
+        // a crossingless component, and the crossingless one carries no
+        // diagram for Identify to count, so it would pass for the knot.
+        const bool link_3d = input_knot->had_3d_geometry
+                          && input_knot->component_count_3d > Int(1);
 
-        ki::IdentifyResult res =
-            ki::Identify(klut, std::move(pdc), reapr, params);
+        ki::IdentifyResult res;
+
+        if (link_3d)
+        {
+            res.status = ki::IdentifyResult::Status::LinkOutOfScope;
+        }
+        else
+        {
+            ki::IdentifyParams params;
+            params.cap     = config.escalation_rounds;
+            params.deep_cx = config.escalation_band;
+            params.rot     = config.rotation_trials;
+
+            res = ki::Identify(klut, std::move(pdc), reapr, params);
+        }
 
         std::vector<Summand> summands;
 

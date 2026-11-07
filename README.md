@@ -114,7 +114,7 @@ The three diagram tools auto-detect their input. You can give a tool a single fi
 |5	| signed PD code (4 arcs + handedness) |
 |6	| unsigned PD code + link-component colors |
 |7	| signed PD code + link-component colors |
-|3	| 3D geometry (x, y, z coordinates) |
+|3	| 3D geometry (x, y, z coordinates); a blank line starts a new link component |
 
 
 and also `.kndlxyz` files, which describe a multi-component 3D link embedding as a collection of polylines. `.kndlxyz` is the multi-component extension of the 3-column 3D geometry format. It is plain text in which each non-blank line is one vertex, given as three whitespace-separated real numbers:
@@ -123,10 +123,18 @@ and also `.kndlxyz` files, which describe a multi-component 3D link embedding as
 ```  
 A block of consecutive vertex lines describes a single closed polygonal link component (the last vertex is joined back to the
 first). A blank line separates one component from the next, so a file with k blank-line-delimited blocks is a k-component link.
-Components are numbered/colored in the order they appear (0, 1, 2, …). The geometry is projected to a diagram the same way as
-3-column input — by default down the z-axis — so use `--randomize-projection` if any segments are vertical. A file containing only non-blank lines with coordinates is parsed as a knot (one-component link) as one would expect.
+Components are numbered/colored in the order they appear (0, 1, 2, …), unless every block is preceded by a `#color N` line;
+any other line starting with `#` is a comment. A file containing only non-blank lines with coordinates is parsed as a knot
+(one-component link) as one would expect. 3-column data in any file or stream follows the same rules, so a `.kndlxyz` file
+can also be piped to a tool on stdin.
 
-Within a file or stream, knots and connected summands are separated by lines containing `k` and `s`, exactly as they are in _polyfold_ output (see the _PolyFold_ section above). When the input is 3D geometry, the default projection is down the z-axis, so pass `--randomize-projection` if your geometry contains vertical segments.
+3D input is projected down the z-axis. Vertical segments and other degenerate projections need no special care: integer
+coordinates are projected exactly, and floating-point coordinates are scaled by a power of 2 onto an integer grid and then
+projected exactly, with symbolic perturbation resolving every degeneracy. A vertex that repeats the one before it is dropped.
+`--randomize-projection` perturbs the geometry before projecting it: a random shear for 3-column data, a random rotation for
+`.kndlxyz` files.
+
+Within a file or stream, knots and connected summands are separated by lines containing `k` and `s`, exactly as they are in _polyfold_ output (see the _PolyFold_ section above).
 
 ## knoodlesimplify
 
@@ -151,7 +159,9 @@ Simplification options:
 Input options:
   --input=FILE                Specify input file (can use multiple times)
   --streaming-mode            Read from stdin, write to stdout
-  --randomize-projection      Apply random shear to 3D geometry projection
+  --randomize-projection      Perturb 3D input before projecting it: a random
+                              shear for 3-column data, a random rotation for
+                              .kndlxyz files (exact for integer coordinates)
 
 Output options:
   --output=FILE               Write all output to FILE
@@ -210,7 +220,9 @@ Boolean tuning (--flag / --no-flag):
   dual-simplex (off)          Use dual simplex method
 
 Input options:
-  --randomize-projection      Apply random shear to 3D geometry projection
+  --randomize-projection      Perturb 3D input before projecting it: a random
+                              shear for 3-column data, a random rotation for
+                              .kndlxyz files (exact for integer coordinates)
 
 Other:
   -h, --help                  Show this help message
@@ -226,7 +238,7 @@ Examples:
 
 ## knoodleidentify
 
-_knoodleidentify_ identifies the knot type of each input diagram by looking it up in the Knoodle Knot Lookup Table (KLUT). It reads raw diagrams (the same formats as _knoodlesimplify_) and simplifies them internally — so feed it the same stream you would feed _knoodlesimplify_, not the output of _knoodlesimplify_. For each input it decomposes the knot into prime summands, simplifies (escalating with _ReAPR_ when needed), and looks each summand up, writing one line per knot.
+_knoodleidentify_ identifies the knot type of each input diagram by looking it up in the Knoodle Knot Lookup Table (KLUT). It reads raw diagrams (PD codes or 3D polygons, as _knoodlesimplify_ reads them from a stream; a `.kndlxyz` file reads as it is) and simplifies them internally — so feed it the same stream you would feed _knoodlesimplify_, not the output of _knoodlesimplify_. For each input it decomposes the knot into prime summands, simplifies (escalating with _ReAPR_ when needed), and looks each summand up, writing one line per knot.
 
 By default each line is a Wolfram Language association mapping each distinct prime summand to its multiplicity, which parses directly via ToExpression, e.g.
 
