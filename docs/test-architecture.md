@@ -113,6 +113,14 @@ not merely "the defaults" -- the manifest's `heavy-args` column expands coverage
 Four minutes is comfortably short of the budget, so this has room to grow as the
 corpus does.
 
+It has grown: at the v1.1.0 release (2026-11-06) it was **39 passed in 761 s wall
+/ 1012 s cpu** (about 14 minutes with the build). Nearly all of that is one test:
+`inflate_check --trials=5` took 757 s (526 s in a run the same hour on another
+checkout -- each trial inflates to ~100k crossings at random, so it is noisy).
+Next were `link_inflate_check` (66 s), `klut_check` (61 s) and `plantri_check`
+(38 s). Still well inside the budget, but `inflate_check` is where to look
+first if the heavy tier ever needs to get faster.
+
 ## 4. The random-polygon corpus (new)
 
 This is the fix for failure (3). Hard unknots are *built* to resist local moves,
@@ -267,6 +275,36 @@ Clause 3. Assertions on shape rather than mathematics:
 * `knoodledraw` works as a Unix filter on `knoodlesimplify`'s output, and refuses
   garbage rather than drawing it.
 
+### 5d. What the Homebrew formula builds — `polyfold_check`, `release_tarball_check`
+
+**Added at v1.1.0.** Until then the suite tested the four `tools/` binaries
+built from a checkout, and nothing else the formula ships. PolyFold was built
+only by the formula, and the release tarball only by the release workflow --
+both from a tag, after it was public. So both broke unseen: PolyFold did not
+compile at all (a path left behind by the move to `devel/PolyFold`, and a
+dangling `hierarchicalQ` from a later commit), and the tarball script's
+allowlist still named two paths that no longer existed.
+
+* `make -C test tools` builds `devel/PolyFold` as well as `tools/`, so a
+  PolyFold compile error fails both tiers before any test runs. Its makefile
+  now has `-MMD -MP` header tracking like `tools/Makefile`, so an edit in
+  `src/` rebuilds it (verified by putting the `hierarchicalQ` line back).
+  `polyfold_check` then runs the formula's own smoke invocation and asserts on
+  the `Info.m` it writes (2 samples, each with a squared gyradius), plus
+  `--help` and the `--extend` output path. `needs=boost_umfpack`, so CI skips
+  it, and says so.
+* `release_tarball_check` has two depths. **Light**, and CI: a static check, no
+  network, well under a second -- every entry of the script's `SHIP` list
+  exists and is tracked, the formula's build entry points are inside it, and no
+  quoted `#include` in shipped code resolves to a file outside it. Verified
+  non-vacuous: the pre-v1.1.0 allowlist fails it 5 ways. **Heavy**
+  (`--build`): run the script, unpack the tarball, build the four tools and
+  PolyFold from the unpacked tree with `KNOODLE_VERSION` unset, and run the
+  formula's checks against those binaries (`--help`, `knoodleidentify` finding
+  its KLUT from a scratch directory, the PolyFold smoke run, the tarball's
+  `VERSION` compiled into every binary). The release gate requires the heavy
+  tier, so a tag can no longer go out with a tarball that does not build.
+
 ## 6. The stderr scan
 
 "Silently refused" is the wrong description of a locked complex, and it has been
@@ -359,6 +397,77 @@ The lint enforces the pairing: a `kind=test` row with reduced arguments and no
 `work` pattern fails, since that is the combination that can hollow out
 unnoticed. It caught `klut_e2e` the moment it was switched on.
 
+## 7a. When a test fails: the report and the logs
+
+**BUILT 2026-11-06**, after a red push reported `embedding_check` as three lines
+of its *known* failures. The runner used to print the last three lines of a
+failing test's stdout and throw the rest away. `embedding_check` ends with its
+xfail list, so the four real failures were above the cut, and nothing was left
+on disk to go back to.
+
+**Every test's whole output is kept.** `run_tier.py` writes
+`test/logs/<tier>/<target>.log` as each test finishes, pass or fail: a header
+(command, how it ended) and then stdout and stderr under their own headings. The
+directory is cleared at the start of each run, so it always holds exactly one
+run. Gitignored; `make clean` removes it.
+
+**`test/logs/<tier>/failed.txt`** lists the tests that did not pass (failed, did
+no work, or not built), one per line, in manifest order. It is written on every
+run, so an empty file means green and a missing one means `run_tier.py` never
+got that far (the build or a lint stopped `make check` first).
+
+**The report shows the failure lines, not the last lines.** For each failing
+test the summary prints how it ended (`exit 1`, or `killed by SIGSEGV` rather
+than `-11`), the path of its log, and an excerpt:
+
+* every stdout line containing a failure word (`FAIL`, `FAILED`, `XPASS`,
+  `ERROR`, `error:`, `Assertion`, `terminate called`, `Segmentation fault`),
+  each with up to two more-indented lines after it for the detail, capped at 12;
+  `XFAIL` deliberately does not match;
+* if there are none, the last 5 lines of stdout, labelled as such;
+* the last 5 lines of stderr, where crashes and assertions land.
+
+The first real report under this rule (dev_prosector before PR #48):
+
+```
+failed:
+  - embedding_check: exit 1   full output: test/logs/light/embedding_check.log
+      FAIL  cross nearmiss_sphere[rot0] LE2 vs LE3
+            first difference at position 113: edge 2 x edge 33 (over, handedness -1)  vs  edge 2 x edge 53 (over, handedness 1)
+      FAIL  cross nearmiss_sphere[rot0] LE3 vs LE4
+      ...
+      stderr:
+        WARNING: ...RequireIntersections: Detected at least 1 self-intersections ...
+```
+
+A test that wants its failures found should print them on lines containing
+`FAIL` (or `XPASS` for a stale xfail marker) and put the detail on indented
+lines under them. `embedding_check` now also prints its known failures first and
+its real failures last, so even a reader of the raw log sees them at the end.
+
+**`run_tier_check`** keeps this true. It builds a fake suite in a temporary
+directory -- a test that fails early and ends with an xfail list, one that is
+killed by a signal after an assertion (SIGTERM, never `abort()`, which files a
+macOS crash report on every run), one that fails without ever printing `FAIL`,
+one that does no work, one never built -- runs the real runner on it
+(`--manifest`, `--log-dir`) and checks what the report and the logs say.
+
+Three runner bugs were fixed alongside:
+
+* **Git's hook environment is stripped.** Inside a hook git exports `GIT_DIR`
+  (and sometimes `GIT_WORK_TREE`, `GIT_INDEX_FILE`, ...). A `git` run from
+  `test/` with those set took `test/` for the top of the worktree, so the
+  runner's own clean-tree check failed and **the stamp was never written in the
+  hook** -- every push re-ran the tier. The runner now removes those variables
+  for its own git calls and for every test it starts.
+* **`--only` no longer stamps.** A run of one test used to write the stamp for
+  the whole tier. Stamps are now written only for a full, unskipped run of the
+  real manifest.
+* **A stamp names the commit the run started at.** HEAD used to be read when
+  the run ended, so a commit made during a 12-minute heavy run was stamped as
+  if it had been tested. The runner now records HEAD and the clean-tree state
+  at the start and stamps only if both are unchanged at the end.
+
 ## 8. Push policy and hooks
 
 ### Rules
@@ -431,9 +540,16 @@ is a warning-shaped refusal with an obvious one-line fix.
 * **Stamps.** A clean tier run writes `test/.stamps/<tier>-<sha>`, but only if
   the worktree is clean **and nothing was skipped**: a stamp against a dirty tree
   would certify code that was never run, and a platform-limited subset covered
-  less than the tier claims. The hook skips a tier whose stamp matches `HEAD`.
+  less than the tier claims. HEAD must also be the commit the run started at
+  (§7a). The hook skips a tier whose stamp matches `HEAD`.
   One mechanism serves both the push gate and the release gate. Gitignored --
   a stamp certifies one checkout, not a commit in the abstract.
+* **A red push leaves its evidence.** The hook keeps the whole `make check`
+  transcript as `test/logs/pre-push.log`, next to the per-test logs (§7a), and
+  prints where both are. It takes the failing tests' names for the message from
+  `test/logs/light/failed.txt` -- it used to run the tier a second time to
+  scrape them, which cost another 15 s and could disagree with the first run.
+  With no `failed.txt` it says the build or a lint failed before any test ran.
 * **CI.** Done. `scripts/ci-build-and-test.sh` used to hard-code three drivers;
   it now runs `run_tier.py --tier=light`, so there is one definition of the tier
   instead of two that drift. Coverage went 3 -> 12 tests.

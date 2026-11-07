@@ -299,7 +299,7 @@ bool HandleOptions( int argc, char** argv )
         if( vm.count("extend") )
         {
                 path = std::filesystem::path( vm["output"].as<std::string>()
-                    + "-H" + ToString(hierarchicalQ)
+//                    + "-H" + ToString(hierarchicalQ)
                     + "-d" + ToString(hard_sphere_diam)
                     + "-n" + ToString(n)
                     + "-b" + ToString(burn_in)

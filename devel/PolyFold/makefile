@@ -29,18 +29,19 @@ endif
 
 CPPFLAGS = -I$(HOMEBREW_PREFIX)/include \
            -I$(HOMEBREW_PREFIX)/include/suitesparse \
-           -I./../submodules/Min-Cost-Flow-Class/OPTUtils \
-           -I./../submodules/Min-Cost-Flow-Class/MCFClass \
-           -I./../submodules/Min-Cost-Flow-Class/MCFSimplex \
-           -I./../submodules/Tensors
+           -I../../submodules/Min-Cost-Flow-Class/OPTUtils \
+           -I../../submodules/Min-Cost-Flow-Class/MCFClass \
+           -I../../submodules/Min-Cost-Flow-Class/MCFSimplex \
+           -I../../submodules/Tensors
 LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lboost_program_options -lumfpack
 
 # Version handling. Priority: an explicit KNOODLE_VERSION, then a VERSION file at
-# the source-tree root (../VERSION) -- the vendored release tarball ships one so the
-# binaries self-describe even with no .git -- then git describe in a real checkout.
+# the source-tree root (../../VERSION, two levels up since PolyFold moved to
+# devel/) -- the vendored release tarball ships one so the binaries self-describe
+# even with no .git -- then git describe in a real checkout.
 ifndef KNOODLE_VERSION
-    ifneq ($(wildcard ../VERSION),)
-        KNOODLE_VERSION := $(shell cat ../VERSION)
+    ifneq ($(wildcard ../../VERSION),)
+        KNOODLE_VERSION := $(shell cat ../../VERSION)
     endif
 endif
 ifdef KNOODLE_VERSION
@@ -53,7 +54,14 @@ endif
 PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
 
-polyfold: main.cpp
+# Header dependency tracking, as in tools/Makefile. The rule used to depend on
+# main.cpp alone, so an edit anywhere in src/ left a stale polyfold that still
+# passed -- and test/polyfold_check, which builds this through `make -C test
+# tools`, would have kept testing the old binary. -MMD writes polyfold.d listing
+# every header actually included; -MP keeps a deleted header from wedging make.
+DEPFLAGS = -MMD -MP
+
+polyfold: main.cpp ../../Knoodle.hpp
 	@echo "=== Building PolyFold on $(UNAME_S) ==="
 	@echo "=== Compiler: $(CXX) ==="
 	@echo "=== Compiler flags: $(CXXFLAGS) ==="
@@ -61,7 +69,7 @@ polyfold: main.cpp
 	@echo "=== Link flags: $(LDFLAGS) ==="
 	@echo ""
 	@echo "Compiling main.cpp..."
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) main.cpp $(LDFLAGS) -o $@
+	$(CXX) $(CXXFLAGS) $(DEPFLAGS) $(CPPFLAGS) main.cpp $(LDFLAGS) -o $@
 	@echo "✓ PolyFold compiled successfully"
 
 install: polyfold
@@ -69,6 +77,8 @@ install: polyfold
 	install -m 755 polyfold $(DESTDIR)$(BINDIR)/
 
 clean:
-	rm -f polyfold
+	rm -f polyfold polyfold.d
 
 .PHONY: install clean
+
+-include polyfold.d

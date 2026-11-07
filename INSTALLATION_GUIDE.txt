@@ -83,8 +83,8 @@ Error: "internal compiler error: Killed (program cc1plus)"
 
 Build taking a few minutes on Linux
 → This is normal. Knoodle is compiled from source with CPU-specific
-  optimizations. Its Homebrew dependencies (boost, clp, metis, suite-sparse)
-  install as ordinary Homebrew packages.
+  optimizations. Its Homebrew dependencies (boost, suite-sparse, and gcc on
+  Linux) install as ordinary Homebrew packages.
 
 
 WHAT GETS INSTALLED
@@ -93,7 +93,12 @@ WHAT GETS INSTALLED
 * knoodlesimplify:   simplify knot/link diagrams to PD codes
 * knoodledraw:       render diagrams as ASCII/Unicode art
 * knoodleidentify:   identify knot types via the KLUT
-* Headers:           development headers in $(brew --prefix)/include/knoodle/
+* knoodleprove:      check the claims in a move-trace stream
+* KLUT data:         the knot lookup table, in $(brew --prefix)/share/knoodle/Klut
+
+The C++ headers are NOT installed: they need the full source tree (submodules
+and vendored dependencies) to compile against. To build your own Knoodle-based
+project, clone https://github.com/HenrikSchumacher/Knoodle.
 
 
 VERIFICATION
@@ -103,6 +108,7 @@ polyfold --help
 knoodlesimplify --help
 knoodledraw --help
 knoodleidentify --help
+knoodleprove --help
 
 
 PERFORMANCE NOTES

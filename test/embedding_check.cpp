@@ -1867,11 +1867,16 @@ int main( int argc, char ** argv )
         std::printf("passed %lld, failed %lld, skipped %lld, known-failing %lld\n",
                     (long long)agg.passed, (long long)agg.failed,
                     (long long)agg.skipped, (long long)agg.xfailed);
-        for( const auto & s2 : agg.failures ) { std::printf("  - %s\n", s2.c_str()); }
+        // Known failures first, real ones last -- see the note in main()'s summary.
         if( !agg.xfails.empty() )
         {
             std::printf("\nknown failures:\n");
             for( const auto & s2 : agg.xfails ) { std::printf("  - %s\n", s2.c_str()); }
+        }
+        if( !agg.failures.empty() )
+        {
+            std::printf("\nfailures (%lld):\n", (long long)agg.failed);
+            for( const auto & s2 : agg.failures ) { std::printf("  - %s\n", s2.c_str()); }
         }
         return (agg.failed == Int(0)) ? 0 : 1;
     }
@@ -2018,11 +2023,10 @@ int main( int argc, char ** argv )
                 (long long)t.passed, (long long)t.failed,
                 (long long)t.skipped, (long long)t.xfailed);
 
-    if( !t.failures.empty() )
-    {
-        std::printf("\nfailures:\n");
-        for( const auto & s : t.failures ) { std::printf("  - %s\n", s.c_str()); }
-    }
+    // Known failures first, real ones LAST: whatever reads the end of this
+    // output -- a terminal, a CI log, a tool that keeps only the tail -- must
+    // land on what actually failed. (2026-11-06: in the other order, a red run's
+    // three-line summary showed only XFAILs and hid the four real failures.)
     if( !t.xfails.empty() )
     {
         std::printf("\nknown failures (declared xfail in the fixture's .expect file --\n"
@@ -2033,6 +2037,11 @@ int main( int argc, char ** argv )
     {
         std::printf("\nskipped:\n");
         for( const auto & s : t.skips ) { std::printf("  - %s\n", s.c_str()); }
+    }
+    if( !t.failures.empty() )
+    {
+        std::printf("\nfailures (%lld):\n", (long long)t.failed);
+        for( const auto & s : t.failures ) { std::printf("  - %s\n", s.c_str()); }
     }
 
     return (t.failed == Int(0)) ? 0 : 1;

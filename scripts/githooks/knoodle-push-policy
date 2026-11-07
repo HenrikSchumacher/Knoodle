@@ -35,7 +35,12 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     [ "${local_sha:-}" = "$ZERO" ] && continue          # deleting a ref
     case "$remote_ref" in
         refs/heads/main)  pushing_main=1; main_sha="$local_sha" ;;
-        refs/tags/v*)     pushing_tag="$remote_ref"; tag_sha="$local_sha" ;;
+        refs/tags/v*)     pushing_tag="$remote_ref"
+                          # Releases are ANNOTATED tags, and for those git hands
+                          # us the tag object's sha. The stamp is keyed on the
+                          # commit, so look through the tag to the commit it names.
+                          tag_sha=$(git rev-parse --verify --quiet "$local_sha^{commit}" 2>/dev/null) \
+                              || tag_sha="$local_sha" ;;
         refs/heads/*)     pushing_branch="${remote_ref#refs/heads/}" ;;
     esac
 done
@@ -58,11 +63,11 @@ The heavy tier has not been run cleanly at this commit ($(echo "$tag_sha" | cut 
 A tag is where a release starts, so this is the last point at which a corner-case
 regression can be caught before users see it.
 
-  To run it (about four minutes):
+  To run it (about fifteen minutes, with the build):
       make -C test check-full
 
   To tag anyway, without having run it:
-      KNOODLE_PUSH_RED=1 git push $* $version
+      KNOODLE_PUSH_RED=1 git push ${1:-origin} $version
 
 EOF
         exit 1
@@ -75,6 +80,16 @@ fi
 head_sha=$(git rev-parse HEAD)
 dirty=$(git status --porcelain --untracked-files=no)
 
+# Where the run is kept. run_tier.py writes each test's full output to
+# logs/light/<target>.log and the names of the tests that did not pass to
+# logs/light/failed.txt; this hook keeps the whole `make check` transcript next
+# to them as logs/pre-push.log. Nothing is deleted: when a push goes red, the
+# full story is still on disk afterwards. (KNOODLE_PUSH_LOG_DIR is a test seam
+# for hooks_check, which must not touch the real logs.)
+LOG_DIR="${KNOODLE_PUSH_LOG_DIR:-$TEST_DIR/logs}"
+FAILED_FILE="$LOG_DIR/light/failed.txt"
+SHOW_LOG_DIR=$(echo "$LOG_DIR" | sed "s|^$REPO/||")
+
 # Test seam: test/hooks_check sets KNOODLE_PUSH_TIER_RESULT to exercise the
 # red paths without waiting 15s for a real run, and without needing a way to
 # make a passing suite fail. Unset in normal use, which is the only way the
@@ -86,27 +101,36 @@ elif [ -z "$dirty" ] && [ -f "$STAMPS/light-$head_sha" ]; then
     tier_rc=0
 else
     printf '\npre-push: running the light tier (~15s of runs; a header bump adds a parallel rebuild)...\n\n'
-    ( cd "$TEST_DIR" && make --no-print-directory check >/tmp/knoodle-prepush.$$ 2>&1 )
+    mkdir -p "$LOG_DIR"
+    # A failed.txt from an earlier run must not be read as this run's: if the
+    # build fails, run_tier.py never runs and never writes a new one.
+    rm -f "$FAILED_FILE"
+    ( cd "$TEST_DIR" && make --no-print-directory check >"$LOG_DIR/pre-push.log" 2>&1 )
     tier_rc=$?
     if [ "$tier_rc" != 0 ]; then
-        tail -40 /tmp/knoodle-prepush.$$ >&2
+        tail -40 "$LOG_DIR/pre-push.log" >&2
+        printf '\n(whole run: %s/pre-push.log; each test'"'"'s own output: %s/light/)\n' \
+            "$SHOW_LOG_DIR" "$SHOW_LOG_DIR" >&2
     else
-        tail -4 /tmp/knoodle-prepush.$$
+        tail -4 "$LOG_DIR/pre-push.log"
     fi
-    rm -f /tmp/knoodle-prepush.$$
 fi
 
 if [ "$tier_rc" = 0 ]; then
     exit 0
 fi
 
-if [ -n "${KNOODLE_PUSH_TIER_RESULT:-}" ]; then
-    failed="${KNOODLE_PUSH_TIER_FAILED:-example_check}"
+# The names come from the run that just happened -- never from a second run,
+# which would cost another 15s and could disagree with the first.
+if [ -n "${KNOODLE_PUSH_TIER_FAILED:-}" ]; then
+    failed="$KNOODLE_PUSH_TIER_FAILED"
+elif [ -s "$FAILED_FILE" ]; then
+    failed=$(tr '\n' ' ' < "$FAILED_FILE" | sed 's/ *$//')
+elif [ -f "$FAILED_FILE" ]; then
+    failed="(none by name -- see $SHOW_LOG_DIR/pre-push.log)"
 else
-    failed=$(cd "$TEST_DIR" && python3 run_tier.py --tier=light 2>/dev/null \
-             | sed -n 's/^  FAIL     \([a-z_0-9]*\).*/\1/p' | tr '\n' ' ')
+    failed="(the build or lint failed before any test ran -- see $SHOW_LOG_DIR/pre-push.log)"
 fi
-[ -z "$failed" ] && failed="(see the output above)"
 
 # --- red, pushing to main ---------------------------------------------------
 if [ "$pushing_main" = 1 ]; then
@@ -156,10 +180,10 @@ commit message has to say so, and this one does not.
   To fix the message and push:
       git commit --amend
       (add a line such as: "WIP: pushes red, $failed failing")
-      git push $*
+      git push ${1:-origin}
 
   To push as-is:
-      KNOODLE_PUSH_RED=1 git push $*
+      KNOODLE_PUSH_RED=1 git push ${1:-origin}
 
 EOF
     exit 1

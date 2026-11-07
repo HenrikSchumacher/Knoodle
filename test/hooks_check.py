@@ -149,14 +149,93 @@ exit 0
             os.rename(backup, policy)
 
 
-def run_policy(refs, env_extra, args=("origin", "url")):
+def run_policy(refs, env_extra, args=("origin", "url"), cwd=REPO):
     env = dict(os.environ, **env_extra)
     env.pop("KNOODLE_PUSH_RED", None)
     if "KNOODLE_PUSH_RED" in env_extra:
         env["KNOODLE_PUSH_RED"] = env_extra["KNOODLE_PUSH_RED"]
-    p = subprocess.run([os.path.join(HOOKS, "knoodle-push-policy"), *args],
-                       input=refs, capture_output=True, text=True, env=env, cwd=REPO)
+    # Never let the policy read (or write) the real test/logs: unless a test
+    # supplies its own, every run gets an empty throwaway log directory.
+    with tempfile.TemporaryDirectory() as empty_logs:
+        env.setdefault("KNOODLE_PUSH_LOG_DIR", empty_logs)
+        p = subprocess.run([os.path.join(HOOKS, "knoodle-push-policy"), *args],
+                           input=refs, capture_output=True, text=True, env=env, cwd=cwd)
     return p.returncode, p.stdout + p.stderr
+
+
+def test_annotated_tag_gate():
+    section("the release gate looks through an annotated tag to its commit")
+
+    # Releases are cut with `git tag -a`, and pre-push is handed the TAG
+    # OBJECT's sha, not the commit's. The stamp is keyed on the commit, so a
+    # gate comparing the raw sha refused every real release even after a clean
+    # heavy run. The fake shas above cannot catch this: it takes a real tag
+    # object, so build one in a throwaway repository.
+    git = ["git", "-c", "user.name=hooks_check", "-c", "user.email=hooks@example.invalid",
+           "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false", "-c", "core.hooksPath=/dev/null"]
+    with tempfile.TemporaryDirectory() as repo:
+        def g(*a):
+            return subprocess.run([*git, *a], cwd=repo, capture_output=True, text=True,
+                                  check=True).stdout.strip()
+        g("init", "-q")
+        g("commit", "-q", "--allow-empty", "-m", "release")
+        commit = g("rev-parse", "HEAD")
+        g("tag", "-a", "v9.9.9", "-m", "v9.9.9")
+        tag_object = g("rev-parse", "v9.9.9")
+        check(tag_object != commit, "(setup) the annotated tag is its own object")
+
+        tag_ref = f"refs/tags/v9.9.9 {tag_object} refs/tags/v9.9.9 {'0'*40}\n"
+        green = {"KNOODLE_PUSH_TIER_RESULT": "0"}
+
+        rc, out = run_policy(tag_ref, green, cwd=repo)
+        check(rc != 0, "annotated v* tag, no heavy stamp -> refused")
+        check(commit[:12] in out, "the refusal names the COMMIT, not the tag object")
+
+        os.makedirs(os.path.join(repo, "test", ".stamps"))
+        open(os.path.join(repo, "test", ".stamps", f"heavy-{commit}"), "w").close()
+
+        rc, out = run_policy(tag_ref, green, cwd=repo)
+        check(rc == 0, "annotated v* tag + heavy stamp on its commit -> allowed")
+        check("heavy tier verified" in out, "the gate says the heavy tier was verified")
+
+        light_ref = f"refs/tags/v9.9.9 {commit} refs/tags/v9.9.9 {'0'*40}\n"
+        rc, out = run_policy(light_ref, green, cwd=repo)
+        check(rc == 0, "lightweight v* tag + heavy stamp -> allowed")
+
+
+def test_failure_names_come_from_the_run():
+    section("the policy names failures from the run's own failed.txt")
+
+    sha = "a" * 40
+    main_ref = f"refs/heads/main {sha} refs/heads/main {'b'*40}\n"
+    red = {"KNOODLE_PUSH_TIER_RESULT": "1"}
+
+    with tempfile.TemporaryDirectory() as logs:
+        os.makedirs(os.path.join(logs, "light"))
+        with open(os.path.join(logs, "light", "failed.txt"), "w") as f:
+            f.write("alpha_check\nbeta_check\n")
+        rc, out = run_policy(main_ref, dict(red, KNOODLE_PUSH_LOG_DIR=logs))
+        check(rc != 0, "RED + main -> refused (names from failed.txt)")
+        check("alpha_check beta_check" in out,
+              "the refusal names every test listed in failed.txt")
+
+    # No failed.txt at all means run_tier.py never ran: `make check` stopped at
+    # the build or the lints. Say so -- the old "(see the output above)" is how
+    # a build failure used to read in a commit message.
+    with tempfile.TemporaryDirectory() as logs:
+        rc, out = run_policy(main_ref, dict(red, KNOODLE_PUSH_LOG_DIR=logs))
+        check(rc != 0, "RED + main with no failed.txt -> refused")
+        check("before any test ran" in out,
+              "with no failed.txt the refusal says the build or lint failed first")
+
+    # The names must come from the run that just happened. Re-running the tier
+    # to scrape them cost another 15s and could disagree with the first run.
+    code = "\n".join(ln for ln in open(os.path.join(HOOKS, "knoodle-push-policy"))
+                      if not ln.lstrip().startswith("#"))
+    check("run_tier.py" not in code,
+          "the policy never runs run_tier.py itself (one run per push)")
+    check("rm -f /tmp/knoodle-prepush" not in code and "pre-push.log" in code,
+          "the policy keeps the run's transcript instead of deleting it")
 
 
 def test_policy_decisions():
@@ -190,6 +269,10 @@ def test_policy_decisions():
     rc, out = run_policy(tag_ref, green)
     check(rc != 0, "v* tag with no heavy-tier stamp -> refused")
     check("check-full" in out, "the tag refusal says how to run the heavy tier")
+    # pre-push is handed <remote name> <url>; the hint used to expand "$*"
+    # into `git push origin url v9.9.9`, which is not a command.
+    check("KNOODLE_PUSH_RED=1 git push origin v9.9.9" in out,
+          "the tag refusal's command names the remote, not the remote and its url")
 
     rc, out = run_policy(tag_ref, dict(green, KNOODLE_PUSH_RED="1"))
     check(rc == 0, "v* tag + override -> allowed")
@@ -211,6 +294,8 @@ def main():
     test_stdin_is_captured_before_lfs()
     test_stdin_reaches_both_consumers()
     test_policy_decisions()
+    test_annotated_tag_gate()
+    test_failure_names_come_from_the_run()
 
     print(f"\n{'HOOKS CHECK OK' if fails == 0 else 'HOOKS CHECK FAILED'}"
           f" ({checks} checks, {fails} failed)")

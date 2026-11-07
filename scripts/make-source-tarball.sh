@@ -60,10 +60,22 @@ fi
 # deps (test/vendor/libhomfly, test/vendor/plantri) and Python venv, none of which
 # belong in a lean point-release tarball. Keep test-only vendored deps under
 # test/vendor/, NEVER in the shipped deps/ tree, and do not add test/ or docs/ here.
-mkdir -p "$STAGE/data"
-cp -a PolyFold tools src legacy deps submodules "$STAGE"/
-cp -a data/Klut "$STAGE/data/"
-cp -a Knoodle.hpp Reapr_Legacy.hpp INSTALL_HPC_MODULES.sh "$STAGE"/
+#
+# ONE list, used by both the copy here and the tracked-file filter in step 4, so the
+# two cannot drift apart. (They did: v1.1.0 found both still naming PolyFold/ and
+# Reapr_Legacy.hpp, months after the Grand cleanup moved one to devel/PolyFold and
+# deleted the other -- and `cp -a` of a missing path kills the release workflow.)
+# Paths keep their place in the tree, so devel/PolyFold ships as devel/PolyFold
+# and its makefile's ../../ include paths still resolve.
+SHIP=(tools devel/PolyFold src legacy deps submodules data/Klut
+      Knoodle.hpp INSTALL_HPC_MODULES.sh README.md LICENSE CITATION.cff)
+for p in "${SHIP[@]}"; do
+  [ -e "$p" ] || { echo "ERROR: '$p' is in the tarball allowlist but not in this checkout -- was it moved or deleted? Update SHIP in $0."; exit 1; }
+done
+for p in "${SHIP[@]}"; do
+  mkdir -p "$STAGE/$(dirname "$p")"
+  cp -a "$p" "$STAGE/$(dirname "$p")/"
+done
 
 # 4) Keep ONLY git-tracked files (allowlist, not denylist). cp -a stages the whole
 # working tree, so a dirty checkout could otherwise carry in untracked/ignored cruft
@@ -73,7 +85,7 @@ cp -a Knoodle.hpp Reapr_Legacy.hpp INSTALL_HPC_MODULES.sh "$STAGE"/
 # (data/diagrams is never copied; the generated VERSION is added in step 4b, after.)
 TRACKED="$TMP/tracked.txt"
 {
-  git ls-files -- PolyFold tools src legacy deps Knoodle.hpp Reapr_Legacy.hpp INSTALL_HPC_MODULES.sh data/Klut
+  git ls-files -- "${SHIP[@]}"
   # Each submodule lists its own tracked files; prefix with its path in the superproject.
   git submodule foreach --recursive --quiet 'git ls-files | sed "s#^#$displaypath/#"'
 } | LC_ALL=C sort -u > "$TRACKED"
@@ -104,11 +116,16 @@ printf '%s\n' "$VERSION" > "$STAGE/VERSION"
 # into each listed directory and re-archives its contents -- duplicating every file
 # once per ancestor dir (bsdtar balloons a 34 MB tree to ~140 MB / 5x the entries;
 # GNU tar dedups, so the bug was invisible on the Linux runner). Both tars honor it.
+#
+# COPYFILE_DISABLE=1: macOS bsdtar otherwise writes an AppleDouble "._<name>" entry
+# for every file carrying extended attributes (provenance, quarantine, ...), which
+# unpack on Linux as stray files. test/release_tarball_check caught this at v1.1.0.
+# GNU tar ignores the variable, so the canonical (runner-built) asset is unchanged.
 find "$STAGE" -exec touch -h -t 200001010000.00 {} +
 OUTDIR_ABS="$(cd "$OUTDIR" && pwd)"
 ( cd "$TMP" \
   && find "$NAME" -print0 | LC_ALL=C sort -z \
-     | tar --no-recursion --numeric-owner --owner=0 --group=0 --null -T - -cf - ) \
+     | COPYFILE_DISABLE=1 tar --no-recursion --numeric-owner --owner=0 --group=0 --null -T - -cf - ) \
   | gzip -n -9 > "$OUTDIR_ABS/$NAME.tar.gz"
 
 echo "==> Wrote $OUTDIR/$NAME.tar.gz  ($(du -h "$OUTDIR/$NAME.tar.gz" | cut -f1))"
