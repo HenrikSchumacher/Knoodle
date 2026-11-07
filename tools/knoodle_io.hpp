@@ -22,7 +22,9 @@
 #include <system_error>
 #include <utility>
 
+#ifndef _WIN32
 #include <sys/utsname.h>   // runtime machine identity for the failure report
+#endif
 #include <iomanip>
 #include <iostream>
 #include <optional>
@@ -341,6 +343,11 @@ CerrErrorTap* g_cerr_tap = nullptr;
 [[maybe_unused]] std::string RuntimeIdentity()
 {
     std::string s;
+#ifdef _WIN32
+    // No uname() on Windows (the Mathematica paclet's build); the build
+    // identity above already names the target.
+    s += "  running on      : Windows\n";
+#else
     struct utsname u;
     if (uname(&u) == 0)
     {
@@ -351,6 +358,7 @@ CerrErrorTap* g_cerr_tap = nullptr;
     {
         s += "  running on      : (uname failed)\n";
     }
+#endif
     return s;
 }
 

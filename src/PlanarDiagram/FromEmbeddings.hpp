@@ -28,7 +28,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinates( cptr<Real> x, const Ext
 
     // Deallocate tree-related data in L to make room for the PD_T.
     L.DeleteTree();
-    
+
     Tensor1<Int,Int> comp_color(Int{1},Int{0});
 
     // We delay the allocation until substantial parts of L have been deallocated.

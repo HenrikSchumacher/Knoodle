@@ -86,6 +86,7 @@ orthodecorate_check	test	plain	-	-	-	PROBE OK \([1-9][0-9]* checks passed\)
 pass_view_check	test	plain	-	-	-	PASS VIEW CHECK OK \([1-9][0-9]* checks passed\)
 oracle_vs_reroute	tool	plain	-	-	-	-
 ordering_probe	tool	plain	-	-	-	-
+wideint_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)
 witness_check	test	plain	-	-	-	WITNESS CHECK OK \([1-9][0-9]* checks passed\)
 draw_trace_check	script	-	draw_trace_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 r1_draw_check	script	-	r1_draw_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
