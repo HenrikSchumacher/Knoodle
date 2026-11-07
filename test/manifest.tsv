@@ -57,6 +57,7 @@ diagram_sanity_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)
 embedding_check	test	homfly_umfpack	-	-	--coords=f64,f32,i32,i64 --rotations=8	passed [1-9][0-9]*, failed 0
 embedding_inflation_check	test	plain	-	-	-	-
 error_tap_check	test	plain	-	-	-	-
+float_offset_check	test	plain	-	-	-	FLOAT OFFSET CHECK OK \([1-9][0-9]* checks, 0 failed
 homfly_check	test	homfly	-	-	-	-
 inflate_check	test	homfly_umfpack	-	--trials=1 --target=3000 --max-rounds=8	--trials=5	inflate_check: [1-9][0-9]*/[1-9][0-9]* trials passed
 intersection3d_check	test	plain	-	-	-	-
