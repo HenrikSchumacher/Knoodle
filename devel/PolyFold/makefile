@@ -29,18 +29,19 @@ endif
 
 CPPFLAGS = -I$(HOMEBREW_PREFIX)/include \
            -I$(HOMEBREW_PREFIX)/include/suitesparse \
-           -I./../submodules/Min-Cost-Flow-Class/OPTUtils \
-           -I./../submodules/Min-Cost-Flow-Class/MCFClass \
-           -I./../submodules/Min-Cost-Flow-Class/MCFSimplex \
-           -I./../submodules/Tensors
+           -I../../submodules/Min-Cost-Flow-Class/OPTUtils \
+           -I../../submodules/Min-Cost-Flow-Class/MCFClass \
+           -I../../submodules/Min-Cost-Flow-Class/MCFSimplex \
+           -I../../submodules/Tensors
 LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lboost_program_options -lumfpack
 
 # Version handling. Priority: an explicit KNOODLE_VERSION, then a VERSION file at
-# the source-tree root (../VERSION) -- the vendored release tarball ships one so the
-# binaries self-describe even with no .git -- then git describe in a real checkout.
+# the source-tree root (../../VERSION, two levels up since PolyFold moved to
+# devel/) -- the vendored release tarball ships one so the binaries self-describe
+# even with no .git -- then git describe in a real checkout.
 ifndef KNOODLE_VERSION
-    ifneq ($(wildcard ../VERSION),)
-        KNOODLE_VERSION := $(shell cat ../VERSION)
+    ifneq ($(wildcard ../../VERSION),)
+        KNOODLE_VERSION := $(shell cat ../../VERSION)
     endif
 endif
 ifdef KNOODLE_VERSION
