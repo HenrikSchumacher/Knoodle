@@ -161,11 +161,12 @@ static void TestDetectFormat()
 // ---------------------------------------------------------------------------
 // ReadKnot: the whole parser, driven from a string.
 
-static std::optional<InputKnot> Read( const std::string & text, bool & eof )
+static std::optional<InputKnot> Read( const std::string & text, bool & eof,
+                                      InputOptions options = InputOptions() )
 {
     std::istringstream in (text);
-    Knoodle::PRNG_T rng (12345);
-    return ReadKnot(in, /*randomize_projection=*/false, rng, "test", eof);
+    Knoodle::PRNG_T rng = SeededEngine(12345);
+    return ReadKnot(in, options, rng, "test", eof);
 }
 
 // A trefoil as a 5-column signed PD code.
@@ -306,7 +307,7 @@ static void TestReadKnot3D()
         check(k->had_3d_geometry, "had_3d_geometry is set");
         check(k->vertex_count_3d == Int(24), "all 24 vertices are counted");
         check(k->input_column_count == 3, "column count reported as 3");
-        // The projection is deterministic here (randomize_projection = false),
+        // The projection is deterministic here (--projection=z, the default),
         // so the standard trefoil's 3 crossings are a fixed expectation.
         check(k->summands.size() == 1 && k->summands[0].CrossingCount() == Int(3),
               "the standard trefoil projects to 3 crossings");
@@ -454,6 +455,100 @@ static void TestReadKnotComponents()
     }
 }
 
+// ---------------------------------------------------------------------------
+// --projection, --seed, --exact-input
+
+static void TestInputOptions()
+{
+    section("--projection, --seed and --exact-input");
+
+    // --projection's vocabulary is fixed, so its spelling is forgiven.
+    check(ParseProjection("z") == Projection_T::Z, "--projection=z");
+    check(ParseProjection("X") == Projection_T::X, "--projection=X is x");
+    check(ParseProjection("y") == Projection_T::Y, "--projection=y");
+    check(ParseProjection("RANDOM") == Projection_T::Random, "--projection=RANDOM is random");
+    check(!ParseProjection("w") && !ParseProjection("") && !ParseProjection("rand"),
+          "w, the empty string and abbreviations are refused");
+    check(ProjectionName(Projection_T::Random) == "random" && ProjectionName(Projection_T::Z) == "z",
+          "ProjectionName gives the preferred spelling");
+
+    // --seed is a number, so it is read verbatim.
+    check(ParseSeed("0") == std::uint64_t(0), "--seed=0");
+    check(ParseSeed("18446744073709551615") == std::uint64_t(18446744073709551615ull),
+          "--seed=2^64-1");
+    check(!ParseSeed("18446744073709551616"), "--seed=2^64 is refused, not wrapped");
+    check(!ParseSeed("-1") && !ParseSeed("+1") && !ParseSeed(" 1") && !ParseSeed("1x")
+          && !ParseSeed(""), "signs, spaces, trailing junk and the empty string are refused");
+
+    {
+        Knoodle::PRNG_T a = SeededEngine(5), b = SeededEngine(5), c = SeededEngine(6);
+        const auto a1 = a(), b1 = b(), c1 = c();
+        check(a1 == b1 && a() == b(), "the same seed gives the same engine");
+        check(a1 != c1, "a different seed gives a different engine");
+        Knoodle::PRNG_T da = DerivedEngine(a), db = DerivedEngine(b);
+        check(da() == db() && a() == b(), "derived engines follow the seed too");
+    }
+
+    bool eof = false;
+    InputOptions o;
+
+    // The Hopf link down each axis: degenerate down x and y (each square is a
+    // segment seen edge-on), which the exact projector perturbs symbolically.
+    for( Projection_T p : {Projection_T::Z, Projection_T::X, Projection_T::Y, Projection_T::Random} )
+    {
+        o.projection = p;
+        auto k = Read(kHopf, eof, o);
+        check(k && k->summands.size() == 1 && k->summands[0].LinkComponentCount() == Int(2)
+              && k->summands[0].CrossingCount() >= Int(2),
+              "the Hopf link projects to a 2-component diagram with --projection="
+              + ProjectionName(p));
+    }
+
+    // --projection=random draws from the engine: the same seed, the same diagram.
+    {
+        o.projection = Projection_T::Random;
+        auto k1 = Read(kHopf, eof, o);
+        auto k2 = Read(kHopf, eof, o);
+        check(k1 && k2 && k1->summands.size() == 1 && k2->summands.size() == 1
+              && k1->summands[0].PDCode() == k2->summands[0].PDCode(),
+              "--projection=random repeats under the same seed");
+    }
+
+    // --exact-input. Integer coordinates are always exact, rotated or not.
+    o.exact_input = true;
+    o.projection  = Projection_T::Random;
+    check(Read(kHopf, eof, o).has_value(), "--exact-input takes a lattice link, even rotated");
+
+    // Dyadic coordinates land on the grid exactly ...
+    const char * dyadic = "0.5 0.25 0\n4 0 0\n4 4 0\n0 4 0\n\n2 2 -2\n2 2 2\n8 2 2\n8 2 -2\n";
+    o.projection = Projection_T::Z;
+    check(Read(dyadic, eof, o).has_value(), "--exact-input takes dyadic coordinates");
+    o.projection = Projection_T::X;
+    check(Read(dyadic, eof, o).has_value(), "... down the x-axis too (a permutation is exact)");
+    // ... but cannot be rotated exactly.
+    o.projection = Projection_T::Random;
+    check(!Read(dyadic, eof, o).has_value(),
+          "--exact-input refuses --projection=random of non-integer coordinates");
+
+    // 0.01 is not dyadic: at the grid's scale it rounds.
+    o.projection = Projection_T::Z;
+    check(!Read("0.01 0 0\n4 0 0\n4 4 0\n0 4 0\n\n2 2 -2\n2 2 2\n8 2 2\n8 2 -2\n", eof, o).has_value(),
+          "--exact-input refuses coordinates that round onto the grid");
+    o.exact_input = false;
+    check(Read("0.01 0 0\n4 0 0\n4 4 0\n0 4 0\n\n2 2 -2\n2 2 2\n8 2 2\n8 2 -2\n", eof, o).has_value(),
+          "... which read fine without it");
+
+    // Far from the origin for their spread: the grid's scale comes from the
+    // spread, so |x| times it overflows 60 bits (GH #50).
+    o.exact_input = true;
+    check(!Read("1000.5 0 0\n1004 0 0\n1004 4 0\n1000 4 0\n", eof, o).has_value(),
+          "--exact-input refuses coordinates too far from the origin for their spread");
+    check(PredictedGridScale({0.5, 0, 0, 4, 0, 0, 4, 4, 0}).second == 58,
+          "PredictedGridScale: extent 4 is scaled by 2^58");
+    check(PredictedGridScale({0, 0, 0, 4, 0, 0, 4, 4, 0}).first == 1.0,
+          "PredictedGridScale: integer input is not scaled up");
+}
+
 int main()
 {
     std::printf("knoodle_io_check -- tools/knoodle_io.hpp input parsing\n");
@@ -465,6 +560,7 @@ int main()
     TestReadKnot();
     TestReadKnot3D();
     TestReadKnotComponents();
+    TestInputOptions();
 
     std::printf("\n%s (%d checks, %d failed)\n",
                 fails == 0 ? "KNOODLE IO CHECK OK" : "KNOODLE IO CHECK FAILED",

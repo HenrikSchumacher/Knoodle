@@ -99,7 +99,7 @@ _PolyFold_ produces a directory containing files named "Tools_Log.txt" (for debu
 _Knoodle_ ships four command-line knot tools — _knoodlesimplify_, _knoodledraw_, _knoodleidentify_, and _knoodleprove_ — which are installed by the homebrew formula alongside _PolyFold_. They can also be compiled by running make in the tools subdirectory. The first three share a common set of input formats and are designed to compose as Unix filters, so a typical pipeline looks like:
 
 ```
-knoodlesimplify --streaming-mode < input.tsv | knoodledraw
+knoodlesimplify < input.tsv | knoodledraw
 generator | knoodleidentify
 ```
 
@@ -128,17 +128,30 @@ any other line starting with `#` is a comment. A file containing only non-blank 
 (one-component link) as one would expect. 3-column data in any file or stream follows the same rules, so a `.kndlxyz` file
 can also be piped to a tool on stdin.
 
-3D input is projected down the z-axis. Vertical segments and other degenerate projections need no special care: integer
-coordinates are projected exactly, and floating-point coordinates are scaled by a power of 2 onto an integer grid and then
-projected exactly, with symbolic perturbation resolving every degeneracy. A vertex that repeats the one before it is dropped.
-`--randomize-projection` perturbs the geometry before projecting it: a random shear for 3-column data, a random rotation for
-`.kndlxyz` files.
+3D input is projected down the z-axis by default. Vertical segments and other degenerate projections need no special care:
+integer coordinates are projected exactly, and floating-point coordinates are scaled by a power of 2 onto an integer grid and
+then projected exactly, with symbolic perturbation resolving every degeneracy. A vertex that repeats the one before it is
+dropped. All three diagram tools take the same flags for 3D input:
+
+- `--projection=z|x|y|random` chooses the direction. `x` and `y` project down those axes, exactly. `random` first applies a
+  uniformly random rotation to the whole link: an exact integer rotation for integer coordinates, a floating-point one
+  otherwise. `--randomize-projection` is the old name for `--projection=random`. (It used to give 3-column input a random
+  shear instead of a rotation: an oblique view at most about 35° off the z-axis.)
+- `--exact-input` refuses 3D input that cannot be projected exactly. Integer coordinates always can. Floating-point
+  coordinates can only if they land exactly on the integer grid (dyadic values like 0.25 do; 0.01 does not), if they are not
+  far from the origin compared with their spread, and if they are not rotated by `--projection=random`.
+- `--seed=N` seeds every random choice the tool makes: the random projection, and the _ReAPR_ embeddings of
+  `knoodlesimplify -s=6`, `knoodledraw --embedding` and `knoodleidentify`. The same seed repeats a run on the same build;
+  the standard library's random distributions differ between libc++ and libstdc++, so it may not repeat on another one.
+  One random source is out of its reach: the bend randomization of the OrthoDraw layout inside _ReAPR_. To repeat a
+  `knoodlesimplify -s=6` run exactly, add `--randomize-bends=0 --no-randomize-virtual-edges`. `knoodledraw --embedding`
+  has no switch for it yet. Without `--seed`, a seed is drawn at random, and a failing run's error report names it.
 
 Within a file or stream, knots and connected summands are separated by lines containing `k` and `s`, exactly as they are in _polyfold_ output (see the _PolyFold_ section above).
 
 ## knoodlesimplify
 
-_knoodlesimplify_ is a convenient interface to the knot simplifications in _Knoodle_. It reads diagrams (as PD codes or 3D polygons) and writes simplified PD codes. With `--streaming-mode` it reads from stdin and writes to stdout, so it can be dropped into a pipeline; it is also a quick and robust way to convert polygons to PD codes (use `-s=0` to project a polygon to a PD code with no simplification).
+_knoodlesimplify_ is a convenient interface to the knot simplifications in _Knoodle_. It reads diagrams (as PD codes or 3D polygons) and writes simplified PD codes. Given no input files and a pipe on stdin, it reads stdin and writes stdout (or `--output=FILE`), so it can be dropped into a pipeline. `--streaming-mode` does the same and also moves its log to a file, which is how the Mathematica paclet drives it. It is also a quick and robust way to convert polygons to PD codes (use `-s=0` to project a polygon to a PD code with no simplification).
 
 ```
 Usage: knoodlesimplify [options] [input_files...]
@@ -158,10 +171,17 @@ Simplification options:
 
 Input options:
   --input=FILE                Specify input file (can use multiple times)
-  --streaming-mode            Read from stdin, write to stdout
-  --randomize-projection      Perturb 3D input before projecting it: a random
-                              shear for 3-column data, a random rotation for
-                              .kndlxyz files (exact for integer coordinates)
+                              With no input files and stdin a pipe, read stdin
+                              and write stdout (or --output=FILE)
+  --streaming-mode            Read from stdin, write to stdout, and move the
+                              log to a file (what the Mathematica paclet uses)
+  --projection=P              How 3D input is projected (default: z):
+                                z, x, y  down that axis (exact)
+                                random   after a uniformly random rotation
+                                         (exact for integer coordinates)
+  --randomize-projection      Same as --projection=random
+  --exact-input               Refuse 3D input that cannot be projected exactly
+  --seed=N                    Seed every random choice (N in [0, 2^64))
 
 Output options:
   --output=FILE               Write all output to FILE
@@ -170,6 +190,9 @@ Output options:
 Other:
   -h, --help                  Show this help message
 ```
+
+`knoodlesimplify --help` also lists the fine-tuning flags for the simplifier
+(`--reapr-rotation-trials`, `--randomize-bends`, `--dijkstra-strategy`, ...).
 
 ## knoodledraw
 
@@ -220,17 +243,22 @@ Boolean tuning (--flag / --no-flag):
   dual-simplex (off)          Use dual simplex method
 
 Input options:
-  --randomize-projection      Perturb 3D input before projecting it: a random
-                              shear for 3-column data, a random rotation for
-                              .kndlxyz files (exact for integer coordinates)
+  --projection=P              How 3D input is projected: z (default), x, y, random
+  --randomize-projection      Same as --projection=random
+  --exact-input               Refuse 3D input that cannot be projected exactly
+  --seed=N                    Seed every random choice (N in [0, 2^64))
 
 Other:
+  -q, --quiet                 No warnings or notices on stderr (errors still
+                              print, and still make the exit status nonzero)
   -h, --help                  Show this help message
 ```
 
+`knoodledraw --help` also documents `--format=wl`, `--embedding`, and the pass-move and trace options.
+
 Examples:
 ```
-  knoodlesimplify --streaming-mode < input.tsv | knoodledraw
+  knoodlesimplify < input.tsv | knoodledraw
   knoodledraw diagram.tsv
   knoodledraw --quality=fast --ascii diagram.tsv
   knoodledraw --quality=debug --ascii diagram.tsv
@@ -259,11 +287,25 @@ Options:
                       else data/Klut next to this executable's parent,
                       else ./data/Klut.
   --max-crossings=N   Use subtables up to N crossings (3-13, default 13).
+  --escalation-rounds=N  Max Reapr escalation rounds per candidate
+                      (default 4)
+  --escalation-band=C Rounds beyond the first 2 run only while the
+                      stalled diagram has <= C crossings (default 16)
+  --reapr-rotation-trials=N  Reprojections per embedding during escalation
+                      (default 5). --rotation-trials=N is the same flag.
+  --reapr-energy=E    Reapr's energy for the escalation embeddings
+                      (default: TV)
+  --reapr-scaling=X   Reapr's 3D grid scaling (default: 1.0)
   --expanded          One line per knot, summands joined by ' # ' (uses
                       the raw K[...] table names).
   --tsv               Per-summand output: knot_index, summand_index,
                       crossing_count, name (tab-separated).
-  --quiet             Suppress the stderr summary and per-summand warnings.
+  -q, --quiet         Suppress the stderr summary, the per-summand warnings
+                      and the reading-from-the-terminal notice.
+  --projection=P      How 3D input is projected: z (default), x, y, random
+  --randomize-projection  Same as --projection=random
+  --exact-input       Refuse 3D input that cannot be projected exactly
+  --seed=N            Seed every random choice (N in [0, 2^64))
   -h, --help          Show this help.
 ```
   

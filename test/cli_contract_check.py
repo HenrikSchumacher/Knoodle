@@ -325,17 +325,19 @@ def test_flag_spellings():
     # values -- paths, PD descriptors, numbers -- are matched verbatim instead,
     # since dropping '-' from a path or a negative number changes its meaning.
     value_accepted = [
-        (SIMPLIFY, ["--format=PDC", "--reapr-energy=TV-CLP",
+        (IDENTIFY, ["--projection=Random", "--projection=X", "--reapr-energy=tv_mcf"]),
+        (SIMPLIFY, ["--projection=RANDOM", "--format=PDC", "--reapr-energy=TV-CLP",
                     "--dijkstra-strategy=BiDirectional",
                     "--compaction-method=AREA_LENGTH_CLP"]),
-        (DRAW, ["--format=WL", "--quality=DEBUG", "--bend-method=MCF",
+        (DRAW, ["--projection=Y", "--format=WL", "--quality=DEBUG", "--bend-method=MCF",
                 "--compaction=LENGTH_MCF", "--reapr-energy=TV_CLP",
                 "--pass-view=Before"]),
     ]
 
     value_rejected = [
-        (SIMPLIFY, ["--format=tsv", "--dijkstra-strategy=sideways"]),
-        (DRAW, ["--format=bogus", "--quality=turbo", "--pass-view=sideways"]),
+        (IDENTIFY, ["--projection=w", "--projection=rand", "--reapr-energy=bogus"]),
+        (SIMPLIFY, ["--projection=sideways", "--format=tsv", "--dijkstra-strategy=sideways"]),
+        (DRAW, ["--projection=q", "--format=bogus", "--quality=turbo", "--pass-view=sideways"]),
     ]
 
     for tool, spellings in value_accepted:
@@ -516,6 +518,128 @@ def test_3d_routes_agree():
                        f" {err.strip()[:160]}")
 
 
+def test_input_flags():
+    section("--projection, --seed, --exact-input, -q, and identify's Reapr flags")
+
+    import math
+    import tempfile
+
+    lattice = HOPF_XYZ["lattice"]
+    decimal = HOPF_XYZ["float"]                # 0.01 and friends: they round
+    dyadic = lattice.replace("0 0 0\n", "0.5 0.25 0\n", 1)
+    tref = "".join(f"{math.sin(a) + 2 * math.sin(2 * a):.10g} "
+                   f"{math.cos(a) - 2 * math.cos(2 * a):.10g} {-math.sin(3 * a):.10g}\n"
+                   for a in (2 * math.pi * i / 24 for i in range(24)))
+
+    simplify = [SIMPLIFY, "--streaming-mode", "-s=0"]
+
+    # --randomize-projection is --projection=random by another name: under one
+    # seed they draw the same rotation and give the same diagram.
+    for kind, text in (("lattice", lattice), ("float", tref)):
+        _, a, _ = run(simplify + ["--projection=random", "--seed=17"], text)
+        _, b, _ = run(simplify + ["--randomize-projection", "--seed=17"], text)
+        check(data_lines(a) != [] and a == b,
+              f"{kind}: --randomize-projection is --projection=random (same seed, same diagram)")
+
+    # --seed repeats every tool's random projection.
+    for name, cmd in (("knoodlesimplify", simplify),
+                      ("knoodledraw", [DRAW, "--mono"]),
+                      ("knoodleidentify", [IDENTIFY])):
+        for kind, text in (("lattice", lattice), ("float", tref)):
+            outs = [run(cmd + ["--projection=random", "--seed=99"], text) for _ in range(2)]
+            check(all(o[0] == 0 for o in outs) and outs[0][1] == outs[1][1] and outs[0][1].strip(),
+                  f"{name} ({kind}): --projection=random --seed=99 repeats exactly")
+
+    # Different seeds draw different rotations (a 1635-crossing curve would
+    # make this certain; 30 seeds of the trefoil make it near enough).
+    seen = {run(simplify + ["--projection=random", f"--seed={k}"], tref)[1] for k in range(30)}
+    check(len(seen) > 1, f"knoodlesimplify: 30 seeds give {len(seen)} different diagrams, not 1")
+
+    # Reapr (-s=6) repeats too, once OrthoDraw's own randomization -- which
+    # seeds itself, out of --seed's reach -- is turned off.
+    fixed = [SIMPLIFY, "--streaming-mode", "--projection=random", "--seed=5",
+             "--randomize-bends=0", "--no-randomize-virtual-edges"]
+    outs = [run(fixed, tref) for _ in range(2)]
+    check(all(o[0] == 0 for o in outs) and outs[0][1] == outs[1][1],
+          "knoodlesimplify -s=6: --seed with OrthoDraw's randomization off repeats exactly")
+
+    for tool in (SIMPLIFY, DRAW, IDENTIFY):
+        name = os.path.basename(tool)
+        for bad in ("--seed=-1", "--seed=abc", "--seed=18446744073709551616", "--seed="):
+            rc, _, _ = run([tool, bad, "--help"])
+            check(rc != 0, f"{name} rejects {bad}")
+        rc, _, _ = run([tool, "--seed=18446744073709551615", "--help"])
+        check(rc == 0, f"{name} accepts --seed=2^64-1")
+
+    # A failing run's report names its seed, so it can be repeated.
+    with tempfile.TemporaryDirectory() as tmp:
+        p = subprocess.run([SIMPLIFY, "--streaming-mode", "--seed=4242"],
+                           input="1 2 3 9\n", capture_output=True, text=True,
+                           env=dict(os.environ, KNOODLE_DUMP_DIR=tmp))
+        report = os.path.join(tmp, "knoodlesimplify-error-report.txt")
+        text = open(report).read() if os.path.exists(report) else ""
+        check(p.returncode != 0 and "--seed=4242" in text,
+              f"the error report names the run's seed (rc={p.returncode})")
+
+    # --exact-input: integer coordinates always pass, rotated or not; dyadic
+    # ones pass down an axis; decimals that round, and any non-integer
+    # coordinates under --projection=random, are refused -- with no output.
+    # (knoodlesimplify reads the pipe without --streaming-mode, which would
+    # send the refusal to its log file rather than to stderr.)
+    for name, cmd in (("knoodlesimplify", [SIMPLIFY, "-s=0"]), ("knoodledraw", [DRAW]),
+                      ("knoodleidentify", [IDENTIFY])):
+        for label, text, flags, ok in (
+                ("lattice", lattice, [], True),
+                ("lattice, random", lattice, ["--projection=random"], True),
+                ("dyadic", dyadic, [], True),
+                ("dyadic, down x", dyadic, ["--projection=x"], True),
+                ("dyadic, random", dyadic, ["--projection=random"], False),
+                ("decimal", decimal, [], False)):
+            rc, out, err = run(cmd + ["--exact-input"] + flags, text)
+            if ok:
+                check(rc == 0 and out.strip(), f"{name} --exact-input takes {label} input (rc={rc}):"
+                                               f" {err.strip()[:160]}")
+            else:
+                check(rc != 0 and "--exact-input" in err and "KnotSymbol" not in out
+                      and data_lines(out) == [] and "Link[" not in out,
+                      f"{name} --exact-input refuses {label} input, writing nothing (rc={rc})")
+        rc, _, _ = run(cmd, decimal)
+        check(rc == 0, f"{name} still takes the decimal input without --exact-input")
+
+    # Far from the origin for its spread: the floating-point grid overflows
+    # (GH #50). --exact-input names the problem instead of projecting garbage.
+    far = "".join(f"{1000.5 + float(x)} {y} {z}\n" if x else "\n"
+                  for x, y, z in (l.split() if l else (None, None, None)
+                                  for l in tref.splitlines()))
+    rc, out, err = run([IDENTIFY, "--exact-input"], far)
+    check(rc != 0 and "too far from the origin" in err,
+          f"knoodleidentify --exact-input refuses an off-origin float knot by name (rc={rc})")
+
+    # -q: knoodledraw has warnings to silence; knoodleidentify's stays as it was.
+    rc, _, err = run([DRAW, "--highlight=z1"], "2 0 3 5 1\n0 4 1 3 1\n4 2 5 1 1\n")
+    check(rc == 0 and "Warning" in err, "knoodledraw warns about an unknown highlight type")
+    for q in ("-q", "--quiet"):
+        rc, out, err = run([DRAW, q, "--highlight=z1"], "2 0 3 5 1\n0 4 1 3 1\n4 2 5 1 1\n")
+        check(rc == 0 and out.strip() and err.strip() == "", f"knoodledraw {q} silences it")
+    rc, out, _ = run([DRAW, "-cq"], "2 0 3 5 1\n0 4 1 3 1\n4 2 5 1 1\n")
+    check(rc == 0 and out.strip(), "knoodledraw combines -q with the label letters (-cq)")
+    rc, out, err = run([IDENTIFY, "-q"], tref)
+    check(rc == 0 and "KnotSymbol[3,1" in out and err.strip() == "",
+          f"knoodleidentify -q identifies quietly (rc={rc}): {err.strip()[:120]}")
+
+    # knoodleidentify takes knoodlesimplify's spelling of the Reapr flags.
+    for flags in (["--reapr-rotation-trials=3"], ["--rotation-trials=3"],
+                  ["--reapr-energy=TV"], ["--reapr-scaling=1.5"]):
+        rc, out, err = run([IDENTIFY] + flags, tref)
+        check(rc == 0 and "KnotSymbol[3,1" in out,
+              f"knoodleidentify {' '.join(flags)} identifies the trefoil (rc={rc}): {err.strip()[:120]}")
+    for bad in ("--reapr-rotation-trials=0", "--reapr-scaling=-1", "--reapr-scaling=x",
+                "--escalation-rounds=0", "--escalation-band=x"):
+        rc, out, _ = run([IDENTIFY, bad], tref)
+        check(rc != 0 and "KnotSymbol" not in out,
+              f"knoodleidentify {bad} fails (it used to print the help and exit 0)")
+
+
 def main():
     print("cli_contract_check -- tool output, exit codes and round-tripping")
 
@@ -528,6 +652,7 @@ def main():
     test_failure_looks_like_failure()
     test_3d_input_is_quiet()
     test_3d_routes_agree()
+    test_input_flags()
     test_help()
     test_flag_spellings()
     test_draw_is_a_filter()

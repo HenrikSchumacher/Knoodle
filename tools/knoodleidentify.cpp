@@ -65,7 +65,10 @@ struct Config
     bool expanded       = false;             ///< '#'-joined per-summand output
     bool tsv            = false;             ///< Per-summand TSV output
     bool quiet          = false;             ///< Suppress stderr summary/warnings
-    bool randomize_projection = false;       ///< Random shear of 3D input before projecting
+    InputOptions input_options;              ///< --projection, --exact-input
+    std::optional<std::uint64_t> seed;       ///< --seed (else one is drawn at startup)
+    std::optional<Energy_T> reapr_energy;    ///< --reapr-energy (else Reapr's default)
+    std::optional<double>   reapr_scaling;   ///< --reapr-scaling (else Reapr's default)
     ki::Size_T escalation_rounds = ki::IdentifyParams{}.cap;      ///< Reapr escalation rounds per candidate
     Int        escalation_band   = ki::IdentifyParams{}.deep_cx;  ///< deep rounds only while stalled <= this
     ki::Size_T rotation_trials   = ki::IdentifyParams{}.rot;      ///< reprojections per embedding
@@ -123,15 +126,33 @@ void PrintUsage()
         "                      table range + 3): a fixpoint near table range\n"
         "                      plausibly hides a table knot, one far above it\n"
         "                      does not. Set large to disable banding.\n"
-        "  --rotation-trials=N Reprojections per embedding during escalation\n"
-        "                      (default 5).\n"
+        "  --reapr-rotation-trials=N  Reprojections per embedding during escalation\n"
+        "                      (default 5). --rotation-trials=N is the same flag.\n"
+        "  --reapr-energy=E    Reapr's energy for the escalation embeddings:\n"
+        "                      " + ValidEnergies() + " (default: TV)\n"
+        "  --reapr-scaling=X   Reapr's 3D grid scaling (default: 1.0)\n"
         "  --expanded          One line per knot, summands joined by ' # ' (uses\n"
         "                      the raw K[...] table names).\n"
         "  --tsv               Per-summand output: knot_index, summand_index,\n"
         "                      crossing_count, name (tab-separated).\n"
-        "  --quiet             Suppress the stderr summary and per-summand warnings.\n"
-        "  --randomize-projection  Apply a random shear to 3D input before projecting\n"
-        "                      it (exact for integer coordinates).\n"
+        "  -q, --quiet         Suppress the stderr summary, the per-summand warnings\n"
+        "                      and the reading-from-the-terminal notice.\n"
+        "  --projection=P      How 3D input is projected (default: z): z, x or y\n"
+        "                      projects down that axis (exact); random after a\n"
+        "                      uniformly random rotation (exact for integer\n"
+        "                      coordinates).\n"
+        "  --randomize-projection  Same as --projection=random. (3-column input\n"
+        "                      used to get a random shear instead, an oblique view\n"
+        "                      at most ~35 degrees off the z-axis; it now gets a\n"
+        "                      full rotation.)\n"
+        "  --exact-input       Refuse 3D input that cannot be projected exactly:\n"
+        "                      non-integer coordinates that do not land exactly on\n"
+        "                      Knoodle's integer grid, or that --projection=random\n"
+        "                      would have to rotate.\n"
+        "  --seed=N            Seed every random choice (N in [0, 2^64)): the\n"
+        "                      random projection and Reapr's escalation. The same\n"
+        "                      seed repeats a run on the same build, except for\n"
+        "                      Reapr's internal bend randomization.\n"
         "  -h, --help          Show this help.\n"
         "\n"
         "Knot symbols (default / --tsv); c=crossings, i=index, the third field is the\n"
@@ -180,10 +201,16 @@ constexpr std::string_view kKnownFlags[] = {
     "--escalation-rounds",
     "--escalation-band",
     "--rotation-trials",
+    "--reapr-rotation-trials",
+    "--reapr-energy",
+    "--reapr-scaling",
     "--expanded",
     "--tsv",
     "--quiet",
+    "--projection",
     "--randomize-projection",
+    "--exact-input",
+    "--seed",
 };
 
 std::optional<Config> ParseArguments(int argc, char* argv[])
@@ -214,8 +241,7 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             if (!parsed || *parsed < 1 || *parsed > 64)
             {
                 LogError("Invalid --escalation-rounds (expected 1-64)");
-                config.help_requested = true;
-                return config;
+                return std::nullopt;
             }
             config.escalation_rounds = static_cast<ki::Size_T>(*parsed);
         }
@@ -225,21 +251,45 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             if (!parsed || *parsed < 0)
             {
                 LogError("Invalid --escalation-band (expected >= 0)");
-                config.help_requested = true;
-                return config;
+                return std::nullopt;
             }
             config.escalation_band = *parsed;
         }
-        else if (arg.starts_with("--rotation-trials="))
+        else if (arg.starts_with("--rotation-trials=")
+                 || arg.starts_with("--reapr-rotation-trials="))
         {
-            auto parsed = ParseInt(arg.substr(18));
+            const std::string_view value = arg.substr(arg.find('=') + 1);
+            auto parsed = ParseInt(value);
             if (!parsed || *parsed < 1 || *parsed > 1024)
             {
-                LogError("Invalid --rotation-trials (expected 1-1024)");
-                config.help_requested = true;
-                return config;
+                LogError("Invalid --reapr-rotation-trials (expected 1-1024)");
+                return std::nullopt;
             }
             config.rotation_trials = static_cast<ki::Size_T>(*parsed);
+        }
+        else if (arg.starts_with("--reapr-energy="))
+        {
+            const auto e = ParseEnergy(arg.substr(15));
+            if (!e)
+            {
+                LogError("Unknown --reapr-energy value: '" + std::string(arg.substr(15))
+                         + "' (valid: " + ValidEnergies() + ")");
+                return std::nullopt;
+            }
+            config.reapr_energy = *e;
+        }
+        else if (arg.starts_with("--reapr-scaling="))
+        {
+            const std::string value(arg.substr(16));
+            std::size_t used = 0;
+            double x = 0;
+            try { x = std::stod(value, &used); } catch (const std::exception&) { used = 0; }
+            if (used == 0 || used != value.size() || !(x > 0) || !std::isfinite(x))
+            {
+                LogError("Invalid --reapr-scaling (expected a positive number): " + value);
+                return std::nullopt;
+            }
+            config.reapr_scaling = x;
         }
         else if (arg.starts_with("--max-crossings="))
         {
@@ -262,13 +312,39 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.tsv = true;
         }
-        else if (arg == "--quiet")
+        else if (arg == "--quiet" || arg == "-q")
         {
             config.quiet = true;
         }
+        else if (arg.starts_with("--projection="))
+        {
+            const auto p = ParseProjection(arg.substr(13));
+            if (!p)
+            {
+                LogError("Unknown --projection value: '" + std::string(arg.substr(13))
+                         + "' (valid: z, x, y, random)");
+                return std::nullopt;
+            }
+            config.input_options.projection = *p;
+        }
         else if (arg == "--randomize-projection")
         {
-            config.randomize_projection = true;
+            config.input_options.projection = Projection_T::Random;
+        }
+        else if (arg == "--exact-input")
+        {
+            config.input_options.exact_input = true;
+        }
+        else if (arg.starts_with("--seed="))
+        {
+            const auto seed = ParseSeed(arg.substr(7));
+            if (!seed)
+            {
+                LogError("Invalid --seed value: '" + std::string(arg.substr(7))
+                         + "' (a decimal integer from 0 to 2^64 - 1)");
+                return std::nullopt;
+            }
+            config.seed = *seed;
         }
         else if (arg.starts_with("-") && arg.size() > 1)
         {
@@ -627,7 +703,7 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
 
     while (!reached_eof)
     {
-        auto input_knot = ReadKnot(input, config.randomize_projection, rng, source_name, reached_eof);
+        auto input_knot = ReadKnot(input, config.input_options, rng, source_name, reached_eof);
 
         if (!input_knot)
         {
@@ -827,8 +903,16 @@ int main(int argc, char* argv[])
     Klut klut(*data_dir, static_cast<Knoodle::Size_T>(config.max_crossings));
     auto names = LoadNames(*data_dir, config.max_crossings);
 
-    ki::Reapr_T reapr{};
-    Knoodle::PRNG_T rng = Knoodle::InitializedRandomEngine<Knoodle::PRNG_T>();
+    // Every random choice follows from this one seed (see SeededEngine): the
+    // random projection draws from rng, and Reapr from an engine drawn from it.
+    g_run_seed = config.seed.value_or(FreshSeed());
+    Knoodle::PRNG_T rng = SeededEngine(g_run_seed);
+
+    ki::Reapr_T::Settings_T reapr_settings;
+    if (config.reapr_energy)  { reapr_settings.energy  = *config.reapr_energy; }
+    if (config.reapr_scaling) { reapr_settings.scaling = static_cast<Real>(*config.reapr_scaling); }
+    ki::Reapr_T reapr(reapr_settings);
+    reapr.RandomEngine() = DerivedEngine(rng);
 
     Stats stats;
     bool success = true;
@@ -837,7 +921,7 @@ int main(int argc, char* argv[])
     {
         // Unix filter: no files -> read stdin. If stdin is an interactive terminal
         // (no pipe/redirect), say so, so a bare invocation does not just look hung.
-        if (StdinIsInteractive())
+        if (StdinIsInteractive() && !config.quiet)
         {
             Log("knoodleidentify: reading diagrams from stdin (Ctrl-D to end). "
                 "Pipe a stream or pass a file; --help for usage.");

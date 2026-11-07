@@ -80,8 +80,9 @@ struct Config
 
     // Input options
     std::vector<std::string> input_files;    ///< Input file paths
-    bool streaming_mode       = false;       ///< Read from stdin, write to stdout
-    bool randomize_projection = false;       ///< Random shear (3-column) / rotation (.kndlxyz) of 3D input
+    bool streaming_mode       = false;       ///< Read from stdin, write to stdout, log to a file
+    InputOptions input_options;              ///< --projection, --exact-input
+    std::optional<std::uint64_t> seed;       ///< --seed (else one is drawn at startup)
 
     // Output options
     std::optional<std::string> output_file;  ///< Single output file (if specified)
@@ -170,16 +171,33 @@ void PrintUsage()
     Log("  6 columns: unsigned PD code + link component colors");
     Log("  7 columns: signed PD code + link component colors");
     Log("  3 columns: 3D geometry (x, y, z coordinates); a blank line starts");
-    Log("             a new link component");
-    Log("  .kndlxyz:  multi-component 3D link embedding (3 columns, blank-line-");
-    Log("             separated components, optional '#color N' lines)");
+    Log("             a new link component, and an optional '#color N' line");
+    Log("             before each component sets its color. A .kndlxyz file is");
+    Log("             exactly this, so it reads the same from a file or stdin.");
     Log("");
     Log("Input options:");
     Log("  --input=FILE                Specify input file (can use multiple times)");
-    Log("  --streaming-mode            Read from stdin, write to stdout");
-    Log("  --randomize-projection      Perturb 3D input before projecting it: a random");
-    Log("                              shear for 3-column data, a random rotation for");
-    Log("                              .kndlxyz files (exact for integer coordinates)");
+    Log("                              With no input files and stdin a pipe, read stdin");
+    Log("                              and write stdout (or --output=FILE)");
+    Log("  --streaming-mode            Read from stdin, write to stdout, and move the");
+    Log("                              log to a file (what the Mathematica paclet uses)");
+    Log("  --projection=P              How 3D input is projected (default: z):");
+    Log("                                z, x, y  down that axis (exact)");
+    Log("                                random   after a uniformly random rotation");
+    Log("                                         (exact for integer coordinates)");
+    Log("  --randomize-projection      Same as --projection=random. (3-column input");
+    Log("                              used to get a random shear instead, an oblique");
+    Log("                              view at most ~35 degrees off the z-axis; it now");
+    Log("                              gets a full rotation.)");
+    Log("  --exact-input               Refuse 3D input that cannot be projected");
+    Log("                              exactly: non-integer coordinates that do not");
+    Log("                              land exactly on Knoodle's integer grid, or that");
+    Log("                              --projection=random would have to rotate");
+    Log("  --seed=N                    Seed every random choice (N in [0, 2^64)); the");
+    Log("                              same seed repeats a run on the same build.");
+    Log("                              Reapr's bend randomization (-s=6) is the one");
+    Log("                              exception; add --randomize-bends=0");
+    Log("                              --no-randomize-virtual-edges to repeat it too");
     Log("");
     Log("Output options:");
     Log("  --output=FILE               Write all output to FILE");
@@ -253,7 +271,10 @@ constexpr std::string_view kKnownFlags[] = {
     "--unite",
     "--input",
     "--streaming-mode",
+    "--projection",
     "--randomize-projection",
+    "--exact-input",
+    "--seed",
     "--output",
     "--quiet",
     "--format",
@@ -330,38 +351,14 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         // Reapr energy flag
         else if (arg.starts_with("--reapr-energy="))
         {
-            const std::string_view energy_str = arg.substr(15);
-
-            if (TokenIs(energy_str, "tv"))
-            {
-                config.reapr_energy = Energy_T::TV;
-            }
-            else if (TokenIs(energy_str, "dirichlet"))
-            {
-                config.reapr_energy = Energy_T::Dirichlet;
-            }
-            else if (TokenIs(energy_str, "bending"))
-            {
-                config.reapr_energy = Energy_T::Bending;
-            }
-            else if (TokenIs(energy_str, "height"))
-            {
-                config.reapr_energy = Energy_T::Height;
-            }
-            else if (TokenIs(energy_str, "tv_clp"))
-            {
-                config.reapr_energy = Energy_T::TV_CLP;
-            }
-            else if (TokenIs(energy_str, "tv_mcf"))
-            {
-                config.reapr_energy = Energy_T::TV_MCF;
-            }
-            else
+            const auto energy = ParseEnergy(arg.substr(15));
+            if (!energy)
             {
                 LogError("Unknown reapr energy: '" + std::string(arg.substr(15)) + "'");
                 LogError("Valid options: " + ValidEnergies());
                 return std::nullopt;
             }
+            config.reapr_energy = *energy;
         }
         // Simplify_Args_T overrides (unset = --simplify-level's own preset)
         else if (arg == "--compress-initial")   { config.compress_initial = true; }
@@ -466,10 +463,36 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.streaming_mode = true;
         }
-        // Randomize projection
+        // 3D input
+        else if (arg.starts_with("--projection="))
+        {
+            const auto p = ParseProjection(arg.substr(13));
+            if (!p)
+            {
+                LogError("Unknown --projection value: '" + std::string(arg.substr(13))
+                         + "' (valid: z, x, y, random)");
+                return std::nullopt;
+            }
+            config.input_options.projection = *p;
+        }
         else if (arg == "--randomize-projection")
         {
-            config.randomize_projection = true;
+            config.input_options.projection = Projection_T::Random;
+        }
+        else if (arg == "--exact-input")
+        {
+            config.input_options.exact_input = true;
+        }
+        else if (arg.starts_with("--seed="))
+        {
+            const auto seed = ParseSeed(arg.substr(7));
+            if (!seed)
+            {
+                LogError("Invalid --seed value: '" + std::string(arg.substr(7))
+                         + "' (a decimal integer from 0 to 2^64 - 1)");
+                return std::nullopt;
+            }
+            config.seed = *seed;
         }
         // Output file
         else if (arg.starts_with("--output="))

@@ -2,7 +2,7 @@
  * @file knoodledraw.cpp
  * @brief knoodledraw - A command-line tool for drawing knot and link diagrams as ASCII art.
  *
- * This tool reads knot/link diagrams (as PD codes, 3D geometry, or .kndlxyz files)
+ * This tool reads knot/link diagrams (as PD codes or 3D geometry, e.g. .kndlxyz files)
  * and produces ASCII art drawings using OrthoDraw.
  *
  * Designed as a Unix filter: reads from stdin by default, writes to stdout.
@@ -45,6 +45,17 @@
 
 namespace {
 
+/// -q/--quiet: set once in main(), read by Warn().
+bool g_quiet = false;
+
+/// Where warnings and notices go: stderr, or nowhere under -q. (An ostream
+/// with no buffer discards what it is given.) Errors never go through here.
+std::ostream& Warn()
+{
+    static std::ostream discard(nullptr);
+    return g_quiet ? discard : std::cerr;
+}
+
 /**
  * @brief Configuration parsed from command-line arguments.
  */
@@ -56,7 +67,9 @@ struct Config
     Int  y_gap_size     = 1;
     std::vector<std::string> input_files;
     std::vector<std::string> highlight_specs;  // raw "--highlight=..." values
-    bool randomize_projection = false;
+    InputOptions input_options;               // --projection, --exact-input
+    std::optional<std::uint64_t> seed;        // --seed (else one is drawn at startup)
+    bool quiet                = false;        // -q/--quiet : no warnings or notices on stderr
     bool ascii_mode           = false;
     bool mono_mode            = false;  // --mono : no ANSI; weight carries meaning
     bool verify_trace         = false;  // --verify : check each move against the next snapshot
@@ -301,16 +314,31 @@ void PrintUsage()
     std::cerr << "  6 columns: unsigned PD code + link component colors\n";
     std::cerr << "  7 columns: signed PD code + link component colors\n";
     std::cerr << "  3 columns: 3D geometry (x, y, z coordinates); a blank line starts\n";
-    std::cerr << "             a new link component\n";
-    std::cerr << "  .kndlxyz:  multi-component 3D link embedding (3 columns, blank-line-\n";
-    std::cerr << "             separated components, optional '#color N' lines)\n";
+    std::cerr << "             a new link component, and an optional '#color N' line\n";
+    std::cerr << "             before each component sets its color. A .kndlxyz file is\n";
+    std::cerr << "             exactly this, so it reads the same from a file or stdin.\n";
     std::cerr << "\n";
     std::cerr << "Input options:\n";
-    std::cerr << "  --randomize-projection      Perturb 3D input before projecting it: a random\n";
-    std::cerr << "                              shear for 3-column data, a random rotation for\n";
-    std::cerr << "                              .kndlxyz files (exact for integer coordinates)\n";
+    std::cerr << "  --projection=P              How 3D input is projected (default: z):\n";
+    std::cerr << "                                z, x, y  down that axis (exact)\n";
+    std::cerr << "                                random   after a uniformly random rotation\n";
+    std::cerr << "                                         (exact for integer coordinates)\n";
+    std::cerr << "  --randomize-projection      Same as --projection=random. (3-column input\n";
+    std::cerr << "                              used to get a random shear instead, an oblique\n";
+    std::cerr << "                              view at most ~35 degrees off the z-axis; it now\n";
+    std::cerr << "                              gets a full rotation.)\n";
+    std::cerr << "  --exact-input               Refuse 3D input that cannot be projected\n";
+    std::cerr << "                              exactly: non-integer coordinates that do not\n";
+    std::cerr << "                              land exactly on Knoodle's integer grid, or that\n";
+    std::cerr << "                              --projection=random would have to rotate\n";
+    std::cerr << "  --seed=N                    Seed every random choice (N in [0, 2^64)): the\n";
+    std::cerr << "                              random projection and --embedding's Reapr. The\n";
+    std::cerr << "                              same seed repeats a run on the same build, except\n";
+    std::cerr << "                              Reapr's bend randomization under --embedding\n";
     std::cerr << "\n";
     std::cerr << "Other:\n";
+    std::cerr << "  -q, --quiet                 No warnings or notices on stderr (errors still\n";
+    std::cerr << "                              print, and still make the exit status nonzero)\n";
     std::cerr << "  -h, --help                  Show this help message\n";
     std::cerr << "\n";
     std::cerr << "Examples:\n";
@@ -421,7 +449,11 @@ constexpr std::string_view kKnownFlags[] = {
     "--randomize-bends",
     "--exterior-face",
     "--quality",
+    "--projection",
     "--randomize-projection",
+    "--exact-input",
+    "--seed",
+    "--quiet",
     "--redistribute-bends",       "--no-redistribute-bends",
     "--turn-regularize",          "--no-turn-regularize",
     "--saturate-regions",         "--no-saturate-regions",
@@ -517,12 +549,7 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg.starts_with("--reapr-energy="))
         {
             std::string val(arg.substr(15));
-            if      (TokenIs(val, "tv"))        { config.reapr_energy = Energy_T::TV;        }
-            else if (TokenIs(val, "dirichlet")) { config.reapr_energy = Energy_T::Dirichlet; }
-            else if (TokenIs(val, "bending"))   { config.reapr_energy = Energy_T::Bending;   }
-            else if (TokenIs(val, "height"))    { config.reapr_energy = Energy_T::Height;    }
-            else if (TokenIs(val, "tv_clp"))    { config.reapr_energy = Energy_T::TV_CLP;    }
-            else if (TokenIs(val, "tv_mcf"))    { config.reapr_energy = Energy_T::TV_MCF;    }
+            if (const auto energy = ParseEnergy(val)) { config.reapr_energy = *energy; }
             else
             {
                 std::cerr << "Error: Unknown --reapr-energy value: " << val << "\n";
@@ -539,10 +566,40 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
                 return std::nullopt;
             }
         }
-        // Randomize projection
+        // 3D input
+        else if (arg.starts_with("--projection="))
+        {
+            const auto p = ParseProjection(arg.substr(13));
+            if (!p)
+            {
+                std::cerr << "Error: Unknown --projection value: " << arg.substr(13)
+                          << " (valid: z, x, y, random)\n";
+                return std::nullopt;
+            }
+            config.input_options.projection = *p;
+        }
         else if (arg == "--randomize-projection")
         {
-            config.randomize_projection = true;
+            config.input_options.projection = Projection_T::Random;
+        }
+        else if (arg == "--exact-input")
+        {
+            config.input_options.exact_input = true;
+        }
+        else if (arg.starts_with("--seed="))
+        {
+            const auto seed = ParseSeed(arg.substr(7));
+            if (!seed)
+            {
+                std::cerr << "Error: Invalid --seed value: " << arg.substr(7)
+                          << " (a decimal integer from 0 to 2^64 - 1)\n";
+                return std::nullopt;
+            }
+            config.seed = *seed;
+        }
+        else if (arg == "--quiet")
+        {
+            config.quiet = true;
         }
         // Long-form label options
         else if (arg == "--label-crossings")
@@ -703,6 +760,7 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
                     case 'a': config.label_arcs       = true; break;
                     case 'f': config.label_faces      = true; break;
                     case 'l': config.label_components = true; break;
+                    case 'q': config.quiet            = true; break;
                     default:
                         valid = false;
                         break;
@@ -2054,7 +2112,7 @@ HighlightSet ParseHighlightSpecs(const std::vector<std::string>& specs,
             char type_char = spec[pos];
             if (type_char != 'a' && type_char != 'c' && type_char != 'f')
             {
-                std::cerr << "Warning: Unknown highlight type '"
+                Warn() << "Warning: Unknown highlight type '"
                           << type_char << "' (expected a/c/f)\n";
                 while (pos < spec.size()
                        && spec[pos] != ',' && spec[pos] != ' ' && spec[pos] != '\t')
@@ -2070,7 +2128,7 @@ HighlightSet ParseHighlightSpecs(const std::vector<std::string>& specs,
 
             if (pos == num_start)
             {
-                std::cerr << "Warning: Missing index after '"
+                Warn() << "Warning: Missing index after '"
                           << type_char << "' in highlight spec\n";
                 continue;
             }
@@ -2080,7 +2138,7 @@ HighlightSet ParseHighlightSpecs(const std::vector<std::string>& specs,
                 index = static_cast<Int>(
                     std::stoll(spec.substr(num_start, pos - num_start)));
             } catch (...) {
-                std::cerr << "Warning: Invalid index in highlight spec\n";
+                Warn() << "Warning: Invalid index in highlight spec\n";
                 continue;
             }
 
@@ -2088,21 +2146,21 @@ HighlightSet ParseHighlightSpecs(const std::vector<std::string>& specs,
             {
                 case 'a':
                     if (index < 0 || index >= max_arc)
-                        std::cerr << "Warning: Arc index " << index
+                        Warn() << "Warning: Arc index " << index
                                   << " out of range [0, " << max_arc - 1 << "]\n";
                     else
                         hs.arcs.insert(index);
                     break;
                 case 'c':
                     if (index < 0 || index >= max_crossing)
-                        std::cerr << "Warning: Crossing index " << index
+                        Warn() << "Warning: Crossing index " << index
                                   << " out of range [0, " << max_crossing - 1 << "]\n";
                     else
                         hs.crossings.insert(index);
                     break;
                 case 'f':
                     if (index < 0 || index >= max_face)
-                        std::cerr << "Warning: Face index " << index
+                        Warn() << "Warning: Face index " << index
                                   << " out of range [0, " << max_face - 1 << "]\n";
                     else
                         hs.faces.insert(index);
@@ -2662,7 +2720,7 @@ bool MaybeHonourOutside(OrthoDraw_T& H, const Deco_T& deco, const PD_T& pd,
             std::cerr << "knoodledraw: error: " << why << "\n";
             return false;
         }
-        std::cerr << "knoodledraw: warning: cannot draw outside=" << *outside
+        Warn() << "knoodledraw: warning: cannot draw outside=" << *outside
                   << " (" << why << "); drawing the corridor as routed\n";
     }
     return true;
@@ -3147,7 +3205,8 @@ std::pair<Real,Real> EmbeddingXSpan(const LinkEmb_T& emb)
 std::vector<EmbeddedPiece> BuildEmbedding(const std::vector<PD_T>& summands,
                                           const std::vector<Int>& unknot_colors,
                                           bool coloredQ,
-                                          const Config& config)
+                                          const Config& config,
+                                          Knoodle::PRNG_T& rng)
 {
     PDC_T pdc;
 
@@ -3192,6 +3251,7 @@ std::vector<EmbeddedPiece> BuildEmbedding(const std::vector<PD_T>& summands,
     }
 
     Reapr_T reapr(BuildReaprSettings(config));
+    reapr.RandomEngine() = DerivedEngine(rng);   // --seed governs Reapr too
 
     std::vector<EmbeddedPiece> pieces;
 
@@ -3388,14 +3448,15 @@ bool EmbedKnot(const std::vector<PD_T>& summands,
                const std::vector<Int>& unknot_colors,
                bool coloredQ,
                const Config& config,
+               Knoodle::PRNG_T& rng,
                Real& x_cursor)
 {
     std::vector<EmbeddedPiece> pieces =
-        BuildEmbedding(summands, unknot_colors, coloredQ, config);
+        BuildEmbedding(summands, unknot_colors, coloredQ, config, rng);
 
     if (pieces.empty())
     {
-        std::cerr << "Warning: --embedding produced no geometry for this diagram.\n";
+        Warn() << "Warning: --embedding produced no geometry for this diagram.\n";
         // An empty diagram is not a failure of the run; --format=wl still owes
         // the caller one association per knot so the stream stays line-aligned.
         if (config.wolfram_mode) { std::cout << "<|\"Components\"->{}|>\n"; }
@@ -4477,7 +4538,7 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
 
     if (records_drawn == 0)
     {
-        std::cerr << "knoodledraw: warning: trace stream contained no records\n";
+        Warn() << "knoodledraw: warning: trace stream contained no records\n";
     }
     return true;
 }
@@ -4505,7 +4566,7 @@ bool ProcessStream(std::istream& input,
 
     while (!reached_eof)
     {
-        auto input_knot = ReadKnot(input, config.randomize_projection, rng, source_name, reached_eof);
+        auto input_knot = ReadKnot(input, config.input_options, rng, source_name, reached_eof);
 
         if (!input_knot)
         {
@@ -4531,7 +4592,7 @@ bool ProcessStream(std::istream& input,
             const bool coloredQ = (cols == 3 || cols == 6 || cols == 7);
 
             if (!EmbedKnot(input_knot->summands, input_knot->unknot_colors,
-                           coloredQ, config, x_cursor)) return false;
+                           coloredQ, config, rng, x_cursor)) return false;
             any_drawn = true;
             continue;
         }
@@ -4546,32 +4607,6 @@ bool ProcessStream(std::istream& input,
     }
 
     return true;
-}
-
-/**
- * @brief Process a .kndlxyz file (multi-component 3D link embedding).
- *
- * Read and projected by knoodle_io.hpp's ReadXYZFile -- the same code as
- * 3-column input, which also separates crossingless components into
- * unknot_colors (OrthoDraw_T cannot be built from a 0-crossing diagram).
- */
-bool ProcessXYZFile(const std::string& filepath, const Config& config,
-                    Knoodle::PRNG_T& rng, Real& x_cursor)
-{
-    auto input_knot = ReadXYZFile(std::filesystem::path(filepath),
-                                  config.randomize_projection, rng);
-    if (!input_knot) { return false; }
-
-    // .kndlxyz components are colored automatically (by component order, or by
-    // '#color'), so the connect-sum rejoining in BuildEmbedding is always safe
-    // on this path.
-    if (config.embedding_mode)
-    {
-        return EmbedKnot(input_knot->summands, input_knot->unknot_colors,
-                         /*coloredQ=*/true, config, x_cursor);
-    }
-
-    return DrawKnot(input_knot->summands, config, input_knot->unknot_colors);
 }
 
 } // anonymous namespace
@@ -4616,8 +4651,11 @@ int main(int argc, char* argv[])
         ChooseDiagnosticDir("knoodledraw", /*streaming_mode=*/true, std::nullopt);
     const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
 
-    // Initialize random number generator
-    Knoodle::PRNG_T rng = Knoodle::InitializedRandomEngine<Knoodle::PRNG_T>();
+    g_quiet = config.quiet;
+
+    // Every random choice follows from this one seed (see SeededEngine).
+    g_run_seed = config.seed.value_or(FreshSeed());
+    Knoodle::PRNG_T rng = SeededEngine(g_run_seed);
 
     bool success = true;
 
@@ -4631,7 +4669,7 @@ int main(int argc, char* argv[])
         // interactive terminal, say so, so a bare invocation does not look hung.
         if (StdinIsInteractive())
         {
-            std::cerr << "knoodledraw: reading diagrams from stdin (Ctrl-D to end). "
+            Warn() << "knoodledraw: reading diagrams from stdin (Ctrl-D to end). "
                          "Pipe a stream or pass a file; --help for usage.\n";
         }
         success = ProcessStream(std::cin, "stdin", config, rng, x_cursor);
@@ -4656,21 +4694,6 @@ int main(int argc, char* argv[])
                 {
                     std::cout << "k\n";
                 }
-            }
-
-            // Route .kndlxyz files to the specialized handler
-            std::filesystem::path fpath(filename);
-            if (fpath.extension() == ".kndlxyz")
-            {
-                if (!ProcessXYZFile(filename, config, rng, x_cursor))
-                {
-                    success = false;
-                }
-                else
-                {
-                    first_file = false;
-                }
-                continue;
             }
 
             std::ifstream file(filename);

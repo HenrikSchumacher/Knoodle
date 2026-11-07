@@ -4,8 +4,8 @@
 When every coordinate of a 3D input is an integer, the tools project it with
 LinkEmbedding_Int on Prosector_Int<Int64> (tools/knoodle_io.hpp, LatticeEmb_T):
 no scaling, no rounding, symbolic perturbation for every degenerate projection.
-Both input routes take it -- 3-column stdin/TSV (ReadKnot, all three tools) and
-.kndlxyz files (knoodlesimplify, knoodledraw).
+Every input route takes it: 3-column data from stdin or a file, of which a
+.kndlxyz file is one instance (ReadKnot, all three tools).
 
 Before that, lattice input went through the floating-point embeddings, which
 refuse a lattice curve seen down an axis: every fixture below exited 1 unless
@@ -13,8 +13,8 @@ refuse a lattice curve seen down an axis: every fixture below exited 1 unless
 
 The fixtures are test/embeddings/*.crd (see its README); their .expect files
 document the knot types relied on here. Where no type is documented, the oracle
-is agreement: the exact projection and random exact reprojections must name the
-same knot.
+is agreement: the exact projection, the exact projections down the other two
+axes, and random exact rotations must all name the same knot.
 
 Run: python3 lattice_input_check.py   (needs the tools built in ../tools)
 """
@@ -122,7 +122,7 @@ def test_three_column_input():
 
 
 def test_random_projection_agrees():
-    section("--randomize-projection: an exact random shear names the same knot")
+    section("--projection: the other axes and exact random rotations name the same knot")
 
     for name in UNKNOTS + TREFOILS + UNDOCUMENTED:
         text = fixture(name)
@@ -131,8 +131,17 @@ def test_random_projection_agrees():
         # depends on the projection; only a table type is comparable.
         if "Unidentified" in exact:
             continue
+        # Down the x- and y-axes: as degenerate as down z for these fixtures,
+        # and as exact.
+        for axis in ("x", "y"):
+            rc, out, err = identify(text, f"--projection={axis}")
+            check(rc == 0 and out == exact,
+                  f"{name}: --projection={axis} gives {out.strip()[:80]} (rc={rc}),"
+                  f" down z gives {exact.strip()[:80]} {err.strip()[:120]}")
+        # --randomize-projection is the old spelling of --projection=random.
         for t in range(RANDOM_TRIALS):
-            rc, out, err = identify(text, "--randomize-projection")
+            flag = "--randomize-projection" if t % 2 else "--projection=random"
+            rc, out, err = identify(text, flag)
             check(rc == 0, f"{name}: randomized trial {t} exits 0 (rc={rc}): {err.strip()[:200]}")
             check(out == exact, f"{name}: randomized trial {t} gives {out.strip()[:80]},"
                                 f" exact gives {exact.strip()[:80]}")
@@ -207,13 +216,13 @@ def test_failure_looks_like_failure():
               f"{tool} writes no diagram for a self-intersecting lattice curve: {out[:80]!r}")
 
     # 2^45-sized coordinates fit the exact projection, but not an exact random
-    # shear (which scales by 2^16 against Prosector_Int's 2^58 headroom).
+    # rotation (which scales by about 2^16 against Prosector_Int's 2^58 headroom).
     big = "".join(" ".join(str(c << 45) for c in v) + "\n" for v in vertices(fixture("lattice_04")))
     rc, out, _ = identify(big)
     check(rc == 0 and out.strip() == "<||>", f"lattice_04 scaled by 2^45 is still the unknot (rc={rc})")
     rc, out, err = identify(big, "--randomize-projection")
     check(rc != 0 and "too large" in err,
-          f"...but its random shear refuses rather than overflows (rc={rc}): {err.strip()[:200]}")
+          f"...but its random rotation refuses rather than overflows (rc={rc}): {err.strip()[:200]}")
 
 
 def main():
