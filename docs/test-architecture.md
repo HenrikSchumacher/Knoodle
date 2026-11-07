@@ -113,6 +113,14 @@ not merely "the defaults" -- the manifest's `heavy-args` column expands coverage
 Four minutes is comfortably short of the budget, so this has room to grow as the
 corpus does.
 
+It has grown: at the v1.1.0 release (2026-11-06) it was **39 passed in 761 s wall
+/ 1012 s cpu** (about 14 minutes with the build). Nearly all of that is one test:
+`inflate_check --trials=5` took 757 s (526 s in a run the same hour on another
+checkout -- each trial inflates to ~100k crossings at random, so it is noisy).
+Next were `link_inflate_check` (66 s), `klut_check` (61 s) and `plantri_check`
+(38 s). Still well inside the budget, but `inflate_check` is where to look
+first if the heavy tier ever needs to get faster.
+
 ## 4. The random-polygon corpus (new)
 
 This is the fix for failure (3). Hard unknots are *built* to resist local moves,

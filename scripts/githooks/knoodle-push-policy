@@ -35,7 +35,12 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     [ "${local_sha:-}" = "$ZERO" ] && continue          # deleting a ref
     case "$remote_ref" in
         refs/heads/main)  pushing_main=1; main_sha="$local_sha" ;;
-        refs/tags/v*)     pushing_tag="$remote_ref"; tag_sha="$local_sha" ;;
+        refs/tags/v*)     pushing_tag="$remote_ref"
+                          # Releases are ANNOTATED tags, and for those git hands
+                          # us the tag object's sha. The stamp is keyed on the
+                          # commit, so look through the tag to the commit it names.
+                          tag_sha=$(git rev-parse --verify --quiet "$local_sha^{commit}" 2>/dev/null) \
+                              || tag_sha="$local_sha" ;;
         refs/heads/*)     pushing_branch="${remote_ref#refs/heads/}" ;;
     esac
 done
@@ -58,7 +63,7 @@ The heavy tier has not been run cleanly at this commit ($(echo "$tag_sha" | cut 
 A tag is where a release starts, so this is the last point at which a corner-case
 regression can be caught before users see it.
 
-  To run it (about four minutes):
+  To run it (about fifteen minutes, with the build):
       make -C test check-full
 
   To tag anyway, without having run it:
