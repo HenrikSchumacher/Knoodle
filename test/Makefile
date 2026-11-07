@@ -243,7 +243,7 @@ lint:
 	@python3 manifest_lint.py
 
 clean:
-	rm -rf build $(TARGETS) $(PLANTRI)
+	rm -rf build logs $(TARGETS) $(PLANTRI)
 	rm -f *.d
 
 .PHONY: all libhomfly clean cli_stdin_check lint polygons tools check check-full hooks

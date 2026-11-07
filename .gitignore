@@ -139,3 +139,5 @@ xcuserdata/
 Literature/
 # pre-push tier stamps (local only: they certify THIS checkout)
 test/.stamps/
+# per-test logs from the last tier run (run_tier.py) and the hook transcript
+test/logs/
