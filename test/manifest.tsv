@@ -48,6 +48,7 @@ cli_contract_check	script	-	cli_contract_check.py	-	-	\([1-9][0-9]* checks, 0 fa
 cli_stdin_check	script	-	cli_stdin_check.py	-	-	-
 lattice_input_check	script	-	lattice_input_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 hooks_check	script	-	hooks_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
+klut_lfs_pointer_check	script	-	klut_lfs_pointer_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 polyfold_check	script	boost_umfpack	polyfold_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 release_tarball_check	script	-	release_tarball_check.py	-	--build	\([1-9][0-9]* checks, 0 failed\)
 run_tier_check	script	-	run_tier_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
@@ -58,6 +59,7 @@ diagram_sanity_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)
 embedding_check	test	homfly_umfpack	-	-	--coords=f64,f32,i32,i64 --rotations=8	passed [1-9][0-9]*, failed 0
 embedding_inflation_check	test	plain	-	-	-	-
 error_tap_check	test	plain	-	-	-	-
+float_offset_check	test	plain	-	-	-	FLOAT OFFSET CHECK OK \([1-9][0-9]* checks, 0 failed
 homfly_check	test	homfly	-	-	-	-
 inflate_check	test	homfly_umfpack	-	--trials=1 --target=3000 --max-rounds=8	--trials=5	inflate_check: [1-9][0-9]*/[1-9][0-9]* trials passed
 intersection3d_check	test	plain	-	-	-	-

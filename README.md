@@ -295,7 +295,9 @@ Options:
   --data-dir=PATH     KLUT data directory containing Klut_Keys_NN.bin
                       and Klut_Values_NN.tsv. Default: $KNOODLE_KLUT_DIR,
                       else data/Klut next to this executable's parent,
-                      else ./data/Klut.
+                      else ./data/Klut. The tables are stored with Git
+                      LFS: in a git checkout, run `git lfs pull` first.
+                      A directory of LFS pointer files is refused.
   --max-crossings=N   Use subtables up to N crossings (3-13, default 13).
   --escalation-rounds=N  Max Reapr escalation rounds per candidate
                       (default 4)
@@ -322,3 +324,5 @@ Options:
 ```
   
 The knot-symbol forms (in the default and --tsv output) are: KnotSymbol[c,i,a,"sym"] for an identified knot (c crossings, index i, alternating flag a, symmetry coset "sym"); Unidentified[N,PD] for a diagram with more than 13 crossings (over the table range); NotFound[N,PD] for a diagram of 13 or fewer crossings left unresolved after ReAPR (this should not happen); Link[N] for multi-component input (the table is knots-only); and Invalid[] for an invalid diagram or internal error. Unknot summands are the connect-sum identity and are omitted.
+
+The KLUT itself is about 23 MB of data in `data/Klut` (`Klut_Keys_NN.bin` and `Klut_Values_NN.tsv` for 3 to 13 crossings), stored in this repository with [Git LFS](https://git-lfs.com). The homebrew formula installs it alongside the tool. If you build _knoodleidentify_ from a git checkout, install git-lfs and run `git lfs pull` first: a clone made without Git LFS (CI checkouts with `lfs: false` included) holds small text pointer files in place of the tables. _knoodleidentify_ checks for these before loading anything and stops with an error that names the directory, rather than reporting every knot as `NotFound`.

@@ -114,7 +114,9 @@ void PrintUsage()
         "  --data-dir=PATH     KLUT data directory containing Klut_Keys_NN.bin\n"
         "                      and Klut_Values_NN.tsv. Default: $KNOODLE_KLUT_DIR,\n"
         "                      else data/Klut next to this executable's parent,\n"
-        "                      else ./data/Klut.\n"
+        "                      else ./data/Klut. The tables are stored with Git\n"
+        "                      LFS: in a git checkout, run `git lfs pull` first.\n"
+        "                      A directory of LFS pointer files is refused.\n"
         "  --max-crossings=N   Use subtables up to N crossings (3-13, default 13).\n"
         "  --escalation-rounds=N  Max Reapr escalation rounds per candidate\n"
         "                      (default 4). Each round doubles embedding trials.\n"
@@ -470,6 +472,64 @@ std::optional<std::filesystem::path> ResolveDataDir(const Config& config)
     }
     LogError("Specify one with --data-dir=PATH or $KNOODLE_KLUT_DIR.");
     return std::nullopt;
+}
+
+/**
+ * @brief Refuse a KLUT directory whose tables are Git LFS pointer files.
+ *
+ * data/Klut is stored with Git LFS. A checkout made without it (no git-lfs
+ * installed, GIT_LFS_SKIP_SMUDGE=1, actions/checkout with lfs: false) holds
+ * ~130-byte text stubs in place of the tables, each starting with the line
+ * "version https://git-lfs.github.com/spec/v1". Klut reads those without
+ * complaint and then misses every lookup, so a plain trefoil comes back as
+ * NotFound[3, ...] with a "table gap?" warning -- an answer that blames the
+ * table rather than the checkout. Look at the files before loading them.
+ *
+ * Only the subtables up to max_crossings are checked: those are the ones Klut
+ * will read. A missing file is not this function's business.
+ *
+ * @return true if no table file in `dir` is an LFS pointer; otherwise false,
+ *         after saying which directory and what to do.
+ */
+bool KlutTablesAreReal(const std::filesystem::path& dir, Int max_crossings)
+{
+    namespace fs = std::filesystem;
+
+    static constexpr std::string_view lfs_header = "version https://git-lfs.github.com/spec/";
+
+    std::vector<fs::path> pointers;
+    Int checked = 0;
+    for (Int c = 3; c <= max_crossings; ++c)
+    {
+        const std::string cc = (c < 10 ? "0" : "") + std::to_string(c);
+        for (const fs::path& file : {dir / ("Klut_Keys_"   + cc + ".bin"),
+                                    dir / ("Klut_Values_" + cc + ".tsv")})
+        {
+            std::ifstream in(file, std::ios::binary);
+            if (!in) { continue; }
+            ++checked;
+            std::string head(lfs_header.size(), '\0');
+            in.read(head.data(), static_cast<std::streamsize>(head.size()));
+            if (in.gcount() == static_cast<std::streamsize>(head.size())
+                && head == lfs_header)
+            {
+                pointers.push_back(file);
+            }
+        }
+    }
+
+    if (pointers.empty()) { return true; }
+
+    LogError("The KLUT tables in " + dir.string() + " are Git LFS pointer files, "
+             "not tables (" + std::to_string(pointers.size()) + " of "
+             + std::to_string(checked) + " files"
+             + (pointers.size() == 1 ? ": " : ", e.g. ")
+             + pointers.front().filename().string() + ").");
+    LogError("That happens when Knoodle is cloned without Git LFS. Install "
+             "git-lfs and run `git lfs pull` in the repository, or point "
+             "--data-dir (or $KNOODLE_KLUT_DIR) at a directory holding the "
+             "real tables.");
+    return false;
 }
 
 //==============================================================================
@@ -887,7 +947,7 @@ int main(int argc, char* argv[])
     }
 
     auto data_dir = ResolveDataDir(config);
-    if (!data_dir)
+    if (!data_dir || !KlutTablesAreReal(*data_dir, config.max_crossings))
     {
         return EXIT_FAILURE;
     }

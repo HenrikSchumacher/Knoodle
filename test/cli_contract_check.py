@@ -32,37 +32,17 @@ DRAW = os.path.join(TOOLS, "knoodledraw")
 IDENTIFY = os.path.join(TOOLS, "knoodleidentify")
 
 
-def klut_tables_present():
-    """True if data/Klut holds the KLUT tables themselves.
-
-    A checkout made without Git LFS (or where `git lfs pull` never ran) has
-    LFS pointer files there instead. CI fetches the tables
-    (scripts/ci-fetch-klut.sh); a local checkout may not have. knoodleidentify then names nothing: it
-    still simplifies and canonicalizes, and prints the result as
-    NotFound[n, {...}], but exits 1.
-    """
-    tables = glob.glob(os.path.join(HERE, "..", "data", "Klut", "*.tsv"))
-    if not tables:
-        return False
-    for path in tables:
+def klut_tables_are_pointers():
+    """True if data/Klut holds Git LFS pointer files instead of the KLUT tables,
+    as in a checkout made without Git LFS. knoodleidentify refuses such tables
+    (exit 1, empty stdout), so every identify check here would fail; main()
+    stops at the start and says why instead. CI fetches the real tables with
+    scripts/ci-fetch-klut.sh."""
+    for path in glob.glob(os.path.join(HERE, "..", "data", "Klut", "*.tsv")):
         with open(path, "rb") as f:
             if f.read(40).startswith(b"version https://git-lfs"):
-                return False
-    return True
-
-
-KLUT = klut_tables_present()
-
-# Without the tables, the NotFound output stands in for the table name. For the
-# trefoil and figure-eight used here it is a stable fingerprint: their minimal
-# diagrams are unique, and 90 of 90 readbacks of each agreed (2026-11-08).
-TREFOIL_ID = "KnotSymbol[3,1," if KLUT else "NotFound[3,"
-
-
-def identify_ok(rc):
-    """knoodleidentify's exit code for a run that named its knot -- or, without
-    the tables, fingerprinted it (exit 1, NotFound)."""
-    return rc == 0 or (not KLUT and rc == 1)
+                return True
+    return False
 
 # (binary, parser source, flags deliberately kept out of --help).
 #
@@ -581,8 +561,7 @@ def test_input_flags():
                       ("knoodleidentify", [IDENTIFY])):
         for kind, text in (("lattice", lattice), ("float", tref)):
             outs = [run(cmd + ["--projection=random", "--seed=99"], text) for _ in range(2)]
-            check(all(o[0] == 0 or (cmd[0] == IDENTIFY and identify_ok(o[0])) for o in outs)
-                  and outs[0][1] == outs[1][1] and outs[0][1].strip(),
+            check(all(o[0] == 0 for o in outs) and outs[0][1] == outs[1][1] and outs[0][1].strip(),
                   f"{name} ({kind}): --projection=random --seed=99 repeats exactly")
 
     # Different seeds draw different rotations (a 1635-crossing curve would
@@ -659,7 +638,7 @@ def test_input_flags():
         _, plain, _ = run(cmd, pd)
         for flags in (["--projection=x"], ["--projection=random", "--seed=3"], ["--exact-input"]):
             rc, out, _ = run(cmd + flags, pd)
-            check((rc == 0 or (cmd[0] == IDENTIFY and identify_ok(rc))) and out == plain and plain.strip(),
+            check(rc == 0 and out == plain and plain.strip(),
                   f"{name} {' '.join(flags)}: a PD code passes through unchanged")
         rc, out, err = run([cmd[0], "--help"])
         check("3D input only" in out + err,
@@ -674,22 +653,19 @@ def test_input_flags():
     rc, out, _ = run([DRAW, "-cq"], "2 0 3 5 1\n0 4 1 3 1\n4 2 5 1 1\n")
     check(rc == 0 and out.strip(), "knoodledraw combines -q with the label letters (-cq)")
     rc, out, err = run([IDENTIFY, "-q"], tref)
-    # Without the tables, the "unresolved" error is an error, and -q keeps it;
-    # what -q must still remove is every warning.
-    quiet = err.strip() == "" if KLUT else "arning" not in err
-    check(identify_ok(rc) and TREFOIL_ID in out and quiet,
+    check(rc == 0 and "KnotSymbol[3,1" in out and err.strip() == "",
           f"knoodleidentify -q identifies quietly (rc={rc}): {err.strip()[:120]}")
 
     # knoodleidentify takes knoodlesimplify's spelling of the Reapr flags.
     for flags in (["--reapr-rotation-trials=3"], ["--rotation-trials=3"],
                   ["--reapr-energy=TV"], ["--reapr-gap=1.5"]):
         rc, out, err = run([IDENTIFY] + flags, tref)
-        check(identify_ok(rc) and TREFOIL_ID in out,
+        check(rc == 0 and "KnotSymbol[3,1" in out,
               f"knoodleidentify {' '.join(flags)} identifies the trefoil (rc={rc}): {err.strip()[:120]}")
     for bad in ("--reapr-rotation-trials=0", "--reapr-gap=-1", "--reapr-gap=x", "--reapr-scaling=2",
                 "--escalation-rounds=0", "--escalation-band=x"):
         rc, out, _ = run([IDENTIFY, bad], tref)
-        check(rc != 0 and "KnotSymbol" not in out and "NotFound" not in out,
+        check(rc != 0 and "KnotSymbol" not in out,
               f"knoodleidentify {bad} fails (it used to print the help and exit 0)")
 
 
@@ -740,7 +716,7 @@ def test_embedding_is_reaprs_own():
             _, emb, _ = run([DRAW, "--embedding", f"--seed={seed}"], pd)
             for p in ("z", "x", "y"):
                 rc, got, err = run([IDENTIFY, f"--projection={p}"], emb)
-                check(identify_ok(rc) and got == want and want.strip(),
+                check(rc == 0 and got == want and want.strip(),
                       f"{name}, seed {seed}: --embedding | knoodleidentify --projection={p}"
                       f" gives {got.strip()[:60]}, want {want.strip()[:60]}")
 
@@ -795,7 +771,7 @@ def test_reapr_gap():
                     continue
                 for p in ("z", "x", "y"):
                     rc, got, _ = run([IDENTIFY, f"--projection={p}"], emb)
-                    check(identify_ok(rc) and got == want and want.strip(),
+                    check(rc == 0 and got == want and want.strip(),
                           f"{name}, gap {gap}, seed {seed}, down {p}: {got.strip()[:60]},"
                           f" want {want.strip()[:60]}")
 
@@ -832,12 +808,13 @@ def test_reapr_gap():
 
 def main():
     print("cli_contract_check -- tool output, exit codes and round-tripping")
-    if not KLUT:
-        print("note: data/Klut holds Git LFS pointers, not the KLUT tables (no `git lfs pull`);"
-              " knoodleidentify's NotFound fingerprints stand in for knot names")
 
     if not os.path.exists(SIMPLIFY):
         print(f"error: {SIMPLIFY} is not built. Run `make all` in ../tools.")
+        return 2
+    if klut_tables_are_pointers():
+        print("error: data/Klut holds Git LFS pointer files, not the KLUT tables, and"
+              " knoodleidentify refuses them. Install git-lfs and run `git lfs pull`.")
         return 2
 
     test_output_is_readable_again()
