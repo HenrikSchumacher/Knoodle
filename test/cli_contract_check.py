@@ -35,8 +35,9 @@ IDENTIFY = os.path.join(TOOLS, "knoodleidentify")
 def klut_tables_present():
     """True if data/Klut holds the KLUT tables themselves.
 
-    A checkout made without Git LFS -- CI checks out with `lfs: false` -- has
-    LFS pointer files there instead. knoodleidentify then names nothing: it
+    A checkout made without Git LFS (or where `git lfs pull` never ran) has
+    LFS pointer files there instead. CI fetches the tables
+    (scripts/ci-fetch-klut.sh); a local checkout may not have. knoodleidentify then names nothing: it
     still simplifies and canonicalizes, and prints the result as
     NotFound[n, {...}], but exits 1.
     """
