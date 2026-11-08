@@ -141,9 +141,11 @@ dropped. All three diagram tools take the same flags for 3D input:
   `--projection` applies to 3D input only. A PD code is already a diagram: it passes through unchanged, and is never
   embedded and re-viewed from another side. To view a PD code's _ReAPR_ embedding from the side, embed it first:
   `knoodledraw --embedding pd.tsv | knoodledraw --projection=x`. `--embedding` writes exactly the embedding _ReAPR_
-  builds, never rotated: x and y are the integer grid of its OrthoDraw layout, and z is its levels, scaled by
-  `--reapr-scaling`. At the default scaling z has come out integral too in every case we have tried (it is whenever the
-  range of levels divides the grid), but _ReAPR_ does not round it, so that is not guaranteed.
+  builds, never rotated: x and y are the integer grid of its OrthoDraw layout, and z is its levels. By default _ReAPR_
+  stretches the levels so that the z extent matches the smaller of the x and y extents; z has come out integral in every
+  case we have tried, but _ReAPR_ does not round it, so that is not guaranteed. `--reapr-gap=G` fixes the spacing instead:
+  consecutive levels are G grid steps apart (a grid step is 20 units), so z = 20·G·level. _ReAPR_'s levels are integers,
+  so an integer G always gives an integer lattice knot. `--reapr-gap` replaces knoodledraw's old `--reapr-scaling`.
 - `--exact-input` refuses 3D input that cannot be projected exactly. Integer coordinates always can. Floating-point
   coordinates can only if they land exactly on the integer grid (dyadic values like 0.25 do; 0.01 does not), if they are not
   far from the origin compared with their spread, and if they are not rotated by `--projection=random`.
