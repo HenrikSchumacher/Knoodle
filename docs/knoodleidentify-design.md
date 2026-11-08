@@ -122,6 +122,13 @@ to the executable, then `./data/Klut`. (The repo ships the tables in
 `data/Klut/` — 11 files, ~40 MB of keys; `Klut::Subtable` lazy-loads each
 crossing number on first use, so startup is cheap.)
 
+The tables are Git LFS objects, so a clone made without LFS holds pointer
+stubs in their place. Klut loads those silently and misses every lookup (a
+trefoil comes back `NotFound[3, ...]`), so `KlutTablesAreReal()` in
+`knoodleidentify.cpp` reads the first bytes of each subtable file up to
+`--max-crossings` and refuses the directory if any is a pointer, naming it and
+pointing at `git lfs pull`. Test: `test/klut_lfs_pointer_check.py`.
+
 ## Implementation notes
 
 - Reuse `tools/knoodle_io.hpp`: `ReadKnot()` already parses the `k`/`s`
