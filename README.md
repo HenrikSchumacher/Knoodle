@@ -139,9 +139,11 @@ dropped. All three diagram tools take the same flags for 3D input:
   shear instead of a rotation: an oblique view at most about 35° off the z-axis.)
 
   `--projection` applies to 3D input only. A PD code is already a diagram: it passes through unchanged, and is never
-  embedded and re-viewed from another side. Nor does `knoodledraw --embedding | knoodledraw --projection=x` give a side
-  view of a PD code's _ReAPR_ embedding: `--embedding` rotates each piece at random, into general position, before
-  writing it, so the axes of its output are not those of _ReAPR_'s grid.
+  embedded and re-viewed from another side. To view a PD code's _ReAPR_ embedding from the side, embed it first:
+  `knoodledraw --embedding pd.tsv | knoodledraw --projection=x`. `--embedding` writes exactly the embedding _ReAPR_
+  builds, never rotated: x and y are the integer grid of its OrthoDraw layout, and z is its levels, scaled by
+  `--reapr-scaling`. At the default scaling z has come out integral too in every case we have tried (it is whenever the
+  range of levels divides the grid), but _ReAPR_ does not round it, so that is not guaranteed.
 - `--exact-input` refuses 3D input that cannot be projected exactly. Integer coordinates always can. Floating-point
   coordinates can only if they land exactly on the integer grid (dyadic values like 0.25 do; 0.01 does not), if they are not
   far from the origin compared with their spread, and if they are not rotated by `--projection=random`.

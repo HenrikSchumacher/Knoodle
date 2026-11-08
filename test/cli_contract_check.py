@@ -629,9 +629,6 @@ def test_input_flags():
         rc, out, err = run([cmd[0], "--help"])
         check("3D input only" in out + err,
               f"{name} --help says --projection is for 3D input only")
-    rc, out, err = run([DRAW, "--help"])
-    check("rotated at random" in out + err,
-          "knoodledraw --help says --embedding's output is rotated at random")
 
     # -q: knoodledraw has warnings to silence; knoodleidentify's stays as it was.
     rc, _, err = run([DRAW, "--highlight=z1"], "2 0 3 5 1\n0 4 1 3 1\n4 2 5 1 1\n")
@@ -658,6 +655,69 @@ def test_input_flags():
               f"knoodleidentify {bad} fails (it used to print the help and exit 0)")
 
 
+def test_embedding_is_reaprs_own():
+    section("knoodledraw --embedding writes Reapr's embedding, unrotated")
+
+    # It used to rotate each piece at random first: a stopgap from before the
+    # exact projector, which could not read back the exactly vertical edge
+    # Reapr puts at each crossing. Now the output's axes are Reapr's, so
+    # --projection=x and y on it are true side views.
+    trefoil = "2 0 3 5 1\n0 4 1 3 1\n4 2 5 1 1\n"
+    figure8 = "3 1 4 0\n7 5 0 4\n5 2 6 3\n1 6 2 7\n"
+    # A trefoil beside a Hopf link, colored, so the pieces are laid out apart.
+    split = ("2\t0\t3\t5\t1\t0\t0\n0\t4\t1\t3\t1\t0\t0\n4\t2\t5\t1\t1\t0\t0\ns\n"
+             "1\t2\t0\t3\t-1\t1\t2\n3\t0\t2\t1\t-1\t2\t1\n")
+
+    def components(text):
+        comps, cur = [], []
+        for line in text.splitlines():
+            f = line.split()
+            if len(f) == 3:
+                cur.append(tuple(float(x) for x in f))
+            elif cur:
+                comps.append(cur)
+                cur = []
+        if cur:
+            comps.append(cur)
+        return comps
+
+    for name, pd in (("trefoil", trefoil), ("split trefoil + Hopf", split)):
+        rc, out, err = run([DRAW, "--embedding", "--seed=1"], pd)
+        comps = components(out)
+        check(rc == 0 and comps, f"{name}: --embedding writes geometry (rc={rc}): {err.strip()[:120]}")
+        # Every Reapr edge is parallel to an axis: grid segments in x or y at
+        # one level, and vertical jumps. One rotated edge would break this.
+        diagonal = sum(1 for c in comps for i in range(len(c))
+                       if sum(a != b for a, b in zip(c[i], c[(i + 1) % len(c)])) != 1)
+        check(diagonal == 0, f"{name}: every edge is axis-parallel ({diagonal} are not)")
+        # x and y are OrthoDraw's integer grid, and laying split pieces apart
+        # shifts them by whole units.
+        off = sum(1 for c in comps for v in c if v[0] != int(v[0]) or v[1] != int(v[1]))
+        check(off == 0, f"{name}: x and y are integers ({off} vertices are not)")
+
+    # The side views read back as the same knot, chirality included.
+    for name, pd in (("trefoil", trefoil), ("figure-eight", figure8)):
+        _, want, _ = run([IDENTIFY], pd)
+        for seed in (1, 2, 3):
+            _, emb, _ = run([DRAW, "--embedding", f"--seed={seed}"], pd)
+            for p in ("z", "x", "y"):
+                rc, got, err = run([IDENTIFY, f"--projection={p}"], emb)
+                check(rc == 0 and got == want and want.strip(),
+                      f"{name}, seed {seed}: --embedding | knoodleidentify --projection={p}"
+                      f" gives {got.strip()[:60]}, want {want.strip()[:60]}")
+
+    _, emb, _ = run([DRAW, "--embedding", "--seed=2"], split)
+    for p in ("z", "x", "y"):
+        rc, out, _ = run([SIMPLIFY, f"--projection={p}"], emb)
+        rows = data_lines(out)
+        check(rc == 0 and len(rows) == 5 and colors_of(rows) == {"0", "1", "2"},
+              f"split trefoil + Hopf seen down {p}: 3 + 2 crossings in 3 colors, got {len(rows)}")
+
+    rc, out, err = run([DRAW, "--help"])
+    check("never rotated" in out + err,
+          "knoodledraw --help says --embedding's output is never rotated")
+
+
 def main():
     print("cli_contract_check -- tool output, exit codes and round-tripping")
 
@@ -671,6 +731,7 @@ def main():
     test_3d_input_is_quiet()
     test_3d_routes_agree()
     test_input_flags()
+    test_embedding_is_reaprs_own()
     test_help()
     test_flag_spellings()
     test_draw_is_a_filter()

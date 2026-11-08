@@ -285,9 +285,12 @@ void PrintUsage()
     std::cerr << "                              --format=wl. The emitted curves have the same link\n";
     std::cerr << "                              type as the input diagram: connect-sum summands are\n";
     std::cerr << "                              rejoined, split pieces are translated apart.\n";
-    std::cerr << "                              Each piece is rotated at random (into general\n";
-    std::cerr << "                              position) before it is written, so its axes are\n";
-    std::cerr << "                              not those of Reapr's grid.\n";
+    std::cerr << "                              Each piece is exactly the embedding Reapr builds,\n";
+    std::cerr << "                              never rotated: x and y are OrthoDraw's integer\n";
+    std::cerr << "                              grid, z is Reapr's levels scaled by --reapr-scaling\n";
+    std::cerr << "                              (integers too, at the default scaling, whenever the\n";
+    std::cerr << "                              level range divides the grid; not guaranteed). For\n";
+    std::cerr << "                              a side view, pipe it to --projection=x or y.\n";
     std::cerr << "  --reapr-energy=E            One of " << ValidEnergies() << "\n";
     std::cerr << "                              (default: TV; this build's list)\n";
     std::cerr << "  --reapr-scaling=X           3D grid scaling in Reapr (default: 1.0)\n";
@@ -328,10 +331,9 @@ void PrintUsage()
     std::cerr << "                                         (exact for integer coordinates)\n";
     std::cerr << "                              3D input only. A PD code is already a diagram:\n";
     std::cerr << "                              it is drawn as it is, never embedded and\n";
-    std::cerr << "                              re-viewed from another side. Nor is\n";
-    std::cerr << "                                knoodledraw --embedding | knoodledraw --projection=x\n";
-    std::cerr << "                              a side view of the Reapr embedding: --embedding\n";
-    std::cerr << "                              rotates the embedding at random before writing it\n";
+    std::cerr << "                              re-viewed from another side. To view a PD code's\n";
+    std::cerr << "                              Reapr embedding from the side, embed it first:\n";
+    std::cerr << "                                knoodledraw --embedding pd.tsv | knoodledraw --projection=x\n";
     std::cerr << "  --randomize-projection      Same as --projection=random. (3-column input\n";
     std::cerr << "                              used to get a random shear instead, an oblique\n";
     std::cerr << "                              view at most ~35 degrees off the z-axis; it now\n";
@@ -3269,19 +3271,21 @@ std::vector<EmbeddedPiece> BuildEmbedding(const std::vector<PD_T>& summands,
         const PD_T& pd = pdc.Diagram(i);
         if (!pd.ValidQ() || pd.CrossingCount() <= Int(0)) { continue; }
 
-        // Rotate the embedding into general position, the same way
-        // PlanarDiagramComplex/Simplify.hpp does before reprojecting one.
-        // Reapr's raw output takes x and y straight off the OrthoDraw grid, so
-        // the over/under "jump" it inserts at each crossing is an exactly
-        // vertical edge, which projects to a point. Knoodle itself no longer
-        // needs the rotation to read that back: since the LinkEmbedding
-        // promotion the exact projector resolves such degeneracies by symbolic
+        // Exactly the embedding Reapr builds, never rotated: x and y straight
+        // off the OrthoDraw grid (integers), z its scaled levels. So the
+        // output's axes ARE Reapr's, and
+        //   knoodledraw --embedding | knoodledraw --projection=x
+        // is a true side view of it.
+        //
+        // This used to be reapr.Embedding(pd, reapr.RandomRotation()), a
+        // stopgap from before the exact projector: the over/under "jump" Reapr
+        // inserts at each crossing is an exactly vertical edge, which projects
+        // to a point, and the floating-point projector could not read that
+        // back. The exact projector resolves such degeneracies by symbolic
         // perturbation (100 of 100 unrotated trefoil and figure-eight
-        // embeddings projected, 2026-11-07). It is kept so the emitted curves
-        // stay in general position for other readers, and so the output does
-        // not change. (Reapr already randomizes by default via
-        // permute_randomQ, so this costs no determinism that was on offer.)
-        LinkEmb_T emb = reapr.Embedding(pd, reapr.RandomRotation());
+        // embeddings projected, 2026-11-07; test/cli_contract_check.py keeps
+        // checking it).
+        LinkEmb_T emb = reapr.Embedding(pd);
         if (!emb.ValidQ() || emb.EdgeCount() <= Int(0)) { continue; }
 
         pieces.push_back(EmbeddedPiece{std::move(emb), Real(0)});
@@ -3310,7 +3314,9 @@ void PlacePieces(std::vector<EmbeddedPiece>& pieces, Real& x_cursor)
         widest = std::max(widest, spans.back().second - spans.back().first);
     }
 
-    const Real gap = (widest > Real(0)) ? Real(0.25) * widest : Real(1);
+    // An integer gap, so that pieces whose x coordinates are integers (Reapr's
+    // always are) stay on the integer lattice after the shift.
+    const Real gap = std::max(Real(1), std::ceil(Real(0.25) * widest));
 
     for (std::size_t i = 0; i < pieces.size(); ++i)
     {
