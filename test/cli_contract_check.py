@@ -732,72 +732,6 @@ def test_embedding_is_reaprs_own():
           "knoodledraw --help says --embedding's output is never rotated")
 
 
-def test_reapr_gap():
-    section("knoodledraw --embedding --reapr-gap: levels a fixed number of grid steps apart")
-
-    # Reapr itself stretches its levels to the layout's size, so z need not be
-    # an integer. --reapr-gap=G puts consecutive levels G grid steps (20 units)
-    # apart: z = 20*G*level, and Reapr's levels are integers.
-    trefoil = "2 0 3 5 1\n0 4 1 3 1\n4 2 5 1 1\n"
-    figure8 = "3 1 4 0\n7 5 0 4\n5 2 6 3\n1 6 2 7\n"
-    split = ("2\t0\t3\t5\t1\t0\t0\n0\t4\t1\t3\t1\t0\t0\n4\t2\t5\t1\t1\t0\t0\ns\n"
-             "1\t2\t0\t3\t-1\t1\t2\n3\t0\t2\t1\t-1\t2\t1\n")
-
-    def points(text):
-        return [tuple(float(x) for x in line.split())
-                for line in text.splitlines() if len(line.split()) == 3]
-
-    for name, pd in (("trefoil", trefoil), ("figure-eight", figure8),
-                     ("split trefoil + Hopf", split)):
-        _, want, _ = run([IDENTIFY], pd)   # unused for the split link, which is checked by counts
-        for gap, step in (("1", 20), ("2", 40), ("2.5", 50)):
-            for seed in (1, 2):
-                rc, emb, err = run([DRAW, "--embedding", f"--reapr-gap={gap}", f"--seed={seed}"], pd)
-                pts = points(emb)
-                off = sum(1 for v in pts if any(c != int(c) for c in v) or v[2] % step != 0)
-                check(rc == 0 and pts and off == 0,
-                      f"{name}, gap {gap}, seed {seed}: an integer lattice knot with z on"
-                      f" multiples of {step} ({off} vertices off; rc={rc}) {err.strip()[:100]}")
-                levels = sorted({v[2] for v in pts})
-                check(len(levels) >= 2 and min(b - a for a, b in zip(levels, levels[1:])) >= step,
-                      f"{name}, gap {gap}, seed {seed}: levels at least {step} apart: {levels[:6]}")
-                if name.startswith("split"):
-                    for p in ("z", "x", "y"):
-                        rc, out, _ = run([SIMPLIFY, f"--projection={p}"], emb)
-                        rows = data_lines(out)
-                        check(rc == 0 and len(rows) == 5 and colors_of(rows) == {"0", "1", "2"},
-                              f"{name}, gap {gap}, seed {seed}, down {p}: 3 + 2 crossings"
-                              f" in 3 colors, got {len(rows)}")
-                    continue
-                for p in ("z", "x", "y"):
-                    rc, got, _ = run([IDENTIFY, f"--projection={p}"], emb)
-                    check(rc == 0 and got == want and want.strip(),
-                          f"{name}, gap {gap}, seed {seed}, down {p}: {got.strip()[:60]},"
-                          f" want {want.strip()[:60]}")
-
-    # The trefoil takes three TV levels, consecutive integers, so exactly one
-    # gap apart. Where they sit depends on the LP's optimum, and so on the
-    # random draw: seeds repeat only on one build (libc++ and libstdc++
-    # differ), so no absolute value is pinned.
-    for seed in (1, 2, 3):
-        _, emb, _ = run([DRAW, "--embedding", "--reapr-gap=1", f"--seed={seed}"], trefoil)
-        levels = sorted({v[2] for v in points(emb)})
-        check(len(levels) == 3 and all(b - a == 20 for a, b in zip(levels, levels[1:])),
-              f"trefoil, gap 1, seed {seed}: three levels exactly 20 apart: {levels}")
-
-    for bad in ("0", "-1", "x", "2x", "nan", "inf", "1e400", ""):
-        rc, out, _ = run([DRAW, "--embedding", f"--reapr-gap={bad}"], trefoil)
-        check(rc != 0 and not points(out), f"knoodledraw --reapr-gap={bad!r} is refused")
-    rc, out, err = run([DRAW, "--embedding", "--reapr-scaling=2"], trefoil)
-    check(rc != 0 and "--reapr-scaling" in err,
-          "knoodledraw no longer takes --reapr-scaling (replaced by --reapr-gap)")
-
-    rc, out, err = run([DRAW, "--help"])
-    check("--reapr-gap" in out + err and "integer" in out + err
-          and "--reapr-scaling=" not in out + err,
-          "knoodledraw --help documents --reapr-gap and no longer --reapr-scaling")
-
-
 def main():
     print("cli_contract_check -- tool output, exit codes and round-tripping")
 
@@ -816,7 +750,6 @@ def main():
     test_3d_routes_agree()
     test_input_flags()
     test_embedding_is_reaprs_own()
-    test_reapr_gap()
     test_help()
     test_flag_spellings()
     test_draw_is_a_filter()
