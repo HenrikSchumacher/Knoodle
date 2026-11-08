@@ -221,7 +221,7 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config,
                         .compaction_method        = args.compaction_method
                     },
                     .scaling             = args.scaling,
-                    .level_gap           = args.level_gap
+                    .z_grid_size         = args.z_grid_size
                 });
                 reapr.RandomEngine() = DerivedEngine(rng);
 

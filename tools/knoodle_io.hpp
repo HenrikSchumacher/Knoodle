@@ -1079,6 +1079,26 @@ bool ParseNumericLine(const std::string& line,
 }
 
 /**
+ * @brief Parse a positive integer from a string: a grid size, a count.
+ *        Shared by the tools' integer flags (e.g. knoodledraw's --x-grid-size
+ *        and --z-grid-size, the others' --reapr-z-grid-size).
+ */
+[[maybe_unused]] std::optional<Int> ParsePositiveInt(std::string_view s)
+{
+    try
+    {
+        std::size_t pos = 0;
+        long long val = std::stoll(std::string(s), &pos);
+        if (pos != s.size() || val < 1) return std::nullopt;
+        return static_cast<Int>(val);
+    }
+    catch (const std::exception&)
+    {
+        return std::nullopt;
+    }
+}
+
+/**
  * @brief Parse the value of --reapr-energy (fixed vocabulary, so case and
  *        separators are forgiven).
  *
@@ -1243,26 +1263,6 @@ int DetectFormat(const std::vector<Real>& values, bool has_float)
     auto [ptr, ec] = std::from_chars(first, last, seed);
     if (ec != std::errc() || ptr != last) { return std::nullopt; }
     return seed;
-}
-
-/**
- * @brief Parse a strictly positive, finite decimal number, such as the G of
- *        --reapr-gap=G.
- *
- * All of `value` must be the number: no leading spaces, nothing after it.
- */
-[[maybe_unused]] std::optional<double> ParsePositiveReal(std::string_view value)
-{
-    if (value.empty() || std::isspace(static_cast<unsigned char>(value.front())))
-    {
-        return std::nullopt;
-    }
-    const std::string text(value);
-    std::size_t used = 0;
-    double x = 0;
-    try { x = std::stod(text, &used); } catch (const std::exception&) { return std::nullopt; }
-    if (used != text.size() || !std::isfinite(x) || !(x > 0)) { return std::nullopt; }
-    return x;
 }
 
 //==============================================================================

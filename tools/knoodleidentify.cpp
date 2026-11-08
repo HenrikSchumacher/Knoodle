@@ -68,7 +68,8 @@ struct Config
     InputOptions input_options;              ///< --projection, --exact-input
     std::optional<std::uint64_t> seed;       ///< --seed (else one is drawn at startup)
     std::optional<Energy_T> reapr_energy;    ///< --reapr-energy (else Reapr's default)
-    std::optional<double>   reapr_gap;       ///< --reapr-gap, in grid steps (else Reapr's default)
+    std::optional<double>   reapr_scaling;   ///< --reapr-scaling (else Reapr's default)
+    std::optional<Int>      reapr_z_grid_size; ///< --reapr-z-grid-size (else Reapr's scaled levels)
     ki::Size_T escalation_rounds = ki::IdentifyParams{}.cap;      ///< Reapr escalation rounds per candidate
     Int        escalation_band   = ki::IdentifyParams{}.deep_cx;  ///< deep rounds only while stalled <= this
     ki::Size_T rotation_trials   = ki::IdentifyParams{}.rot;      ///< reprojections per embedding
@@ -132,9 +133,11 @@ void PrintUsage()
         "                      (default 5). --rotation-trials=N is the same flag.\n"
         "  --reapr-energy=E    Reapr's energy for the escalation embeddings:\n"
         "                      " + ValidEnergies() + " (default: TV)\n"
-        "  --reapr-gap=G       Put consecutive levels of Reapr's embeddings G grid steps\n"
-        "                      apart (default: Reapr stretches them to the layout's\n"
-        "                      size). Replaces --reapr-scaling.\n"
+        "  --reapr-scaling=X   Reapr's 3D grid scaling (default: 1.0)\n"
+        "  --reapr-z-grid-size=N  Put consecutive levels of Reapr's embeddings N\n"
+        "                      units apart (z = N*level; its x and y grid is 20\n"
+        "                      units) instead of scaling them. Not with\n"
+        "                      --reapr-scaling.\n"
         "  --expanded          One line per knot, summands joined by ' # ' (uses\n"
         "                      the raw K[...] table names).\n"
         "  --tsv               Per-summand output: knot_index, summand_index,\n"
@@ -210,7 +213,8 @@ constexpr std::string_view kKnownFlags[] = {
     "--rotation-trials",
     "--reapr-rotation-trials",
     "--reapr-energy",
-    "--reapr-gap",
+    "--reapr-scaling",
+    "--reapr-z-grid-size",
     "--expanded",
     "--tsv",
     "--quiet",
@@ -285,15 +289,29 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             }
             config.reapr_energy = *e;
         }
-        else if (arg.starts_with("--reapr-gap="))
+        else if (arg.starts_with("--reapr-scaling="))
         {
-            const auto gap = ParsePositiveReal(arg.substr(12));
-            if (!gap)
+            const std::string value(arg.substr(16));
+            std::size_t used = 0;
+            double x = 0;
+            try { x = std::stod(value, &used); } catch (const std::exception&) { used = 0; }
+            if (used == 0 || used != value.size() || !(x > 0) || !std::isfinite(x))
             {
-                LogError("Invalid --reapr-gap (expected a positive number): " + std::string(arg.substr(12)));
+                LogError("Invalid --reapr-scaling (expected a positive number): " + value);
                 return std::nullopt;
             }
-            config.reapr_gap = *gap;
+            config.reapr_scaling = x;
+        }
+        else if (arg.starts_with("--reapr-z-grid-size="))
+        {
+            const auto n = ParsePositiveInt(arg.substr(20));
+            if (!n)
+            {
+                LogError("Invalid --reapr-z-grid-size (expected a positive integer): "
+                         + std::string(arg.substr(20)));
+                return std::nullopt;
+            }
+            config.reapr_z_grid_size = *n;
         }
         else if (arg.starts_with("--max-crossings="))
         {
@@ -360,6 +378,13 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.input_files.push_back(std::string(arg));
         }
+    }
+
+    if (config.reapr_z_grid_size && config.reapr_scaling)
+    {
+        LogError("--reapr-z-grid-size and --reapr-scaling both set Reapr's z spacing;"
+                 " use one or the other");
+        return std::nullopt;
     }
 
     return config;
@@ -972,7 +997,8 @@ int main(int argc, char* argv[])
 
     ki::Reapr_T::Settings_T reapr_settings;
     if (config.reapr_energy)  { reapr_settings.energy  = *config.reapr_energy; }
-    if (config.reapr_gap)     { reapr_settings.level_gap = static_cast<Real>(*config.reapr_gap); }
+    if (config.reapr_scaling) { reapr_settings.scaling = static_cast<Real>(*config.reapr_scaling); }
+    if (config.reapr_z_grid_size) { reapr_settings.z_grid_size = *config.reapr_z_grid_size; }
     ki::Reapr_T reapr(reapr_settings);
     reapr.RandomEngine() = DerivedEngine(rng);
 

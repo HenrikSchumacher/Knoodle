@@ -93,6 +93,12 @@ struct Config
     // Reapr tuning, --embedding only (spelled as in knoodlesimplify)
     std::optional<Energy_T> reapr_energy;
     std::optional<double>   reapr_scaling;
+    std::optional<Int>      z_grid_size;        // --z-grid-size: z = N*level, not Reapr's scaled levels
+
+    // Under --embedding, --x-grid-size and --y-grid-size as given: they size the
+    // grid of the OrthoDraw layout inside Reapr, not the ASCII drawing's.
+    std::optional<Int>      embed_x_grid_size;
+    std::optional<Int>      embed_y_grid_size;
 
     // Algorithm selection
     std::optional<OrthoDraw_T::BendMethod_T>      bend_method;
@@ -173,8 +179,10 @@ void PrintUsage()
     std::cerr << "  --quality=PRESET            fast, default, best, debug\n";
     std::cerr << "\n";
     std::cerr << "Grid and spacing:\n";
-    std::cerr << "  --x-grid-size=N             Horizontal grid size (default: 4/6/8 for 0/1/2+ labels)\n";
-    std::cerr << "  --y-grid-size=N             Vertical grid size (default: 2/3/4 for 0/1/2+ labels)\n";
+    std::cerr << "  --x-grid-size=N             Horizontal grid size (default: 4/6/8 for 0/1/2+ labels;\n";
+    std::cerr << "                              with --embedding, of Reapr's grid: default 20)\n";
+    std::cerr << "  --y-grid-size=N             Vertical grid size (default: 2/3/4 for 0/1/2+ labels;\n";
+    std::cerr << "                              with --embedding, of Reapr's grid: default 20)\n";
     std::cerr << "  --x-gap-size=N              Horizontal gap size (default: 1)\n";
     std::cerr << "  --y-gap-size=N              Vertical gap size (default: 1)\n";
     std::cerr << "  --x-rounding-radius=N       Horizontal rounding radius (default: 4)\n";
@@ -289,13 +297,22 @@ void PrintUsage()
     std::cerr << "                              never rotated: x and y are OrthoDraw's integer\n";
     std::cerr << "                              grid, z is Reapr's levels, stretched so the z extent\n";
     std::cerr << "                              is --reapr-scaling times the smaller of the x and y\n";
-    std::cerr << "                              extents, so z is often not a whole number. For a\n";
+    std::cerr << "                              extents, so z is often not a whole number\n";
+    std::cerr << "                              (--z-grid-size fixes the spacing instead). For a\n";
     std::cerr << "                              side view, pipe it to --projection=x or y.\n";
     std::cerr << "  --reapr-energy=E            One of " << ValidEnergies() << "\n";
     std::cerr << "                              (default: TV; this build's list)\n";
     std::cerr << "  --reapr-scaling=X           3D grid scaling in Reapr (default: 1.0)\n";
-    std::cerr << "                              Note: the layout/label/highlight flags above are\n";
-    std::cerr << "                              2D-only and do not apply to --embedding.\n";
+    std::cerr << "  --z-grid-size=N             Put consecutive levels N units apart instead:\n";
+    std::cerr << "                              z = N*level. Reapr's levels are integers, so z is\n";
+    std::cerr << "                              too. It is the z sibling of --x-grid-size and\n";
+    std::cerr << "                              --y-grid-size, which under --embedding set the x\n";
+    std::cerr << "                              and y grid of Reapr's layout (default 20 units;\n";
+    std::cerr << "                              keep them even for integer x and y). Not with\n";
+    std::cerr << "                              --reapr-scaling.\n";
+    std::cerr << "                              Note: apart from --x-grid-size and --y-grid-size,\n";
+    std::cerr << "                              the layout/label/highlight flags above are 2D-only\n";
+    std::cerr << "                              and do not apply to --embedding.\n";
     std::cerr << "\n";
     std::cerr << "Algorithm options:\n";
     std::cerr << "  --bend-method=METHOD        mcf (default), clp\n";
@@ -360,24 +377,6 @@ void PrintUsage()
     std::cerr << "  knoodledraw --format=wl diagram.tsv\n";
     std::cerr << "  knoodledraw --embedding diagram.tsv > link.kndlxyz\n";
     std::cerr << "  knoodledraw --embedding --format=wl diagram.tsv\n";
-}
-
-/**
- * @brief Parse a positive integer from a string.
- */
-std::optional<Int> ParsePositiveInt(std::string_view s)
-{
-    try
-    {
-        std::size_t pos = 0;
-        long long val = std::stoll(std::string(s), &pos);
-        if (pos != s.size() || val < 1) return std::nullopt;
-        return static_cast<Int>(val);
-    }
-    catch (const std::exception&)
-    {
-        return std::nullopt;
-    }
 }
 
 /**
@@ -455,6 +454,7 @@ constexpr std::string_view kKnownFlags[] = {
     "--embedding",
     "--reapr-energy",
     "--reapr-scaling",
+    "--z-grid-size",
     "--bend-method",
     "--compaction",
     "--randomize-bends",
@@ -506,6 +506,12 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             auto val = ParsePositiveInt(arg.substr(14));
             if (!val) { std::cerr << "Error: Invalid y-grid-size value\n"; return std::nullopt; }
             config.y_grid_size = *val;
+        }
+        else if (arg.starts_with("--z-grid-size="))
+        {
+            auto val = ParsePositiveInt(arg.substr(14));
+            if (!val) { std::cerr << "Error: Invalid z-grid-size value (expected a positive integer)\n"; return std::nullopt; }
+            config.z_grid_size = *val;
         }
         else if (arg.starts_with("--x-gap-size="))
         {
@@ -864,6 +870,30 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         std::cerr << "Error: --embedding emits 3D geometry and cannot be"
                      " combined with --move, --find-pass or --trace\n";
         return std::nullopt;
+    }
+
+    // --z-grid-size spaces the levels of --embedding's output; a 2D drawing has
+    // no levels, and --reapr-scaling is the other way to set the same spacing.
+    if (config.z_grid_size && !config.embedding_mode)
+    {
+        std::cerr << "Error: --z-grid-size sets the level spacing of --embedding's"
+                     " output; it needs --embedding\n";
+        return std::nullopt;
+    }
+    if (config.z_grid_size && config.reapr_scaling)
+    {
+        std::cerr << "Error: --z-grid-size and --reapr-scaling both set the z spacing;"
+                     " use one or the other\n";
+        return std::nullopt;
+    }
+
+    // Under --embedding, the grid sizes given are Reapr's: its OrthoDraw layout
+    // supplies x and y. Keep them before the 2D auto-sizing below fills in
+    // defaults for the ASCII drawing.
+    if (config.embedding_mode)
+    {
+        if (config.x_grid_size > 0) { config.embed_x_grid_size = config.x_grid_size; }
+        if (config.y_grid_size > 0) { config.embed_y_grid_size = config.y_grid_size; }
     }
 
     // Debug preset enables all labels (before auto-sizing so grid adapts)
@@ -3144,19 +3174,25 @@ void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out,
 //==============================================================================
 
 /**
- * @brief Reapr settings for --embedding, from the --reapr-* flags.
+ * @brief Reapr settings for --embedding, from the --reapr-* flags and the
+ *        three grid sizes.
  *
- * The 2D layout knobs (--quality, --x-grid-size, bend/compaction methods, ...)
- * deliberately do NOT feed in here: they tune the ASCII drawing, whereas the
- * OrthoDraw pass inside Reapr is an intermediate step whose defaults
- * (randomize_bends = 2, randomize_virtual_edgesQ = true) are chosen for
- * embedding quality. --help says so.
+ * --x-grid-size, --y-grid-size and --z-grid-size feed in: under --embedding they
+ * are the spacing of the output, x and y from the OrthoDraw layout inside Reapr,
+ * z from its levels. The other 2D layout knobs (--quality, bend/compaction
+ * methods, ...) deliberately do NOT: they tune the ASCII drawing, whereas that
+ * OrthoDraw pass is an intermediate step whose defaults (randomize_bends = 2,
+ * randomize_virtual_edgesQ = true) are chosen for embedding quality. --help
+ * says so.
  */
 Reapr_T::Settings_T BuildReaprSettings(const Config& config)
 {
     Reapr_T::Settings_T settings;
     if (config.reapr_energy)  { settings.energy  = *config.reapr_energy; }
     if (config.reapr_scaling) { settings.scaling = static_cast<Real>(*config.reapr_scaling); }
+    if (config.z_grid_size)       { settings.z_grid_size = *config.z_grid_size; }
+    if (config.embed_x_grid_size) { settings.ortho_draw_settings.x_grid_size = *config.embed_x_grid_size; }
+    if (config.embed_y_grid_size) { settings.ortho_draw_settings.y_grid_size = *config.embed_y_grid_size; }
     return settings;
 }
 
@@ -3301,8 +3337,12 @@ std::vector<EmbeddedPiece> BuildEmbedding(const std::vector<PD_T>& summands,
  * bounding boxes may be linked, which would change the link type of the output.
  * `x_cursor` runs across the whole output stream, so pieces from different input
  * knots are kept apart too.
+ *
+ * The gap is a whole number of `x_step`s, the x grid size of Reapr's layout.
+ * Reapr's x coordinates lie on multiples of half that step, so the shifted
+ * pieces stay on the same grid as unshifted ones: integers for an even step.
  */
-void PlacePieces(std::vector<EmbeddedPiece>& pieces, Real& x_cursor)
+void PlacePieces(std::vector<EmbeddedPiece>& pieces, Real& x_cursor, Real x_step)
 {
     std::vector<std::pair<Real,Real>> spans;
     spans.reserve(pieces.size());
@@ -3314,9 +3354,7 @@ void PlacePieces(std::vector<EmbeddedPiece>& pieces, Real& x_cursor)
         widest = std::max(widest, spans.back().second - spans.back().first);
     }
 
-    // An integer gap, so that pieces whose x coordinates are integers (Reapr's
-    // always are) stay on the integer lattice after the shift.
-    const Real gap = std::max(Real(1), std::ceil(Real(0.25) * widest));
+    const Real gap = x_step * std::max(Real(1), std::ceil(Real(0.25) * widest / x_step));
 
     for (std::size_t i = 0; i < pieces.size(); ++i)
     {
@@ -3478,7 +3516,8 @@ bool EmbedKnot(const std::vector<PD_T>& summands,
         return true;
     }
 
-    PlacePieces(pieces, x_cursor);
+    PlacePieces(pieces, x_cursor,
+                static_cast<Real>(BuildReaprSettings(config).ortho_draw_settings.x_grid_size));
 
     if (config.wolfram_mode) { EmitWolframEmbedding(pieces, std::cout); }
     else                     { EmitEmbeddingXYZ(pieces, std::cout);     }

@@ -237,12 +237,15 @@ static void TestEnumsAndValues()
         check(a && a->final_max_dist == Int(13), "--final-max-dist reaches args");
     }
     {
-        auto a = ArgsOf({"--reapr-gap=2.5"});
-        check(a && double(a->level_gap) == 2.5, "--reapr-gap reaches args.level_gap");
-        check(a && double(a->scaling) == 1.0, "--reapr-gap leaves args.scaling at Reapr's default");
-        check(!Parse({"--reapr-gap=0"}) && !Parse({"--reapr-gap=-1"}) && !Parse({"--reapr-gap=x"}),
-              "a gap that is not a positive number is refused");
-        check(!Parse({"--reapr-scaling=2.5"}), "--reapr-scaling is gone (replaced by --reapr-gap)");
+        auto a = ArgsOf({"--reapr-scaling=2.5"});
+        check(a && double(a->scaling) == 2.5, "--reapr-scaling reaches args.scaling");
+    }
+    {
+        auto a = ArgsOf({"--reapr-z-grid-size=7"});
+        check(a && a->z_grid_size == Int(7), "--reapr-z-grid-size reaches args.z_grid_size");
+        check(a && double(a->scaling) == 1.0, "--reapr-z-grid-size leaves args.scaling at Reapr's default");
+        auto d = ArgsOf({});
+        check(d && d->z_grid_size == Int(0), "without the flag, args.z_grid_size is 0 (Reapr's scaled z)");
     }
     {
         auto a = ArgsOf({"--randomize-bends=3"});
@@ -267,6 +270,11 @@ static void TestRejections()
     check(!Parse({"--dijkstra-strategy=sideways"}), "an unknown dijkstra strategy is refused");
     check(!Parse({"--reapr-energy=nonsense"}), "an unknown reapr energy is refused");
     check(!Parse({"--simplify-level=notanumber"}), "a non-numeric simplify level is refused");
+    check(!Parse({"--reapr-z-grid-size=0"}) && !Parse({"--reapr-z-grid-size=-1"})
+          && !Parse({"--reapr-z-grid-size=x"}) && !Parse({"--reapr-z-grid-size=2.5"}),
+          "--reapr-z-grid-size refuses 0, -1, x and 2.5");
+    check(!Parse({"--reapr-z-grid-size=20", "--reapr-scaling=2"}),
+          "--reapr-z-grid-size with --reapr-scaling is refused (both set the z spacing)");
 
     // And the boundary is where it says it is.
     check(Parse({"--local-opt-level=0"}).has_value(), "--local-opt-level=0 is accepted");

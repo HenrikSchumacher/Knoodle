@@ -64,7 +64,8 @@ struct Config
     std::optional<Int>      compression_threshold;
     std::optional<Knoodle::Size_T> rotation_trials;
     std::optional<bool>     reapr_permute_random;
-    std::optional<double>   reapr_gap;   ///< --reapr-gap, in OrthoDraw grid steps
+    std::optional<double>   reapr_scaling;
+    std::optional<Int>      reapr_z_grid_size;   ///< --reapr-z-grid-size: z = N*level in Reapr's embeddings
     std::optional<int>      randomize_bends;
     std::optional<bool>     randomize_virtual_edges;
     std::optional<PDC_T::Compaction_T> compaction_method;  ///< supersedes no_compaction if both given
@@ -157,9 +158,10 @@ void PrintUsage()
     Log("  --reapr-rotation-trials=N   Random rotations tried per Reapr embedding (default: 25)");
     Log("  --reapr-permute-random / --no-reapr-permute-random");
     Log("                              Randomize arc permutation in Reapr");
-    Log("  --reapr-gap=G               Put consecutive levels of Reapr's embeddings G grid");
-    Log("                              steps apart (default: Reapr stretches them to the");
-    Log("                              layout's size). Replaces --reapr-scaling.");
+    Log("  --reapr-scaling=X           3D grid scaling in Reapr (default: 1.0)");
+    Log("  --reapr-z-grid-size=N       Put consecutive levels of Reapr's embeddings N units");
+    Log("                              apart (z = N*level; its x and y grid is 20 units)");
+    Log("                              instead of scaling them. Not with --reapr-scaling.");
     Log("  --randomize-bends=N         Bend randomization iterations (default: 4)");
     Log("  --randomize-virtual-edges / --no-randomize-virtual-edges");
     Log("                              Randomize virtual edges in OrthoDraw");
@@ -269,7 +271,8 @@ constexpr std::string_view kKnownFlags[] = {
     "--compression-threshold",
     "--reapr-rotation-trials",
     "--reapr-permute-random",     "--no-reapr-permute-random",
-    "--reapr-gap",
+    "--reapr-scaling",
+    "--reapr-z-grid-size",
     "--randomize-bends",
     "--randomize-virtual-edges",  "--no-randomize-virtual-edges",
     "--compaction-method",
@@ -426,15 +429,21 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         }
         else if (arg == "--reapr-permute-random")    { config.reapr_permute_random = true; }
         else if (arg == "--no-reapr-permute-random") { config.reapr_permute_random = false; }
-        else if (arg.starts_with("--reapr-gap="))
+        else if (arg.starts_with("--reapr-scaling="))
         {
-            const auto gap = ParsePositiveReal(arg.substr(12));
-            if (!gap)
+            try { config.reapr_scaling = std::stod(std::string(arg.substr(16))); }
+            catch (const std::exception&) { LogError("Invalid reapr-scaling value"); return std::nullopt; }
+        }
+        else if (arg.starts_with("--reapr-z-grid-size="))
+        {
+            const auto n = ParsePositiveInt(arg.substr(20));
+            if (!n)
             {
-                LogError("Invalid --reapr-gap (expected a positive number): " + std::string(arg.substr(12)));
+                LogError("Invalid --reapr-z-grid-size (expected a positive integer): "
+                         + std::string(arg.substr(20)));
                 return std::nullopt;
             }
-            config.reapr_gap = *gap;
+            config.reapr_z_grid_size = *n;
         }
         else if (arg.starts_with("--randomize-bends="))
         {
@@ -559,6 +568,12 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         LogError("Cannot use --streaming-mode with input files");
         return std::nullopt;
     }
+    if (config.reapr_z_grid_size && config.reapr_scaling)
+    {
+        LogError("--reapr-z-grid-size and --reapr-scaling both set Reapr's z spacing;"
+                 " use one or the other");
+        return std::nullopt;
+    }
 
     return config;
 }
@@ -622,7 +637,8 @@ PDC_T::Simplify_Args_T BuildSimplifyArgs(const Config& config)
     if (config.compression_threshold.has_value())  args.compression_threshold = *config.compression_threshold;
     if (config.rotation_trials.has_value())        args.rotation_trials = *config.rotation_trials;
     if (config.reapr_permute_random.has_value())   args.permute_randomQ = *config.reapr_permute_random;
-    if (config.reapr_gap.has_value())              args.level_gap = *config.reapr_gap;
+    if (config.reapr_scaling.has_value())          args.scaling = *config.reapr_scaling;
+    if (config.reapr_z_grid_size.has_value())      args.z_grid_size = *config.reapr_z_grid_size;
     if (config.randomize_bends.has_value())        args.randomize_bends = *config.randomize_bends;
     if (config.randomize_virtual_edges.has_value())args.randomize_virtual_edgesQ = *config.randomize_virtual_edges;
     if (config.compaction_method.has_value())      args.compaction_method = *config.compaction_method;
@@ -664,7 +680,7 @@ PDC_T::Simplify_Args_T BuildSimplifyArgs(const Config& config)
         << "\n  permute_randomQ          = " << (a.permute_randomQ ? "true" : "false")
         << "\n  randomize_virtual_edgesQ = " << (a.randomize_virtual_edgesQ ? "true" : "false")
         << "\n  scaling                  = " << a.scaling
-        << "\n  level_gap                = " << a.level_gap
+        << "\n  z_grid_size              = " << a.z_grid_size
         << "\n  energy                   = " << EnergyName(a.energy)
         << "\n";
 }
