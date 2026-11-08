@@ -288,10 +288,10 @@ void PrintUsage()
     std::cerr << "                              Each piece is exactly the embedding Reapr builds,\n";
     std::cerr << "                              never rotated: x and y are OrthoDraw's integer\n";
     std::cerr << "                              grid, z is Reapr's levels, stretched so the z extent\n";
-    std::cerr << "                              matches the smaller of the x and y extents (whole\n";
-    std::cerr << "                              numbers in every case tried, but not guaranteed;\n";
-    std::cerr << "                              --reapr-gap fixes the spacing instead). For a side\n";
-    std::cerr << "                              view, pipe it to --projection=x or y.\n";
+    std::cerr << "                              matches the smaller of the x and y extents, so z is\n";
+    std::cerr << "                              often not a whole number (--reapr-gap fixes the\n";
+    std::cerr << "                              spacing instead). For a side view, pipe it to\n";
+    std::cerr << "                              --projection=x or y.\n";
     std::cerr << "  --reapr-energy=E            One of " << ValidEnergies() << "\n";
     std::cerr << "                              (default: TV; this build's list)\n";
     std::cerr << "  --reapr-gap=G               Put consecutive levels G grid steps apart (a grid\n";
