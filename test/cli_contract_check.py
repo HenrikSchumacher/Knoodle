@@ -615,6 +615,24 @@ def test_input_flags():
     check(rc != 0 and "too far from the origin" in err,
           f"knoodleidentify --exact-input refuses an off-origin float knot by name (rc={rc})")
 
+    # A PD code is already a diagram: --projection and --exact-input leave it
+    # alone. In particular --projection=x does NOT embed it and view it from
+    # the side, and --help has to say so, or users will assume it does.
+    pd = "2 0 3 5 1\n0 4 1 3 1\n4 2 5 1 1\n"
+    for name, cmd in (("knoodlesimplify", [SIMPLIFY, "-s=0"]), ("knoodledraw", [DRAW, "--mono"]),
+                      ("knoodleidentify", [IDENTIFY])):
+        _, plain, _ = run(cmd, pd)
+        for flags in (["--projection=x"], ["--projection=random", "--seed=3"], ["--exact-input"]):
+            rc, out, _ = run(cmd + flags, pd)
+            check(rc == 0 and out == plain and plain.strip(),
+                  f"{name} {' '.join(flags)}: a PD code passes through unchanged")
+        rc, out, err = run([cmd[0], "--help"])
+        check("3D input only" in out + err,
+              f"{name} --help says --projection is for 3D input only")
+    rc, out, err = run([DRAW, "--help"])
+    check("rotated at random" in out + err,
+          "knoodledraw --help says --embedding's output is rotated at random")
+
     # -q: knoodledraw has warnings to silence; knoodleidentify's stays as it was.
     rc, _, err = run([DRAW, "--highlight=z1"], "2 0 3 5 1\n0 4 1 3 1\n4 2 5 1 1\n")
     check(rc == 0 and "Warning" in err, "knoodledraw warns about an unknown highlight type")

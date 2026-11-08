@@ -185,6 +185,9 @@ void PrintUsage()
     Log("                                z, x, y  down that axis (exact)");
     Log("                                random   after a uniformly random rotation");
     Log("                                         (exact for integer coordinates)");
+    Log("                              3D input only. A PD code is already a diagram:");
+    Log("                              it passes through unchanged, and is never");
+    Log("                              embedded and re-viewed from another side");
     Log("  --randomize-projection      Same as --projection=random. (3-column input");
     Log("                              used to get a random shear instead, an oblique");
     Log("                              view at most ~35 degrees off the z-axis; it now");

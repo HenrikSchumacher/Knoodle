@@ -285,6 +285,9 @@ void PrintUsage()
     std::cerr << "                              --format=wl. The emitted curves have the same link\n";
     std::cerr << "                              type as the input diagram: connect-sum summands are\n";
     std::cerr << "                              rejoined, split pieces are translated apart.\n";
+    std::cerr << "                              Each piece is rotated at random (into general\n";
+    std::cerr << "                              position) before it is written, so its axes are\n";
+    std::cerr << "                              not those of Reapr's grid.\n";
     std::cerr << "  --reapr-energy=E            One of " << ValidEnergies() << "\n";
     std::cerr << "                              (default: TV; this build's list)\n";
     std::cerr << "  --reapr-scaling=X           3D grid scaling in Reapr (default: 1.0)\n";
@@ -323,6 +326,12 @@ void PrintUsage()
     std::cerr << "                                z, x, y  down that axis (exact)\n";
     std::cerr << "                                random   after a uniformly random rotation\n";
     std::cerr << "                                         (exact for integer coordinates)\n";
+    std::cerr << "                              3D input only. A PD code is already a diagram:\n";
+    std::cerr << "                              it is drawn as it is, never embedded and\n";
+    std::cerr << "                              re-viewed from another side. Nor is\n";
+    std::cerr << "                                knoodledraw --embedding | knoodledraw --projection=x\n";
+    std::cerr << "                              a side view of the Reapr embedding: --embedding\n";
+    std::cerr << "                              rotates the embedding at random before writing it\n";
     std::cerr << "  --randomize-projection      Same as --projection=random. (3-column input\n";
     std::cerr << "                              used to get a random shear instead, an oblique\n";
     std::cerr << "                              view at most ~35 degrees off the z-axis; it now\n";
