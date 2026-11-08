@@ -21,7 +21,7 @@ bool ValidQ() const
 /*!@brief The maximum modulus of all vertex coordinates. Used for computing `RelativeRoundingError.`*/
 Real MaxModulus() const
 {
-    return (global_hi - global_lo).MaxNorm();
+    return Max( global_lo.MaxNorm(), global_hi.MaxNorm() );
 }
 
 /*!@brief Return the scaling factor that was used the last time integer edge coordinates were computed. Defaults to `1`.*/

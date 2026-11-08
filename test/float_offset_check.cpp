@@ -39,8 +39,10 @@
 //                                      integral-valued doubles ever skip the
 //                                      scaling, as the `scaleQ` test in
 //                                      ComputeEdgeCoordinates allows.
-//   double, +/-1000.25 on all axes  -- XFAIL on main 09aa3339: error 3
-//   double, +/-1000.25 in x only    -- XFAIL on main 09aa3339: assertion abort
+//   double, +/-1000.25 on all axes  -- failed on main 09aa3339: error 3
+//   double, +/-1000.25 in x only    -- failed on main 09aa3339: assertion abort
+//                                      (x only, -1000.25 also failed before
+//                                      158f580c). Fixed by reading 1 of #50.
 //   Int64,  as given / +/-1000      -- control. Integral Real is never scaled,
 //                                      so the same translations must pass. This
 //                                      shows the failures come from the float
@@ -84,9 +86,9 @@ namespace kt = knoodle_test;
 
 using Int = std::int64_t;
 
-/// GH #50 is open on main 09aa3339: every +/-1000.25 double case below fails.
-/// Set this to false when the XPASS lines say it is fixed.
-static constexpr bool kIssue50Open = true;
+/// GH #50 was open on main 09aa3339, where every +/-1000.25 double case below
+/// failed. It is fixed, so those cases must now pass like the controls.
+static constexpr bool kIssue50Open = false;
 
 static constexpr Int  kExpectedCrossings = 8;
 static constexpr int  kCaughtSignalBase  = 100;  // child exit code = 100 + signal
