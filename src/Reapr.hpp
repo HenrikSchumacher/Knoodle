@@ -87,6 +87,7 @@ namespace Knoodle
                 .randomize_virtual_edgesQ = true
             }; /**< Use these options for `OrthoDraw` to determin the x- and y-coordinates of the graph embedding. */
             Real   scaling             = Real(1); /**< Scaling applied to z-direction _after_ the z-coordinates are scaled so that the embedding is roughly as high as its maximal extension in x- and z-direction. */
+            Real   level_gap           = Real(0); /**< If positive, consecutive levels are this many `OrthoDraw` grid steps apart, i.e., z = level_gap * grid_size * level, and `scaling` is ignored. The levels are integers for the TV energies, so an integer `level_gap` gives an integer lattice embedding. */
             Real   dirichlet_reg       = Real(0.00001); /**< Regularization parameter for the Dirichlet energy; only relevant if `Energy_T::Dirichlet` is used. */
             Real   bending_reg         = Real(0.00001); /**< Regularization parameter for the Dirichlet energy; only relevant if `Energy_T::Bending` is used. */
             Real   backtracking_factor = Real(0.25); /**< Scale stepsize by this in each step of the line search algorith. Only relevant if `Energy_T::Dirichlet` or `Energy_T::Bending` is used. */
@@ -103,6 +104,7 @@ namespace Knoodle
             + ", .energy = " + ToString(args.energy)
             + ", .ortho_draw_settings = " + ToString(args.ortho_draw_settings)
             + ", .scaling = " + ToString(args.scaling)
+            + ", .level_gap = " + ToString(args.level_gap)
             + ", .dirichlet_reg = " + ToString(args.dirichlet_reg)
             + ", .bending_reg = " + ToString(args.bending_reg)
             + ", .backtracking_factor = " + ToString(args.backtracking_factor)

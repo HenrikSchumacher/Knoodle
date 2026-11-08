@@ -51,6 +51,7 @@ LinkEmbedding_T Embedding_impl( cref<PD_T> pd, Matrix_T && A )
 
 
 // Taking the x-y-coordinates from OrthoDraw literally. As z-coordinates we use the scaled levels function. For settings.scaling == 1, we scale the length of the bounding in z-direction roughly matches the smaller of the lengths of the bounding box in x- and y-direction.
+// If settings.level_gap > 0, we use a fixed scale instead: consecutive levels are settings.level_gap grid steps apart.
 // TODO: This typically contains long edges that are bad for Reapr. We should better find a way to subdivide the edges nicely, e.g., to make it so that each x in x-direction has length H.HorizontalGridSize()/2), each edge in y-direction has length H.VerticalGridSize()/2). I am not sure what the idea length in z-direction would be. Maybe the minimum of the two? Also, we have to beware that we have to incoporate the jump somewhere.
 std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_VertexCoordinates(
         cref<PD_T> pd, cref<OrthoDraw_T> H, cref<Tensor1<Real,Int>> L
@@ -61,7 +62,9 @@ std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_Ver
     const Real w = static_cast<Real>(H.Width()  * H.HorizontalGridSize());
     const Real h = static_cast<Real>(H.Height() * H.VerticalGridSize()  );
     
-    const Real scale = settings.scaling * Min(w,h) / (L_max - L_min);
+    const Real scale = (settings.level_gap > Real(0))
+        ? settings.level_gap * static_cast<Real>(Min(H.HorizontalGridSize(),H.VerticalGridSize()))
+        : settings.scaling * Min(w,h) / (L_max - L_min);
     
     const auto & lc_arcs = pd.LinkComponentArcs();
     const Int lc_count   = lc_arcs.SublistCount();

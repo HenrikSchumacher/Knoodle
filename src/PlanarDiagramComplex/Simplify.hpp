@@ -22,6 +22,7 @@ struct Simplify_Args_T
     bool                permute_randomQ          = true;
     Energy_T            energy                   = Energy_T::TV;
     double              scaling                  = 1.;
+    double              level_gap                = 0.;
     
     int                 randomize_bends          = 2;
     bool                randomize_virtual_edgesQ = true;
@@ -69,7 +70,8 @@ Size_T Simplify( cref<Simplify_Args_T> args = Simplify_Args_T() )
             .randomize_virtual_edgesQ = args.randomize_virtual_edgesQ,
             .compaction_method        = args.compaction_method
         },
-        .scaling             = args.scaling
+        .scaling             = args.scaling,
+        .level_gap           = args.level_gap
     });
     
     return Simplify<targs>( reapr, args );
