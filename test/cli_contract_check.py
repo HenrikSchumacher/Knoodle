@@ -798,10 +798,15 @@ def test_reapr_gap():
                           f"{name}, gap {gap}, seed {seed}, down {p}: {got.strip()[:60]},"
                           f" want {want.strip()[:60]}")
 
-    # The trefoil's TV levels are -1, 0, 1: exactly three levels, a gap apart.
-    _, emb, _ = run([DRAW, "--embedding", "--reapr-gap=1", "--seed=3"], trefoil)
-    check(sorted({v[2] for v in points(emb)}) == [-20.0, 0.0, 20.0],
-          "trefoil, gap 1: levels are exactly -20, 0, 20")
+    # The trefoil takes three TV levels, consecutive integers, so exactly one
+    # gap apart. Where they sit depends on the LP's optimum, and so on the
+    # random draw: seeds repeat only on one build (libc++ and libstdc++
+    # differ), so no absolute value is pinned.
+    for seed in (1, 2, 3):
+        _, emb, _ = run([DRAW, "--embedding", "--reapr-gap=1", f"--seed={seed}"], trefoil)
+        levels = sorted({v[2] for v in points(emb)})
+        check(len(levels) == 3 and all(b - a == 20 for a, b in zip(levels, levels[1:])),
+              f"trefoil, gap 1, seed {seed}: three levels exactly 20 apart: {levels}")
 
     for bad in ("0", "-1", "x", "2x", "nan", "inf", "1e400", ""):
         rc, out, _ = run([DRAW, "--embedding", f"--reapr-gap={bad}"], trefoil)
