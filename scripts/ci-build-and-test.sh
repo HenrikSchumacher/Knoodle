@@ -10,10 +10,10 @@
 # packaging-specific checks (e.g. KLUT installed to the right pkgshare).
 #
 # Light tier only: builds the three tools via the Makefile, smoke-runs --help,
-# then builds + runs the self-contained test drivers that need NO Git-LFS data
-# and NO UMFPACK/BLAS (homfly_check, component_check, plantri_check, and the
-# pure-Python cli_stdin_check). The heavy UMFPACK/KLUT tier is intentionally out
-# of scope here.
+# then builds + runs the light-tier test drivers that need NO UMFPACK/BLAS. The
+# workflow fetches the KLUT tables (data/Klut, Git LFS) first, with
+# scripts/ci-fetch-klut.sh; the rest of the LFS data is not fetched. The heavy
+# UMFPACK tier is intentionally out of scope here.
 #
 # Per-leg configuration comes from the environment (set by the workflow matrix):
 #   CI_CXX           compiler override passed to make as CXX= (empty => let the
@@ -63,16 +63,20 @@ done
 #      --exclude-needs   the UMFPACK/BLAS link shapes. Several CI images have
 #                        no SuiteSparse, and the light drivers are the ones
 #                        that build without it.
-#      --exclude         tests that need the Git-LFS data (data/Klut,
-#                        data/diagrams), which CI does not fetch; plus
-#                        cli_stdin_check, which simulates a terminal with a pty
-#                        and is timing/TTY-sensitive in headless CI.
+#      --exclude         cli_stdin_check, which simulates a terminal with a
+#                        pty and is timing/TTY-sensitive in headless CI; and
+#                        run_tests, excluded with the LFS-data tests when CI
+#                        fetched no LFS data. Its full tiers read
+#                        data/diagrams, which CI still does not fetch, but its
+#                        light --smoke-only run does not, so that exclusion
+#                        could be revisited. (klut_e2e and key_roundtrip_probe
+#                        run now: they need only data/Klut.)
 #
 #    run_tier.py lists every skip in its summary, so a CI pass never reads as
 #    a full-tier pass.
 
 CI_EXCLUDE_NEEDS="umfpack,homfly_umfpack,boost_umfpack"
-CI_EXCLUDE="cli_stdin_check,klut_e2e,key_roundtrip_probe,run_tests"
+CI_EXCLUDE="cli_stdin_check,run_tests"
 
 # EXCLUDE_NEEDS filters what `all` BUILDS, using the same manifest column
 # run_tier.py filters what it RUNS -- so the two cannot disagree.
