@@ -237,8 +237,12 @@ static void TestEnumsAndValues()
         check(a && a->final_max_dist == Int(13), "--final-max-dist reaches args");
     }
     {
-        auto a = ArgsOf({"--reapr-scaling=2.5"});
-        check(a && double(a->scaling) == 2.5, "--reapr-scaling reaches args.scaling");
+        auto a = ArgsOf({"--reapr-gap=2.5"});
+        check(a && double(a->level_gap) == 2.5, "--reapr-gap reaches args.level_gap");
+        check(a && double(a->scaling) == 1.0, "--reapr-gap leaves args.scaling at Reapr's default");
+        check(!Parse({"--reapr-gap=0"}) && !Parse({"--reapr-gap=-1"}) && !Parse({"--reapr-gap=x"}),
+              "a gap that is not a positive number is refused");
+        check(!Parse({"--reapr-scaling=2.5"}), "--reapr-scaling is gone (replaced by --reapr-gap)");
     }
     {
         auto a = ArgsOf({"--randomize-bends=3"});

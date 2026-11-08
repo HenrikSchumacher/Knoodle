@@ -574,17 +574,14 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         }
         else if (arg.starts_with("--reapr-gap="))
         {
-            const std::string val(arg.substr(12));
-            double gap = 0;
-            std::size_t used = 0;
-            try { gap = std::stod(val, &used); } catch (const std::exception&) { used = 0; }
-            if (used == 0 || used != val.size() || !std::isfinite(gap) || gap <= 0)
+            const auto gap = ParsePositiveReal(arg.substr(12));
+            if (!gap)
             {
                 std::cerr << "Error: Invalid --reapr-gap value (expected a positive number): "
-                          << val << "\n";
+                          << arg.substr(12) << "\n";
                 return std::nullopt;
             }
-            config.reapr_gap = gap;
+            config.reapr_gap = *gap;
         }
         // 3D input
         else if (arg.starts_with("--projection="))
@@ -3164,81 +3161,9 @@ void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out,
 Reapr_T::Settings_T BuildReaprSettings(const Config& config)
 {
     Reapr_T::Settings_T settings;
-    if (config.reapr_energy)  { settings.energy  = *config.reapr_energy; }
+    if (config.reapr_energy)  { settings.energy    = *config.reapr_energy; }
+    if (config.reapr_gap)     { settings.level_gap = static_cast<Real>(*config.reapr_gap); }
     return settings;
-}
-
-/**
- * @brief Respace an embedding's levels to z = gap * level, where `L` is the
- *        level function Reapr used to build it.
- *
- * Reapr cannot be asked for a fixed gap. Embedding_VertexCoordinates
- * (src/Reapr/Embedding.hpp) writes each vertex at
- *   z = scale * L[a],  scale = scaling * min(width, height) / (L_max - L_min),
- * a the arc it lies on, with width and height from an OrthoDraw layout that is
- * private to the call. But z is a positive multiple of L, and every arc puts
- * vertices at its own level, so z_min = scale*L_min and z_max = scale*L_max.
- * Each vertex's level is therefore
- *   L_min + (z - z_min) * (L_max - L_min) / (z_max - z_min),
- * which is snapped to the nearest value L takes. Snapping is what makes the
- * result exact: L is integer-valued for the TV energies, so an integer gap gives
- * integer z. The map is affine with positive slope, so the link type cannot
- * change.
- *
- * A vertex that lands on no level (within 1e-9 of the level range) means `L` is
- * not the function Reapr used. That is reported, not guessed around.
- */
-std::optional<std::string> ApplyLevelGap(LinkEmb_T& emb, const Knoodle::Tensor1<Real,Int>& L, Real gap)
-{
-    const Int n = emb.EdgeCount();
-    if (n <= Int(0) || L.Size() <= Int(0)) { return "the embedding is empty"; }
-
-    std::vector<Real> levels(L.data(), L.data() + L.Size());
-    std::sort(levels.begin(), levels.end());
-    levels.erase(std::unique(levels.begin(), levels.end()), levels.end());
-
-    const Real L_min = levels.front();
-    const Real dL    = levels.back() - L_min;
-
-    std::vector<Real> v(std::size_t(3) * std::size_t(n));
-    emb.WriteVertexCoordinates(v.data());
-
-    Real z_min = (std::numeric_limits<Real>::max)();
-    Real z_max = std::numeric_limits<Real>::lowest();
-    for (Int i = 0; i < n; ++i)
-    {
-        z_min = std::min(z_min, v[3 * i + 2]);
-        z_max = std::max(z_max, v[3 * i + 2]);
-    }
-    const Real dz = z_max - z_min;
-
-    if (!(dL > Real(0)) || !(dz > Real(0)) || !std::isfinite(dz))
-    {
-        return "the embedding has a single level";
-    }
-
-    const Real tol = Real(1e-9) * std::max(Real(1), dL);
-
-    for (Int i = 0; i < n; ++i)
-    {
-        const Real level = L_min + (v[3 * i + 2] - z_min) * (dL / dz);
-
-        auto it = std::lower_bound(levels.begin(), levels.end(), level);
-        if (it == levels.end() ||
-            (it != levels.begin() && level - *std::prev(it) < *it - level))
-        {
-            --it;
-        }
-
-        if (std::abs(level - *it) > tol)
-        {
-            return "vertex " + std::to_string(i) + " is at no level of Reapr's level function";
-        }
-        v[3 * i + 2] = gap * *it;
-    }
-
-    emb.ReadVertexCoordinates(v.data());
-    return std::nullopt;
 }
 
 /// One embedded split piece, with the x-offset that keeps it clear of its neighbors.
@@ -3294,7 +3219,7 @@ std::pair<Real,Real> EmbeddingXSpan(const LinkEmb_T& emb)
  * are genuine split pieces, which is sound because a connected sum written as a
  * plain PD code is a *connected* diagram.
  */
-std::optional<std::vector<EmbeddedPiece>> BuildEmbedding(const std::vector<PD_T>& summands,
+std::vector<EmbeddedPiece> BuildEmbedding(const std::vector<PD_T>& summands,
                                           const std::vector<Int>& unknot_colors,
                                           bool coloredQ,
                                           const Config& config,
@@ -3342,23 +3267,7 @@ std::optional<std::vector<EmbeddedPiece>> BuildEmbedding(const std::vector<PD_T>
         pdc = pdc.Splitting();
     }
 
-    Reapr_T::Settings_T settings = BuildReaprSettings(config);
-
-    // --reapr-gap needs the level function Reapr used (see ApplyLevelGap), and
-    // calling Levels() again reproduces it only with permute_randomQ off:
-    // LevelsLP_MCF shuffles its arc order under that flag. So with a gap, the
-    // random relabelling Embedding() would do is done here instead (the same
-    // pd.CreatePermutedRandom call, on Reapr's engine), and Reapr's is switched
-    // off. Without a gap, the call below is Reapr's own, untouched.
-    const bool permute_here = config.reapr_gap.has_value() && settings.permute_randomQ;
-    if (permute_here) { settings.permute_randomQ = false; }
-
-    // One grid step of the OrthoDraw layout inside Reapr (20 by default, the
-    // same along x and y).
-    const Real grid_step = static_cast<Real>(std::min(settings.ortho_draw_settings.x_grid_size,
-                                                      settings.ortho_draw_settings.y_grid_size));
-
-    Reapr_T reapr(settings);
+    Reapr_T reapr(BuildReaprSettings(config));
     reapr.RandomEngine() = DerivedEngine(rng);   // --seed governs Reapr too
 
     std::vector<EmbeddedPiece> pieces;
@@ -3382,27 +3291,8 @@ std::optional<std::vector<EmbeddedPiece>> BuildEmbedding(const std::vector<PD_T>
         // perturbation (100 of 100 unrotated trefoil and figure-eight
         // embeddings projected, 2026-11-07; test/cli_contract_check.py keeps
         // checking it).
-        if (!config.reapr_gap)
-        {
-            LinkEmb_T emb = reapr.Embedding(pd);
-            if (!emb.ValidQ() || emb.EdgeCount() <= Int(0)) { continue; }
-
-            pieces.push_back(EmbeddedPiece{std::move(emb), Real(0)});
-            continue;
-        }
-
-        const PD_T pd_emb = permute_here ? pd.CreatePermutedRandom(reapr.RandomEngine()) : PD_T(pd);
-
-        LinkEmb_T emb = reapr.Embedding(pd_emb);
+        LinkEmb_T emb = reapr.Embedding(pd);
         if (!emb.ValidQ() || emb.EdgeCount() <= Int(0)) { continue; }
-
-        if (const auto err = ApplyLevelGap(emb, reapr.Levels(pd_emb),
-                                           static_cast<Real>(*config.reapr_gap) * grid_step))
-        {
-            std::cerr << "knoodledraw: error: --reapr-gap could not recover Reapr's levels: "
-                      << *err << "\n";
-            return std::nullopt;
-        }
 
         pieces.push_back(EmbeddedPiece{std::move(emb), Real(0)});
     }
@@ -3582,11 +3472,8 @@ bool EmbedKnot(const std::vector<PD_T>& summands,
                Knoodle::PRNG_T& rng,
                Real& x_cursor)
 {
-    std::optional<std::vector<EmbeddedPiece>> built =
+    std::vector<EmbeddedPiece> pieces =
         BuildEmbedding(summands, unknot_colors, coloredQ, config, rng);
-    if (!built) { return false; }
-
-    std::vector<EmbeddedPiece>& pieces = *built;
 
     if (pieces.empty())
     {

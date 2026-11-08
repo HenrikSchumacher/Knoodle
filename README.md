@@ -145,7 +145,8 @@ dropped. All three diagram tools take the same flags for 3D input:
   stretches the levels so that the z extent matches the smaller of the x and y extents, so z is often not a whole number
   (for one 26-crossing figure-eight diagram the levels were 0, ±46.67 and −93.33). `--reapr-gap=G` fixes the spacing instead:
   consecutive levels are G grid steps apart (a grid step is 20 units), so z = 20·G·level. _ReAPR_'s levels are integers,
-  so an integer G always gives an integer lattice knot. `--reapr-gap` replaces knoodledraw's old `--reapr-scaling`.
+  so an integer G always gives an integer lattice knot. knoodlesimplify and knoodleidentify take `--reapr-gap` too, for
+  the embeddings they build while simplifying. In all three tools it replaces `--reapr-scaling`.
 - `--exact-input` refuses 3D input that cannot be projected exactly. Integer coordinates always can. Floating-point
   coordinates can only if they land exactly on the integer grid (dyadic values like 0.25 do; 0.01 does not), if they are not
   far from the origin compared with their spread, and if they are not rotated by `--projection=random`.
@@ -304,7 +305,9 @@ Options:
                       (default 5). --rotation-trials=N is the same flag.
   --reapr-energy=E    Reapr's energy for the escalation embeddings
                       (default: TV)
-  --reapr-scaling=X   Reapr's 3D grid scaling (default: 1.0)
+  --reapr-gap=G       Put consecutive levels of Reapr's embeddings G grid steps
+                      apart (default: Reapr stretches them to the layout's
+                      size). Replaces --reapr-scaling.
   --expanded          One line per knot, summands joined by ' # ' (uses
                       the raw K[...] table names).
   --tsv               Per-summand output: knot_index, summand_index,

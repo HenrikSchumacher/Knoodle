@@ -68,7 +68,7 @@ struct Config
     InputOptions input_options;              ///< --projection, --exact-input
     std::optional<std::uint64_t> seed;       ///< --seed (else one is drawn at startup)
     std::optional<Energy_T> reapr_energy;    ///< --reapr-energy (else Reapr's default)
-    std::optional<double>   reapr_scaling;   ///< --reapr-scaling (else Reapr's default)
+    std::optional<double>   reapr_gap;       ///< --reapr-gap, in grid steps (else Reapr's default)
     ki::Size_T escalation_rounds = ki::IdentifyParams{}.cap;      ///< Reapr escalation rounds per candidate
     Int        escalation_band   = ki::IdentifyParams{}.deep_cx;  ///< deep rounds only while stalled <= this
     ki::Size_T rotation_trials   = ki::IdentifyParams{}.rot;      ///< reprojections per embedding
@@ -130,7 +130,9 @@ void PrintUsage()
         "                      (default 5). --rotation-trials=N is the same flag.\n"
         "  --reapr-energy=E    Reapr's energy for the escalation embeddings:\n"
         "                      " + ValidEnergies() + " (default: TV)\n"
-        "  --reapr-scaling=X   Reapr's 3D grid scaling (default: 1.0)\n"
+        "  --reapr-gap=G       Put consecutive levels of Reapr's embeddings G grid steps\n"
+        "                      apart (default: Reapr stretches them to the layout's\n"
+        "                      size). Replaces --reapr-scaling.\n"
         "  --expanded          One line per knot, summands joined by ' # ' (uses\n"
         "                      the raw K[...] table names).\n"
         "  --tsv               Per-summand output: knot_index, summand_index,\n"
@@ -206,7 +208,7 @@ constexpr std::string_view kKnownFlags[] = {
     "--rotation-trials",
     "--reapr-rotation-trials",
     "--reapr-energy",
-    "--reapr-scaling",
+    "--reapr-gap",
     "--expanded",
     "--tsv",
     "--quiet",
@@ -281,18 +283,15 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             }
             config.reapr_energy = *e;
         }
-        else if (arg.starts_with("--reapr-scaling="))
+        else if (arg.starts_with("--reapr-gap="))
         {
-            const std::string value(arg.substr(16));
-            std::size_t used = 0;
-            double x = 0;
-            try { x = std::stod(value, &used); } catch (const std::exception&) { used = 0; }
-            if (used == 0 || used != value.size() || !(x > 0) || !std::isfinite(x))
+            const auto gap = ParsePositiveReal(arg.substr(12));
+            if (!gap)
             {
-                LogError("Invalid --reapr-scaling (expected a positive number): " + value);
+                LogError("Invalid --reapr-gap (expected a positive number): " + std::string(arg.substr(12)));
                 return std::nullopt;
             }
-            config.reapr_scaling = x;
+            config.reapr_gap = *gap;
         }
         else if (arg.starts_with("--max-crossings="))
         {
@@ -913,7 +912,7 @@ int main(int argc, char* argv[])
 
     ki::Reapr_T::Settings_T reapr_settings;
     if (config.reapr_energy)  { reapr_settings.energy  = *config.reapr_energy; }
-    if (config.reapr_scaling) { reapr_settings.scaling = static_cast<Real>(*config.reapr_scaling); }
+    if (config.reapr_gap)     { reapr_settings.level_gap = static_cast<Real>(*config.reapr_gap); }
     ki::Reapr_T reapr(reapr_settings);
     reapr.RandomEngine() = DerivedEngine(rng);
 

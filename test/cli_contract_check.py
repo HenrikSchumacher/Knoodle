@@ -644,11 +644,11 @@ def test_input_flags():
 
     # knoodleidentify takes knoodlesimplify's spelling of the Reapr flags.
     for flags in (["--reapr-rotation-trials=3"], ["--rotation-trials=3"],
-                  ["--reapr-energy=TV"], ["--reapr-scaling=1.5"]):
+                  ["--reapr-energy=TV"], ["--reapr-gap=1.5"]):
         rc, out, err = run([IDENTIFY] + flags, tref)
         check(rc == 0 and "KnotSymbol[3,1" in out,
               f"knoodleidentify {' '.join(flags)} identifies the trefoil (rc={rc}): {err.strip()[:120]}")
-    for bad in ("--reapr-rotation-trials=0", "--reapr-scaling=-1", "--reapr-scaling=x",
+    for bad in ("--reapr-rotation-trials=0", "--reapr-gap=-1", "--reapr-gap=x", "--reapr-scaling=2",
                 "--escalation-rounds=0", "--escalation-band=x"):
         rc, out, _ = run([IDENTIFY, bad], tref)
         check(rc != 0 and "KnotSymbol" not in out,
@@ -761,22 +761,33 @@ def test_reapr_gap():
                           f"{name}, gap {gap}, seed {seed}, down {p}: {got.strip()[:60]},"
                           f" want {want.strip()[:60]}")
 
-    # The trefoil's TV levels are -1, 0, 1: exactly three levels, a gap apart.
-    _, emb, _ = run([DRAW, "--embedding", "--reapr-gap=1", "--seed=3"], trefoil)
-    check(sorted({v[2] for v in points(emb)}) == [-20.0, 0.0, 20.0],
-          "trefoil, gap 1: levels are exactly -20, 0, 20")
+    # The trefoil takes three TV levels, consecutive integers, so exactly one
+    # gap apart.
+    for seed in (1, 2, 3):
+        _, emb, _ = run([DRAW, "--embedding", "--reapr-gap=1", f"--seed={seed}"], trefoil)
+        levels = sorted({v[2] for v in points(emb)})
+        check(len(levels) == 3 and all(b - a == 20 for a, b in zip(levels, levels[1:])),
+              f"trefoil, gap 1, seed {seed}: three levels exactly 20 apart: {levels}")
+
+    # knoodlesimplify passes the gap to the Reapr it simplifies with.
+    rc, out, err = run([SIMPLIFY, "-s=6", "--reapr-gap=2", "--seed=1"], trefoil)
+    check(rc == 0 and len(data_lines(out)) == 3,
+          f"knoodlesimplify -s=6 --reapr-gap=2 keeps the trefoil (rc={rc}): {err.strip()[:100]}")
 
     for bad in ("0", "-1", "x", "2x", "nan", "inf", "1e400", ""):
         rc, out, _ = run([DRAW, "--embedding", f"--reapr-gap={bad}"], trefoil)
         check(rc != 0 and not points(out), f"knoodledraw --reapr-gap={bad!r} is refused")
-    rc, out, err = run([DRAW, "--embedding", "--reapr-scaling=2"], trefoil)
-    check(rc != 0 and "--reapr-scaling" in err,
-          "knoodledraw no longer takes --reapr-scaling (replaced by --reapr-gap)")
-
+    for tool, args in ((DRAW, ["--embedding"]), (SIMPLIFY, []), (IDENTIFY, [])):
+        name = os.path.basename(tool)
+        rc, out, err = run([tool] + args + ["--reapr-scaling=2"], trefoil)
+        check(rc != 0 and "--reapr-scaling" in err,
+              f"{name} no longer takes --reapr-scaling (replaced by --reapr-gap)")
+        rc, out, err = run([tool, "--help"])
+        check("--reapr-gap=G" in out + err and "--reapr-scaling=" not in out + err,
+              f"{name} --help documents --reapr-gap and no longer --reapr-scaling")
     rc, out, err = run([DRAW, "--help"])
-    check("--reapr-gap" in out + err and "integer" in out + err
-          and "--reapr-scaling=" not in out + err,
-          "knoodledraw --help documents --reapr-gap and no longer --reapr-scaling")
+    check("integer" in out + err and "lattice knot" in out + err,
+          "knoodledraw --help says an integer gap gives an integer lattice knot")
 
 
 def main():
