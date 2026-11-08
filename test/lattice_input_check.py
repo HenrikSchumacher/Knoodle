@@ -19,6 +19,7 @@ axes, and random exact rotations must all name the same knot.
 Run: python3 lattice_input_check.py   (needs the tools built in ../tools)
 """
 
+import glob
 import os
 import re
 import subprocess
@@ -31,6 +32,38 @@ SIMPLIFY = os.path.join(TOOLS, "knoodlesimplify")
 DRAW = os.path.join(TOOLS, "knoodledraw")
 IDENTIFY = os.path.join(TOOLS, "knoodleidentify")
 FIXTURES = os.path.join(HERE, "embeddings")
+
+
+def klut_tables_present():
+    """True if data/Klut holds the KLUT tables themselves.
+
+    A checkout made without Git LFS -- CI checks out with `lfs: false` -- has
+    LFS pointer files there instead. knoodleidentify then names nothing: it
+    still simplifies and canonicalizes, and prints the result as
+    NotFound[n, {...}], but exits 1.
+    """
+    tables = glob.glob(os.path.join(HERE, "..", "data", "Klut", "*.tsv"))
+    if not tables:
+        return False
+    for path in tables:
+        with open(path, "rb") as f:
+            if f.read(40).startswith(b"version https://git-lfs"):
+                return False
+    return True
+
+
+KLUT = klut_tables_present()
+
+# Without the tables, the NotFound output stands in for the table name. For the
+# trefoil and figure-eight used here it is a stable fingerprint: their minimal
+# diagrams are unique, and 90 of 90 readbacks of each agreed (2026-11-08).
+TREFOIL_ID = "KnotSymbol[3,1," if KLUT else "NotFound[3,"
+
+
+def identify_ok(rc):
+    """knoodleidentify's exit code for a run that named its knot -- or, without
+    the tables, fingerprinted it (exit 1, NotFound)."""
+    return rc == 0 or (not KLUT and rc == 1)
 
 # Knot types the fixtures' .expect files document.
 UNKNOTS = ["lattice_04", "deg_collinear_overlap", "deg_corner_corner",
@@ -113,11 +146,11 @@ def test_three_column_input():
         check(out1 == out2, f"{name}: the exact projection is the same diagram every time")
 
         rc, out, err = identify(text)
-        check(rc == 0, f"{name}: knoodleidentify exits 0 (rc={rc}): {err.strip()[:200]}")
+        check(identify_ok(rc), f"{name}: knoodleidentify exits 0 (rc={rc}): {err.strip()[:200]}")
         if name in UNKNOTS:
             check(out.strip() == "<||>", f"{name}: identified as the unknot, got {out.strip()[:80]}")
         if name in TREFOILS:
-            check(out.strip().startswith("<| KnotSymbol[3,1,"),
+            check(out.strip().startswith("<| " + TREFOIL_ID),
                   f"{name}: identified as a trefoil, got {out.strip()[:80]}")
 
 
@@ -135,14 +168,14 @@ def test_random_projection_agrees():
         # and as exact.
         for axis in ("x", "y"):
             rc, out, err = identify(text, f"--projection={axis}")
-            check(rc == 0 and out == exact,
+            check(identify_ok(rc) and out == exact,
                   f"{name}: --projection={axis} gives {out.strip()[:80]} (rc={rc}),"
                   f" down z gives {exact.strip()[:80]} {err.strip()[:120]}")
         # --randomize-projection is the old spelling of --projection=random.
         for t in range(RANDOM_TRIALS):
             flag = "--randomize-projection" if t % 2 else "--projection=random"
             rc, out, err = identify(text, flag)
-            check(rc == 0, f"{name}: randomized trial {t} exits 0 (rc={rc}): {err.strip()[:200]}")
+            check(identify_ok(rc), f"{name}: randomized trial {t} exits 0 (rc={rc}): {err.strip()[:200]}")
             check(out == exact, f"{name}: randomized trial {t} gives {out.strip()[:80]},"
                                 f" exact gives {exact.strip()[:80]}")
 
@@ -227,6 +260,9 @@ def test_failure_looks_like_failure():
 
 def main():
     print("lattice_input_check -- integer-coordinate input through the exact projector")
+    if not KLUT:
+        print("note: data/Klut holds Git LFS pointers, not the KLUT tables (no `git lfs pull`);"
+              " knoodleidentify's NotFound fingerprints stand in for knot names")
 
     for tool in (SIMPLIFY, DRAW, IDENTIFY):
         if not os.path.exists(tool):
