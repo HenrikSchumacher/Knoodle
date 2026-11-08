@@ -92,7 +92,7 @@ struct Config
 
     // Reapr tuning, --embedding only (spelled as in knoodlesimplify)
     std::optional<Energy_T> reapr_energy;
-    std::optional<double>   reapr_gap;   ///< --reapr-gap, in OrthoDraw grid steps
+    std::optional<double>   reapr_scaling;
 
     // Algorithm selection
     std::optional<OrthoDraw_T::BendMethod_T>      bend_method;
@@ -288,16 +288,12 @@ void PrintUsage()
     std::cerr << "                              Each piece is exactly the embedding Reapr builds,\n";
     std::cerr << "                              never rotated: x and y are OrthoDraw's integer\n";
     std::cerr << "                              grid, z is Reapr's levels, stretched so the z extent\n";
-    std::cerr << "                              matches the smaller of the x and y extents, so z is\n";
-    std::cerr << "                              often not a whole number (--reapr-gap fixes the\n";
-    std::cerr << "                              spacing instead). For a side view, pipe it to\n";
-    std::cerr << "                              --projection=x or y.\n";
+    std::cerr << "                              is --reapr-scaling times the smaller of the x and y\n";
+    std::cerr << "                              extents, so z is often not a whole number. For a\n";
+    std::cerr << "                              side view, pipe it to --projection=x or y.\n";
     std::cerr << "  --reapr-energy=E            One of " << ValidEnergies() << "\n";
     std::cerr << "                              (default: TV; this build's list)\n";
-    std::cerr << "  --reapr-gap=G               Put consecutive levels G grid steps apart (a grid\n";
-    std::cerr << "                              step is 20 units): z = 20*G*level. Reapr's levels\n";
-    std::cerr << "                              are integers, so an integer G gives an integer\n";
-    std::cerr << "                              lattice knot. (Replaces --reapr-scaling.)\n";
+    std::cerr << "  --reapr-scaling=X           3D grid scaling in Reapr (default: 1.0)\n";
     std::cerr << "                              Note: the layout/label/highlight flags above are\n";
     std::cerr << "                              2D-only and do not apply to --embedding.\n";
     std::cerr << "\n";
@@ -458,7 +454,7 @@ constexpr std::string_view kKnownFlags[] = {
     "--verify",
     "--embedding",
     "--reapr-energy",
-    "--reapr-gap",
+    "--reapr-scaling",
     "--bend-method",
     "--compaction",
     "--randomize-bends",
@@ -572,16 +568,14 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
                 return std::nullopt;
             }
         }
-        else if (arg.starts_with("--reapr-gap="))
+        else if (arg.starts_with("--reapr-scaling="))
         {
-            const auto gap = ParsePositiveReal(arg.substr(12));
-            if (!gap)
+            try { config.reapr_scaling = std::stod(std::string(arg.substr(16))); }
+            catch (const std::exception&)
             {
-                std::cerr << "Error: Invalid --reapr-gap value (expected a positive number): "
-                          << arg.substr(12) << "\n";
+                std::cerr << "Error: Invalid --reapr-scaling value\n";
                 return std::nullopt;
             }
-            config.reapr_gap = *gap;
         }
         // 3D input
         else if (arg.starts_with("--projection="))
@@ -3161,8 +3155,8 @@ void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out,
 Reapr_T::Settings_T BuildReaprSettings(const Config& config)
 {
     Reapr_T::Settings_T settings;
-    if (config.reapr_energy)  { settings.energy    = *config.reapr_energy; }
-    if (config.reapr_gap)     { settings.level_gap = static_cast<Real>(*config.reapr_gap); }
+    if (config.reapr_energy)  { settings.energy  = *config.reapr_energy; }
+    if (config.reapr_scaling) { settings.scaling = static_cast<Real>(*config.reapr_scaling); }
     return settings;
 }
 
