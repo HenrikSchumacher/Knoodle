@@ -8,7 +8,7 @@ public:
     
     friend Klut;
     
-    using Class_T = Subtable;
+    using Class_T = Klut::Subtable;
     
 private:
     
