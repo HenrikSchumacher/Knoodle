@@ -4,7 +4,7 @@ namespace Knoodle
 {
     /*!@brief Given to vectors `u`, `v` of unsigned integers, this function returns `true` if `u` is stricly less than `v` in Morton ordering, i.e., in the ordering obtained by the Z-shaped curve.*/
     template<int AmbDim, UnsignedIntQ UInt>
-    TOOLS_FORCE_INLINE bool less_Morton( cptr<UInt> u, cptr<UInt> v )
+    constexpr bool less_Morton( cptr<UInt> u, cptr<UInt> v )
     {
         // From Timothy M. Chan - Closest-Point Problems on the RAM
         int  i = 0;
@@ -27,20 +27,21 @@ namespace Knoodle
      *  `ReadVertexCoordinates` loads vertex coordinates from a raw buffer; the intrinsic topology of the link and the ordering in which individual vertices are loaded depends on which constructor was used.
      *  `RequireIntersections` uses a static binary tree, exact integer computations, and _symbolic_ perturbation techniques to compute the planar diagram as exactly as possible. It can deal with many geometric degeneracies: line segments that have length 0, line segments that project to a point, line segments whose endpoints project to the projections of other line segments, multiple intersections at a single point, intersecting line segments that a parallel. In particular, this class can deal with lattice links.
      *
-     *
      *  There are really only two cases in which this can go wrong:
      *
-     *  -# If floating-point inputs are used, then the initial rounding (see `ComputeEdgeCoordinates`) to an integer grid can induce a bit of rounding error. Caution is used, though to mediate this: we try to use a relatively big scaling factor and we scale only by powers of 2 (which does not lead to rouding errors on its own, unless some inputs are really tiny or really so that we have overflow in the exponent). We intentionally do not translate the inputs to avoid catastrophic cancellation. Note that this means that the range of the employed integer type may be used in an optimal way. It is in the user's discretion to apply appropriate measures to "center" the inputs around 0. If `Real_ = double` and `IReal_ = int64_t`, then often the rounding error is 0. You can check with `RoundingError()` after the computations have finished.
+     *  -# If floating-point inputs are used, then the initial rounding to an integer grid (see `ComputeEdgeCoordinates`) can induce a bit of rounding error. Caution is used, though, to mediate this: we try to use a relatively big scaling factor and we scale only by powers of 2 (which does not lead to rouding errors on its own, unless some inputs are really tiny or really so that we have overflow in the exponent). We intentionally do not translate the inputs to avoid catastrophic cancellation. Note that this means that the range of the employed integer type may be used in a suboptimal way. It is in the user's discretion to apply appropriate measures to "center" the inputs around 0. If `Real_ = double` and `IReal_ = int64_t`, then often the rounding error is 0. You can check with `RoundingError()` after the computations have finished.
      *
      *  -# If, after the rounding procedure, two non-neigboring line segments intersect nontrivially in 3-space, there is no way to perturb it in a topologically meaningful way. Then `RequireIntersections` aborts and returns a nonzero error flag.
      *
      * This implementation is single-threaded only so that many instances of this object can be used in parallel.
      *
-     * This class is EXPERIMENTAL at the moment, but once it has withstood the test of time, it is supposed to replace `LinkEmbedding`, which currently uses the less accurate floating-point backend. Moreover, it is planned to replace the tree-based intersection computations by a sweep line algorithm that should be more suitable for tightly confined links and will probably require less memory.
+     * At the moment, a block cluster tree is used for acceleration of intersection comptutations. If the input curve(s) consist of many small edges (small compared to the diameter of the bounding box), then this should be reasonably efficient. It might become less efficient for tightly confined knots and links. We play with the idea of implementing a more efficient sweep line algorithm in the future.
      *
      * @tparam Real_ The scalar type used for the coordinates of the link embedding. This is the format for loading and storing these curves. Allowed are `float`, `double`, and signed integral types.
      *
      * @tparam Prosector_T_ What is expected here is one of the `Prosector*` classes that the backend for projecting the coordinates to a plane and for computing the intersections. This also specifies which integer types to use for indexing and for coordinate computations. CAUTION: The type `Prosector_T_::Idx` must be an integral type big enough to hold the number of crossings that emerge after projecting the link to the x-y-plane. So `Int64` is probably the safest bet here.
+     *
+     * @tparam mortonQ_ Whether a Morton ordering of the points should be taken into account for creating the AABB tree. This feature was intended to give a speed up for complicated links for which the "canonical" ordering might be suboptimal for the AABB tree. However, it turned out that activating Morton reordering just makes `RequireIntersections` slower, not faster. So we will probably remove this template parameter in future versions of the library.
      */
     
     template<
@@ -58,10 +59,14 @@ namespace Knoodle
         using Prosector_T     = Prosector_T_;
         static constexpr bool mortonQ = mortonQ_;
         
+        // These are meant for experimenting with the Morton reordering. Should be set to false in production.
+        // Might be removed laters.
+        static constexpr bool reorderQ  = false;
+        static constexpr bool countersQ = false;
+        
         using Base_T          = Link<typename Prosector_T_::Idx>;
         using Class_T         = LinkEmbedding_Int;
-        using LinkEmbedding_T = LinkEmbedding_Int;
-
+        using LinkEmbedding_T = Class_T;
 
         using Int             = Prosector_T::Idx;
         using IReal           = Prosector_T::Int;
@@ -84,9 +89,10 @@ namespace Knoodle
         using Matrix3x3_T     = Tiny::Matrix<3,3,Real ,Int>;
         using IVector3_T      = Tiny::Vector<3,  IReal,Int>;
         
-        using VContainer_T    = Tiny::VectorList_AoS<3, Real,Int>;
-        using EContainer_T    = Tiny::VectorList_AoS<3,IReal,Int>;
-//        using EContainer_T    = Tree3_T::EContainer_T;
+        using VContainer_T    = Tiny::VectorList_AoS<3,   Real,Int>;
+        using EContainer_T    = Tiny::VectorList_AoS<3,  IReal,Int>;
+        using E2Container_T   = Tensor3<IReal,Int>;
+        
         using BContainer_T    = Tree2_T::BContainer_T;
 
     protected:
@@ -132,6 +138,8 @@ namespace Knoodle
         mutable EContainer_T edge_coords;
         mutable BContainer_T box_coords;
         
+        mutable E2Container_T edge_pair_coords;
+        
         // Containers that might have to be reallocated after calls to ReadVertexCoordinates.
         mutable Aggregator<Intersection_T,Int> intersections;
         mutable Tensor1<EdgeCrossing_T,Int> edge_cross;
@@ -140,18 +148,24 @@ namespace Knoodle
         
         mutable Prosector_T S;
         
-        mutable Real   scaling_factor           = 1;
-        mutable Real   rounding_error           = 0;
-        mutable Size_T intersection_count_3D    = 0;
-        mutable Int    intersection_count       = 0;
+        mutable Real   scaling_factor             = 1;
+        mutable Real   rounding_error             = 0;
         
-        mutable int    scaling_exponent         = 0;
+        mutable Size_T box_box_check_count        = 0;
+        mutable Size_T box_box_intersection_count = 0;
+        mutable Size_T edge_edge_check_count      = 0;
+
+        mutable Size_T intersection_count_3D      = 0;
+        mutable Int    intersection_count         = 0;
         
-        mutable bool   vertex_coords_loadedQ    = false;
-        mutable bool   edge_coords_computedQ    = false;
-        mutable bool   bounding_boxes_computedQ = false;
-        mutable bool   intersections_computedQ  = false;
-        mutable bool   input_integralQ          = IntQ<Real>;
+        mutable int    scaling_exponent           = 0;
+        
+        mutable bool   vertex_coords_loadedQ      = false;
+        mutable bool   edge_coords_computedQ      = false;
+        mutable bool   bounding_boxes_computedQ   = false;
+        mutable bool   intersections_computedQ    = false;
+        mutable bool   input_integralQ            = IntQ<Real>;
+        
         
     public:
         
@@ -226,6 +240,7 @@ namespace Knoodle
                 + Base_T::component_color.AllocatedByteCount()
                 + vertex_coords.AllocatedByteCount()
                 + edge_coords.AllocatedByteCount()
+                + edge_pair_coords.AllocatedByteCount()
                 + box_coords.AllocatedByteCount()
                 + intersections.AllocatedByteCount()
                 + edge_cross.AllocatedByteCount();
@@ -250,6 +265,7 @@ namespace Knoodle
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_color)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(vertex_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_coords)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_pair_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(intersections)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_cross)

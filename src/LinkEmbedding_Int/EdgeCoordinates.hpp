@@ -20,7 +20,14 @@ cref<EContainer_T> EdgeCoordinates() const
 
 cptr<IReal> EdgeData( const Int k, const bool l ) const
 {
-    return l ? edge_coords.data(NextEdge(k)) : edge_coords.data(k);
+    if constexpr ( reorderQ )
+    {
+        return edge_pair_coords.data(k,l);
+    }
+    else
+    {
+        return l ? edge_coords.data(NextEdge(k)) : edge_coords.data(k);
+    }
 }
 
 cref<Tensor1<Int,Int>> MortonOrdering() const
@@ -98,15 +105,10 @@ private:
         
         // We may omit scaling in the floating-point case only if the inputs are integer values and not too big, i.e., when we would scale up.
         bool scaleQ = !(input_integralQ && (scaling_exponent >= 0) );
-        
-        
+
         // If we do not scale, then we need to adjust scaling_factor because, otherwise, RelativeRoundingError() might be wrong.
-        if( !scaleQ )
-        {
-            scaling_factor = 1;
-        }
+        if( !scaleQ ) { scaling_factor = 1; }
             
-        
         // TODO: What do we really want here? std::nearbyint or std::round? I don't think we want it to be dependent on current rounding mode?
         if constexpr ( mortonQ )
         {
@@ -181,6 +183,7 @@ private:
         
         if constexpr ( mortonQ )
         {
+//            tic("Computing Morton ordering");
             p.template RequireSize<false>(edge_count);
             p.iota();
             leaf_node_to_edge.template RequireSize<false>(edge_count);
@@ -198,6 +201,24 @@ private:
             for( Int i = 0; i < edge_count; ++i )
             {
                 leaf_node_to_edge[i] = p[T.NodeBegin(T.InternalNodeCount() + i)];
+            }
+//            toc("Computing Morton ordering");
+            
+            if constexpr ( reorderQ )
+            {
+//                tic("Applying Morton reordering to edges");
+                if( edge_pair_coords.Dim(0) < edge_count )
+                {
+                    edge_pair_coords = E2Container_T(edge_count,2,3);
+                }
+                
+                for( Int i = 0; i < edge_count; ++i )
+                {
+                    const Int j = p[i];
+                    copy_buffer<3>( edge_coords.data(j)          , edge_pair_coords.data(i,Int{0}) );
+                    copy_buffer<3>( edge_coords.data(NextEdge(j)), edge_pair_coords.data(i,Int{1}) );
+                }
+//                toc("Applying Morton reordering to edges");
             }
         }
         

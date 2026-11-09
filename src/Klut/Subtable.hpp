@@ -4,7 +4,26 @@ public:
 // Stores and looks up data for a fixed number of crossings.
 class Subtable
 {
+public:
+    
     friend Klut;
+    
+    using Class_T = Subtable;
+    
+    // For a weird reason. the routine `Read` will complain if this is place at the end of the class.
+    
+    using Msgr = Tools::Messenger<Class_T>;
+           
+    template<typename A>
+    static consteval auto MethodName( const A & tag )
+    {
+        return Msgr::MethodName(tag);
+    }
+
+    static consteval auto ClassName()
+    {
+        return ct_string("Klut::Subtable");
+    }
     
 private:
     
@@ -33,11 +52,10 @@ public:
     {
         if( crossing_count > max_crossing_count )
         {
-            eprint(ClassName() + "(" + ToString(crossing_count) + "): Requested number of crossings is too big. Aborting with fail.");
+            Msgr::eprint( "Subtable()", "Requested number of crossings ", crossing_count, "is too big. Aborting with fail.");
             failedQ = true;
             return;
         }
-//        failedQ = (!ifstream(k_file).good()) || (!ifstream(v_file).good());
         
         // A missing file is not an error: the table just stops short of this
         // many crossings (see Klut's constructor). A file that cannot even be
@@ -45,18 +63,22 @@ public:
         // and the throwing overload of exists would escape this constructor.
         std::error_code k_ec;
         std::error_code v_ec;
+
+        // exists(path, ec) returns false for a missing file too, with ec CLEAR.
+        // Only a set ec means the check itself failed.
         const bool k_existsQ = std::filesystem::exists(k_file, k_ec);
         const bool v_existsQ = std::filesystem::exists(v_file, v_ec);
-        
+
         if( k_ec )
         {
-            eprint(ClassName(), "(", crossing_count, "): Could not check for ", k_file.string(), ": ", k_ec.message(), ". Aborting with fail.");
+            Msgr::eprint( "Subtable()", "Could not check for ", k_file, ": ", k_ec.message(), ". Aborting with fail.");
         }
+
         if( v_ec )
         {
-            eprint(ClassName(), "(", crossing_count, "): Could not check for ", v_file.string(), ": ", v_ec.message(), ". Aborting with fail.");
+            Msgr::eprint( "Subtable()", "Could not check for ", v_file, ": ", v_ec.message(), ". Aborting with fail.");
         }
-        
+
         failedQ = !k_existsQ || !v_existsQ;
     }
     
@@ -80,9 +102,7 @@ private:
     
     void Read()
     {
-        [[maybe_unused]] auto tag = [](){ return MethodName("Read"); };
-        
-        TOOLS_PTIMER(timer,tag());
+        TOOLS_PTIMER(timer,MethodName("Read"));
         
         if( failedQ ) { return; }
         if( loadedQ ) { return; }
@@ -94,7 +114,7 @@ private:
         std::ifstream v_stream ( v_file, std::ios::in );
         if( !v_stream )
         {
-            eprint(tag(), ": Could not open ", v_file.string(), ". Aborting with incomplete table." );
+            Msgr::eprint("Read", "Could not open ", v_file, ". Aborting with incomplete table." );
             failedQ = true;
             return;
         }
@@ -102,7 +122,7 @@ private:
         std::ifstream k_stream ( k_file, std::ios::binary );
         if( !k_stream )
         {
-            eprint(tag(), ": Could not open ", k_file.string(), ". Aborting with incomplete table." );
+            Msgr::eprint("Read", "Could not open ", k_file, ". Aborting with incomplete table." );
             failedQ = true;
             return;
         }
@@ -123,7 +143,7 @@ private:
                 // Only a clean end of file ends the table.
                 if( v_stream.eof() ) { break; }
             
-                eprint(tag(), ": Could not read entry ", knot_names.size() + Size_T(1), " of ", v_file.string(), ". Aborting with incomplete table." );
+                Msgr::eprint("Read", "Could not read entry ", knot_names.size() + Size_T(1), " of ", v_file, ". Aborting with incomplete table." );
                 Fail();
                 return;
             }
@@ -131,7 +151,7 @@ private:
             // A count that does not parse must not silently end the table.
             if( !(v_stream >> knot_count) || (knot_count == Size_T(0)) )
             {
-                eprint(tag(), ": ", v_file.string(), " gives no valid key count for ", knot_name, ". Aborting with incomplete table." );
+                Msgr::eprint("Read", "File ", v_file, " gives no valid key count for ", knot_name, ". Aborting with incomplete table." );
                 Fail();
                 return;
             }
@@ -149,7 +169,7 @@ private:
                 // at the end of the file would insert a zero-padded key.
                 if( k_stream.gcount() != static_cast<std::streamsize>(c_count) )
                 {
-                    eprint(tag(), ": ", k_file.string(), " ends after ", counter, " keys, but ", v_file.string(), " lists more (", knot_names.back(), " has ", knot_count, "). Aborting with incomplete table." );
+                    Msgr::eprint("Read", "File ", k_file, " ends after ", counter, " keys, but ", v_file, " lists more (", knot_names.back(), " has ", knot_count, "). Aborting with incomplete table." );
                     Fail();
                     return;
                 }
@@ -159,7 +179,7 @@ private:
                 
                 if( !insertedQ )
                 {
-                    eprint(tag(), ": Key ", counter, " of ", k_file.string(), " (for ", knot_names.back(), ") repeats a key of ", knot_names[it->second], ". Aborting with incomplete table." );
+                    Msgr::eprint("Read", "Key ", counter, " of ", k_file, " (for ", knot_names.back(), ") repeats a key of ", knot_names[it->second], ". Aborting with incomplete table." );
                     Fail();
                     return;
                 }
@@ -174,7 +194,7 @@ private:
         // Every key must belong to an entry of the values file.
         if( k_stream.peek() != std::ifstream::traits_type::eof() )
         {
-            eprint(tag(), ": ", k_file.string(), " holds more than the ", counter, " keys listed in ", v_file.string(), ". Aborting with incomplete table." );
+            Msgr::eprint("Read", "File ", k_file, " holds more than the ", counter, " keys listed in ", v_file, ". Aborting with incomplete table." );
             Fail();
             return;
         }
@@ -234,17 +254,5 @@ public:
         
         return knot_names[id];
     }
-    
-public:
-    
-    static std::string MethodName( const std::string & tag )
-    {
-        return ClassName() + "::" + tag;
-    }
-    
-    static std::string ClassName()
-    {
-        return std::string("Klut::Subtable");
-    }
-    
+                   
 }; // class Subtable

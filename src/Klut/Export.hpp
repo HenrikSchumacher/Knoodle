@@ -91,7 +91,7 @@ void WriteSubtableToFile( cref<Path_T> file, const Int n )
     
     if( std::cmp_less(n,0) || std::cmp_greater(c,CrossingCount()) )
     {
-        wprint(MethodName("WriteSubtableToFile") + ": There is no subtable for " + ToString(n) +"-crossing diagrams to export. Aborting.");
+        Msgr::wprint("WriteSubtableToFile", "There is no subtable for ", n, "-crossing diagrams to export. Aborting.");
         return;
     }
     
@@ -99,7 +99,7 @@ void WriteSubtableToFile( cref<Path_T> file, const Int n )
     
     if( std::cmp_not_equal(c, subtable.CrossingCount()) )
     {
-        eprint(MethodName("WriteSubtableToFile") + ": No ob crossings of diagram does not match requested number of crossings. Table must be corrupted. Aborting.");
+        Msgr::eprint("WriteSubtableToFile", "No ob crossings of diagram does not match requested number of crossings. Table must be corrupted. Aborting.");
         return;
     }
     
@@ -109,7 +109,7 @@ void WriteSubtableToFile( cref<Path_T> file, const Int n )
     
     if( !stream )
     {
-        eprint(MethodName("WriteSubtableToFile") + ": Could not open file " + file.string() +". Aborting." );
+        Msgr::eprint("WriteSubtableToFile", "Could not open file ", file, ". Aborting." );
         return;
     }
 

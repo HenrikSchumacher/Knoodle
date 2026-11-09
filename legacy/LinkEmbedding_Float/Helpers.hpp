@@ -90,6 +90,45 @@ Matrix3x3_T InverseTransformationMatrix() const
     return Inverse_Kahan(R);
 }
 
+Size_T BoxBoxCheckCount() const
+{
+    if constexpr ( countersQ )
+    {
+        return box_box_check_count;
+    }
+    else
+    {
+        // We intentionally return an unlikely value.
+        return static_cast<Size_T>(-1);
+    }
+}
+
+Size_T BoxBoxIntersectionCount() const
+{
+    if constexpr ( countersQ )
+    {
+        return box_box_intersection_count;
+    }
+    else
+    {
+        // We intentionally return an unlikely value.
+        return static_cast<Size_T>(-1);
+    }
+}
+
+Size_T EdgeEdgeCheckCount() const
+{
+    if constexpr ( countersQ )
+    {
+        return edge_edge_check_count;
+    }
+    else
+    {
+        // We intentionally return an unlikely value.
+        return static_cast<Size_T>(-1);
+    }
+}
+
 
 private:
 

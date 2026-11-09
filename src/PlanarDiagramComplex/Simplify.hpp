@@ -464,7 +464,7 @@ void DumpRattleFailure(
         // 3. The exact geometry, at full precision, so it can be re-projected.
         (void)emb.WriteToFile( base.string() + ".xyz", true );
 
-        Msgr::wprint("Rattle", ": wrote a failure bundle to ", base.string(), ".{txt,pd.tsv,xyz} -- please attach these to any bug report." );
+        Msgr::wprint("Rattle", "Wrote a failure bundle to ", base, ".{txt,pd.tsv,xyz} -- please attach these to any bug report." );
     }
     catch( ... )
     {

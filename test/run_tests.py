@@ -31,6 +31,10 @@ Usage:
   python run_tests.py --cross-check          # also validate against Regina
 """
 
+# Keeps the `X | None` annotations below from being evaluated, so this runs on
+# macOS's stock /usr/bin/python3 (3.9). Without it, 3.9 fails at import time.
+from __future__ import annotations
+
 import argparse
 import glob
 import os

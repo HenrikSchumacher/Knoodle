@@ -28,6 +28,10 @@ namespace Knoodle
         using Int   = Int_;
         using BReal = BReal_;
         
+        
+        // DEBUGGING
+        static constexpr bool countersQ = true;
+        
         using Base_T          = Link<Int>;
         using Class_T         = LinkEmbedding_Float;
         using LinkEmbedding_T = Class_T;
@@ -48,13 +52,10 @@ namespace Knoodle
         using Intersection_T  = Prosector_T::Intersection_T;
         using EdgeCrossing_T  = EdgeCrossing<Int>;
         
-        
         using ProsectorFlagCounts_T = Tiny::Vector<9,Size_T,Underlying_T<ProsectorFlag>>;
         
         static constexpr Int AmbDim = 3;
         static constexpr Int InvalidColor = PlanarDiagram<Int>::InvalidColor;
-        
-        static constexpr bool countersQ = false;
         
     protected:
         
@@ -103,13 +104,14 @@ namespace Knoodle
         Prosector_T S;
         ProsectorFlagCounts_T prosector_flag_counts = {};
         
-        Size_T intersection_count_3D  = 0;
-        Size_T box_box_counter        = 0;
-        Size_T edge_edge_counter      = 0;
-        Int intersection_count        = 0;
+        Size_T box_box_check_count        = 0;
+        Size_T box_box_intersection_count = 0;
+        Size_T edge_edge_check_count      = 0;
+        Size_T intersection_count_3D      = 0;
+        Int intersection_count            = 0;
         
-        bool intersections_computedQ  = false;
-        bool bounding_boxes_computedQ = false;
+        bool intersections_computedQ      = false;
+        bool bounding_boxes_computedQ     = false;
         
     public:
         
