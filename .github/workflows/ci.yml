@@ -51,13 +51,16 @@ jobs:
         include:
           - name: macos-26 (Apple clang)
             os: macos-26
-          # macOS 15 / Clang 17 lacks floating-point std::from_chars, so the build
-          # is expected to fail. Informational tripwire (does not fail the run); it
-          # goes green if the upstream code ever gains a fallback. Mirrors the tap's
-          # macos-15 experimental leg.
-          - name: macos-15 (tripwire, expected fail)
+          # The older Apple toolchain: the macos-15 image's default Xcode 16.4
+          # (Apple clang 17), which is what macOS 15 users build with. A regular
+          # leg since 2026-11-09. It was an informational tripwire while Clang 17
+          # lacked floating-point std::from_chars, and it had been passing since
+          # at least 2026-08-06 without anyone noticing. If it starts failing
+          # again, decide then whether to make it informational again or drop it.
+          # GitHub sometimes cannot find a macOS runner, and the job is then
+          # cancelled ("not acquired by Runner"); re-run it.
+          - name: macos-15 (Apple clang 17, Xcode 16.4)
             os: macos-15
-            experimental: true
           - name: ubuntu-latest (clang)
             os: ubuntu-latest
             cxx: "clang++ -DTOOLS_NO_RESTRICT"
