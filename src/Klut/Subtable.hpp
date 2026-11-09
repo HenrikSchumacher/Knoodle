@@ -8,7 +8,22 @@ public:
     
     friend Klut;
     
-    using Class_T = Klut::Subtable;
+    using Class_T = Subtable;
+    
+    // For a weird reason. the routine `Read` will complain if this is place at the end of the class.
+    
+    using Msgr = Tools::Messenger<Class_T>;
+           
+    template<typename A>
+    static consteval auto MethodName( const A & tag )
+    {
+        return Msgr::MethodName(tag);
+    }
+
+    static consteval auto ClassName()
+    {
+        return ct_string("Klut::Subtable");
+    }
     
 private:
     
@@ -75,7 +90,7 @@ private:
     
     void Read()
     {
-        TOOLS_PTIMER(timer,Msgr::MethodName("Read"));
+        TOOLS_PTIMER(timer,MethodName("Read"));
         
         if( failedQ ) { return; }
         if( loadedQ ) { return; }
@@ -192,21 +207,6 @@ public:
         if( id == not_found ) { return "NotFound"; };
         
         return knot_names[id];
-    }
-    
-public:
-                   
-    using Msgr = Tools::Messenger<Class_T>;
-           
-    template<typename A>
-    static consteval auto MethodName( const A & tag )
-    {
-        return Msgr::MethodName(tag);
-    }
-
-    static consteval auto ClassName()
-    {
-        return ct_string("Klut::Subtable");
     }
                    
 }; // class Subtable
