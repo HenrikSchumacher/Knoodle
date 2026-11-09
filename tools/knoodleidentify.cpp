@@ -948,7 +948,7 @@ bool KlutTablesAreSound(const std::filesystem::path& dir, Int max_crossings,
 // also hashes the keys files (23 MB). And the set must be the one this build
 // was made for (klut_table_set.hpp), unless --allow-other-tables.
 //
-// Tables without a manifest (from before Knoodle 1.1.1, or copied without it)
+// Tables without a manifest (from before Knoodle 1.2.0, or copied without it)
 // get a warning, not an error, for now: the paclet's staged copies lack it
 // until its build copies it too.
 
@@ -1115,7 +1115,7 @@ bool KlutTablesMatchManifest(const std::filesystem::path& dir, Int max_crossings
         {
             LogError("Cannot verify the KLUT tables in " + dir.string() + ": there is no "
                      + std::string(kManifestName) + " to check them against. (Tables "
-                     "from before Knoodle 1.1.1 have none; data/Klut in a current "
+                     "from before Knoodle 1.2.0 have none; data/Klut in a current "
                      "Knoodle checkout or release does.)");
             return false;
         }
