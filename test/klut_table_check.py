@@ -8,13 +8,20 @@ knots with exit status 0, and a missing or truncated file showed up as
 NotFound, which reads as a gap in the table. docs/klut-table-failure-audit.md
 has the whole list. This test holds the tool to what it does now:
 
-  * the tables are checked before any input is read. Missing, empty,
-    unreadable or truncated files, a keys file whose size does not match its
-    values file, and a values file that does not parse strictly all stop it
-    with exit 1, empty stdout, and a message naming the file;
-  * a table that fails or changes while it runs (the subtables load lazily)
-    stops it at that knot, with an error, never NotFound or a wrong name;
-  * a NotFound is a nonzero exit, with --quiet too;
+  * the tables are checked, and loaded in full, before any input is read.
+    Missing, empty, unreadable or truncated files, a keys file whose size does
+    not match its values file, a values file that does not parse strictly, and
+    a key listed twice (Klut keeps only the first) all stop it with exit 1,
+    empty stdout, and a message naming the file;
+  * Klut_Manifest.txt, when present, must agree with the tables: sizes, key
+    counts and the values files' SHA-256 on every run, the keys files' too with
+    --verify-tables, and the table set must be the one the build expects unless
+    --allow-other-tables. That catches what keeps the structure intact (an
+    index or alternating flag changed, names reordered, a key bit flipped);
+  * since everything is loaded at startup, a table changed while the tool runs
+    changes nothing;
+  * a NotFound is a nonzero exit, with --quiet too; a knot above
+    --max-crossings is Unidentified, not NotFound;
   * --data-dir and $KNOODLE_KLUT_DIR are the only candidate when given, so a
     wrong one is an error rather than a quiet switch to other tables; an
     unreadable directory is an error, not a crash; tables found only in the
@@ -22,20 +29,19 @@ has the whole list. This test holds the tool to what it does now:
     bin/ next to share/knoodle/Klut) works; and the summary says which tables
     answered.
 
-Damage that keeps the structure intact (a flipped digit in a knot's index, a
-flipped bit inside a key, two names swapped at startup) is NOT caught: only a
-checksum could see it. The audit lists those cases.
-
 The test carries its own copy of the 3- to 7-crossing tables (MINI below,
 ~800 bytes) and runs with --max-crossings=7, so it works in a checkout made
-without Git LFS, as CI's is. When this checkout has the real tables it also
-checks that MINI still matches them, and that the full set names a 13-crossing
-knot.
+without Git LFS, as CI's is; it writes its own manifests for them. When this
+checkout has the real tables it also checks that MINI still matches them, that
+the full set verifies and names a 13-crossing knot, and that damage to a copy
+of it is caught.
 
 Run: python3 klut_table_check.py   (needs ../tools/knoodleidentify built)
 """
 
+import hashlib
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -47,6 +53,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 IDENTIFY = os.path.join(REPO, "tools", "knoodleidentify")
 KLUT = os.path.join(REPO, "data", "Klut")
+MANIFEST = "Klut_Manifest.txt"
+SET_HEADER = os.path.join(REPO, "tools", "klut_table_set.hpp")
 
 LFS_HEADER = b"version https://git-lfs.github.com/spec/"
 
@@ -150,6 +158,37 @@ def write_mini(dest):
         with open(os.path.join(dest, keys_name(c)), "wb") as f:
             f.write(keys)
     return dest
+
+
+def manifest_text(d, crossings, version="1"):
+    """A Klut_Manifest.txt for the tables in d, written from the format's
+    description, independently of scripts/klut-manifest.py."""
+    lines = []
+    for c in crossings:
+        for name in (keys_name(c), values_name(c)):
+            with open(os.path.join(d, name), "rb") as f:
+                data = f.read()
+            if name.endswith(".bin"):
+                nkeys = len(data) // c
+            else:
+                nkeys = sum(int(l.split(b"\t")[1]) for l in data.splitlines())
+            lines.append(f"{name} {len(data)} {nkeys} {hashlib.sha256(data).hexdigest()}")
+    set_id = hashlib.sha256("".join(l + "\n" for l in lines).encode()).hexdigest()[:16]
+    return set_id, (f"# written by klut_table_check\nklut-manifest {version}\nset {set_id}\n"
+                    + "".join(l + "\n" for l in lines))
+
+
+def write_manifest(d, crossings=tuple(MINI)):
+    set_id, text = manifest_text(d, crossings)
+    with open(os.path.join(d, MANIFEST), "w", newline="") as f:
+        f.write(text)
+    return set_id
+
+
+def built_set():
+    with open(SET_HEADER) as f:
+        m = re.search(r'kKlutTableSet = "([0-9a-f]{16})"', f.read())
+    return m.group(1) if m else None
 
 
 def env_without_klut_dir(extra=None):
@@ -271,6 +310,12 @@ DAMAGE = [
     ("a line with no tab", 7,
      lambda v, k: (bump_count(v, '"e/r"]\t4\n', '"e/r"]4\n'), k),
      [values_name(7) + " line 13", "expected `name<TAB>count`"]),
+    ("a key listed twice, under two knots", 7,
+     lambda v, k: (v, k[:7] + k[:7] + k[14:]),
+     [keys_name(7), "1 of its 34 keys duplicates an earlier key", 'K[7,1,1,"m/mr"] kept 0 of 1']),
+    ("the trefoil's mirror key replaced by its own", 3,
+     lambda v, k: (v, k[:3] + k[:3]),
+     [keys_name(3), 'K[3,1,1,"m/mr"] kept 0 of 1']),
     ("a space instead of a tab", 7,
      lambda v, k: (bump_count(v, '"e/r"]\t4\n', '"e/r"] 4\n'), k),
      [values_name(7) + " line 13", "unexpected byte 0x20"]),
@@ -302,7 +347,7 @@ def test_damage(scratch):
         d = write_mini(os.path.join(scratch, f"damage{i:02d}"))
         apply_damage(d, c, damage)
         rc, out, err = run([f"--data-dir={d}", f"--max-crossings={MINI_MAX}"])
-        assert_refused(what, rc, out, err, d, "damaged or incomplete", *must_say)
+        assert_refused(what, rc, out, err, d, "are damaged", *must_say)
 
     # --quiet hides the summary, never this.
     d = os.path.join(scratch, "damage00")
@@ -347,6 +392,14 @@ def test_partial(scratch):
     assert_refused("only the 3-crossing pair", rc, out, err, values_name(4) + ": missing",
                    keys_name(7) + ": missing")
 
+    # --max-crossings sets the table range: 5_1 is above 4, so Unidentified.
+    # It used to come back as NotFound, a "table gap", with exit status 1.
+    rc, out, err = run([f"--data-dir={mini}", "--max-crossings=4"], stdin=KNOT_5_1)
+    no_crash("5_1 with --max-crossings=4", rc, err)
+    check(rc == 0, "5_1 with --max-crossings=4: exits 0", err)
+    check(out.startswith("<| Unidentified[5,"), "5_1 with --max-crossings=4: Unidentified", out)
+    check("NotFound" not in out + err, "5_1 with --max-crossings=4: no NotFound", out + err)
+
     # Asking for fewer subtables is fine: a trefoil only needs the 3s.
     rc, out, err = run([f"--data-dir={only3}", "--max-crossings=3", "--expanded"],
                        stdin=TREFOIL)
@@ -355,11 +408,7 @@ def test_partial(scratch):
 
 
 def run_midway(d, between):
-    """Identify a trefoil, call between(), then identify 5_1, in one run.
-
-    The 5-crossing subtable is not read until 5_1 needs it, so between() can
-    change it after the startup check has passed.
-    """
+    """Identify a trefoil, call between(), then identify 5_1, in one run."""
     p = subprocess.Popen([IDENTIFY, f"--data-dir={d}", f"--max-crossings={MINI_MAX}",
                           "--expanded"],
                          stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -382,26 +431,21 @@ def run_midway(d, between):
 
 
 def test_midway(scratch):
-    section("a table that fails or changes while the tool runs")
+    section("a table changed while the tool runs changes nothing")
 
-    # The keys file disappears: Klut's lazy read of it fails. That used to come
-    # back as NotFound[5, ...] after a pointless Reapr escalation.
+    # Klut reads a subtable on first use. knoodleidentify now loads them all at
+    # startup, after checking them, so the answers come from the checked
+    # tables whatever happens to the files later. (Before that, a keys file
+    # deleted mid-run came back as NotFound[5, ...], and a values file swapped
+    # mid-run renamed 5_1 as its mirror.)
     d = write_mini(os.path.join(scratch, "midway-keys"))
     rc, first, rest, err = run_midway(d, lambda: os.remove(os.path.join(d, keys_name(5))))
     what = "keys file deleted mid-run"
     no_crash(what, rc, err)
-    check(first.split() == [TWO_NAMES[0]], f"{what}: the trefoil, before it, is named", first)
-    check(rc != 0, f"{what}: exits nonzero", err)
-    check(rest == "", f"{what}: nothing printed for 5_1", rest)
-    check("5-crossing KLUT table" in err and "failed to load" in err,
-          f"{what}: says the 5-crossing table failed to load", err)
-    check("stopped at knot 2" in err, f"{what}: says where it stopped", err)
-    check("NotFound" not in err and "NotFound" not in rest,
-          f"{what}: no NotFound", err + rest)
+    check(rc == 0, f"{what}: exits 0", err)
+    check((first + rest).split() == TWO_NAMES, f"{what}: both knots named as before",
+          first + rest)
 
-    # The values file is replaced by one with two names swapped. Its structure
-    # is fine, so Klut loads it -- and would name 5_1 "5_1 mirror" by the new
-    # order. The names checked at startup no longer match, which is an error.
     d = write_mini(os.path.join(scratch, "midway-values"))
     lines = MINI[5][0].splitlines(keepends=True)
     swapped = "".join([lines[1], lines[0]] + lines[2:])
@@ -413,11 +457,9 @@ def test_midway(scratch):
     rc, first, rest, err = run_midway(d, swap)
     what = "values file replaced mid-run"
     no_crash(what, rc, err)
-    check(first.split() == [TWO_NAMES[0]], f"{what}: the trefoil, before it, is named", first)
-    check(rc != 0, f"{what}: exits nonzero", err)
-    check(rest == "", f"{what}: no name, right or wrong, for 5_1", rest)
-    check("changed after knoodleidentify started" in err,
-          f"{what}: says the table changed after startup", err)
+    check(rc == 0, f"{what}: exits 0", err)
+    check((first + rest).split() == TWO_NAMES, f"{what}: 5_1 is still 5_1, not its mirror",
+          first + rest)
 
 
 def test_notfound_exit(scratch):
@@ -510,7 +552,8 @@ def test_where(scratch):
     check(os.path.join("9.9.9", "share", "knoodle", "Klut") in err
           and "(next to the executable)" in err,
           "Homebrew layout: the summary names the keg's share/knoodle/Klut", err)
-    check("warning" not in err, "Homebrew layout: no warning", err)
+    check("from the current directory" not in err,
+          "Homebrew layout: no current-directory warning", err)
 
     if AS_ROOT:
         print("  (running as root: skipping the unreadable-directory cases)")
@@ -544,6 +587,145 @@ def test_where(scratch):
         os.chmod(share, stat.S_IRWXU)
 
 
+def test_manifest(scratch):
+    section("Klut_Manifest.txt: contents and table set")
+
+    mine = built_set()
+    check(mine is not None, "tools/klut_table_set.hpp names a table set")
+    allow = [f"--max-crossings={MINI_MAX}", "--allow-other-tables"]
+
+    # No manifest: a warning, not an error (tables from before the manifest).
+    d = write_mini(os.path.join(scratch, "no-manifest"))
+    rc, out, err = run([f"--data-dir={d}", f"--max-crossings={MINI_MAX}", "--expanded"])
+    assert_answers("no manifest", rc, out, err)
+    check(f"there is no {MANIFEST}" in err, "no manifest: warns", err)
+    check(", no manifest" in err, "no manifest: the summary says so", err)
+    rc, out, err = run([f"--data-dir={d}", "--verify-tables", f"--max-crossings={MINI_MAX}"])
+    assert_refused("--verify-tables without a manifest", rc, out, err,
+                   "Cannot verify the KLUT tables", MANIFEST)
+
+    # A manifest for MINI names MINI's own table set, which is not the one this
+    # build expects.
+    d = write_mini(os.path.join(scratch, "manifest-ok"))
+    set_id = write_manifest(d)
+    check(set_id != mine, "MINI's table set differs from the built one (else the next check is moot)")
+    rc, out, err = run([f"--data-dir={d}", f"--max-crossings={MINI_MAX}"])
+    assert_refused("another table set", rc, out, err, f"are table set {set_id}",
+                   f"built for table set {mine}", "--allow-other-tables")
+
+    rc, out, err = run([f"--data-dir={d}", "--expanded"] + allow)
+    assert_answers("another table set, --allow-other-tables", rc, out, err)
+    check(f"using KLUT table set {set_id}" in err, "--allow-other-tables: warns", err)
+    check(f"table set {set_id}" in err.splitlines()[-1], "the summary names the table set", err)
+    rc, out, err = run([f"--data-dir={d}", "--expanded", "--quiet"] + allow)
+    assert_answers("--allow-other-tables --quiet", rc, out, err)
+    check(err == "", "--allow-other-tables --quiet: nothing on stderr", err)
+
+    rc, out, err = run([f"--data-dir={d}", "--verify-tables"] + allow, stdin="")
+    no_crash("--verify-tables", rc, err)
+    check(rc == 0, "--verify-tables on intact tables: exits 0", err)
+    check(f"verified: table set {set_id}, 10 files, 54 keys, 3 to 7 crossings" in out,
+          "--verify-tables: says what it verified", out)
+
+    rc, out, err = run([f"--data-dir={d}", "--verify-tables", "input.txt"] + allow)
+    assert_refused("--verify-tables with an input file", rc, out, err, "reads no input")
+
+    # Damage that keeps the structure intact. The structural check passes all
+    # of these; the values files' SHA-256, checked on every run, does not.
+    def values_edit(old, new):
+        return lambda v, k: (bump_count(v, old, new), k)
+
+    lines7 = MINI[7][0].splitlines(keepends=True)
+    same_count_swap = "".join(lines7[:2] + [lines7[3], lines7[2]] + lines7[4:])
+    cases = [
+        ("alternating flag flipped", values_edit('K[7,1,1,"e/r"]', 'K[7,1,0,"e/r"]')),
+        ("index changed to an unused one", values_edit('K[7,7,1,"e/r"]', 'K[7,8,1,"e/r"]')),
+        ("two names with equal counts swapped", lambda v, k: (same_count_swap, k)),
+    ]
+    for i, (what, damage) in enumerate(cases):
+        d = write_mini(os.path.join(scratch, f"manifest-values{i}"))
+        write_manifest(d)
+        apply_damage(d, 7, damage)
+        rc, out, err = run([f"--data-dir={d}"] + allow)
+        assert_refused(what, rc, out, err, values_name(7), "SHA-256 differs",
+                       f"do not match their manifest, {MANIFEST}")
+
+    # A flipped bit in a key: the keys files are hashed only by
+    # --verify-tables, so an ordinary run does not see it (a flip that made a
+    # duplicate key would be caught at load). The flip below makes no
+    # duplicate.
+    d = write_mini(os.path.join(scratch, "manifest-keybit"))
+    write_manifest(d)
+    k7 = bytearray(MINI[7][1])
+    k7[-1] ^= 1
+    keys7 = [bytes(k7[i:i + 7]) for i in range(0, len(k7), 7)]
+    check(len(set(keys7)) == len(keys7), "the flipped key duplicates no other (setup)")
+    with open(os.path.join(d, keys_name(7)), "wb") as f:
+        f.write(k7)
+    rc, out, err = run([f"--data-dir={d}", "--quiet"] + allow)
+    check(rc == 0, "flipped key bit: an ordinary run does not notice (known limit)", err)
+    rc, out, err = run([f"--data-dir={d}", "--verify-tables"] + allow)
+    assert_refused("flipped key bit, --verify-tables", rc, out, err, keys_name(7),
+                   "SHA-256 differs")
+
+    # The manifest itself damaged, or disagreeing with the files.
+    def manifest_case(name, edit, *must_say):
+        d = write_mini(os.path.join(scratch, f"manifest-{name}"))
+        _, text = manifest_text(d, tuple(MINI))
+        with open(os.path.join(d, MANIFEST), "w", newline="") as f:
+            f.write(edit(text))
+        rc, out, err = run([f"--data-dir={d}"] + allow)
+        assert_refused(f"manifest {name.replace('-', ' ')}", rc, out, err, *must_say)
+
+    def sub(old, new):
+        return lambda t: re.sub(old, new, t, count=1, flags=re.M)
+
+    manifest_case("set-line-edited", sub(r"^set [0-9a-f]{16}$", "set 0123456789abcdef"),
+                  "is damaged", "does not match its file lines")
+    manifest_case("newer-format", sub(r"^klut-manifest 1$", "klut-manifest 2"),
+                  "is damaged", "format 2", "reads format 1")
+    manifest_case("cut-short", lambda t: t[:-5], "is damaged", "does not end with a newline")
+    manifest_case("missing-a-file", sub(r"^Klut_Values_06\.tsv .*\n", ""),
+                  "is damaged", "does not match its file lines")
+    manifest_case("size-off-by-one", lambda t: re.sub(
+        r"^(Klut_Keys_05\.bin) 20 ", r"\1 21 ", t, count=1, flags=re.M),
+                  "is damaged")  # the set line no longer matches either
+
+    # A self-consistent manifest that lists a different size: rebuild the set
+    # line too, so only the size disagrees.
+    d = write_mini(os.path.join(scratch, "manifest-wrong-size"))
+    _, text = manifest_text(d, tuple(MINI))
+    body = [l for l in text.splitlines() if l and not l.startswith(("#", "klut-manifest", "set "))]
+    body = [re.sub(r"^(Klut_Keys_05\.bin) 20 4 ", r"\1 25 5 ", l) for l in body]
+    sid = hashlib.sha256("".join(l + "\n" for l in body).encode()).hexdigest()[:16]
+    with open(os.path.join(d, MANIFEST), "w", newline="") as f:
+        f.write(f"klut-manifest 1\nset {sid}\n" + "".join(l + "\n" for l in body))
+    rc, out, err = run([f"--data-dir={d}"] + allow)
+    assert_refused("manifest lists another size", rc, out, err, keys_name(5),
+                   "20 bytes, but the manifest says 25")
+
+    # A manifest that does not list a subtable the run needs.
+    d = write_mini(os.path.join(scratch, "manifest-short"))
+    write_manifest(d, crossings=(3, 4, 5, 6))
+    rc, out, err = run([f"--data-dir={d}"] + allow)
+    assert_refused("manifest without the 7s", rc, out, err,
+                   keys_name(7) + ": not listed in the manifest")
+
+    # The tree's manifest is not in LFS, so this runs in every checkout: it
+    # must be self-consistent and name the set the build expects.
+    with open(os.path.join(KLUT, MANIFEST)) as f:
+        tree = f.read()
+    body = [l for l in tree.splitlines() if l and not l.startswith(("#", "klut-manifest", "set "))]
+    m = re.search(r"^set ([0-9a-f]{16})$", tree, flags=re.M)
+    check(m is not None and len(body) == 22, f"data/Klut/{MANIFEST} has a set line and 22 files")
+    if m:
+        sid = hashlib.sha256("".join(l + "\n" for l in body).encode()).hexdigest()[:16]
+        check(sid == m.group(1), f"data/Klut/{MANIFEST}: its set line matches its file lines")
+        check(m.group(1) == mine,
+              "tools/klut_table_set.hpp names data/Klut's table set "
+              "(run scripts/klut-manifest.py after changing the tables)")
+
+
 def real_tables_present():
     p = os.path.join(KLUT, values_name(3))
     if not os.path.exists(p):
@@ -552,7 +734,7 @@ def real_tables_present():
         return f.read(len(LFS_HEADER)) != LFS_HEADER
 
 
-def test_tree():
+def test_tree(scratch):
     section("the tables in data/Klut")
 
     if not real_tables_present():
@@ -572,6 +754,42 @@ def test_tree():
     assert_answers("data/Klut, all subtables", rc, out, err,
                    TWO_NAMES + ['K[13,1,1,"e/r"]'])
     check("(next to the executable)" in err, "data/Klut is found next to the executable", err)
+    check("warning" not in err, "data/Klut: no warning", err)
+
+    rc, out, err = run(["--verify-tables"], stdin="")
+    no_crash("data/Klut --verify-tables", rc, err)
+    check(rc == 0, "data/Klut --verify-tables: exits 0", err)
+    check(f"verified: table set {built_set()}, 22 files, 1816748 keys, 3 to 13 crossings" in out,
+          "data/Klut --verify-tables: says what it verified", out)
+
+    p = subprocess.run([sys.executable, os.path.join(REPO, "scripts", "klut-manifest.py"),
+                        "--check"], capture_output=True, text=True)
+    check(p.returncode == 0, "scripts/klut-manifest.py --check agrees with data/Klut",
+          p.stdout + p.stderr)
+
+    # Two of the audit's silent wrong-name cases, on a copy of the real tables.
+    copy = os.path.join(scratch, "real-copy")
+    shutil.copytree(KLUT, copy)
+    v13 = os.path.join(copy, values_name(13))
+    with open(v13, newline="") as f:
+        original = f.read()
+    with open(v13, "w", newline="") as f:
+        f.write(original.replace('K[13,1,1,"e/r"]', 'K[13,1,0,"e/r"]', 1))
+    rc, out, err = run([f"--data-dir={copy}"], stdin=KNOT_13A1)
+    assert_refused("real tables, alternating flag flipped in 13a1's name", rc, out, err,
+                   values_name(13), "SHA-256 differs")
+    with open(v13, "w", newline="") as f:
+        f.write(original)
+
+    k13 = os.path.join(copy, keys_name(13))
+    with open(k13, "r+b") as f:
+        f.seek(13 * 1000000)
+        b = f.read(1)
+        f.seek(13 * 1000000)
+        f.write(bytes([b[0] ^ 1]))
+    rc, out, err = run([f"--data-dir={copy}", "--verify-tables"], stdin="")
+    assert_refused("real tables, one key bit flipped, --verify-tables", rc, out, err,
+                   keys_name(13), "SHA-256 differs")
 
 
 def main():
@@ -596,7 +814,8 @@ def main():
         test_midway(scratch)
         test_notfound_exit(scratch)
         test_where(scratch)
-    test_tree()
+        test_manifest(scratch)
+        test_tree(scratch)
 
     print(f"\n{'KLUT TABLE CHECK OK' if fails == 0 else 'KLUT TABLE CHECK FAILED'}"
           f" ({checks} checks, {fails} failed)")

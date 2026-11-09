@@ -141,23 +141,47 @@ message pointing at `git lfs pull`); each values file parses strictly
 (`K[c,i,j,"coset"]<TAB>count<LF>`, printable ASCII, positive counts, no name
 twice); and each keys file is exactly c × (sum of the counts) bytes. A failure
 names the directory and every bad file, prints nothing on stdout, and exits 1.
-The check costs about 5 ms. It cannot see damage that keeps the structure
-intact (a changed digit in a knot's index, a flipped bit inside a key); only a
-checksum could.
+The check costs about 5 ms.
 
-The names printed come from one reading of the values file. The check above
-keeps its parse; `NameBook` compares it with Klut's own reading
-(`Klut::SubtableNames`) the first time each subtable is used, so a table that
-changes while the tool runs is an error, not a misnaming. A lookup that returns
-`Klut::error` (a subtable that failed to load) sets
-`IdentifyResult::table_error`, and the run stops at that knot with exit 1
-instead of escalating with Reapr and reporting NotFound. A NotFound makes the
-exit status nonzero, with `--quiet` too.
+It cannot see damage that keeps the structure intact: a changed digit in a
+knot's index, a flipped alternating flag, names reordered, a flipped bit in a
+key, or a table set regenerated with different numbering. For those,
+`data/Klut/Klut_Manifest.txt` (written by `scripts/klut-manifest.py`; named
+`.txt` because `.gitattributes` sends `*.bin` and `*.tsv` to LFS) lists each
+table file's size, key count and SHA-256, and names the table set: the first 16
+hex digits of the SHA-256 of its file lines. `KlutTablesMatchManifest()`
+checks every run's sizes and key counts against it, plus the SHA-256 of the
+values files, which hold every name and count (0.85 MB, a few ms);
+`--verify-tables` also hashes the keys files (23 MB, ~60 ms; `tools/sha256.hpp`,
+tested by `test/sha256_check.cpp`), prints one line and exits without reading
+input. The set must equal `kKlutTableSet` in `tools/klut_table_set.hpp`, the
+set the binary was built for, unless `--allow-other-tables`. A directory with no
+manifest (tables from before it, or the paclet's staged copy until its build
+copies it) gets a warning, not an error; `--verify-tables` refuses it.
 
-Tests: `test/klut_lfs_pointer_check.py` (pointer files) and
-`test/klut_table_check.py` (damaged, partial and misplaced tables, a table
-failing mid-run, the search order; it carries its own 3- to 7-crossing tables,
-so it runs without LFS).
+Then `KlutTablesLoad()` calls `Klut::RequireSubtables()`, so every subtable is
+read before any input (about 55 ms for the full table), and checks Klut's
+reading: its names must match the checked parse (`NameBook::Verify`), and each
+knot must keep exactly the number of keys its values line lists
+(`Klut::SubtableIDs`). `Subtable::Read` keeps the first of two equal keys and
+silently drops the second, so a duplicated key shows up only here. A run now
+costs about 90 ms of startup in all.
+
+The names printed come from one reading of the values file: `NameBook` hands
+out Klut's own reading (`Klut::SubtableNames`), after comparing it with the
+checked parse. Since everything is loaded at startup, a table that changes on
+disk while the tool runs changes nothing. A lookup that returns `Klut::error`
+(a subtable that failed to load, which the eager load makes unreachable in
+practice) sets `IdentifyResult::table_error`, and the run stops at that knot
+with exit 1 instead of escalating with Reapr and reporting NotFound. A NotFound
+makes the exit status nonzero, with `--quiet` too. `--max-crossings=N` sets
+`IdentifyParams::max_cx`, so a knot above N is `Unidentified`, not NotFound.
+
+Tests: `test/klut_lfs_pointer_check.py` (pointer files),
+`test/klut_table_check.py` (damaged, partial and misplaced tables, duplicate
+keys, the manifest and table set, the search order; it carries its own 3- to
+7-crossing tables and writes its own manifests for them, so it runs without
+LFS) and `test/sha256_check.cpp`.
 
 ## Implementation notes
 

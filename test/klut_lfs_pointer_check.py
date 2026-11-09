@@ -73,10 +73,16 @@ def is_pointer(path):
 
 
 def make_pointer_dir(dest):
-    """Fill dest with the LFS pointers of every tracked data/Klut file."""
+    """Fill dest with the LFS pointers of every tracked data/Klut table file.
+
+    Klut_Manifest.txt is tracked too, but deliberately not in LFS (it must be
+    readable without it), so it is left out.
+    """
     names = []
     for rel in git("ls-files", "data/Klut").decode().split():
         name = os.path.basename(rel)
+        if not name.endswith((".bin", ".tsv")):
+            continue
         with open(os.path.join(dest, name), "wb") as f:
             f.write(git("show", f"HEAD:{rel}"))
         names.append(name)

@@ -81,6 +81,7 @@ lock_api_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)
 pd_internal_state_check	test	plain	-	-	-	-
 polygon_levels_check	test	homfly_umfpack	-	-	-	different diagrams on [1-9][0-9]* of [1-9][0-9]* polygons
 run_tests	script	-	run_tests.py	--smoke-only	-	[1-9][0-9]*/[1-9][0-9]* passed
+sha256_check	test	plain	-	-	-	SHA256 CHECK OK \([1-9][0-9]* checks, 0 failed\)
 simplify_config_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)
 plantri_check	test	homfly	-	--up-to-crossing=6	--up-to-crossing=7	tested=[1-9][0-9]*
 reapr_corner_probe	tool	plain	-	-	-	-
