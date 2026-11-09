@@ -75,7 +75,7 @@ private:
     
     void Read()
     {
-        TOOLS_PTIMER(timer,MethodName(std::string"Read"));
+        TOOLS_PTIMER(timer,Msgr::MethodName("Read"));
         
         if( failedQ ) { return; }
         if( loadedQ ) { return; }
