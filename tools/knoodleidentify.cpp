@@ -18,18 +18,23 @@
  *   <| KnotSymbol[3,1,True,"e/r"] -> 2, KnotSymbol[4,1,True,"e/m/r/mr"] -> 1 |>
  * Parses directly via ToExpression. An unknot yields <||>.
  *
- * Non-table summands appear as: Unidentified[N] (reduced below the table range
- * is impossible, so this is N>13), NotFound[N] (<=13 yet unresolved even after
+ * Non-table summands appear as: Unidentified[N] (N above the table range: 13,
+ * or --max-crossings), NotFound[N] (within the range yet unresolved even after
  * Reapr -- suspicious), and the whole input as Link[N] if it is multi-component
  * (the KLUT is knots-only). See --help for the option list.
  */
 
 #include "knoodle_io.hpp"
 #include "klut_identify.hpp"
+#include "klut_table_set.hpp"
+#include "sha256.hpp"
 
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <map>
+#include <optional>
+#include <set>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -69,6 +74,8 @@ struct Config
     std::optional<std::uint64_t> seed;       ///< --seed (else one is drawn at startup)
     std::optional<Energy_T> reapr_energy;    ///< --reapr-energy (else Reapr's default)
     std::optional<double>   reapr_scaling;   ///< --reapr-scaling (else Reapr's default)
+    bool verify_tables  = false;             ///< Check the tables in full, report, read no input
+    bool allow_other_tables = false;         ///< Accept a table set other than kKlutTableSet
     ki::Size_T escalation_rounds = ki::IdentifyParams{}.cap;      ///< Reapr escalation rounds per candidate
     Int        escalation_band   = ki::IdentifyParams{}.deep_cx;  ///< deep rounds only while stalled <= this
     ki::Size_T rotation_trials   = ki::IdentifyParams{}.rot;      ///< reprojections per embedding
@@ -120,10 +127,20 @@ void PrintUsage()
         "                      then ./data/Klut with a warning. The stderr summary\n"
         "                      names the directory used. The tables are checked\n"
         "                      before any input is read: missing, unreadable,\n"
-        "                      truncated or malformed files, and Git LFS pointer\n"
-        "                      files (run `git lfs pull` in a checkout), stop the\n"
-        "                      run with exit status 1 and nothing on stdout.\n"
+        "                      truncated or malformed files, Git LFS pointer\n"
+        "                      files (run `git lfs pull` in a checkout), and files\n"
+        "                      that disagree with Klut_Manifest.txt stop the run\n"
+        "                      with exit status 1 and nothing on stdout.\n"
         "  --max-crossings=N   Use subtables up to N crossings (3-13, default 13).\n"
+        "                      A knot with more crossings is reported as\n"
+        "                      Unidentified, as it is above 13 by default.\n"
+        "  --verify-tables     Check the KLUT tables in full, including the\n"
+        "                      SHA-256 of every file against Klut_Manifest.txt,\n"
+        "                      print one line saying so, and exit (0 if they\n"
+        "                      pass). Reads no input. For install checks.\n"
+        "  --allow-other-tables  Use tables from a different table set than the\n"
+        "                      one this build expects (Klut_Manifest.txt names\n"
+        "                      the set). Knot numbering can differ between sets.\n"
         "  --escalation-rounds=N  Max Reapr escalation rounds per candidate\n"
         "                      (default 4). Each round doubles embedding trials.\n"
         "                      The first 2 rounds always run; deeper rounds are\n"
@@ -171,10 +188,10 @@ void PrintUsage()
         "Knot symbols (default / --tsv); c=crossings, i=index, the third field is the\n"
         "alternating flag, last is the symmetry coset:\n"
         "  KnotSymbol[c,i,a,\"sym\"]  identified knot; a (alternating) is True/False\n"
-        "  Unidentified[N,PD]       N>13 crossings, over the table range; PD = signed\n"
-        "                           PD code of the unresolved diagram (for analysis)\n"
-        "  NotFound[N,PD]           <=13 yet unresolved after Reapr (suspicious!); PD too;\n"
-        "                           exit status 1\n"
+        "  Unidentified[N,PD]       N above the table range (13, or --max-crossings);\n"
+        "                           PD = signed PD code of the unresolved diagram\n"
+        "  NotFound[N,PD]           N within the table range yet unresolved after\n"
+        "                           Reapr (suspicious!); PD too; exit status 1\n"
         "  Link[N]                  multi-component input (the table is knots-only)\n"
         "  Invalid[]                invalid diagram / internal error\n"
         "  (unknot summands are the connect-sum identity and are omitted)\n"
@@ -225,6 +242,8 @@ constexpr std::string_view kKnownFlags[] = {
     "--randomize-projection",
     "--exact-input",
     "--seed",
+    "--verify-tables",
+    "--allow-other-tables",
 };
 
 std::optional<Config> ParseArguments(int argc, char* argv[])
@@ -360,6 +379,14 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             }
             config.seed = *seed;
         }
+        else if (arg == "--verify-tables")
+        {
+            config.verify_tables = true;
+        }
+        else if (arg == "--allow-other-tables")
+        {
+            config.allow_other_tables = true;
+        }
         else if (arg.starts_with("-") && arg.size() > 1)
         {
             LogError("Unknown option: " + std::string(arg));
@@ -370,6 +397,13 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.input_files.push_back(std::string(arg));
         }
+    }
+
+    if (config.verify_tables && !config.input_files.empty())
+    {
+        LogError("--verify-tables checks the KLUT tables and reads no input; "
+                 "run it without input files.");
+        return std::nullopt;
     }
 
     return config;
@@ -624,13 +658,15 @@ bool ValidKlutName(std::string_view name, Int c)
  *
  * Every line is `name<TAB>count<LF>`, printable ASCII, with a valid name for
  * crossing number `c`, a positive count, and no name twice. On success fills
- * `names` (in file order, so names[id] is knot id's name) and `total` (the sum
- * of the counts, i.e. the number of keys the keys file must hold).
+ * `names` and `counts` (in file order, so names[id] is knot id's name and
+ * counts[id] the number of its keys) and `total` (the sum of the counts, i.e.
+ * the number of keys the keys file must hold).
  *
  * @return "" on success, else what is wrong, with the line number.
  */
 std::string ParseKlutValues(const std::string& text, const std::string& file, Int c,
-                            std::vector<std::string>& names, std::uint64_t& total)
+                            std::vector<std::string>& names,
+                            std::vector<std::uint64_t>& counts, std::uint64_t& total)
 {
     if (text.empty()) { return file + ": empty"; }
     if (text.back() != '\n') { return file + ": does not end with a newline (truncated?)"; }
@@ -687,9 +723,49 @@ std::string ParseKlutValues(const std::string& text, const std::string& file, In
         }
 
         names.emplace_back(name);
-        total += std::stoull(std::string(count));
+        counts.push_back(std::stoull(std::string(count)));
+        total += counts.back();
     }
     return "";
+}
+
+/// What the structural check learned about one subtable, for the later checks.
+struct CheckedSubtable
+{
+    std::vector<std::string>   names;         ///< names[id], in file order
+    std::vector<std::uint64_t> counts;        ///< counts[id]: keys listed for knot id
+    std::uint64_t              keys        = 0;  ///< the sum of the counts
+    std::uintmax_t             key_bytes   = 0;
+    std::uintmax_t             value_bytes = 0;
+    std::string                value_sha256;  ///< of the values file, lowercase hex
+};
+using CheckedTables = std::map<Int, CheckedSubtable>;
+
+/// The advice that ends every refusal of a table directory.
+void LogTableAdvice()
+{
+    LogError("Nothing will be identified from them. Reinstall Knoodle, or point "
+             "--data-dir (or $KNOODLE_KLUT_DIR) at a complete copy of the tables "
+             "(data/Klut in a Knoodle checkout, after `git lfs pull`).");
+}
+
+/// "The KLUT tables in DIR <what> (N problems):" and at most 12 of them.
+void LogTableProblems(const std::filesystem::path& dir, const std::string& what,
+                      const std::vector<std::string>& problems)
+{
+    LogError("The KLUT tables in " + dir.string() + " " + what + " ("
+             + std::to_string(problems.size()) + " problem"
+             + (problems.size() == 1 ? "" : "s") + "):");
+    constexpr std::size_t shown = 12;
+    for (std::size_t i = 0; i < problems.size() && i < shown; ++i)
+    {
+        LogError("  " + problems[i]);
+    }
+    if (problems.size() > shown)
+    {
+        LogError("  ... and " + std::to_string(problems.size() - shown) + " more");
+    }
+    LogTableAdvice();
 }
 
 /**
@@ -699,13 +775,16 @@ std::string ParseKlutValues(const std::string& text, const std::string& file, In
  * Checks the subtables up to max_crossings, the ones Klut will read. Runs
  * before any input is read, so a refusal leaves stdout empty.
  *
- * @param names  On success, the validated names of each subtable, by crossing
- *               number (NameBook compares Klut's own reading against them).
+ * @param checked  On success, what was learned about each subtable, by
+ *                 crossing number: the validated names (NameBook compares
+ *                 Klut's own reading against them), the per-knot key counts
+ *                 (the eager load checks Klut kept every key), the file sizes
+ *                 and the values file's SHA-256 (the manifest check).
  * @return true if the tables pass; otherwise false, after saying which
  *         directory, which files, and what to do.
  */
 bool KlutTablesAreSound(const std::filesystem::path& dir, Int max_crossings,
-                        std::map<Int, std::vector<std::string>>& names)
+                        CheckedTables& checked)
 {
     namespace fs = std::filesystem;
 
@@ -786,8 +865,10 @@ bool KlutTablesAreSound(const std::filesystem::path& dir, Int max_crossings,
         if (!keys_ok || !values_ok) { continue; }
 
         std::vector<std::string> v;
+        std::vector<std::uint64_t> counts;
         std::uint64_t total = 0;
-        const std::string bad = ParseKlutValues(value_text, values.filename().string(), c, v, total);
+        const std::string bad = ParseKlutValues(value_text, values.filename().string(), c,
+                                                v, counts, total);
         if (!bad.empty())
         {
             problems.push_back(bad);
@@ -804,7 +885,10 @@ bool KlutTablesAreSound(const std::filesystem::path& dir, Int max_crossings,
             continue;
         }
 
-        names[c] = std::move(v);
+        knoodle_sha256::Sha256 sha;
+        sha.Update(value_text);
+        checked[c] = CheckedSubtable{std::move(v), std::move(counts), total,
+                                     key_size, value_size, sha.HexDigest()};
     }
 
     if (!pointers.empty())
@@ -823,22 +907,300 @@ bool KlutTablesAreSound(const std::filesystem::path& dir, Int max_crossings,
 
     if (problems.empty()) { return true; }
 
-    LogError("The KLUT tables in " + dir.string() + " are damaged or incomplete ("
-             + std::to_string(problems.size()) + " problem"
-             + (problems.size() == 1 ? "" : "s") + "):");
-    constexpr std::size_t shown = 12;
-    for (std::size_t i = 0; i < problems.size() && i < shown; ++i)
-    {
-        LogError("  " + problems[i]);
-    }
-    if (problems.size() > shown)
-    {
-        LogError("  ... and " + std::to_string(problems.size() - shown) + " more");
-    }
-    LogError("Nothing will be identified from them. Reinstall Knoodle, or point "
-             "--data-dir (or $KNOODLE_KLUT_DIR) at a complete copy of the tables "
-             "(data/Klut in a Knoodle checkout, after `git lfs pull`).");
+    LogTableProblems(dir, "are damaged or incomplete", problems);
     return false;
+}
+
+//==============================================================================
+// Manifest check: the tables are the ones this build was made for
+//==============================================================================
+//
+// The structural check above cannot see damage that keeps the structure: a
+// changed digit in a knot's index, an alternating flag flipped, names
+// reordered, a flipped bit in a key, or a whole table set regenerated with
+// different numbering. data/Klut/Klut_Manifest.txt (scripts/klut-manifest.py)
+// lists each table file's size, key count and SHA-256, and names the table
+// set. Every run checks the sizes and counts, and the SHA-256 of the values
+// files, which hold every name and count (0.85 MB, a few ms). --verify-tables
+// also hashes the keys files (23 MB). And the set must be the one this build
+// was made for (klut_table_set.hpp), unless --allow-other-tables.
+//
+// Tables without a manifest (from before Knoodle 1.1.1, or copied without it)
+// get a warning, not an error, for now: the paclet's staged copies lack it
+// until its build copies it too.
+
+constexpr std::string_view kManifestName = "Klut_Manifest.txt";
+
+struct ManifestEntry
+{
+    std::uintmax_t bytes = 0;
+    std::uint64_t  keys  = 0;
+    std::string    sha256;
+};
+
+struct Manifest
+{
+    std::string set_id;
+    std::map<std::string, ManifestEntry> files;
+};
+
+std::string KeysFileName(Int c)
+{
+    return std::string("Klut_Keys_") + (c < 10 ? "0" : "") + std::to_string(c) + ".bin";
+}
+
+std::string ValuesFileName(Int c)
+{
+    return std::string("Klut_Values_") + (c < 10 ? "0" : "") + std::to_string(c) + ".tsv";
+}
+
+bool IsLowerHex(std::string_view s, std::size_t n)
+{
+    if (s.size() != n) { return false; }
+    for (char ch : s)
+    {
+        if (!((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f'))) { return false; }
+    }
+    return true;
+}
+
+/// A decimal count with no sign and no leading zero (except "0" itself).
+std::optional<std::uint64_t> ParseCount(std::string_view s)
+{
+    if (s.empty() || s.size() > 18 || (s.size() > 1 && s[0] == '0')) { return std::nullopt; }
+    std::uint64_t v = 0;
+    for (char ch : s)
+    {
+        if (ch < '0' || ch > '9') { return std::nullopt; }
+        v = v * 10 + static_cast<std::uint64_t>(ch - '0');
+    }
+    return v;
+}
+
+/**
+ * @brief Strictly parse Klut_Manifest.txt (format 1; see scripts/klut-manifest.py).
+ * @return "" on success, else what is wrong.
+ */
+std::string ParseManifest(const std::string& text, Manifest& m)
+{
+    if (text.empty()) { return "it is empty"; }
+    if (text.back() != '\n') { return "it does not end with a newline (truncated?)"; }
+
+    std::set<std::string> table_names;
+    for (Int c = 3; c <= static_cast<Int>(Klut::max_crossing_count); ++c)
+    {
+        table_names.insert(KeysFileName(c));
+        table_names.insert(ValuesFileName(c));
+    }
+
+    bool have_version = false;
+    bool have_set     = false;
+    knoodle_sha256::Sha256 file_lines;   // the set id is the hash of these
+    std::size_t pos  = 0;
+    std::size_t line = 0;
+    while (pos < text.size())
+    {
+        ++line;
+        const std::size_t nl = text.find('\n', pos);
+        const std::string_view l(text.data() + pos, nl - pos);
+        pos = nl + 1;
+        if (!l.empty() && l[0] == '#') { continue; }
+
+        const std::string where = "line " + std::to_string(line) + ": ";
+        std::vector<std::string_view> f;
+        for (std::size_t a = 0; a <= l.size();)
+        {
+            const std::size_t b = std::min(l.find(' ', a), l.size());
+            f.push_back(l.substr(a, b - a));
+            a = b + 1;
+        }
+        for (std::string_view x : f)
+        {
+            if (x.empty()) { return where + "fields must be separated by single spaces"; }
+        }
+
+        if (!have_version)
+        {
+            if (f.size() != 2 || f[0] != "klut-manifest" || !ParseCount(f[1]))
+            {
+                return where + "expected `klut-manifest 1`";
+            }
+            if (f[1] != "1")
+            {
+                return where + "it is format " + std::string(f[1]) + ", and this "
+                       "knoodleidentify reads format 1 (it is older than the tables)";
+            }
+            have_version = true;
+            continue;
+        }
+        if (!have_set)
+        {
+            if (f.size() != 2 || f[0] != "set" || !IsLowerHex(f[1], 16))
+            {
+                return where + "expected `set` and 16 hex digits";
+            }
+            m.set_id = std::string(f[1]);
+            have_set = true;
+            continue;
+        }
+
+        const auto bytes = (f.size() == 4) ? ParseCount(f[1]) : std::nullopt;
+        const auto keys  = (f.size() == 4) ? ParseCount(f[2]) : std::nullopt;
+        if (!bytes || !keys || !IsLowerHex(f[3], 64))
+        {
+            return where + "expected `<file> <bytes> <keys> <sha256>`";
+        }
+        const std::string name(f[0]);
+        if (!table_names.contains(name))
+        {
+            return where + "`" + name + "` is not a KLUT table file name";
+        }
+        if (!m.files.emplace(name, ManifestEntry{*bytes, *keys, std::string(f[3])}).second)
+        {
+            return where + name + " is listed twice";
+        }
+        file_lines.Update(l);
+        file_lines.Update("\n");
+    }
+    if (!have_version) { return "there is no `klut-manifest` line"; }
+    if (!have_set)     { return "there is no `set` line"; }
+    if (file_lines.HexDigest().substr(0, 16) != m.set_id)
+    {
+        return "its `set` line does not match its file lines (edited by hand?)";
+    }
+    return "";
+}
+
+/**
+ * @brief Check the tables against Klut_Manifest.txt, if there is one.
+ *
+ * @param set_id  Set to the manifest's table set, or left empty without one.
+ * @return true to go on; false after explaining why not.
+ */
+bool KlutTablesMatchManifest(const std::filesystem::path& dir, Int max_crossings,
+                             const CheckedTables& checked, const Config& config,
+                             std::string& set_id)
+{
+    namespace fs = std::filesystem;
+
+    const fs::path path = dir / kManifestName;
+    std::error_code ec;
+    const fs::file_status st = fs::status(path, ec);
+    if (st.type() == fs::file_type::not_found)
+    {
+        if (config.verify_tables)
+        {
+            LogError("Cannot verify the KLUT tables in " + dir.string() + ": there is no "
+                     + std::string(kManifestName) + " to check them against. (Tables "
+                     "from before Knoodle 1.1.1 have none; data/Klut in a current "
+                     "Knoodle checkout or release does.)");
+            return false;
+        }
+        if (!config.quiet)
+        {
+            Log("knoodleidentify: warning: there is no " + std::string(kManifestName)
+                + " in " + dir.string() + ", so only the tables' structure was "
+                "checked, not their contents or version.");
+        }
+        return true;
+    }
+
+    std::string text;
+    {
+        std::ifstream in(path, std::ios::binary);
+        if (ec || !fs::is_regular_file(st) || !in)
+        {
+            LogError("Cannot read the KLUT manifest " + path.string()
+                     + (ec ? ": " + ec.message() : std::string()) + ".");
+            LogTableAdvice();
+            return false;
+        }
+        text.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+    }
+
+    Manifest m;
+    if (const std::string bad = ParseManifest(text, m); !bad.empty())
+    {
+        LogError("The KLUT manifest " + path.string() + " is damaged: " + bad + ".");
+        LogTableAdvice();
+        return false;
+    }
+
+    std::vector<std::string> problems;
+    const auto compare = [&](const std::string& name, std::uintmax_t bytes,
+                             std::uint64_t keys, const std::string& sha)
+    {
+        const auto it = m.files.find(name);
+        if (it == m.files.end())
+        {
+            problems.push_back(name + ": not listed in the manifest");
+            return;
+        }
+        const ManifestEntry& e = it->second;
+        if (bytes != e.bytes)
+        {
+            problems.push_back(name + ": " + std::to_string(bytes) + " bytes, but the "
+                               "manifest says " + std::to_string(e.bytes));
+        }
+        else if (keys != e.keys)
+        {
+            problems.push_back(name + ": " + std::to_string(keys) + " keys, but the "
+                               "manifest says " + std::to_string(e.keys));
+        }
+        else if (!sha.empty() && sha != e.sha256)
+        {
+            problems.push_back(name + ": its contents are not the ones the manifest "
+                               "lists (SHA-256 differs)");
+        }
+    };
+
+    for (Int c = 3; c <= max_crossings; ++c)
+    {
+        const CheckedSubtable& t = checked.at(c);
+        std::string key_sha;
+        if (config.verify_tables)
+        {
+            std::string err;
+            const auto hex = knoodle_sha256::FileHexDigest(dir / KeysFileName(c), err);
+            if (!hex)
+            {
+                problems.push_back(KeysFileName(c) + ": could not be read in full: " + err);
+                continue;
+            }
+            key_sha = *hex;
+        }
+        compare(KeysFileName(c),   t.key_bytes,   t.key_bytes / static_cast<std::uintmax_t>(c), key_sha);
+        compare(ValuesFileName(c), t.value_bytes, t.keys, t.value_sha256);
+    }
+    if (!problems.empty())
+    {
+        LogTableProblems(dir, "do not match their manifest, " + std::string(kManifestName),
+                         problems);
+        return false;
+    }
+
+    set_id = m.set_id;
+    if (m.set_id != kKlutTableSet)
+    {
+        if (!config.allow_other_tables)
+        {
+            LogError("The KLUT tables in " + dir.string() + " are table set " + m.set_id
+                     + ", but this knoodleidentify was built for table set "
+                     + std::string(kKlutTableSet) + ".");
+            LogError("Knot numbering can differ between table sets, so names from these "
+                     "tables could be wrong. Use the tables from the same Knoodle release "
+                     "as this program, or pass --allow-other-tables if you know they are "
+                     "compatible.");
+            return false;
+        }
+        if (!config.quiet)
+        {
+            Log("knoodleidentify: warning: using KLUT table set " + m.set_id
+                + " (this build expects " + std::string(kKlutTableSet)
+                + "), as --allow-other-tables asks.");
+        }
+    }
+    return true;
 }
 
 //==============================================================================
@@ -858,9 +1220,8 @@ bool KlutTablesAreSound(const std::filesystem::path& dir, Int max_crossings,
 class NameBook
 {
 public:
-    NameBook(Klut& klut, std::map<Int, std::vector<std::string>> checked,
-             std::string dir)
-    :   klut_(klut), checked_(std::move(checked)), dir_(std::move(dir))
+    NameBook(Klut& klut, const CheckedTables& checked, std::string dir)
+    :   klut_(klut), checked_(checked), dir_(std::move(dir))
     {}
 
     /// Does the c-crossing subtable Klut read still match the one checked at
@@ -874,7 +1235,7 @@ public:
 
         std::vector<std::string> read = klut_.SubtableNames(c);
         const auto chk = checked_.find(c);
-        if (chk == checked_.end() || read != chk->second)
+        if (chk == checked_.end() || read != chk->second.names)
         {
             LogError("The " + std::to_string(c) + "-crossing KLUT table in " + dir_
                      + " changed after knoodleidentify started: its names no longer "
@@ -904,10 +1265,83 @@ public:
 
 private:
     Klut& klut_;
-    std::map<Int, std::vector<std::string>> checked_;
+    const CheckedTables& checked_;
     std::map<Int, std::vector<std::string>> loaded_;
     std::string dir_;
 };
+
+/**
+ * @brief Load every subtable now, and check that Klut kept every key.
+ *
+ * Klut reads a subtable on first use. Loading them all here, before any input
+ * is read, means a load failure can never cut the output off halfway. It also
+ * catches what no file-level check sees: Klut keeps the first of two equal keys
+ * and silently drops the second (Subtable::Read uses insert), so a key listed
+ * twice -- under one knot or under two -- shrinks the table, and can name a
+ * knot as the wrong chirality. Every knot must keep exactly the number of keys
+ * its line in the values file lists. Costs about 55 ms for the full table.
+ */
+bool KlutTablesLoad(Klut& klut, const std::filesystem::path& dir,
+                    const CheckedTables& checked, NameBook& names)
+{
+    const long errors_before = (g_cerr_tap != nullptr) ? g_cerr_tap->Count() : 0;
+    klut.RequireSubtables();
+    if (g_cerr_tap != nullptr && g_cerr_tap->Count() > errors_before)
+    {
+        LogError("The KLUT tables in " + dir.string() + " failed to load (see the "
+                 "ERROR lines above).");
+        LogTableAdvice();
+        return false;
+    }
+
+    std::vector<std::string> problems;
+    for (const auto& [c, t] : checked)
+    {
+        if (!names.Verify(c)) { return false; }
+
+        const auto ids = klut.SubtableIDs(c);
+        std::vector<std::uint64_t> kept(t.names.size(), 0);
+        bool stray = false;
+        for (Knoodle::Size_T i = 0; i < ids.Size(); ++i)
+        {
+            const auto id = static_cast<std::size_t>(ids[i]);
+            if (id < kept.size()) { ++kept[id]; } else { stray = true; }
+        }
+        if (stray)
+        {
+            problems.push_back(KeysFileName(c) + ": Klut read a knot id that "
+                               + ValuesFileName(c) + " does not list");
+            continue;
+        }
+        const auto held = static_cast<std::uint64_t>(ids.Size());
+        if (held == t.keys) { continue; }
+
+        std::string who;
+        std::size_t shown = 0;
+        for (std::size_t id = 0; id < kept.size(); ++id)
+        {
+            if (kept[id] == t.counts[id]) { continue; }
+            if (shown < 3)
+            {
+                who += (shown ? ", " : "") + t.names[id] + " kept " + std::to_string(kept[id])
+                     + " of " + std::to_string(t.counts[id]);
+            }
+            ++shown;
+        }
+        const std::uint64_t lost = t.keys - held;
+        problems.push_back(KeysFileName(c) + ": " + std::to_string(lost) + " of its "
+                           + std::to_string(t.keys) + " keys "
+                           + (lost == 1 ? "duplicates an earlier key" : "duplicate earlier keys")
+                           + ", and Klut keeps only the first (" + who
+                           + (shown > 3 ? ", ..." : "") + ")");
+    }
+    if (!problems.empty())
+    {
+        LogTableProblems(dir, "are damaged", problems);
+        return false;
+    }
+    return true;
+}
 
 //==============================================================================
 // Identification
@@ -1162,6 +1596,9 @@ StreamEnd ProcessStream(std::istream& input, const std::string& source_name,
             params.cap     = config.escalation_rounds;
             params.deep_cx = config.escalation_band;
             params.rot     = config.rotation_trials;
+            // A knot above --max-crossings is over this run's table range, so it is
+            // Unidentified, not a "table gap" NotFound.
+            params.max_cx  = config.max_crossings;
 
             res = ki::Identify(klut, std::move(pdc), reapr, params);
         }
@@ -1329,10 +1766,31 @@ int main(int argc, char* argv[])
     // Find the tables and check them before reading any input, so that a table
     // problem is an error with empty stdout, never an answer.
     const std::optional<DataDir> data_dir = ResolveDataDir(config);
-    std::map<Int, std::vector<std::string>> checked_names;
-    if (!data_dir || !KlutTablesAreSound(data_dir->path, config.max_crossings, checked_names))
+    CheckedTables checked;
+    std::string   table_set;
+    if (!data_dir
+        || !KlutTablesAreSound(data_dir->path, config.max_crossings, checked)
+        || !KlutTablesMatchManifest(data_dir->path, config.max_crossings, checked, config,
+                                    table_set))
     {
         return EXIT_FAILURE;
+    }
+
+    Klut klut(data_dir->path, static_cast<Knoodle::Size_T>(config.max_crossings));
+    NameBook names(klut, checked, data_dir->path.string());
+    if (!KlutTablesLoad(klut, data_dir->path, checked, names))
+    {
+        return EXIT_FAILURE;
+    }
+
+    if (config.verify_tables)
+    {
+        std::uint64_t keys = 0;
+        for (const auto& [c, t] : checked) { keys += t.keys; }
+        std::cout << "KLUT tables in " << data_dir->path.string() << " verified: table set "
+                  << table_set << ", " << 2 * checked.size() << " files, " << keys
+                  << " keys, 3 to " << config.max_crossings << " crossings\n";
+        return EXIT_SUCCESS;
     }
 
     // knoodleidentify always writes its results to stdout, so rule 1 (put the
@@ -1344,9 +1802,6 @@ int main(int argc, char* argv[])
     const std::filesystem::path diag_dir =
         ChooseDiagnosticDir("knoodleidentify", /*streaming_mode=*/true, std::nullopt);
     const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
-
-    Klut klut(data_dir->path, static_cast<Knoodle::Size_T>(config.max_crossings));
-    NameBook names(klut, std::move(checked_names), data_dir->path.string());
 
     // Every random choice follows from this one seed (see SeededEngine): the
     // random projection draws from rng, and Reapr from an engine drawn from it.
@@ -1406,7 +1861,8 @@ int main(int argc, char* argv[])
         // Which table set answered: with several ways to choose one, this is
         // the only way to tell afterwards.
         Log("knoodleidentify: KLUT tables from " + data_dir->path.string()
-            + " (" + data_dir->source + ")");
+            + " (" + data_dir->source + "), "
+            + (table_set.empty() ? std::string("no manifest") : "table set " + table_set));
     }
 
     if (ErrorsSeen())

@@ -36,29 +36,35 @@ fi
 [ -f submodules/Tensors/Tensors.hpp ] || { echo "ERROR: submodules not initialized (git submodule update --init --recursive)"; exit 1; }
 [ -f submodules/Tensors/submodules/Tools/Tools.hpp ] || { echo "ERROR: nested submodule Tools missing (need --recursive)"; exit 1; }
 
-# Check all 22 KLUT files, not a sample: if LFS didn't smudge one of them we'd ship
-# a pointer stub, and a damaged table can make knoodleidentify name knots wrongly
-# (docs/klut-table-failure-audit.md). Each subtable is a pair: Klut_Values_NN.tsv
-# lists `name<TAB>count` lines, and Klut_Keys_NN.bin must hold exactly
-# NN * (sum of the counts) bytes. This is the structural part of the check
-# knoodleidentify itself makes at startup; release_tarball_check then runs the
-# built tool against the unpacked tables.
+# Check all 22 KLUT files, not a sample, against data/Klut/Klut_Manifest.txt
+# (written by scripts/klut-manifest.py; deliberately not in LFS): each must be
+# present, real content rather than a Git LFS pointer, and exactly the size and
+# SHA-256 the manifest lists. A damaged table can make knoodleidentify name
+# knots wrongly (docs/klut-table-failure-audit.md). knoodleidentify makes the
+# same check itself; release_tarball_check runs `knoodleidentify
+# --verify-tables` against the unpacked tarball.
+MANIFEST="data/Klut/Klut_Manifest.txt"
+[ -f "$MANIFEST" ] || { echo "ERROR: missing $MANIFEST -- run scripts/klut-manifest.py"; exit 1; }
 file_size() { stat -f '%z' "$1" 2>/dev/null || stat -c '%s' "$1" 2>/dev/null || echo 0; }
-for c in 03 04 05 06 07 08 09 10 11 12 13; do
-  keys="data/Klut/Klut_Keys_$c.bin"; values="data/Klut/Klut_Values_$c.tsv"
-  for f in "$keys" "$values"; do
-    [ -f "$f" ] || { echo "ERROR: missing $f -- run: git submodule update --init --recursive && git lfs pull"; exit 1; }
-    if head -c 64 "$f" | grep -q 'git-lfs'; then
-      echo "ERROR: $f is a Git-LFS pointer, not content. Run: git lfs pull"; exit 1
-    fi
-  done
-  total="$(awk -F'\t' 'NF != 2 || $2 !~ /^[1-9][0-9]*$/ { bad = 1 } { s += $2 } END { print (bad ? -1 : s) }' "$values")"
-  [ "$total" -gt 0 ] 2>/dev/null || { echo "ERROR: $values is not a list of name<TAB>count lines."; exit 1; }
-  want=$(( total * 10#$c )); have="$(file_size "$keys")"
-  if [ "$have" != "$want" ]; then
-    echo "ERROR: $keys holds $have bytes, but $values lists $total keys of $((10#$c)) bytes ($want bytes)."; exit 1
+if command -v sha256sum >/dev/null 2>&1; then
+  file_sha() { sha256sum "$1" | cut -d' ' -f1; }
+else
+  file_sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
+fi
+listed=0
+while read -r name bytes keys sum; do
+  case "$name" in Klut_Keys_*.bin|Klut_Values_*.tsv) ;; *) continue ;; esac
+  f="data/Klut/$name"
+  [ -f "$f" ] || { echo "ERROR: missing $f -- run: git submodule update --init --recursive && git lfs pull"; exit 1; }
+  if head -c 64 "$f" | grep -q 'git-lfs'; then
+    echo "ERROR: $f is a Git-LFS pointer, not content. Run: git lfs pull"; exit 1
   fi
-done
+  have="$(file_size "$f")"
+  [ "$have" = "$bytes" ] || { echo "ERROR: $f holds $have bytes; $MANIFEST says $bytes."; exit 1; }
+  [ "$(file_sha "$f")" = "$sum" ] || { echo "ERROR: $f is not the file $MANIFEST lists (SHA-256 differs)."; exit 1; }
+  listed=$((listed + 1))
+done < "$MANIFEST"
+[ "$listed" -eq 22 ] || { echo "ERROR: $MANIFEST lists $listed table files, not 22."; exit 1; }
 
 # 3) Stage the build-relevant trees (validated minimal set) + the runtime KLUT.
 # This is an ALLOWLIST: only the trees named here ship. `test/` and `docs/` are
