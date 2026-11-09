@@ -46,7 +46,10 @@
 #target	kind	needs	source	light-args	heavy-args
 cli_contract_check	script	-	cli_contract_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 cli_stdin_check	script	-	cli_stdin_check.py	-	-	-
+lattice_input_check	script	-	lattice_input_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 hooks_check	script	-	hooks_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
+klut_lfs_pointer_check	script	-	klut_lfs_pointer_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
+klut_table_check	script	-	klut_table_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 polyfold_check	script	boost_umfpack	polyfold_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 release_tarball_check	script	-	release_tarball_check.py	-	--build	\([1-9][0-9]* checks, 0 failed\)
 run_tier_check	script	-	run_tier_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
@@ -57,6 +60,7 @@ diagram_sanity_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)
 embedding_check	test	homfly_umfpack	-	-	--coords=f64,f32,i32,i64 --rotations=8	passed [1-9][0-9]*, failed 0
 embedding_inflation_check	test	plain	-	-	-	-
 error_tap_check	test	plain	-	-	-	-
+float_offset_check	test	plain	-	-	-	FLOAT OFFSET CHECK OK \([1-9][0-9]* checks, 0 failed
 homfly_check	test	homfly	-	-	-	-
 inflate_check	test	homfly_umfpack	-	--trials=1 --target=3000 --max-rounds=8	--trials=5	inflate_check: [1-9][0-9]*/[1-9][0-9]* trials passed
 intersection3d_check	test	plain	-	-	-	-
@@ -69,6 +73,7 @@ klut_check	test	homfly_umfpack	-	--up-to-crossing=8	-	klut_check: [1-9][0-9]* ke
 klut_e2e	test	plain	-	--up-to-crossing=8 --per-crossing=3	-	sampled [1-9][0-9]* of [1-9][0-9]* keys
 klut_identify_check	test	umfpack	-	-	-	-
 klut_identify_random_check	test	umfpack	-	-	-	-
+klut_loader_check	test	plain	-	-	-	KLUT LOADER CHECK OK \([1-9][0-9]* checks, 0 failed\)
 link_alex_probe	test	umfpack	-	-	-	-
 link_color_roundtrip	test	plain	-	-	-	-
 link_inflate_check	test	homfly_umfpack	-	--trials=1 --target=3000	--trials=3	link_inflate_check: [1-9][0-9]*/[1-9][0-9]* trials passed
@@ -78,6 +83,7 @@ lock_api_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)
 pd_internal_state_check	test	plain	-	-	-	-
 polygon_levels_check	test	homfly_umfpack	-	-	-	different diagrams on [1-9][0-9]* of [1-9][0-9]* polygons
 run_tests	script	-	run_tests.py	--smoke-only	-	[1-9][0-9]*/[1-9][0-9]* passed
+sha256_check	test	plain	-	-	-	SHA256 CHECK OK \([1-9][0-9]* checks, 0 failed\)
 simplify_config_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)
 plantri_check	test	homfly	-	--up-to-crossing=6	--up-to-crossing=7	tested=[1-9][0-9]*
 reapr_corner_probe	tool	plain	-	-	-	-

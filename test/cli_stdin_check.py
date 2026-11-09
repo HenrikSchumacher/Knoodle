@@ -10,6 +10,8 @@ and stays silent when stdin is a pipe/redirect (so pipelines are unaffected).
 For every tool below this verifies BOTH halves:
   (1) piped (empty) stdin -> the notice does NOT appear on stderr
   (2) pty stdin (EOF)     -> the notice DOES appear on stderr
+and then that knoodlesimplify, given no files, reads a pipe but shows a
+terminal its usage text, and that -q silences the notice.
 
 stdlib only (subprocess, pty, os) -- no Regina / venv needed. Run directly:
     python3 cli_stdin_check.py
@@ -102,6 +104,59 @@ def main():
                 else:
                     print(f"FAIL  {label} [tty]: no notice for interactive stdin")
                     failures += 1
+
+        # (3) knoodlesimplify with no files reads a PIPE without being told
+        # to: the same diagram on stdout as --streaming-mode writes, but with
+        # its per-knot report on stderr rather than in a log file.
+        simplify = TOOLS_DIR / "knoodlesimplify"
+        if simplify.exists():
+            trefoil = "2 0 3 5 1\n0 4 1 3 1\n4 2 5 1 1\n"
+            bare = subprocess.run([str(simplify), "-s=0"], input=trefoil,
+                                  capture_output=True, text=True, timeout=TIMEOUT, cwd=cwd)
+            streamed = subprocess.run([str(simplify), "--streaming-mode", "-s=0"],
+                                      input=trefoil, capture_output=True, text=True,
+                                      timeout=TIMEOUT, cwd=cwd)
+            checked += 1
+            if bare.returncode == 0 and bare.stdout.strip() and bare.stdout == streamed.stdout:
+                print("ok    knoodlesimplify [piped, no flags]: reads stdin, writes what "
+                      "--streaming-mode writes")
+            else:
+                print(f"FAIL  knoodlesimplify [piped, no flags]: rc={bare.returncode}, "
+                      f"stdout {bare.stdout!r} vs --streaming-mode {streamed.stdout!r}")
+                failures += 1
+
+            # (4) ... but a TERMINAL on stdin, with no files, gets the usage
+            # text, as before: nobody meant to type diagrams at it.
+            try:
+                err = run_pty([str(simplify)], cwd)
+            except subprocess.TimeoutExpired:
+                print("FAIL  knoodlesimplify [tty, no flags]: timed out")
+                failures += 1
+            else:
+                checked += 1
+                if "Usage:" in err and NOTICE not in err:
+                    print("ok    knoodlesimplify [tty, no flags]: prints the usage text")
+                else:
+                    print(f"FAIL  knoodlesimplify [tty, no flags]: no usage text: {err[:200]!r}")
+                    failures += 1
+
+        # (5) -q silences the notice in the two filters that take it.
+        for label in ("knoodledraw", "knoodleidentify"):
+            binary = TOOLS_DIR / label
+            if not binary.exists():
+                continue
+            try:
+                err = run_pty([str(binary), "-q"], cwd)
+            except subprocess.TimeoutExpired:
+                print(f"FAIL  {label} -q [tty]: timed out")
+                failures += 1
+                continue
+            checked += 1
+            if NOTICE in err:
+                print(f"FAIL  {label} -q [tty]: notice printed despite -q")
+                failures += 1
+            else:
+                print(f"ok    {label} -q [tty]: no notice")
 
     print()
     if failures:

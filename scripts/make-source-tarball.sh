@@ -36,22 +36,35 @@ fi
 [ -f submodules/Tensors/Tensors.hpp ] || { echo "ERROR: submodules not initialized (git submodule update --init --recursive)"; exit 1; }
 [ -f submodules/Tensors/submodules/Tools/Tools.hpp ] || { echo "ERROR: nested submodule Tools missing (need --recursive)"; exit 1; }
 
-# The bulk of the KLUT is the .bin keys (Klut_Keys_13.bin alone is ~20 MB), so a
-# .tsv-only check is not enough: if LFS didn't smudge the .bin we'd ship pointer
-# stubs and a silently broken knoodleidentify. Verify a representative .tsv AND the
-# largest .bin -- both must exist, not be Git-LFS pointers, and the big .bin must be
-# real-sized (a pointer is ~130 bytes; ~20 MB expected).
+# Check all 22 KLUT files, not a sample, against data/Klut/Klut_Manifest.txt
+# (written by scripts/klut-manifest.py; deliberately not in LFS): each must be
+# present, real content rather than a Git LFS pointer, and exactly the size and
+# SHA-256 the manifest lists. A damaged table can make knoodleidentify name
+# knots wrongly (docs/klut-table-failure-audit.md). knoodleidentify makes the
+# same check itself; release_tarball_check runs `knoodleidentify
+# --verify-tables` against the unpacked tarball.
+MANIFEST="data/Klut/Klut_Manifest.txt"
+[ -f "$MANIFEST" ] || { echo "ERROR: missing $MANIFEST -- run scripts/klut-manifest.py"; exit 1; }
 file_size() { stat -f '%z' "$1" 2>/dev/null || stat -c '%s' "$1" 2>/dev/null || echo 0; }
-for f in data/Klut/Klut_Values_03.tsv data/Klut/Klut_Keys_13.bin; do
+if command -v sha256sum >/dev/null 2>&1; then
+  file_sha() { sha256sum "$1" | cut -d' ' -f1; }
+else
+  file_sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
+fi
+listed=0
+while read -r name bytes keys sum; do
+  case "$name" in Klut_Keys_*.bin|Klut_Values_*.tsv) ;; *) continue ;; esac
+  f="data/Klut/$name"
   [ -f "$f" ] || { echo "ERROR: missing $f -- run: git submodule update --init --recursive && git lfs pull"; exit 1; }
   if head -c 64 "$f" | grep -q 'git-lfs'; then
     echo "ERROR: $f is a Git-LFS pointer, not content. Run: git lfs pull"; exit 1
   fi
-done
-keys_sz="$(file_size data/Klut/Klut_Keys_13.bin)"
-if [ "${keys_sz:-0}" -lt 1000000 ]; then
-  echo "ERROR: data/Klut/Klut_Keys_13.bin is only ${keys_sz} bytes (expected ~20 MB); the KLUT keys are not fully present (LFS not pulled?)."; exit 1
-fi
+  have="$(file_size "$f")"
+  [ "$have" = "$bytes" ] || { echo "ERROR: $f holds $have bytes; $MANIFEST says $bytes."; exit 1; }
+  [ "$(file_sha "$f")" = "$sum" ] || { echo "ERROR: $f is not the file $MANIFEST lists (SHA-256 differs)."; exit 1; }
+  listed=$((listed + 1))
+done < "$MANIFEST"
+[ "$listed" -eq 22 ] || { echo "ERROR: $MANIFEST lists $listed table files, not 22."; exit 1; }
 
 # 3) Stage the build-relevant trees (validated minimal set) + the runtime KLUT.
 # This is an ALLOWLIST: only the trees named here ship. `test/` and `docs/` are

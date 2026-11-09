@@ -65,6 +65,7 @@ struct Config
     std::optional<Knoodle::Size_T> rotation_trials;
     std::optional<bool>     reapr_permute_random;
     std::optional<double>   reapr_scaling;
+    std::optional<Int>      reapr_z_grid_size;   ///< --reapr-z-grid-size: z = N*level in Reapr's embeddings
     std::optional<int>      randomize_bends;
     std::optional<bool>     randomize_virtual_edges;
     std::optional<PDC_T::Compaction_T> compaction_method;  ///< supersedes no_compaction if both given
@@ -80,8 +81,9 @@ struct Config
 
     // Input options
     std::vector<std::string> input_files;    ///< Input file paths
-    bool streaming_mode       = false;       ///< Read from stdin, write to stdout
-    bool randomize_projection = false;       ///< Apply random shear to 3D projection
+    bool streaming_mode       = false;       ///< Read from stdin, write to stdout, log to a file
+    InputOptions input_options;              ///< --projection, --exact-input
+    std::optional<std::uint64_t> seed;       ///< --seed (else one is drawn at startup)
 
     // Output options
     std::optional<std::string> output_file;  ///< Single output file (if specified)
@@ -157,6 +159,9 @@ void PrintUsage()
     Log("  --reapr-permute-random / --no-reapr-permute-random");
     Log("                              Randomize arc permutation in Reapr");
     Log("  --reapr-scaling=X           3D grid scaling in Reapr (default: 1.0)");
+    Log("  --reapr-z-grid-size=N       Put consecutive levels of Reapr's embeddings N units");
+    Log("                              apart (z = N*level; its x and y grid is 20 units)");
+    Log("                              instead of scaling them. Not with --reapr-scaling.");
     Log("  --randomize-bends=N         Bend randomization iterations (default: 4)");
     Log("  --randomize-virtual-edges / --no-randomize-virtual-edges");
     Log("                              Randomize virtual edges in OrthoDraw");
@@ -169,13 +174,39 @@ void PrintUsage()
     Log("  5 columns: signed PD code (4 arcs + handedness)");
     Log("  6 columns: unsigned PD code + link component colors");
     Log("  7 columns: signed PD code + link component colors");
-    Log("  3 columns: 3D geometry (x, y, z coordinates)");
-    Log("  .kndlxyz:  multi-component 3D link embedding");
+    Log("  3 columns: 3D geometry (x, y, z coordinates); a blank line starts");
+    Log("             a new link component, and an optional '#color N' line");
+    Log("             before each component sets its color. A .kndlxyz file is");
+    Log("             exactly this, so it reads the same from a file or stdin.");
     Log("");
     Log("Input options:");
     Log("  --input=FILE                Specify input file (can use multiple times)");
-    Log("  --streaming-mode            Read from stdin, write to stdout");
-    Log("  --randomize-projection      Apply random shear to 3D geometry projection");
+    Log("                              With no input files and stdin a pipe, read stdin");
+    Log("                              and write stdout (or --output=FILE)");
+    Log("  --streaming-mode            Read from stdin, write to stdout, and move the");
+    Log("                              log to a file (what the Mathematica paclet uses)");
+    Log("  --projection=P              How 3D input is projected (default: z):");
+    Log("                                z, x, y  down that axis (exact)");
+    Log("                                random   after a uniformly random rotation");
+    Log("                                         (exact for integer coordinates)");
+    Log("                              3D input only. A PD code is already a diagram:");
+    Log("                              it passes through unchanged, and is never");
+    Log("                              embedded and re-viewed from another side (for");
+    Log("                              that, pipe knoodledraw --embedding into");
+    Log("                              --projection=x or y)");
+    Log("  --randomize-projection      Same as --projection=random. (3-column input");
+    Log("                              used to get a random shear instead, an oblique");
+    Log("                              view at most ~35 degrees off the z-axis; it now");
+    Log("                              gets a full rotation.)");
+    Log("  --exact-input               Refuse 3D input that cannot be projected");
+    Log("                              exactly: non-integer coordinates that do not");
+    Log("                              land exactly on Knoodle's integer grid, or that");
+    Log("                              --projection=random would have to rotate");
+    Log("  --seed=N                    Seed every random choice (N in [0, 2^64)); the");
+    Log("                              same seed repeats a run on the same build.");
+    Log("                              Reapr's bend randomization (-s=6) is the one");
+    Log("                              exception; add --randomize-bends=0");
+    Log("                              --no-randomize-virtual-edges to repeat it too");
     Log("");
     Log("Output options:");
     Log("  --output=FILE               Write all output to FILE");
@@ -241,6 +272,7 @@ constexpr std::string_view kKnownFlags[] = {
     "--reapr-rotation-trials",
     "--reapr-permute-random",     "--no-reapr-permute-random",
     "--reapr-scaling",
+    "--reapr-z-grid-size",
     "--randomize-bends",
     "--randomize-virtual-edges",  "--no-randomize-virtual-edges",
     "--compaction-method",
@@ -249,7 +281,10 @@ constexpr std::string_view kKnownFlags[] = {
     "--unite",
     "--input",
     "--streaming-mode",
+    "--projection",
     "--randomize-projection",
+    "--exact-input",
+    "--seed",
     "--output",
     "--quiet",
     "--format",
@@ -326,38 +361,14 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         // Reapr energy flag
         else if (arg.starts_with("--reapr-energy="))
         {
-            const std::string_view energy_str = arg.substr(15);
-
-            if (TokenIs(energy_str, "tv"))
-            {
-                config.reapr_energy = Energy_T::TV;
-            }
-            else if (TokenIs(energy_str, "dirichlet"))
-            {
-                config.reapr_energy = Energy_T::Dirichlet;
-            }
-            else if (TokenIs(energy_str, "bending"))
-            {
-                config.reapr_energy = Energy_T::Bending;
-            }
-            else if (TokenIs(energy_str, "height"))
-            {
-                config.reapr_energy = Energy_T::Height;
-            }
-            else if (TokenIs(energy_str, "tv_clp"))
-            {
-                config.reapr_energy = Energy_T::TV_CLP;
-            }
-            else if (TokenIs(energy_str, "tv_mcf"))
-            {
-                config.reapr_energy = Energy_T::TV_MCF;
-            }
-            else
+            const auto energy = ParseEnergy(arg.substr(15));
+            if (!energy)
             {
                 LogError("Unknown reapr energy: '" + std::string(arg.substr(15)) + "'");
                 LogError("Valid options: " + ValidEnergies());
                 return std::nullopt;
             }
+            config.reapr_energy = *energy;
         }
         // Simplify_Args_T overrides (unset = --simplify-level's own preset)
         else if (arg == "--compress-initial")   { config.compress_initial = true; }
@@ -423,6 +434,17 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             try { config.reapr_scaling = std::stod(std::string(arg.substr(16))); }
             catch (const std::exception&) { LogError("Invalid reapr-scaling value"); return std::nullopt; }
         }
+        else if (arg.starts_with("--reapr-z-grid-size="))
+        {
+            const auto n = ParsePositiveInt(arg.substr(20));
+            if (!n)
+            {
+                LogError("Invalid --reapr-z-grid-size (expected a positive integer): "
+                         + std::string(arg.substr(20)));
+                return std::nullopt;
+            }
+            config.reapr_z_grid_size = *n;
+        }
         else if (arg.starts_with("--randomize-bends="))
         {
             try { config.randomize_bends = std::stoi(std::string(arg.substr(18))); }
@@ -462,10 +484,36 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.streaming_mode = true;
         }
-        // Randomize projection
+        // 3D input
+        else if (arg.starts_with("--projection="))
+        {
+            const auto p = ParseProjection(arg.substr(13));
+            if (!p)
+            {
+                LogError("Unknown --projection value: '" + std::string(arg.substr(13))
+                         + "' (valid: z, x, y, random)");
+                return std::nullopt;
+            }
+            config.input_options.projection = *p;
+        }
         else if (arg == "--randomize-projection")
         {
-            config.randomize_projection = true;
+            config.input_options.projection = Projection_T::Random;
+        }
+        else if (arg == "--exact-input")
+        {
+            config.input_options.exact_input = true;
+        }
+        else if (arg.starts_with("--seed="))
+        {
+            const auto seed = ParseSeed(arg.substr(7));
+            if (!seed)
+            {
+                LogError("Invalid --seed value: '" + std::string(arg.substr(7))
+                         + "' (a decimal integer from 0 to 2^64 - 1)");
+                return std::nullopt;
+            }
+            config.seed = *seed;
         }
         // Output file
         else if (arg.starts_with("--output="))
@@ -518,6 +566,12 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
     if (config.streaming_mode && !config.input_files.empty())
     {
         LogError("Cannot use --streaming-mode with input files");
+        return std::nullopt;
+    }
+    if (config.reapr_z_grid_size && config.reapr_scaling)
+    {
+        LogError("--reapr-z-grid-size and --reapr-scaling both set Reapr's z spacing;"
+                 " use one or the other");
         return std::nullopt;
     }
 
@@ -584,6 +638,7 @@ PDC_T::Simplify_Args_T BuildSimplifyArgs(const Config& config)
     if (config.rotation_trials.has_value())        args.rotation_trials = *config.rotation_trials;
     if (config.reapr_permute_random.has_value())   args.permute_randomQ = *config.reapr_permute_random;
     if (config.reapr_scaling.has_value())          args.scaling = *config.reapr_scaling;
+    if (config.reapr_z_grid_size.has_value())      args.z_grid_size = *config.reapr_z_grid_size;
     if (config.randomize_bends.has_value())        args.randomize_bends = *config.randomize_bends;
     if (config.randomize_virtual_edges.has_value())args.randomize_virtual_edgesQ = *config.randomize_virtual_edges;
     if (config.compaction_method.has_value())      args.compaction_method = *config.compaction_method;
@@ -625,6 +680,7 @@ PDC_T::Simplify_Args_T BuildSimplifyArgs(const Config& config)
         << "\n  permute_randomQ          = " << (a.permute_randomQ ? "true" : "false")
         << "\n  randomize_virtual_edgesQ = " << (a.randomize_virtual_edgesQ ? "true" : "false")
         << "\n  scaling                  = " << a.scaling
+        << "\n  z_grid_size              = " << a.z_grid_size
         << "\n  energy                   = " << EnergyName(a.energy)
         << "\n";
 }

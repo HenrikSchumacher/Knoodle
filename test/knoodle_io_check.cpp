@@ -17,6 +17,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -160,11 +161,12 @@ static void TestDetectFormat()
 // ---------------------------------------------------------------------------
 // ReadKnot: the whole parser, driven from a string.
 
-static std::optional<InputKnot> Read( const std::string & text, bool & eof )
+static std::optional<InputKnot> Read( const std::string & text, bool & eof,
+                                      InputOptions options = InputOptions() )
 {
     std::istringstream in (text);
-    Knoodle::PRNG_T rng (12345);
-    return ReadKnot(in, /*randomize_projection=*/false, rng, "test", eof);
+    Knoodle::PRNG_T rng = SeededEngine(12345);
+    return ReadKnot(in, options, rng, "test", eof);
 }
 
 // A trefoil as a 5-column signed PD code.
@@ -305,7 +307,7 @@ static void TestReadKnot3D()
         check(k->had_3d_geometry, "had_3d_geometry is set");
         check(k->vertex_count_3d == Int(24), "all 24 vertices are counted");
         check(k->input_column_count == 3, "column count reported as 3");
-        // The projection is deterministic here (randomize_projection = false),
+        // The projection is deterministic here (--projection=z, the default),
         // so the standard trefoil's 3 crossings are a fixed expectation.
         check(k->summands.size() == 1 && k->summands[0].CrossingCount() == Int(3),
               "the standard trefoil projects to 3 crossings");
@@ -321,9 +323,230 @@ static void TestReadKnot3D()
     {
         check(k2->had_3d_geometry, "and is flagged as such");
         check(k2->vertex_count_3d == Int(4), "4 vertices");
-        check(!k2->summands.empty() && k2->summands[0].CrossingCount() == Int(0),
-              "a planar square is a valid 0-crossing diagram, not a parse error");
+        // A crossingless component is an unknot summand with its color, the
+        // way the PDC-native path reports anelli -- not a 0-crossing diagram,
+        // which OrthoDraw cannot be built from.
+        check(k2->summands.empty() && k2->unknot_colors.size() == 1
+              && k2->unknot_colors[0] == Int(0),
+              "a planar square is one unknot summand of color 0, not a parse error");
     }
+}
+
+// The Hopf link of test/embeddings/deg_hopf_flat, as a .kndlxyz: two squares,
+// a blank line between them.
+static const char * kHopf =
+    "0 0 0\n4 0 0\n4 4 0\n0 4 0\n"
+    "\n"
+    "2 2 -2\n2 2 2\n8 2 2\n8 2 -2\n";
+
+// Every color the arcs of `pd` carry.
+static std::set<Int> ArcColorSet( const PD_T & pd )
+{
+    std::set<Int> colors;
+    const auto & c = pd.ArcColors();
+    for( Int a = 0; a < c.Size(); ++a )
+    {
+        if( pd.ArcActiveQ(a) ) { colors.insert(c[a]); }
+    }
+    return colors;
+}
+
+static void TestReadKnotComponents()
+{
+    section("ReadKnot -- blank lines separate 3D components");
+    bool eof = false;
+
+    // Until 2026-11 blank lines were skipped here too, so a multi-component
+    // .kndlxyz piped on stdin (or given to knoodleidentify at all) became ONE
+    // closed curve through both squares, and a Hopf link read as the unknot.
+    {
+        auto k = Read(kHopf, eof);
+        check(k.has_value(), "a two-component 3D link reads");
+        if( k )
+        {
+            check(k->component_count_3d == Int(2), "two components");
+            check(k->colored_3d, "and its colors are significant");
+            check(k->vertex_count_3d == Int(8), "8 vertices");
+            check(k->summands.size() == 1 && k->summands[0].CrossingCount() == Int(2),
+                  "the Hopf link projects to one 2-crossing diagram");
+            if( k->summands.size() == 1 )
+            {
+                check(k->summands[0].LinkComponentCount() == Int(2),
+                      "with two link components");
+                check(ArcColorSet(k->summands[0]) == std::set<Int>({0, 1}),
+                      "colored 0 and 1 by component order");
+            }
+        }
+    }
+    {
+        // Runs of blank lines, and blank lines before the first and after the
+        // last vertex, are one separator or none.
+        auto k = Read("\n\n0 0 0\n4 0 0\n4 4 0\n0 4 0\n\n\n\n"
+                      "2 2 -2\n2 2 2\n8 2 2\n8 2 -2\n\n", eof);
+        check(k.has_value() && k->component_count_3d == Int(2)
+              && k->summands.size() == 1 && k->summands[0].CrossingCount() == Int(2),
+              "extra blank lines change nothing");
+    }
+    {
+        // A comment-only line is not a blank line: it does not split.
+        auto k = Read("0 0 0\n4 0 0\n% a comment\n4 4 0\n0 4 0\n", eof);
+        check(k.has_value() && k->component_count_3d == Int(1),
+              "a '%' comment line inside a component does not end it");
+    }
+    {
+        // .kndlxyz's '#color' lines; other '#' lines are comments.
+        auto k = Read("# a comment\n#color 7\n0 0 0\n4 0 0\n4 4 0\n0 4 0\n"
+                      "\n#color 3\n2 2 -2\n2 2 2\n8 2 2\n8 2 -2\n", eof);
+        check(k.has_value(), "'#color' lines and '#' comments read");
+        if( k && k->summands.size() == 1 )
+        {
+            check(ArcColorSet(k->summands[0]) == std::set<Int>({3, 7}),
+                  "'#color' sets each component's color");
+        }
+    }
+    {
+        // Far apart: a split link, two crossingless components.
+        auto k = Read("0 0 0\n1 0 0\n1 1 0\n0 1 0\n\n10 0 0\n11 0 0\n11 1 0\n10 1 0\n", eof);
+        check(k.has_value() && k->summands.empty() && k->unknot_colors.size() == 2,
+              "two distant squares are two unknot summands");
+        if( k && k->unknot_colors.size() == 2 )
+        {
+            check(k->unknot_colors[0] != k->unknot_colors[1],
+                  "with different colors");
+        }
+    }
+
+    // --- repeated vertices. A vertex equal to the one before it is a
+    // zero-length edge, which Prosector_Int rejects or asserts on (upstream
+    // issue 11). Dropping it is exact, and now happens on the float path too.
+    {
+        auto k = Read("0.5 0.5 0.5\n4.5 0.5 0.5\n4.5 0.5 0.5\n4.5 4.5 0.5\n0.5 4.5 0.5\n0.5 0.5 0.5\n", eof);
+        check(k.has_value() && k->unknot_colors.size() == 1,
+              "a float square with a repeated vertex and a closing copy is the unknot");
+    }
+    {
+        // test/embeddings/deg_stacked_points shifted off the lattice: it used
+        // to abort in LinesColinearTest.
+        auto k = Read("0.5 0.5 0.5\n4.5 0.5 0.5\n4.5 0.5 0.5\n4.5 4.5 0.5\n"
+                      "4.5 4.5 5.5\n4.5 0.5 5.5\n4.5 0.5 5.5\n0.5 0.5 5.5\n", eof);
+        // Two of its edges overlap in projection, which the projector resolves
+        // into a 1-crossing curl; only that it reads is in question here.
+        check(k.has_value() && k->component_count_3d == Int(1)
+              && k->total_crossings <= Int(1),
+              "deg_stacked_points off the lattice reads (an unknot, at most a curl)");
+    }
+
+    // --- refusals
+    {
+        auto k = Read("#color 1\n0 0 0\n4 0 0\n4 4 0\n0 4 0\n\n2 2 -2\n2 2 2\n8 2 2\n8 2 -2\n", eof);
+        check(!k.has_value(), "'#color' on some components but not all is refused");
+    }
+    {
+        auto k = Read("0 0 0\n4 0 0\n#color 1\n4 4 0\n0 4 0\n", eof);
+        check(!k.has_value(), "'#color' in the middle of a component is refused");
+    }
+    {
+        auto k = Read(std::string(kTrefoil) + "#color 1\n", eof);
+        check(!k.has_value(), "'#color' in a PD code is refused");
+    }
+    {
+        auto k = Read("0 0 0\n4 0 0\n4 0 0\n\n2 2 -2\n2 2 2\n8 2 2\n", eof);
+        check(!k.has_value(), "a component with fewer than 3 distinct vertices is refused");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// --projection, --seed, --exact-input
+
+static void TestInputOptions()
+{
+    section("--projection, --seed and --exact-input");
+
+    // --projection's vocabulary is fixed, so its spelling is forgiven.
+    check(ParseProjection("z") == Projection_T::Z, "--projection=z");
+    check(ParseProjection("X") == Projection_T::X, "--projection=X is x");
+    check(ParseProjection("y") == Projection_T::Y, "--projection=y");
+    check(ParseProjection("RANDOM") == Projection_T::Random, "--projection=RANDOM is random");
+    check(!ParseProjection("w") && !ParseProjection("") && !ParseProjection("rand"),
+          "w, the empty string and abbreviations are refused");
+    check(ProjectionName(Projection_T::Random) == "random" && ProjectionName(Projection_T::Z) == "z",
+          "ProjectionName gives the preferred spelling");
+
+    // --seed is a number, so it is read verbatim.
+    check(ParseSeed("0") == std::uint64_t(0), "--seed=0");
+    check(ParseSeed("18446744073709551615") == std::uint64_t(18446744073709551615ull),
+          "--seed=2^64-1");
+    check(!ParseSeed("18446744073709551616"), "--seed=2^64 is refused, not wrapped");
+    check(!ParseSeed("-1") && !ParseSeed("+1") && !ParseSeed(" 1") && !ParseSeed("1x")
+          && !ParseSeed(""), "signs, spaces, trailing junk and the empty string are refused");
+
+    {
+        Knoodle::PRNG_T a = SeededEngine(5), b = SeededEngine(5), c = SeededEngine(6);
+        const auto a1 = a(), b1 = b(), c1 = c();
+        check(a1 == b1 && a() == b(), "the same seed gives the same engine");
+        check(a1 != c1, "a different seed gives a different engine");
+        Knoodle::PRNG_T da = DerivedEngine(a), db = DerivedEngine(b);
+        check(da() == db() && a() == b(), "derived engines follow the seed too");
+    }
+
+    bool eof = false;
+    InputOptions o;
+
+    // The Hopf link down each axis: degenerate down x and y (each square is a
+    // segment seen edge-on), which the exact projector perturbs symbolically.
+    for( Projection_T p : {Projection_T::Z, Projection_T::X, Projection_T::Y, Projection_T::Random} )
+    {
+        o.projection = p;
+        auto k = Read(kHopf, eof, o);
+        check(k && k->summands.size() == 1 && k->summands[0].LinkComponentCount() == Int(2)
+              && k->summands[0].CrossingCount() >= Int(2),
+              "the Hopf link projects to a 2-component diagram with --projection="
+              + ProjectionName(p));
+    }
+
+    // --projection=random draws from the engine: the same seed, the same diagram.
+    {
+        o.projection = Projection_T::Random;
+        auto k1 = Read(kHopf, eof, o);
+        auto k2 = Read(kHopf, eof, o);
+        check(k1 && k2 && k1->summands.size() == 1 && k2->summands.size() == 1
+              && k1->summands[0].PDCode() == k2->summands[0].PDCode(),
+              "--projection=random repeats under the same seed");
+    }
+
+    // --exact-input. Integer coordinates are always exact, rotated or not.
+    o.exact_input = true;
+    o.projection  = Projection_T::Random;
+    check(Read(kHopf, eof, o).has_value(), "--exact-input takes a lattice link, even rotated");
+
+    // Dyadic coordinates land on the grid exactly ...
+    const char * dyadic = "0.5 0.25 0\n4 0 0\n4 4 0\n0 4 0\n\n2 2 -2\n2 2 2\n8 2 2\n8 2 -2\n";
+    o.projection = Projection_T::Z;
+    check(Read(dyadic, eof, o).has_value(), "--exact-input takes dyadic coordinates");
+    o.projection = Projection_T::X;
+    check(Read(dyadic, eof, o).has_value(), "... down the x-axis too (a permutation is exact)");
+    // ... but cannot be rotated exactly.
+    o.projection = Projection_T::Random;
+    check(!Read(dyadic, eof, o).has_value(),
+          "--exact-input refuses --projection=random of non-integer coordinates");
+
+    // 0.01 is not dyadic: at the grid's scale it rounds.
+    o.projection = Projection_T::Z;
+    check(!Read("0.01 0 0\n4 0 0\n4 4 0\n0 4 0\n\n2 2 -2\n2 2 2\n8 2 2\n8 2 -2\n", eof, o).has_value(),
+          "--exact-input refuses coordinates that round onto the grid");
+    o.exact_input = false;
+    check(Read("0.01 0 0\n4 0 0\n4 4 0\n0 4 0\n\n2 2 -2\n2 2 2\n8 2 2\n8 2 -2\n", eof, o).has_value(),
+          "... which read fine without it");
+
+    // Far from the origin for their spread: the grid's scale comes from the
+    // spread, so |x| times it overflows 60 bits (GH #50).
+    o.exact_input = true;
+    check(!Read("1000.5 0 0\n1004 0 0\n1004 4 0\n1000 4 0\n", eof, o).has_value(),
+          "--exact-input refuses coordinates too far from the origin for their spread");
+    check(PredictedGridScale({0.5, 0, 0, 4, 0, 0, 4, 4, 0}).second == 58,
+          "PredictedGridScale: extent 4 is scaled by 2^58");
+    check(PredictedGridScale({0, 0, 0, 4, 0, 0, 4, 4, 0}).first == 1.0,
+          "PredictedGridScale: integer input is not scaled up");
 }
 
 int main()
@@ -336,6 +559,8 @@ int main()
     TestDetectFormat();
     TestReadKnot();
     TestReadKnot3D();
+    TestReadKnotComponents();
+    TestInputOptions();
 
     std::printf("\n%s (%d checks, %d failed)\n",
                 fails == 0 ? "KNOODLE IO CHECK OK" : "KNOODLE IO CHECK FAILED",

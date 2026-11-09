@@ -12,9 +12,13 @@
 #include "../src/OrthoDraw.hpp"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cctype>
+#include <charconv>
 #include <chrono>
+#include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -27,7 +31,9 @@
 #endif
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <optional>
+#include <random>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -57,8 +63,16 @@ using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T        = PDC_T::PD_T;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Energy_T    = PDC_T::Energy_T;
-using Reapr_T     = Knoodle::Reapr<Real, Int>;  // only used for RandomRotation()
+using Reapr_T     = Knoodle::Reapr<Real, Int>;
+// Floating-point 3D input. Since the LinkEmbedding promotion this is
+// LinkEmbedding_Int on Prosector_Int<Int64>: the coordinates are scaled by a
+// power of 2, rounded onto an integer grid, and projected with exact
+// predicates and simulation of simplicity (src/LinkEmbedding.hpp).
 using LinkEmb_T   = Reapr_T::LinkEmbedding_T;
+// Integer-coordinate (lattice) input skips the scaling and rounding: the same
+// class with integer coordinates, projected exactly as given. The same
+// projector knoodleprove trusts (trace_verify.hpp, ProjectLattice).
+using LatticeEmb_T = Knoodle::LinkEmbedding<std::int64_t, Int>;
 
 // The timing aliases live in a named namespace rather than at global scope.
 // Apple's <MacTypes.h> (pulled in transitively by <Accelerate/Accelerate.h>,
@@ -139,6 +153,11 @@ struct InputKnot
     // For 3D geometry input
     bool              had_3d_geometry = false;
     Int               vertex_count_3d = 0;
+    Int               component_count_3d = 0;  ///< blank-line-separated components
+
+    /// 3D input whose colors carry information: several components, or an
+    /// explicit '#color' line. knoodlesimplify writes such input with colors.
+    bool              colored_3d = false;
 
     int               input_column_count = 0; ///< Detected column format (3/4/5/6/7)
 
@@ -397,6 +416,10 @@ std::filesystem::path g_diagnostic_dir;
 /// trailing separator on macOS, so parent_path() never compares equal to it.
 bool g_diagnostic_dir_is_temp = false;
 
+/// The seed this run uses (--seed=N, or drawn at startup; see SeededEngine).
+/// Diagnostic reports name it, so that a failing run can be repeated.
+std::uint64_t g_run_seed = 0;
+
 /**
  * @brief Decide where this run's diagnostic artifacts belong, and tell the
  *        library about it.
@@ -523,7 +546,8 @@ bool g_diagnostic_dir_is_temp = false;
         std::cerr <<
             "  These describe the failure above. Please attach them to a report at\n"
             "  https://github.com/HenrikSchumacher/Knoodle/issues -- they contain the\n"
-            "  exact diagram and geometry needed to reproduce it.\n";
+            "  exact diagram and geometry needed to reproduce it. This run's seed was\n"
+            "  --seed=" << g_run_seed << ".\n";
     }
     else
     {
@@ -660,7 +684,11 @@ bool g_diagnostic_dir_is_temp = false;
         << "-- build ------------------------------------------------------\n"
         << BuildIdentity()
         << RuntimeIdentity()
-        << "\n";
+        << "\n"
+        << "-- random seed ------------------------------------------------\n"
+        << "  --seed=" << g_run_seed << "\n"
+        << "  (rerunning with this flag repeats the run's random choices on this\n"
+        << "   build, except OrthoDraw's inside Reapr; see the tool's --help)\n\n";
 
     out << "-- errors reported --------------------------------------------\n";
     if ((g_cerr_tap != nullptr) && !g_cerr_tap->Messages().empty())
@@ -1050,6 +1078,44 @@ bool ParseNumericLine(const std::string& line,
     + "TV_MCF";
 }
 
+/**
+ * @brief Parse a positive integer from a string: a grid size, a count.
+ *        Shared by the tools' integer flags (e.g. knoodledraw's --x-grid-size
+ *        and --z-grid-size, the others' --reapr-z-grid-size).
+ */
+[[maybe_unused]] std::optional<Int> ParsePositiveInt(std::string_view s)
+{
+    try
+    {
+        std::size_t pos = 0;
+        long long val = std::stoll(std::string(s), &pos);
+        if (pos != s.size() || val < 1) return std::nullopt;
+        return static_cast<Int>(val);
+    }
+    catch (const std::exception&)
+    {
+        return std::nullopt;
+    }
+}
+
+/**
+ * @brief Parse the value of --reapr-energy (fixed vocabulary, so case and
+ *        separators are forgiven).
+ *
+ * Every name parses whatever this build supports; ValidEnergies() is the list
+ * the build can actually run.
+ */
+[[maybe_unused]] std::optional<Energy_T> ParseEnergy(std::string_view value)
+{
+    if (TokenIs(value, "tv"))        { return Energy_T::TV;        }
+    if (TokenIs(value, "dirichlet")) { return Energy_T::Dirichlet; }
+    if (TokenIs(value, "bending"))   { return Energy_T::Bending;   }
+    if (TokenIs(value, "height"))    { return Energy_T::Height;    }
+    if (TokenIs(value, "tv_clp"))    { return Energy_T::TV_CLP;    }
+    if (TokenIs(value, "tv_mcf"))    { return Energy_T::TV_MCF;    }
+    return std::nullopt;
+}
+
 //==============================================================================
 // PDC-Native Format I/O
 //==============================================================================
@@ -1131,80 +1197,613 @@ int DetectFormat(const std::vector<Real>& values, bool has_float)
     return 0;  // Unknown
 }
 
-/**
- * @brief Create a PlanarDiagram from 3D vertex coordinates.
- *
- * @param vertices Flat array of 3D coordinates (x, y, z, x, y, z, ...).
- * @param randomize_projection Whether to apply a random shear to the projection.
- * @param rng Random number generator.
- * @return The constructed PlanarDiagram, or an invalid diagram on error.
- */
-PD_T CreateDiagramFrom3D(const std::vector<Real>& vertices,
-                         bool randomize_projection,
-                         Knoodle::PRNG_T& rng)
+//==============================================================================
+// Random numbers (--seed)
+//==============================================================================
+//
+// Every random choice a tool makes follows from one 64-bit seed: the tool's own
+// engine is seeded from it (SeededEngine), and every Reapr the tool builds gets
+// an engine drawn from that one (DerivedEngine). So --seed=N repeats a run --
+// on the same build: std::normal_distribution and friends are not specified
+// bit for bit, so libc++ and libstdc++ builds draw different numbers from the
+// same seed.
+//
+// One source stays out of reach: the OrthoDraw that Reapr builds inside
+// Embedding() seeds itself from std::random_device, and its bend and virtual-
+// edge randomization (on by default) is not repeated. A run that re-embeds
+// repeats exactly only with --randomize-bends=0 --no-randomize-virtual-edges.
+
+/// A seed nobody chose, for a run without --seed.
+[[maybe_unused]] std::uint64_t FreshSeed()
 {
-    Int vertex_count = static_cast<Int>(vertices.size() / 3);
+    std::random_device rd;
+    return (static_cast<std::uint64_t>(rd()) << 32) ^ static_cast<std::uint64_t>(rd());
+}
 
-    if (vertex_count < 3)
+/// An engine seeded from one 64-bit number. std::seed_seq's mixing is fully
+/// specified, so this is the same engine on every platform.
+[[maybe_unused]] Knoodle::PRNG_T SeededEngine(std::uint64_t seed)
+{
+    std::seed_seq seq {
+        static_cast<std::uint32_t>(seed), static_cast<std::uint32_t>(seed >> 32)
+    };
+    return Knoodle::PRNG_T(seq);
+}
+
+/// A fresh engine for a library object (a Reapr), drawn from the tool's own,
+/// so that the library's random choices follow from --seed too.
+[[maybe_unused]] Knoodle::PRNG_T DerivedEngine(Knoodle::PRNG_T& rng)
+{
+    std::array<std::uint32_t, 8> words;
+    for (std::size_t i = 0; i < words.size(); i += 2)
     {
-        LogError("3D geometry requires at least 3 vertices");
-        return PD_T();
+        const std::uint64_t r = rng();
+        words[i]     = static_cast<std::uint32_t>(r);
+        words[i + 1] = static_cast<std::uint32_t>(r >> 32);
     }
+    std::seed_seq seq(words.begin(), words.end());
+    return Knoodle::PRNG_T(seq);
+}
 
-    // Check if last vertex equals first (closed polygon marker)
-    const Real* first = vertices.data();
-    const Real* last  = vertices.data() + 3 * (vertex_count - 1);
+/**
+ * @brief Parse the N of --seed=N: a decimal integer in [0, 2^64).
+ *
+ * Verbatim, like every number: no sign, no spaces, nothing after the digits.
+ */
+[[maybe_unused]] std::optional<std::uint64_t> ParseSeed(std::string_view value)
+{
+    std::uint64_t seed = 0;
+    const char* first = value.data();
+    const char* last  = value.data() + value.size();
 
-    constexpr Real eps = 1e-10;
-    bool closed_marker = (std::abs(first[0] - last[0]) < eps &&
-                          std::abs(first[1] - last[1]) < eps &&
-                          std::abs(first[2] - last[2]) < eps);
-
-    if (closed_marker)
+    if (value.empty() || !std::isdigit(static_cast<unsigned char>(value.front())))
     {
-        --vertex_count;  // Don't include duplicate vertex
+        return std::nullopt;
     }
+    auto [ptr, ec] = std::from_chars(first, last, seed);
+    if (ec != std::errc() || ptr != last) { return std::nullopt; }
+    return seed;
+}
 
-    // Create transformed coordinates if needed
-    std::vector<Real> coords(vertices.begin(), vertices.begin() + 3 * vertex_count);
+//==============================================================================
+// 3D input
+//==============================================================================
+//
+// 3D input comes in one shape, read by ReadKnot from a file or from stdin:
+// three numbers per vertex, a blank line between link components, and an
+// optional '#color' line before each component. A .kndlxyz file is exactly
+// that, so it needs no route of its own.
+//
+// All of it is projected by ProjectGeometry: exactly, through LatticeEmb_T,
+// when every coordinate is an integer, and through the floating-point
+// LinkEmb_T (which scales and rounds onto an integer grid) otherwise.
 
-    if (randomize_projection)
+/// 3D input as read: the coordinates, where each component starts, and its color.
+struct Geometry3D
+{
+    std::vector<Real> xyz;                    ///< x, y, z per vertex
+    std::vector<Int>  ptr { 0 };              ///< component k is vertices [ptr[k], ptr[k+1])
+    std::vector<Int>  colors;                 ///< one per component
+    bool              colors_declared = false;///< colors came from '#color' lines
+
+    Int ComponentCount() const { return static_cast<Int>(ptr.size()) - 1; }
+    Int VertexCount()    const { return static_cast<Int>(xyz.size() / 3); }
+};
+
+/// Which way 3D input is projected (--projection).
+enum class Projection_T
+{
+    Z,       ///< down the z-axis: the diagram is (x, y), z decides over and under
+    X,       ///< down the x-axis: (y, z), x decides over and under
+    Y,       ///< down the y-axis: (z, x), y decides over and under
+    Random   ///< after a uniformly random rotation of the whole link
+};
+
+/// How 3D input is read and projected; the same for every tool and every route.
+struct InputOptions
+{
+    Projection_T projection  = Projection_T::Z;  ///< --projection
+    bool         exact_input = false;            ///< --exact-input
+};
+
+/// The values --projection takes, preferred spellings first.
+constexpr std::array<std::string_view, 4> kProjectionNames { "z", "x", "y", "random" };
+
+/**
+ * @brief Parse the value of --projection (fixed vocabulary, so case and
+ *        separators are forgiven).
+ */
+[[maybe_unused]] std::optional<Projection_T> ParseProjection(std::string_view value)
+{
+    const std::string_view name = MatchToken(value, kProjectionNames);
+    if (name == "z")      { return Projection_T::Z; }
+    if (name == "x")      { return Projection_T::X; }
+    if (name == "y")      { return Projection_T::Y; }
+    if (name == "random") { return Projection_T::Random; }
+    return std::nullopt;
+}
+
+/// The preferred spelling of a projection, as --help documents it.
+[[maybe_unused]] std::string ProjectionName(Projection_T p)
+{
+    return std::string(kProjectionNames[static_cast<std::size_t>(p)]);
+}
+
+/// What projecting 3D input gave.
+struct Projection3D
+{
+    std::vector<PD_T> diagrams;       ///< diagrams with at least one crossing
+    std::vector<Int>  unknot_colors;  ///< one per crossingless diagram, its color
+};
+
+using LatticeMatrix_T = std::array<std::array<std::int64_t, 3>, 3>;
+
+/**
+ * @brief Is every coordinate an integer that a double holds exactly?
+ *
+ * The test is on VALUES, not on how they were spelled: "1.0 2.0 3.0" is a
+ * lattice vertex too. Beyond 2^53 a parsed double no longer pins down the
+ * integer that was written, so such input stays on the floating-point path.
+ */
+bool LatticeCoordinatesQ(const Real* x, std::size_t n)
+{
+    constexpr Real limit = 9007199254740992.0;  // 2^53
+
+    for (std::size_t i = 0; i < n; ++i)
     {
-        // Apply shear: (x, y, z) -> (x + eps_x * z, y + eps_y * z, z)
-        std::uniform_real_distribution<Real> dist(-0.5, 0.5);
-        Real eps_x = dist(rng);
-        Real eps_y = dist(rng);
+        // Written so that NaN fails too.
+        if (!(std::abs(x[i]) < limit) || std::trunc(x[i]) != x[i]) return false;
+    }
+    return true;
+}
 
-        for (Int i = 0; i < vertex_count; ++i)
+/**
+ * @brief Multiply every vertex by the integer matrix M, exactly.
+ *
+ * @return false if a coordinate would leave Prosector_Int's headroom (60 bits
+ *         for Int64; we stop at 58, as redraw_view.hpp does).
+ */
+bool TransformLattice(std::vector<std::int64_t>& xyz, const LatticeMatrix_T& M)
+{
+    using W_T = __int128;
+    constexpr W_T lim = W_T(1) << 58;
+
+    for (std::size_t v = 0; v + 2 < xyz.size(); v += 3)
+    {
+        const W_T x[3] = {xyz[v], xyz[v + 1], xyz[v + 2]};
+        W_T y[3];
+
+        for (int i = 0; i < 3; ++i)
         {
-            Real z = coords[3 * i + 2];
-            coords[3 * i + 0] += eps_x * z;
-            coords[3 * i + 1] += eps_y * z;
+            y[i] = W_T(M[i][0]) * x[0] + W_T(M[i][1]) * x[1] + W_T(M[i][2]) * x[2];
+            if (y[i] >= lim || y[i] <= -lim) return false;
+        }
+        for (int i = 0; i < 3; ++i) xyz[v + i] = static_cast<std::int64_t>(y[i]);
+    }
+    return true;
+}
+
+/**
+ * @brief A uniformly random unit quaternion (w, x, y, z): a Gaussian vector
+ *        in R^4, normalized. q and -q give the same rotation, and the
+ *        rotations it gives are uniform (Haar) on SO(3).
+ */
+std::array<Real, 4> RandomUnitQuaternion(Knoodle::PRNG_T& rng)
+{
+    std::normal_distribution<Real> gaussian(0, 1);
+    std::array<Real, 4> g;
+    Real norm = 0;
+    do
+    {
+        norm = 0;
+        for (Real& gi : g) { gi = gaussian(rng); norm += gi * gi; }
+    }
+    while (norm == 0);
+    norm = std::sqrt(norm);
+    for (Real& gi : g) { gi /= norm; }
+    return g;
+}
+
+/**
+ * @brief A uniformly random rotation, as an integer matrix.
+ *
+ * For an integer quaternion q = (w, x, y, z), |q|^2 R(q/|q|) has integer
+ * entries, so the rotated curve is still a lattice curve, exactly; scaling by
+ * |q|^2 does not change the diagram. q is a uniform direction on S^3 rounded
+ * at radius 256: within ~1/256 radian of a uniform rotation, with coordinates
+ * growing by |q|^2 ~ 2^16. det = |q|^6 > 0, so the link is not mirrored.
+ */
+LatticeMatrix_T RandomLatticeRotation(Knoodle::PRNG_T& rng)
+{
+    constexpr Real radius = 256;
+
+    const std::array<Real, 4> u = RandomUnitQuaternion(rng);
+
+    // Some |u_i| >= 1/2, so q != 0.
+    std::int64_t q[4];
+    for (int i = 0; i < 4; ++i) q[i] = std::llround(radius * u[i]);
+
+    const std::int64_t w = q[0], x = q[1], y = q[2], z = q[3];
+
+    return {{
+        { w*w + x*x - y*y - z*z, 2 * (x*y - w*z),         2 * (x*z + w*y)         },
+        { 2 * (x*y + w*z),       w*w - x*x + y*y - z*z,   2 * (y*z - w*x)         },
+        { 2 * (x*z - w*y),       2 * (y*z + w*x),         w*w - x*x - y*y + z*z   }
+    }};
+}
+
+/**
+ * @brief Rotate floating-point coordinates by a uniformly random rotation.
+ *
+ * The same quaternion draw as RandomLatticeRotation, unrounded. (Reapr's own
+ * RandomRotation picks a uniform axis and a uniform angle, which is not
+ * uniform on SO(3); small angles come up too often.)
+ */
+void RandomRotateFloat(std::vector<Real>& xyz, Knoodle::PRNG_T& rng)
+{
+    const auto [w, x, y, z] = RandomUnitQuaternion(rng);
+
+    const Real R[3][3] = {
+        { 1 - 2 * (y*y + z*z), 2 * (x*y - w*z),     2 * (x*z + w*y)     },
+        { 2 * (x*y + w*z),     1 - 2 * (x*x + z*z), 2 * (y*z - w*x)     },
+        { 2 * (x*z - w*y),     2 * (y*z + w*x),     1 - 2 * (x*x + y*y) }
+    };
+
+    for (std::size_t v = 0; v + 2 < xyz.size(); v += 3)
+    {
+        const Real p[3] = {xyz[v], xyz[v + 1], xyz[v + 2]};
+        for (int i = 0; i < 3; ++i)
+        {
+            xyz[v + i] = R[i][0] * p[0] + R[i][1] * p[1] + R[i][2] * p[2];
+        }
+    }
+}
+
+/**
+ * @brief Turn the coordinates so that --projection=x or y becomes a projection
+ *        down the z-axis: (x, y, z) -> (y, z, x) or (z, x, y).
+ *
+ * Both are cyclic permutations (det +1, so nothing is mirrored), and both are
+ * exact.
+ */
+void PermuteAxes(std::vector<Real>& xyz, Projection_T p)
+{
+    if (p != Projection_T::X && p != Projection_T::Y) { return; }
+
+    for (std::size_t v = 0; v + 2 < xyz.size(); v += 3)
+    {
+        const Real x = xyz[v], y = xyz[v + 1], z = xyz[v + 2];
+        if (p == Projection_T::X) { xyz[v] = y; xyz[v + 1] = z; xyz[v + 2] = x; }
+        else                      { xyz[v] = z; xyz[v + 1] = x; xyz[v + 2] = y; }
+    }
+}
+
+/**
+ * @brief Drop each vertex that repeats the one before it (cyclically, within
+ *        each component), so no edge has length zero.
+ *
+ * The polygon is the same point set, so this is exact, for integer and
+ * floating-point coordinates alike (the comparison is ==, not a tolerance).
+ * It matters because Prosector_Int mishandles zero-length edges: it rejects
+ * them as 3D self-intersections, or trips an assertion in LinesColinearTest
+ * (test/embeddings/deg_zero_length and deg_stacked_points; upstream issue 11).
+ *
+ * @param xyz Coordinates, 3 per vertex; compacted in place.
+ * @param ptr Component pointers into the vertices; rewritten to match.
+ */
+template<typename T>
+void DropRepeatedVertices(std::vector<T>& xyz, std::vector<Int>& ptr)
+{
+    auto same = [&xyz](std::size_t u, std::size_t v)
+    {
+        return xyz[3 * u] == xyz[3 * v] && xyz[3 * u + 1] == xyz[3 * v + 1]
+            && xyz[3 * u + 2] == xyz[3 * v + 2];
+    };
+
+    std::vector<Int> new_ptr{0};
+    std::size_t out = 0;  // vertices kept so far; never ahead of v below
+
+    for (std::size_t c = 0; c + 1 < ptr.size(); ++c)
+    {
+        const std::size_t begin = out;
+
+        for (auto v = static_cast<std::size_t>(ptr[c]); v < static_cast<std::size_t>(ptr[c + 1]); ++v)
+        {
+            if (out > begin && same(out - 1, v)) continue;
+            for (std::size_t k = 0; k < 3; ++k) xyz[3 * out + k] = xyz[3 * v + k];
+            ++out;
+        }
+        // The closing edge, last vertex back to the first.
+        while (out - begin > 1 && same(out - 1, begin)) --out;
+
+        new_ptr.push_back(static_cast<Int>(out));
+    }
+
+    xyz.resize(3 * out);
+    ptr = std::move(new_ptr);
+}
+
+/**
+ * @brief Project a link embedding and sort what comes out into diagrams with
+ *        crossings and crossingless (unknot) components.
+ *
+ * @return nullopt if the embedding is not one (it meets itself in 3-space);
+ *         the library has already said why, on stderr.
+ */
+template<typename Emb_T>
+std::optional<Projection3D> ProjectEmbedding(Emb_T& L)
+{
+    // An invalid pd with a list of unlink colors is the all-crossingless case,
+    // not a failure; PDC_T's constructor turns those colors into anelli.
+    PDC_T pdc(PD_T::FromLinkEmbedding(L));
+
+    if (pdc.DiagramCount() == Int(0)) return std::nullopt;
+
+    // A split link projects to ONE diagram with several diagram components,
+    // which OrthoDraw refuses -- and knoodledraw, reaching it anyway,
+    // segfaulted. Give each diagram component its own diagram. The pieces
+    // never share a color, so nothing downstream mistakes them for summands
+    // of one component.
+    pdc.Split();
+
+    Projection3D result;
+    for (Int i = 0; i < pdc.DiagramCount(); ++i)
+    {
+        Knoodle::cref<PD_T> pd = pdc.Diagram(i);
+        if (pd.CrossingCount() > Int(0)) { result.diagrams.push_back(PD_T(pd)); }
+        else                             { result.unknot_colors.push_back(pd.FirstColor()); }
+    }
+    return result;
+}
+
+/**
+ * @brief The power of two s that LinkEmb_T will scale these coordinates by,
+ *        and its exponent, chosen exactly as
+ *        LinkEmbedding_Int::ComputeEdgeCoordinates chooses them: from the
+ *        extent of the bounding box, 2^(60 - ceil(log2 extent)), and no
+ *        scaling at all for integer input that would only be scaled up.
+ */
+std::pair<Real, int> PredictedGridScale(const std::vector<Real>& xyz)
+{
+    constexpr int m = 60;  // bits LinkEmbedding_Int allows Int64 coordinates
+
+    Real lo[3] = { std::numeric_limits<Real>::infinity(),
+                   std::numeric_limits<Real>::infinity(),
+                   std::numeric_limits<Real>::infinity() };
+    Real hi[3] = { -lo[0], -lo[1], -lo[2] };
+    bool integral = true;
+
+    for (std::size_t v = 0; v + 2 < xyz.size(); v += 3)
+    {
+        for (std::size_t i = 0; i < 3; ++i)
+        {
+            lo[i] = std::min(lo[i], xyz[v + i]);
+            hi[i] = std::max(hi[i], xyz[v + i]);
+            integral = integral && (std::trunc(xyz[v + i]) == xyz[v + i]);
+        }
+    }
+    const Real extent = std::max({hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]});
+    const int  e      = m - static_cast<int>(std::ceil(std::log2(extent)));
+
+    if (integral && e >= 0) { return { Real(1), 0 }; }
+    return { std::pow(Real(2), e), e };
+}
+
+/**
+ * @brief Why these floating-point coordinates would not land exactly on
+ *        LinkEmb_T's integer grid, or nullopt if they would (--exact-input).
+ *
+ * LinkEmb_T scales the coordinates by a power of two s (PredictedGridScale)
+ * and rounds them to integers. The projection is exact iff no coordinate
+ * moves (what RoundingError() reports afterwards) and every s x fits in the
+ * 60 bits Prosector_Int's determinants have room for. The second test is the
+ * one RoundingError() does not make: s comes from the spread of the
+ * coordinates, not their size, so coordinates far from the origin for their
+ * spread overflow (GH #50). Checked BEFORE projecting, because an overflowed
+ * grid makes the library report nonsense (edges meeting in 3D, say).
+ */
+std::optional<std::string> InexactGrid(const std::vector<Real>& xyz)
+{
+    const auto [s, e] = PredictedGridScale(xyz);
+
+    Real err = 0;
+    Real biggest = 0;
+    for (Real x : xyz)
+    {
+        const Real y = std::nearbyint(x * s);
+        err     = std::max(err, std::abs(std::fma(-s, x, y)));
+        biggest = std::max(biggest, std::abs(x));
+    }
+
+    constexpr Real lim = 1152921504606846976.0;  // 2^60
+
+    if (biggest * s > lim)
+    {
+        std::ostringstream why;
+        why << "--exact-input: the coordinates are too far from the origin for "
+               "their spread (|x| up to " << biggest << " at scale 2^" << e
+            << " overflows 60 bits; see "
+               "https://github.com/HenrikSchumacher/Knoodle/issues/50). Translate "
+               "the link to the origin, or write integer coordinates.";
+        return why.str();
+    }
+    if (err > Real(0))
+    {
+        std::ostringstream why;
+        why << "--exact-input: rounding the coordinates onto Knoodle's integer grid "
+               "(scale 2^" << e << ") would move a vertex by up to " << err
+            << " grid units. Write integer coordinates instead, scaled up as far "
+               "as needed.";
+        return why.str();
+    }
+    return std::nullopt;
+}
+
+/**
+ * @brief Project 3D input to diagrams.
+ *
+ * If every coordinate is an integer (after --projection=x|y permutes the axes,
+ * which is exact), the link is projected exactly through LatticeEmb_T, and
+ * --projection=random is an exact integer rotation (RandomLatticeRotation).
+ * Otherwise it goes through the floating-point LinkEmb_T, rotated in floating
+ * point (RandomRotateFloat); with --exact-input that path must not round.
+ *
+ * Either way, a vertex that repeats the one before it is dropped first
+ * (DropRepeatedVertices), which is exact.
+ *
+ * @param g    The input; a component may end with a copy of its first vertex
+ *             (a closing marker), which is dropped.
+ * @param opt  The projection, and whether rounding is allowed.
+ * @param rng  The tool's engine (--seed), for --projection=random.
+ * @return The diagrams, or nullopt (after LogError) on failure.
+ */
+std::optional<Projection3D> ProjectGeometry(Geometry3D g,
+                                            const InputOptions& opt,
+                                            Knoodle::PRNG_T& rng)
+{
+    using T_T = Knoodle::Tensor1<Int, Int>;
+
+    if (g.ComponentCount() < 1)
+    {
+        LogError("3D geometry has no vertices");
+        return std::nullopt;
+    }
+
+    // A closing marker: a last vertex within 1e-10 of the first. Dropping it is
+    // not quite exact (DropRepeatedVertices below catches the exact repeats);
+    // it is the historical rule, kept for input written with a near-copy.
+    {
+        constexpr Real eps = 1e-10;
+        std::vector<Int> keep { 0 };
+        std::vector<Real> xyz;
+        xyz.reserve(g.xyz.size());
+
+        for (Int c = 0; c < g.ComponentCount(); ++c)
+        {
+            Int b = g.ptr[c];
+            Int e = g.ptr[c + 1];
+            if (e - b > 1)
+            {
+                const Real* first = &g.xyz[3 * b];
+                const Real* last  = &g.xyz[3 * (e - 1)];
+                if (std::abs(first[0] - last[0]) < eps
+                    && std::abs(first[1] - last[1]) < eps
+                    && std::abs(first[2] - last[2]) < eps)
+                {
+                    --e;
+                }
+            }
+            xyz.insert(xyz.end(), g.xyz.begin() + 3 * b, g.xyz.begin() + 3 * e);
+            keep.push_back(static_cast<Int>(xyz.size() / 3));
+        }
+        g.xyz = std::move(xyz);
+        g.ptr = std::move(keep);
+    }
+
+    auto check_sizes = [](const std::vector<Int>& ptr) -> bool
+    {
+        for (std::size_t c = 0; c + 1 < ptr.size(); ++c)
+        {
+            if (ptr[c + 1] - ptr[c] < 3)
+            {
+                LogError("3D geometry: component " + std::to_string(c)
+                         + " has fewer than 3 distinct vertices");
+                return false;
+            }
+        }
+        return true;
+    };
+
+    PermuteAxes(g.xyz, opt.projection);
+
+    if (LatticeCoordinatesQ(g.xyz.data(), g.xyz.size()))
+    {
+        // Integral doubles below 2^53: the conversion is exact.
+        std::vector<std::int64_t> xyz(g.xyz.begin(), g.xyz.end());
+
+        if (opt.projection == Projection_T::Random)
+        {
+            if (!TransformLattice(xyz, RandomLatticeRotation(rng)))
+            {
+                LogError("Lattice coordinates too large for an exact random rotation "
+                         "(it scales them by about 2^16, and they must stay below 2^58)");
+                return std::nullopt;
+            }
+        }
+
+        DropRepeatedVertices(xyz, g.ptr);
+        if (!check_sizes(g.ptr)) return std::nullopt;
+
+        LatticeEmb_T L(T_T(g.ptr.data(), static_cast<Int>(g.ptr.size())),
+                       T_T(g.colors.data(), static_cast<Int>(g.colors.size())));
+        L.ReadVertexCoordinates(xyz.data());
+        auto result = ProjectEmbedding(L);
+        if (!result) LogError("3D geometry is not an embedding (it meets itself in 3-space)");
+        return result;
+    }
+
+    if (opt.projection == Projection_T::Random)
+    {
+        if (opt.exact_input)
+        {
+            LogError("--exact-input: a random rotation of non-integer coordinates "
+                     "cannot be exact. Write integer coordinates (they rotate "
+                     "exactly), or use --projection=z, x or y.");
+            return std::nullopt;
+        }
+        // The whole link at once, never each component on its own.
+        RandomRotateFloat(g.xyz, rng);
+    }
+
+    DropRepeatedVertices(g.xyz, g.ptr);
+    if (!check_sizes(g.ptr)) return std::nullopt;
+
+    if (opt.exact_input)
+    {
+        if (auto why = InexactGrid(g.xyz))
+        {
+            LogError(*why);
+            return std::nullopt;
         }
     }
 
-    // Create PlanarDiagram from 3D coordinates using static factory
-    auto [pd, unlinks] = PD_T::FromCoordinates(coords.data(), vertex_count);
+    LinkEmb_T L(T_T(g.ptr.data(), static_cast<Int>(g.ptr.size())),
+                T_T(g.colors.data(), static_cast<Int>(g.colors.size())));
+    L.ReadVertexCoordinates(g.xyz.data());
 
-    if (!pd.ValidQ())
+    auto result = ProjectEmbedding(L);
+
+    // The library's own account, which has to agree with the prediction that
+    // InexactGrid was based on. If it ever does not, the library changed how
+    // it picks its scale, and the check above has to follow it.
+    if (opt.exact_input
+        && (L.RoundingError() > Real(0)
+            || L.ScalingFactor() != PredictedGridScale(g.xyz).first))
     {
-        // FromCoordinates returns an invalid pd alongside a populated
-        // `unlinks` color list precisely when every component turned out to
-        // have zero self-intersections (see PlanarDiagramComplex's own
-        // pair-consuming constructor, which treats this combination as "all
-        // trivial anelli", not an error). A single 3D curve is exactly one
-        // component, so unlinks.Size() > 0 here means "this curve is the
-        // unknot", not a real FindIntersections failure.
-        if (unlinks.Size() > 0)
-        {
-            return PD_T::Unknot(unlinks[0]);
-        }
-
-        LogError("FromCoordinates failed to create a valid diagram");
-        return PD_T();
+        LogError("--exact-input: internal error: LinkEmbedding scaled by 2^"
+                 + std::to_string(L.ScalingExponent()) + " with rounding error "
+                 + std::to_string(L.RoundingError())
+                 + ", not as predicted (tools/knoodle_io.hpp, PredictedGridScale)");
+        return std::nullopt;
     }
 
-    return pd;
+    if (!result) LogError("3D geometry is not an embedding (it meets itself in 3-space)");
+    return result;
+}
+
+/**
+ * @brief Fill an InputKnot's 3D fields from the input and its projection.
+ */
+void StoreProjection(InputKnot& knot, const Geometry3D& g, Projection3D&& p)
+{
+    knot.had_3d_geometry    = true;
+    knot.vertex_count_3d    = g.VertexCount();
+    knot.component_count_3d = g.ComponentCount();
+    knot.colored_3d         = (g.ComponentCount() > 1) || g.colors_declared;
+
+    for (PD_T& pd : p.diagrams) { knot.summands.push_back(std::move(pd)); }
+    knot.unknot_colors.insert(knot.unknot_colors.end(),
+                              p.unknot_colors.begin(), p.unknot_colors.end());
 }
 
 /**
@@ -1247,15 +1846,21 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
  *
  * Reads until EOF, a 'k' line, or stream error.
  *
+ * In 3-column (3D) data a blank line ends a component, as in a .kndlxyz file,
+ * and a '#color <int>' line at the start of a component sets its color (for
+ * every component or for none; by default component k has color k). Any other
+ * line starting with '#' is a comment, as is everything from a '%' on. In the
+ * PD-code formats blank lines carry no meaning.
+ *
  * @param input The input stream.
- * @param randomize_projection Whether to apply random shear to 3D projection.
- * @param rng Random number generator.
+ * @param options How to project 3D input (--projection, --exact-input).
+ * @param rng The tool's engine (--seed), for --projection=random.
  * @param source_name Description of the source (filename or "stdin").
  * @param[out] reached_eof Set to true if we hit EOF.
  * @return The parsed InputKnot, or nullopt on error.
  */
 [[maybe_unused]] std::optional<InputKnot> ReadKnot(std::istream& input,
-                                   bool randomize_projection,
+                                   const InputOptions& options,
                                    Knoodle::PRNG_T& rng,
                                    const std::string& source_name,
                                    bool& reached_eof)
@@ -1265,13 +1870,29 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
     reached_eof = false;
 
     // Current summand data
-    std::vector<Real>  geometry_vertices;
+    Geometry3D         geometry;
+    std::optional<Int> pending_color;            // from '#color', for the next component
+    bool               undeclared_color = false; // some component had no '#color'
     std::vector<Int>   pd_crossings;
     Int                pd_crossing_count = 0;
     int                detected_format = 0;  // 0=unknown, 3=geometry, 4/5=PD code
     bool               in_summand = false;
     bool               first_data_seen = false;  // first *data* line (sets format)
     bool               saw_content = false;      // any 's' marker or data line
+
+    // Vertices read since the last component ended.
+    auto open_component_size = [&geometry]() -> Int
+    {
+        return geometry.VertexCount() - geometry.ptr.back();
+    };
+
+    auto close_component = [&]()
+    {
+        if (open_component_size() > 0)
+        {
+            geometry.ptr.push_back(geometry.VertexCount());
+        }
+    };
 
     // Lambda to finalize current summand
     auto finalize_summand = [&]() -> bool
@@ -1280,7 +1901,7 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
 
         // An 's' marker with no data lines is an unknot summand
         // (knoodlesimplify writes unknots as bare 's' lines).
-        if (geometry_vertices.empty() && pd_crossing_count == 0)
+        if (geometry.xyz.empty() && pd_crossing_count == 0)
         {
             result.unknot_colors.push_back(PD_T::Uninitialized);
             in_summand = false;
@@ -1290,26 +1911,36 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
         if (detected_format == 3)
         {
             // 3D geometry
-            if (!geometry_vertices.empty())
+            if (!geometry.xyz.empty())
             {
-                if (!result.summands.empty())
+                if (result.had_3d_geometry || !result.summands.empty())
                 {
                     LogError("3D geometry input cannot have multiple summands");
                     return false;
                 }
 
-                result.had_3d_geometry = true;
-                result.vertex_count_3d = static_cast<Int>(geometry_vertices.size() / 3);
+                close_component();
 
-                PD_T pd = CreateDiagramFrom3D(geometry_vertices, randomize_projection, rng);
-                if (!pd.ValidQ())
+                if (pending_color)
+                {
+                    LogError("'#color' line with no component after it");
+                    return false;
+                }
+                if (geometry.colors_declared && undeclared_color)
+                {
+                    LogError("'#color' must be given for every component or for none");
+                    return false;
+                }
+
+                auto projected = ProjectGeometry(geometry, options, rng);
+                if (!projected)
                 {
                     LogError("Failed to create diagram from 3D geometry");
                     return false;
                 }
 
-                result.summands.push_back(std::move(pd));
-                geometry_vertices.clear();
+                StoreProjection(result, geometry, std::move(*projected));
+                geometry = Geometry3D();
             }
         }
         else if (detected_format == 4 || detected_format == 5 ||
@@ -1342,10 +1973,56 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
 
     while (std::getline(input, line))
     {
+        // A truly blank line ends a 3D component (not a comment-only line,
+        // which CleanLine also empties). Elsewhere blank lines mean nothing.
+        if (Trim(line).empty())
+        {
+            if (detected_format == 3) { close_component(); }
+            continue;
+        }
+
         std::string cleaned = CleanLine(line);
 
-        // Skip empty lines
+        // Skip comment-only lines
         if (cleaned.empty()) continue;
+
+        // '#color <int>' sets the color of the 3D component that follows, as
+        // in a .kndlxyz file; any other '#' line is a comment.
+        if (cleaned[0] == '#')
+        {
+            if (!cleaned.starts_with("#color")) continue;
+
+            if (first_data_seen && detected_format != 3)
+            {
+                LogError("'#color' applies only to 3D geometry: " + cleaned);
+                return std::nullopt;
+            }
+            if (open_component_size() > 0)
+            {
+                LogError("'#color' must start a component (after a blank line): " + cleaned);
+                return std::nullopt;
+            }
+            if (pending_color)
+            {
+                LogError("Two '#color' lines for one component: " + cleaned);
+                return std::nullopt;
+            }
+
+            const std::string value = Trim(std::string_view(cleaned).substr(6));
+            try
+            {
+                std::size_t pos = 0;
+                const long long c = std::stoll(value, &pos);
+                if (pos != value.size()) { throw std::invalid_argument(value); }
+                pending_color = static_cast<Int>(c);
+            }
+            catch (const std::exception&)
+            {
+                LogError("Malformed '#color' line: " + cleaned);
+                return std::nullopt;
+            }
+            continue;
+        }
 
         // Check for markers
         if (cleaned == "k" || cleaned == "K")
@@ -1472,9 +2149,24 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
         // Store data
         if (detected_format == 3)
         {
+            if (open_component_size() == 0)
+            {
+                // First vertex of a component: settle its color.
+                if (pending_color)
+                {
+                    geometry.colors.push_back(*pending_color);
+                    geometry.colors_declared = true;
+                    pending_color.reset();
+                }
+                else
+                {
+                    geometry.colors.push_back(geometry.ComponentCount());
+                    undeclared_color = true;
+                }
+            }
             for (Real v : values)
             {
-                geometry_vertices.push_back(v);
+                geometry.xyz.push_back(v);
             }
         }
         else
