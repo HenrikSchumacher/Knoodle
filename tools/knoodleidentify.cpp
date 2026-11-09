@@ -1193,11 +1193,13 @@ private:
  *
  * Klut reads a subtable on first use. Loading them all here, before any input
  * is read, means a load failure can never cut the output off halfway. It also
- * catches what no file-level check sees: Klut keeps the first of two equal keys
- * and silently drops the second (Subtable::Read uses insert), so a key listed
- * twice -- under one knot or under two -- shrinks the table, and can name a
- * knot as the wrong chirality. Every knot must keep exactly the number of keys
- * its line in the values file lists. Costs about 55 ms for the full table.
+ * catches what no file-level check sees: a key listed twice, under one knot or
+ * under two. Subtable::Read refuses that itself now (an ERROR naming both
+ * knots); before, it kept the first key and dropped the second, which shrank
+ * the table and could name a knot as the wrong chirality. The per-knot count
+ * below stays as a cross-check that does not depend on the library: every knot
+ * must keep exactly the number of keys its line in the values file lists.
+ * Costs about 55 ms for the full table.
  */
 bool KlutTablesLoad(Klut& klut, const std::filesystem::path& dir,
                     const CheckedTables& checked, NameBook& names)
@@ -1206,8 +1208,8 @@ bool KlutTablesLoad(Klut& klut, const std::filesystem::path& dir,
     klut.RequireSubtables();
     if (g_cerr_tap != nullptr && g_cerr_tap->Count() > errors_before)
     {
-        LogError("The KLUT tables in " + dir.string() + " failed to load (see the "
-                 "ERROR lines above).");
+        LogError("The KLUT tables in " + dir.string() + " are damaged: Klut refused "
+                 "to load them (see the ERROR lines above).");
         LogTableAdvice();
         return false;
     }

@@ -163,9 +163,10 @@ Then `KlutTablesLoad()` calls `Klut::RequireSubtables()`, so every subtable is
 read before any input (about 55 ms for the full table), and checks Klut's
 reading: its names must match the checked parse (`NameBook::Verify`), and each
 knot must keep exactly the number of keys its values line lists
-(`Klut::SubtableIDs`). `Subtable::Read` keeps the first of two equal keys and
-silently drops the second, so a duplicated key shows up only here. A run now
-costs about 90 ms of startup in all.
+(`Klut::SubtableIDs`). `Subtable::Read` itself refuses a duplicated key (it
+used to keep the first and drop the second silently, so a duplicate showed up
+only here); the count stays as a cross-check that does not depend on the
+library. A run now costs about 90 ms of startup in all.
 
 The names printed come from one reading of the values file: `NameBook` hands
 out Klut's own reading (`Klut::SubtableNames`), after comparing it with the

@@ -51,3 +51,4 @@ witness_check
 wideint_check
 float_offset_check
 sha256_check
+klut_loader_check
