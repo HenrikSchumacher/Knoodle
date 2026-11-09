@@ -143,7 +143,13 @@ dropped. All three diagram tools take the same flags for 3D input:
   `knoodledraw --embedding pd.tsv | knoodledraw --projection=x`. `--embedding` writes exactly the embedding _ReAPR_
   builds, never rotated: x and y are the integer grid of its OrthoDraw layout, and z is its levels, stretched so that the
   z extent is `--reapr-scaling` times the smaller of the x and y extents. So z is often not a whole number (for one
-  26-crossing figure-eight diagram the levels were 0, ±46.67 and −93.33).
+  26-crossing figure-eight diagram the levels were 0, ±46.67 and −93.33). `--z-grid-size=N` fixes the spacing instead:
+  consecutive levels are N units apart, z = N·level, and _ReAPR_'s levels are integers, so z is too. It is the z sibling
+  of `--x-grid-size` and `--y-grid-size`, which under `--embedding` set the x and y grid of _ReAPR_'s OrthoDraw layout
+  (default 20 units) rather than the drawing's. x and y lie on multiples of half the grid size, because _ReAPR_ adds the
+  midpoint of two layout vertices on some arcs, so keep those two even for an integer lattice knot:
+  `knoodledraw --embedding --x-grid-size=2 --y-grid-size=2 --z-grid-size=2` gives a compact one. knoodlesimplify and
+  knoodleidentify take the z spacing as `--reapr-z-grid-size`.
 - `--exact-input` refuses 3D input that cannot be projected exactly. Integer coordinates always can. Floating-point
   coordinates can only if they land exactly on the integer grid (dyadic values like 0.25 do; 0.01 does not), if they are not
   far from the origin compared with their spread, and if they are not rotated by `--projection=random`.
@@ -199,7 +205,7 @@ Other:
 ```
 
 `knoodlesimplify --help` also lists the fine-tuning flags for the simplifier
-(`--reapr-rotation-trials`, `--randomize-bends`, `--dijkstra-strategy`, ...).
+(`--reapr-rotation-trials`, `--reapr-z-grid-size`, `--randomize-bends`, `--dijkstra-strategy`, ...).
 
 ## knoodledraw
 
@@ -215,8 +221,10 @@ Quality presets:
   --quality=PRESET            fast, default, best, debug
 
 Grid and spacing:
-  --x-grid-size=N             Horizontal grid size (default: 4/6/8 for 0/1/2+ labels)
-  --y-grid-size=N             Vertical grid size (default: 2/3/4 for 0/1/2+ labels)
+  --x-grid-size=N             Horizontal grid size (default: 4/6/8 for 0/1/2+ labels;
+                              with --embedding, of Reapr's grid: default 20)
+  --y-grid-size=N             Vertical grid size (default: 2/3/4 for 0/1/2+ labels;
+                              with --embedding, of Reapr's grid: default 20)
   --x-gap-size=N              Horizontal gap size (default: 1)
   --y-gap-size=N              Vertical gap size (default: 1)
   --x-rounding-radius=N       Horizontal rounding radius (default: 4)
@@ -321,6 +329,10 @@ Options:
   --reapr-energy=E    Reapr's energy for the escalation embeddings
                       (default: TV)
   --reapr-scaling=X   Reapr's 3D grid scaling (default: 1.0)
+  --reapr-z-grid-size=N  Put consecutive levels of Reapr's embeddings N
+                      units apart (z = N*level; its x and y grid is 20
+                      units) instead of scaling them. Not with
+                      --reapr-scaling.
   --expanded          One line per knot, summands joined by ' # ' (uses
                       the raw K[...] table names).
   --tsv               Per-summand output: knot_index, summand_index,

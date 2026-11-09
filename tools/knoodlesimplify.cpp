@@ -220,7 +220,8 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config,
                         .randomize_virtual_edgesQ = args.randomize_virtual_edgesQ,
                         .compaction_method        = args.compaction_method
                     },
-                    .scaling             = args.scaling
+                    .scaling             = args.scaling,
+                    .z_grid_size         = args.z_grid_size
                 });
                 reapr.RandomEngine() = DerivedEngine(rng);
 

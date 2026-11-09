@@ -1079,6 +1079,26 @@ bool ParseNumericLine(const std::string& line,
 }
 
 /**
+ * @brief Parse a positive integer from a string: a grid size, a count.
+ *        Shared by the tools' integer flags (e.g. knoodledraw's --x-grid-size
+ *        and --z-grid-size, the others' --reapr-z-grid-size).
+ */
+[[maybe_unused]] std::optional<Int> ParsePositiveInt(std::string_view s)
+{
+    try
+    {
+        std::size_t pos = 0;
+        long long val = std::stoll(std::string(s), &pos);
+        if (pos != s.size() || val < 1) return std::nullopt;
+        return static_cast<Int>(val);
+    }
+    catch (const std::exception&)
+    {
+        return std::nullopt;
+    }
+}
+
+/**
  * @brief Parse the value of --reapr-energy (fixed vocabulary, so case and
  *        separators are forgiven).
  *

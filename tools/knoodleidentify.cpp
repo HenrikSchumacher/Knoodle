@@ -74,6 +74,7 @@ struct Config
     std::optional<std::uint64_t> seed;       ///< --seed (else one is drawn at startup)
     std::optional<Energy_T> reapr_energy;    ///< --reapr-energy (else Reapr's default)
     std::optional<double>   reapr_scaling;   ///< --reapr-scaling (else Reapr's default)
+    std::optional<Int>      reapr_z_grid_size; ///< --reapr-z-grid-size (else Reapr's scaled levels)
     bool verify_tables  = false;             ///< Check the tables in full, report, read no input
     bool allow_other_tables = false;         ///< Accept a table set other than kKlutTableSet
     ki::Size_T escalation_rounds = ki::IdentifyParams{}.cap;      ///< Reapr escalation rounds per candidate
@@ -156,6 +157,10 @@ void PrintUsage()
         "  --reapr-energy=E    Reapr's energy for the escalation embeddings:\n"
         "                      " + ValidEnergies() + " (default: TV)\n"
         "  --reapr-scaling=X   Reapr's 3D grid scaling (default: 1.0)\n"
+        "  --reapr-z-grid-size=N  Put consecutive levels of Reapr's embeddings N\n"
+        "                      units apart (z = N*level; its x and y grid is 20\n"
+        "                      units) instead of scaling them. Not with\n"
+        "                      --reapr-scaling.\n"
         "  --expanded          One line per knot, summands joined by ' # ' (uses\n"
         "                      the raw K[...] table names).\n"
         "  --tsv               Per-summand output: knot_index, summand_index,\n"
@@ -235,6 +240,7 @@ constexpr std::string_view kKnownFlags[] = {
     "--reapr-rotation-trials",
     "--reapr-energy",
     "--reapr-scaling",
+    "--reapr-z-grid-size",
     "--expanded",
     "--tsv",
     "--quiet",
@@ -324,6 +330,17 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             }
             config.reapr_scaling = x;
         }
+        else if (arg.starts_with("--reapr-z-grid-size="))
+        {
+            const auto n = ParsePositiveInt(arg.substr(20));
+            if (!n)
+            {
+                LogError("Invalid --reapr-z-grid-size (expected a positive integer): "
+                         + std::string(arg.substr(20)));
+                return std::nullopt;
+            }
+            config.reapr_z_grid_size = *n;
+        }
         else if (arg.starts_with("--max-crossings="))
         {
             auto parsed = ParseInt(arg.substr(16));
@@ -399,6 +416,12 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         }
     }
 
+    if (config.reapr_z_grid_size && config.reapr_scaling)
+    {
+        LogError("--reapr-z-grid-size and --reapr-scaling both set Reapr's z spacing;"
+                 " use one or the other");
+        return std::nullopt;
+    }
     if (config.verify_tables && !config.input_files.empty())
     {
         LogError("--verify-tables checks the KLUT tables and reads no input; "
@@ -1811,6 +1834,7 @@ int main(int argc, char* argv[])
     ki::Reapr_T::Settings_T reapr_settings;
     if (config.reapr_energy)  { reapr_settings.energy  = *config.reapr_energy; }
     if (config.reapr_scaling) { reapr_settings.scaling = static_cast<Real>(*config.reapr_scaling); }
+    if (config.reapr_z_grid_size) { reapr_settings.z_grid_size = *config.reapr_z_grid_size; }
     ki::Reapr_T reapr(reapr_settings);
     reapr.RandomEngine() = DerivedEngine(rng);
 

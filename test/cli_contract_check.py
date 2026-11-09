@@ -658,11 +658,12 @@ def test_input_flags():
 
     # knoodleidentify takes knoodlesimplify's spelling of the Reapr flags.
     for flags in (["--reapr-rotation-trials=3"], ["--rotation-trials=3"],
-                  ["--reapr-energy=TV"], ["--reapr-scaling=1.5"]):
+                  ["--reapr-energy=TV"], ["--reapr-scaling=1.5"], ["--reapr-z-grid-size=40"]):
         rc, out, err = run([IDENTIFY] + flags, tref)
         check(rc == 0 and "KnotSymbol[3,1" in out,
               f"knoodleidentify {' '.join(flags)} identifies the trefoil (rc={rc}): {err.strip()[:120]}")
     for bad in ("--reapr-rotation-trials=0", "--reapr-scaling=-1", "--reapr-scaling=x",
+                "--reapr-z-grid-size=0", "--reapr-z-grid-size=2.5",
                 "--escalation-rounds=0", "--escalation-band=x"):
         rc, out, _ = run([IDENTIFY, bad], tref)
         check(rc != 0 and "KnotSymbol" not in out,
@@ -732,6 +733,112 @@ def test_embedding_is_reaprs_own():
           "knoodledraw --help says --embedding's output is never rotated")
 
 
+def test_embedding_grid():
+    section("knoodledraw --embedding: --x-, --y- and --z-grid-size set the output's grid")
+
+    # By default Reapr stretches its levels to the layout's size, so z need not
+    # be an integer. --z-grid-size=N puts consecutive levels N units apart:
+    # z = N*level, and Reapr's TV levels are integers. Under --embedding,
+    # --x-grid-size and --y-grid-size size the grid of the OrthoDraw layout
+    # inside Reapr (default 20). Reapr adds the midpoint of two layout vertices
+    # on some arcs, so x and y lie on multiples of half the grid size, which are
+    # integers when the size is even.
+    trefoil = "2 0 3 5 1\n0 4 1 3 1\n4 2 5 1 1\n"
+    figure8 = "3 1 4 0\n7 5 0 4\n5 2 6 3\n1 6 2 7\n"
+    split = ("2\t0\t3\t5\t1\t0\t0\n0\t4\t1\t3\t1\t0\t0\n4\t2\t5\t1\t1\t0\t0\ns\n"
+             "1\t2\t0\t3\t-1\t1\t2\n3\t0\t2\t1\t-1\t2\t1\n")
+
+    def points(text):
+        return [tuple(float(x) for x in line.split())
+                for line in text.splitlines() if len(line.split()) == 3]
+
+    # (flags, x step, y step, z step)
+    cases = ((["--z-grid-size=20"], 10, 10, 20),
+             (["--z-grid-size=7"], 10, 10, 7),
+             (["--x-grid-size=2", "--y-grid-size=2", "--z-grid-size=2"], 1, 1, 2),
+             (["--x-grid-size=6", "--y-grid-size=4", "--z-grid-size=5"], 3, 2, 5))
+
+    for name, pd in (("trefoil", trefoil), ("figure-eight", figure8),
+                     ("split trefoil + Hopf", split)):
+        _, want, _ = run([IDENTIFY], pd)   # unused for the split link, which is checked by counts
+        for flags, xs, ys, zs in cases:
+            label = " ".join(flags)
+            for seed in (1, 2):
+                rc, emb, err = run([DRAW, "--embedding"] + flags + [f"--seed={seed}"], pd)
+                pts = points(emb)
+                off = sum(1 for v in pts
+                          if any(c != int(c) for c in v)
+                          or v[0] % xs != 0 or v[1] % ys != 0 or v[2] % zs != 0)
+                check(rc == 0 and pts and off == 0,
+                      f"{name}, {label}, seed {seed}: an integer lattice knot with x, y, z on"
+                      f" multiples of {xs}, {ys}, {zs} ({off} vertices off; rc={rc}) {err.strip()[:100]}")
+                levels = sorted({v[2] for v in pts})
+                check(len(levels) >= 2 and min(b - a for a, b in zip(levels, levels[1:])) >= zs,
+                      f"{name}, {label}, seed {seed}: levels at least {zs} apart: {levels[:6]}")
+                if xs % 10:
+                    check(any(v[0] % 10 for v in pts),
+                          f"{name}, {label}, seed {seed}: x is off Reapr's default grid,"
+                          f" so --x-grid-size reached it")
+                if name.startswith("split"):
+                    for p in ("z", "x", "y"):
+                        rc, out, _ = run([SIMPLIFY, f"--projection={p}"], emb)
+                        rows = data_lines(out)
+                        check(rc == 0 and len(rows) == 5 and colors_of(rows) == {"0", "1", "2"},
+                              f"{name}, {label}, seed {seed}, down {p}: 3 + 2 crossings"
+                              f" in 3 colors, got {len(rows)}")
+                    continue
+                for p in ("z", "x", "y"):
+                    rc, got, _ = run([IDENTIFY, f"--projection={p}"], emb)
+                    check(rc == 0 and got == want and want.strip(),
+                          f"{name}, {label}, seed {seed}, down {p}: {got.strip()[:60]},"
+                          f" want {want.strip()[:60]}")
+
+    # The trefoil takes three TV levels, consecutive integers, so exactly one
+    # z grid step apart. Where they sit depends on the LP's optimum, and so on
+    # the random draw: seeds repeat only on one build (libc++ and libstdc++
+    # differ), so no absolute value is pinned.
+    for seed in (1, 2, 3):
+        _, emb, _ = run([DRAW, "--embedding", "--z-grid-size=20", f"--seed={seed}"], trefoil)
+        levels = sorted({v[2] for v in points(emb)})
+        check(len(levels) == 3 and all(b - a == 20 for a, b in zip(levels, levels[1:])),
+              f"trefoil, --z-grid-size=20, seed {seed}: three levels exactly 20 apart: {levels}")
+
+    # An odd x or y grid size gives half-integer midpoints: still an embedding
+    # of the same knot, just not on the integer lattice.
+    _, want, _ = run([IDENTIFY], trefoil)
+    rc, emb, _ = run([DRAW, "--embedding", "--x-grid-size=1", "--y-grid-size=1",
+                      "--z-grid-size=1", "--seed=1"], trefoil)
+    rc2, got, _ = run([IDENTIFY], emb)
+    check(rc == 0 and rc2 == 0 and got == want,
+          f"trefoil, grid 1/1/1: still the trefoil ({got.strip()[:60]})")
+
+    # knoodlesimplify and knoodleidentify pass it on as --reapr-z-grid-size.
+    rc, out, err = run([SIMPLIFY, "-s=6", "--reapr-z-grid-size=40", "--seed=1"], trefoil)
+    check(rc == 0 and len(data_lines(out)) == 3,
+          f"knoodlesimplify -s=6 --reapr-z-grid-size=40 keeps the trefoil (rc={rc}): {err.strip()[:100]}")
+
+    for bad in ("0", "-1", "x", "2.5", "2x", "1e3", "99999999999999999999", ""):
+        rc, out, _ = run([DRAW, "--embedding", f"--z-grid-size={bad}"], trefoil)
+        check(rc != 0 and not points(out), f"knoodledraw --z-grid-size={bad!r} is refused")
+    rc, out, err = run([DRAW, "--z-grid-size=20"], trefoil)
+    check(rc != 0 and "--embedding" in err and not out.strip(),
+          "knoodledraw --z-grid-size without --embedding is refused")
+    for tool, args, flag in ((DRAW, ["--embedding"], "--z-grid-size=20"),
+                             (SIMPLIFY, [], "--reapr-z-grid-size=20"),
+                             (IDENTIFY, [], "--reapr-z-grid-size=20")):
+        name = os.path.basename(tool)
+        rc, out, err = run([tool] + args + [flag, "--reapr-scaling=2"], trefoil)
+        check(rc != 0 and "use one or the other" in err and "KnotSymbol" not in out,
+              f"{name} refuses {flag.split('=')[0]} together with --reapr-scaling")
+        rc, out, err = run([tool, "--help"])
+        check(flag.split("=")[0] + "=N" in out + err and "--reapr-scaling=" in out + err
+              and "--reapr-gap" not in out + err,
+              f"{name} --help documents {flag.split('=')[0]} beside --reapr-scaling")
+    rc, out, err = run([DRAW, "--help"])
+    check("z = N*level" in out + err and "even" in out + err,
+          "knoodledraw --help gives z = N*level and says even x and y sizes keep x and y integers")
+
+
 def main():
     print("cli_contract_check -- tool output, exit codes and round-tripping")
 
@@ -753,6 +860,7 @@ def main():
     test_help()
     test_flag_spellings()
     test_draw_is_a_filter()
+    test_embedding_grid()
     test_every_test_runs()
 
     print(f"\n{'CLI CONTRACT CHECK OK' if fails == 0 else 'CLI CONTRACT CHECK FAILED'}"
