@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to (re)build + upload the tarball for (e.g. v1.0.1)"
+        description: "Existing tag to (re)build + upload the tarball for (e.g. v1.0.1). Uses the packaging script from the branch you run this on."
         required: true
 
 permissions:
@@ -36,8 +36,21 @@ jobs:
           submodules: recursive   # Tensors has nested submodules (Tools)
           lfs: true               # smudge the KLUT data so it is baked in real
 
+      # The sources come from the tag; the packaging script comes from this
+      # workflow's own commit. On a release they are the same commit. A manual
+      # run from main uses main's script on the old tag's tree, so a broken
+      # script in a published tag can be fixed without moving the tag (v1.2.0's
+      # script used a BSD-only stat). The tarball's contents are still exactly
+      # the tag's: the script copies an allowlist, which .packaging is not in.
+      - name: Check out the packaging script (this workflow's commit)
+        uses: actions/checkout@v5
+        with:
+          path: .packaging
+          sparse-checkout: scripts/make-source-tarball.sh
+          sparse-checkout-cone-mode: false
+
       - name: Build vendored tarball
-        run: bash scripts/make-source-tarball.sh "${{ steps.v.outputs.version }}" .
+        run: bash .packaging/scripts/make-source-tarball.sh "${{ steps.v.outputs.version }}" .
 
       - name: Checksum + summary
         id: sum
