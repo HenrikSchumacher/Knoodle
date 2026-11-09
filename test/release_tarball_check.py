@@ -26,8 +26,10 @@ Two depths, because the light tier reduces rather than skips:
     * build the four tools and PolyFold FROM THE UNPACKED TREE, with
       KNOODLE_VERSION unset so the makefiles must find the tarball's VERSION;
     * run the formula's checks against those binaries: every tool's --help,
-      knoodleidentify finding the KLUT next to itself from a scratch directory,
-      and the PolyFold smoke run; and each binary reports the tarball's version.
+      knoodleidentify finding the KLUT next to itself from a scratch directory
+      and naming a 3- and a 13-crossing knot from it (an empty input, which is
+      what the formula runs, loads no subtable), and the PolyFold smoke run;
+      and each binary reports the tarball's version.
 
 The heavy build compiles every tool from scratch (minutes) and needs git-lfs,
 Boost and SuiteSparse. That is the heavy tier's job; the light tier and CI get
@@ -50,6 +52,13 @@ REPO = os.path.dirname(HERE)
 SCRIPT = os.path.join(REPO, "scripts", "make-source-tarball.sh")
 TOOLS = ["knoodlesimplify", "knoodledraw", "knoodleidentify", "knoodleprove"]
 CHECK_VERSION = "v0.0.0-tarball-check"
+
+# Signed PD codes of the right-handed trefoil, K[3,1,1,"e/r"], and of 13a1,
+# K[13,1,1,"e/r"] (the first key of Klut_Keys_13.bin, rebuilt as a diagram).
+TREFOIL = "2 0 3 5 1\n0 4 1 3 1\n4 2 5 1 1\n"
+KNOT_13A1 = ("22 0 23 25 1\n0 6 1 5 1\n12 1 13 2 -1\n2 11 3 12 -1\n20 3 21 4 -1\n"
+             "4 19 5 20 -1\n6 14 7 13 1\n10 8 11 7 1\n8 15 9 16 -1\n14 9 15 10 -1\n"
+             "16 22 17 21 1\n24 17 25 18 -1\n18 23 19 24 -1\n")
 
 checks = 0
 fails = 0
@@ -207,12 +216,21 @@ def build_checks(ship):
         check(CHECK_VERSION in p.stdout + p.stderr,
               "knoodleprove --version reports the tarball's VERSION", p.stdout + p.stderr)
 
-        empty = os.path.join(scratch, "empty.tsv")
-        open(empty, "w").close()
-        p = subprocess.run([os.path.join(root, "tools", "knoodleidentify"), empty],
+        # An empty input loads no subtable, so it proves only that the tool found
+        # a directory (and, since the startup table check, that every file in it
+        # is structurally sound). Identify a 3- and a 13-crossing knot as well, so
+        # the smallest and the largest subtable are actually read and the names
+        # that come back are the right ones.
+        knots = os.path.join(scratch, "knots.tsv")
+        with open(knots, "w") as f:
+            f.write(TREFOIL + "k\n" + KNOT_13A1)
+        p = subprocess.run([os.path.join(root, "tools", "knoodleidentify"), "--expanded", knots],
                            cwd=scratch, env=env, capture_output=True, text=True, timeout=300)
         check(p.returncode == 0,
               "knoodleidentify finds the KLUT next to itself, from a scratch directory",
+              p.stdout + p.stderr)
+        check(p.stdout.split() == ['K[3,1,1,"e/r"]', 'K[13,1,1,"e/r"]'],
+              "knoodleidentify names the trefoil and 13a1 from the tarball's KLUT",
               p.stdout + p.stderr)
 
         polyfold = os.path.join(root, "devel", "PolyFold", "polyfold")
