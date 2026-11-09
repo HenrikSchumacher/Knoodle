@@ -2,7 +2,7 @@
  * @file knoodledraw.cpp
  * @brief knoodledraw - A command-line tool for drawing knot and link diagrams as ASCII art.
  *
- * This tool reads knot/link diagrams (as PD codes, 3D geometry, or .kndlxyz files)
+ * This tool reads knot/link diagrams (as PD codes or 3D geometry, e.g. .kndlxyz files)
  * and produces ASCII art drawings using OrthoDraw.
  *
  * Designed as a Unix filter: reads from stdin by default, writes to stdout.
@@ -45,6 +45,17 @@
 
 namespace {
 
+/// -q/--quiet: set once in main(), read by Warn().
+bool g_quiet = false;
+
+/// Where warnings and notices go: stderr, or nowhere under -q. (An ostream
+/// with no buffer discards what it is given.) Errors never go through here.
+std::ostream& Warn()
+{
+    static std::ostream discard(nullptr);
+    return g_quiet ? discard : std::cerr;
+}
+
 /**
  * @brief Configuration parsed from command-line arguments.
  */
@@ -56,7 +67,9 @@ struct Config
     Int  y_gap_size     = 1;
     std::vector<std::string> input_files;
     std::vector<std::string> highlight_specs;  // raw "--highlight=..." values
-    bool randomize_projection = false;
+    InputOptions input_options;               // --projection, --exact-input
+    std::optional<std::uint64_t> seed;        // --seed (else one is drawn at startup)
+    bool quiet                = false;        // -q/--quiet : no warnings or notices on stderr
     bool ascii_mode           = false;
     bool mono_mode            = false;  // --mono : no ANSI; weight carries meaning
     bool verify_trace         = false;  // --verify : check each move against the next snapshot
@@ -80,6 +93,12 @@ struct Config
     // Reapr tuning, --embedding only (spelled as in knoodlesimplify)
     std::optional<Energy_T> reapr_energy;
     std::optional<double>   reapr_scaling;
+    std::optional<Int>      z_grid_size;        // --z-grid-size: z = N*level, not Reapr's scaled levels
+
+    // Under --embedding, --x-grid-size and --y-grid-size as given: they size the
+    // grid of the OrthoDraw layout inside Reapr, not the ASCII drawing's.
+    std::optional<Int>      embed_x_grid_size;
+    std::optional<Int>      embed_y_grid_size;
 
     // Algorithm selection
     std::optional<OrthoDraw_T::BendMethod_T>      bend_method;
@@ -160,8 +179,10 @@ void PrintUsage()
     std::cerr << "  --quality=PRESET            fast, default, best, debug\n";
     std::cerr << "\n";
     std::cerr << "Grid and spacing:\n";
-    std::cerr << "  --x-grid-size=N             Horizontal grid size (default: 4/6/8 for 0/1/2+ labels)\n";
-    std::cerr << "  --y-grid-size=N             Vertical grid size (default: 2/3/4 for 0/1/2+ labels)\n";
+    std::cerr << "  --x-grid-size=N             Horizontal grid size (default: 4/6/8 for 0/1/2+ labels;\n";
+    std::cerr << "                              with --embedding, of Reapr's grid: default 20)\n";
+    std::cerr << "  --y-grid-size=N             Vertical grid size (default: 2/3/4 for 0/1/2+ labels;\n";
+    std::cerr << "                              with --embedding, of Reapr's grid: default 20)\n";
     std::cerr << "  --x-gap-size=N              Horizontal gap size (default: 1)\n";
     std::cerr << "  --y-gap-size=N              Vertical gap size (default: 1)\n";
     std::cerr << "  --x-rounding-radius=N       Horizontal rounding radius (default: 4)\n";
@@ -272,11 +293,26 @@ void PrintUsage()
     std::cerr << "                              --format=wl. The emitted curves have the same link\n";
     std::cerr << "                              type as the input diagram: connect-sum summands are\n";
     std::cerr << "                              rejoined, split pieces are translated apart.\n";
-    std::cerr << "  --reapr-energy=E            tv (default), dirichlet, bending, height,\n";
-    std::cerr << "                              tv_clp, tv_mcf\n";
+    std::cerr << "                              Each piece is exactly the embedding Reapr builds,\n";
+    std::cerr << "                              never rotated: x and y are OrthoDraw's integer\n";
+    std::cerr << "                              grid, z is Reapr's levels, stretched so the z extent\n";
+    std::cerr << "                              is --reapr-scaling times the smaller of the x and y\n";
+    std::cerr << "                              extents, so z is often not a whole number\n";
+    std::cerr << "                              (--z-grid-size fixes the spacing instead). For a\n";
+    std::cerr << "                              side view, pipe it to --projection=x or y.\n";
+    std::cerr << "  --reapr-energy=E            One of " << ValidEnergies() << "\n";
+    std::cerr << "                              (default: TV; this build's list)\n";
     std::cerr << "  --reapr-scaling=X           3D grid scaling in Reapr (default: 1.0)\n";
-    std::cerr << "                              Note: the layout/label/highlight flags above are\n";
-    std::cerr << "                              2D-only and do not apply to --embedding.\n";
+    std::cerr << "  --z-grid-size=N             Put consecutive levels N units apart instead:\n";
+    std::cerr << "                              z = N*level. Reapr's levels are integers, so z is\n";
+    std::cerr << "                              too. It is the z sibling of --x-grid-size and\n";
+    std::cerr << "                              --y-grid-size, which under --embedding set the x\n";
+    std::cerr << "                              and y grid of Reapr's layout (default 20 units;\n";
+    std::cerr << "                              keep them even for integer x and y). Not with\n";
+    std::cerr << "                              --reapr-scaling.\n";
+    std::cerr << "                              Note: apart from --x-grid-size and --y-grid-size,\n";
+    std::cerr << "                              the layout/label/highlight flags above are 2D-only\n";
+    std::cerr << "                              and do not apply to --embedding.\n";
     std::cerr << "\n";
     std::cerr << "Algorithm options:\n";
     std::cerr << "  --bend-method=METHOD        mcf (default), clp\n";
@@ -300,13 +336,37 @@ void PrintUsage()
     std::cerr << "  5 columns: signed PD code (4 arcs + handedness)\n";
     std::cerr << "  6 columns: unsigned PD code + link component colors\n";
     std::cerr << "  7 columns: signed PD code + link component colors\n";
-    std::cerr << "  3 columns: 3D geometry (x, y, z coordinates)\n";
-    std::cerr << "  .kndlxyz:  multi-component 3D link embedding\n";
+    std::cerr << "  3 columns: 3D geometry (x, y, z coordinates); a blank line starts\n";
+    std::cerr << "             a new link component, and an optional '#color N' line\n";
+    std::cerr << "             before each component sets its color. A .kndlxyz file is\n";
+    std::cerr << "             exactly this, so it reads the same from a file or stdin.\n";
     std::cerr << "\n";
     std::cerr << "Input options:\n";
-    std::cerr << "  --randomize-projection      Apply random shear to 3D geometry projection\n";
+    std::cerr << "  --projection=P              How 3D input is projected (default: z):\n";
+    std::cerr << "                                z, x, y  down that axis (exact)\n";
+    std::cerr << "                                random   after a uniformly random rotation\n";
+    std::cerr << "                                         (exact for integer coordinates)\n";
+    std::cerr << "                              3D input only. A PD code is already a diagram:\n";
+    std::cerr << "                              it is drawn as it is, never embedded and\n";
+    std::cerr << "                              re-viewed from another side. To view a PD code's\n";
+    std::cerr << "                              Reapr embedding from the side, embed it first:\n";
+    std::cerr << "                                knoodledraw --embedding pd.tsv | knoodledraw --projection=x\n";
+    std::cerr << "  --randomize-projection      Same as --projection=random. (3-column input\n";
+    std::cerr << "                              used to get a random shear instead, an oblique\n";
+    std::cerr << "                              view at most ~35 degrees off the z-axis; it now\n";
+    std::cerr << "                              gets a full rotation.)\n";
+    std::cerr << "  --exact-input               Refuse 3D input that cannot be projected\n";
+    std::cerr << "                              exactly: non-integer coordinates that do not\n";
+    std::cerr << "                              land exactly on Knoodle's integer grid, or that\n";
+    std::cerr << "                              --projection=random would have to rotate\n";
+    std::cerr << "  --seed=N                    Seed every random choice (N in [0, 2^64)): the\n";
+    std::cerr << "                              random projection and --embedding's Reapr. The\n";
+    std::cerr << "                              same seed repeats a run on the same build, except\n";
+    std::cerr << "                              Reapr's bend randomization under --embedding\n";
     std::cerr << "\n";
     std::cerr << "Other:\n";
+    std::cerr << "  -q, --quiet                 No warnings or notices on stderr (errors still\n";
+    std::cerr << "                              print, and still make the exit status nonzero)\n";
     std::cerr << "  -h, --help                  Show this help message\n";
     std::cerr << "\n";
     std::cerr << "Examples:\n";
@@ -317,24 +377,6 @@ void PrintUsage()
     std::cerr << "  knoodledraw --format=wl diagram.tsv\n";
     std::cerr << "  knoodledraw --embedding diagram.tsv > link.kndlxyz\n";
     std::cerr << "  knoodledraw --embedding --format=wl diagram.tsv\n";
-}
-
-/**
- * @brief Parse a positive integer from a string.
- */
-std::optional<Int> ParsePositiveInt(std::string_view s)
-{
-    try
-    {
-        std::size_t pos = 0;
-        long long val = std::stoll(std::string(s), &pos);
-        if (pos != s.size() || val < 1) return std::nullopt;
-        return static_cast<Int>(val);
-    }
-    catch (const std::exception&)
-    {
-        return std::nullopt;
-    }
 }
 
 /**
@@ -412,12 +454,17 @@ constexpr std::string_view kKnownFlags[] = {
     "--embedding",
     "--reapr-energy",
     "--reapr-scaling",
+    "--z-grid-size",
     "--bend-method",
     "--compaction",
     "--randomize-bends",
     "--exterior-face",
     "--quality",
+    "--projection",
     "--randomize-projection",
+    "--exact-input",
+    "--seed",
+    "--quiet",
     "--redistribute-bends",       "--no-redistribute-bends",
     "--turn-regularize",          "--no-turn-regularize",
     "--saturate-regions",         "--no-saturate-regions",
@@ -459,6 +506,12 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             auto val = ParsePositiveInt(arg.substr(14));
             if (!val) { std::cerr << "Error: Invalid y-grid-size value\n"; return std::nullopt; }
             config.y_grid_size = *val;
+        }
+        else if (arg.starts_with("--z-grid-size="))
+        {
+            auto val = ParsePositiveInt(arg.substr(14));
+            if (!val) { std::cerr << "Error: Invalid z-grid-size value (expected a positive integer)\n"; return std::nullopt; }
+            config.z_grid_size = *val;
         }
         else if (arg.starts_with("--x-gap-size="))
         {
@@ -513,16 +566,11 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg.starts_with("--reapr-energy="))
         {
             std::string val(arg.substr(15));
-            if      (TokenIs(val, "tv"))        { config.reapr_energy = Energy_T::TV;        }
-            else if (TokenIs(val, "dirichlet")) { config.reapr_energy = Energy_T::Dirichlet; }
-            else if (TokenIs(val, "bending"))   { config.reapr_energy = Energy_T::Bending;   }
-            else if (TokenIs(val, "height"))    { config.reapr_energy = Energy_T::Height;    }
-            else if (TokenIs(val, "tv_clp"))    { config.reapr_energy = Energy_T::TV_CLP;    }
-            else if (TokenIs(val, "tv_mcf"))    { config.reapr_energy = Energy_T::TV_MCF;    }
+            if (const auto energy = ParseEnergy(val)) { config.reapr_energy = *energy; }
             else
             {
                 std::cerr << "Error: Unknown --reapr-energy value: " << val << "\n";
-                std::cerr << "  Valid: tv, dirichlet, bending, height, tv_clp, tv_mcf\n";
+                std::cerr << "  Valid: " << ValidEnergies() << "\n";
                 return std::nullopt;
             }
         }
@@ -535,10 +583,40 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
                 return std::nullopt;
             }
         }
-        // Randomize projection
+        // 3D input
+        else if (arg.starts_with("--projection="))
+        {
+            const auto p = ParseProjection(arg.substr(13));
+            if (!p)
+            {
+                std::cerr << "Error: Unknown --projection value: " << arg.substr(13)
+                          << " (valid: z, x, y, random)\n";
+                return std::nullopt;
+            }
+            config.input_options.projection = *p;
+        }
         else if (arg == "--randomize-projection")
         {
-            config.randomize_projection = true;
+            config.input_options.projection = Projection_T::Random;
+        }
+        else if (arg == "--exact-input")
+        {
+            config.input_options.exact_input = true;
+        }
+        else if (arg.starts_with("--seed="))
+        {
+            const auto seed = ParseSeed(arg.substr(7));
+            if (!seed)
+            {
+                std::cerr << "Error: Invalid --seed value: " << arg.substr(7)
+                          << " (a decimal integer from 0 to 2^64 - 1)\n";
+                return std::nullopt;
+            }
+            config.seed = *seed;
+        }
+        else if (arg == "--quiet")
+        {
+            config.quiet = true;
         }
         // Long-form label options
         else if (arg == "--label-crossings")
@@ -699,6 +777,7 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
                     case 'a': config.label_arcs       = true; break;
                     case 'f': config.label_faces      = true; break;
                     case 'l': config.label_components = true; break;
+                    case 'q': config.quiet            = true; break;
                     default:
                         valid = false;
                         break;
@@ -791,6 +870,30 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         std::cerr << "Error: --embedding emits 3D geometry and cannot be"
                      " combined with --move, --find-pass or --trace\n";
         return std::nullopt;
+    }
+
+    // --z-grid-size spaces the levels of --embedding's output; a 2D drawing has
+    // no levels, and --reapr-scaling is the other way to set the same spacing.
+    if (config.z_grid_size && !config.embedding_mode)
+    {
+        std::cerr << "Error: --z-grid-size sets the level spacing of --embedding's"
+                     " output; it needs --embedding\n";
+        return std::nullopt;
+    }
+    if (config.z_grid_size && config.reapr_scaling)
+    {
+        std::cerr << "Error: --z-grid-size and --reapr-scaling both set the z spacing;"
+                     " use one or the other\n";
+        return std::nullopt;
+    }
+
+    // Under --embedding, the grid sizes given are Reapr's: its OrthoDraw layout
+    // supplies x and y. Keep them before the 2D auto-sizing below fills in
+    // defaults for the ASCII drawing.
+    if (config.embedding_mode)
+    {
+        if (config.x_grid_size > 0) { config.embed_x_grid_size = config.x_grid_size; }
+        if (config.y_grid_size > 0) { config.embed_y_grid_size = config.y_grid_size; }
     }
 
     // Debug preset enables all labels (before auto-sizing so grid adapts)
@@ -2050,7 +2153,7 @@ HighlightSet ParseHighlightSpecs(const std::vector<std::string>& specs,
             char type_char = spec[pos];
             if (type_char != 'a' && type_char != 'c' && type_char != 'f')
             {
-                std::cerr << "Warning: Unknown highlight type '"
+                Warn() << "Warning: Unknown highlight type '"
                           << type_char << "' (expected a/c/f)\n";
                 while (pos < spec.size()
                        && spec[pos] != ',' && spec[pos] != ' ' && spec[pos] != '\t')
@@ -2066,7 +2169,7 @@ HighlightSet ParseHighlightSpecs(const std::vector<std::string>& specs,
 
             if (pos == num_start)
             {
-                std::cerr << "Warning: Missing index after '"
+                Warn() << "Warning: Missing index after '"
                           << type_char << "' in highlight spec\n";
                 continue;
             }
@@ -2076,7 +2179,7 @@ HighlightSet ParseHighlightSpecs(const std::vector<std::string>& specs,
                 index = static_cast<Int>(
                     std::stoll(spec.substr(num_start, pos - num_start)));
             } catch (...) {
-                std::cerr << "Warning: Invalid index in highlight spec\n";
+                Warn() << "Warning: Invalid index in highlight spec\n";
                 continue;
             }
 
@@ -2084,21 +2187,21 @@ HighlightSet ParseHighlightSpecs(const std::vector<std::string>& specs,
             {
                 case 'a':
                     if (index < 0 || index >= max_arc)
-                        std::cerr << "Warning: Arc index " << index
+                        Warn() << "Warning: Arc index " << index
                                   << " out of range [0, " << max_arc - 1 << "]\n";
                     else
                         hs.arcs.insert(index);
                     break;
                 case 'c':
                     if (index < 0 || index >= max_crossing)
-                        std::cerr << "Warning: Crossing index " << index
+                        Warn() << "Warning: Crossing index " << index
                                   << " out of range [0, " << max_crossing - 1 << "]\n";
                     else
                         hs.crossings.insert(index);
                     break;
                 case 'f':
                     if (index < 0 || index >= max_face)
-                        std::cerr << "Warning: Face index " << index
+                        Warn() << "Warning: Face index " << index
                                   << " out of range [0, " << max_face - 1 << "]\n";
                     else
                         hs.faces.insert(index);
@@ -2658,7 +2761,7 @@ bool MaybeHonourOutside(OrthoDraw_T& H, const Deco_T& deco, const PD_T& pd,
             std::cerr << "knoodledraw: error: " << why << "\n";
             return false;
         }
-        std::cerr << "knoodledraw: warning: cannot draw outside=" << *outside
+        Warn() << "knoodledraw: warning: cannot draw outside=" << *outside
                   << " (" << why << "); drawing the corridor as routed\n";
     }
     return true;
@@ -3071,19 +3174,25 @@ void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out,
 //==============================================================================
 
 /**
- * @brief Reapr settings for --embedding, from the --reapr-* flags.
+ * @brief Reapr settings for --embedding, from the --reapr-* flags and the
+ *        three grid sizes.
  *
- * The 2D layout knobs (--quality, --x-grid-size, bend/compaction methods, ...)
- * deliberately do NOT feed in here: they tune the ASCII drawing, whereas the
- * OrthoDraw pass inside Reapr is an intermediate step whose defaults
- * (randomize_bends = 2, randomize_virtual_edgesQ = true) are chosen for
- * embedding quality. --help says so.
+ * --x-grid-size, --y-grid-size and --z-grid-size feed in: under --embedding they
+ * are the spacing of the output, x and y from the OrthoDraw layout inside Reapr,
+ * z from its levels. The other 2D layout knobs (--quality, bend/compaction
+ * methods, ...) deliberately do NOT: they tune the ASCII drawing, whereas that
+ * OrthoDraw pass is an intermediate step whose defaults (randomize_bends = 2,
+ * randomize_virtual_edgesQ = true) are chosen for embedding quality. --help
+ * says so.
  */
 Reapr_T::Settings_T BuildReaprSettings(const Config& config)
 {
     Reapr_T::Settings_T settings;
     if (config.reapr_energy)  { settings.energy  = *config.reapr_energy; }
     if (config.reapr_scaling) { settings.scaling = static_cast<Real>(*config.reapr_scaling); }
+    if (config.z_grid_size)       { settings.z_grid_size = *config.z_grid_size; }
+    if (config.embed_x_grid_size) { settings.ortho_draw_settings.x_grid_size = *config.embed_x_grid_size; }
+    if (config.embed_y_grid_size) { settings.ortho_draw_settings.y_grid_size = *config.embed_y_grid_size; }
     return settings;
 }
 
@@ -3143,7 +3252,8 @@ std::pair<Real,Real> EmbeddingXSpan(const LinkEmb_T& emb)
 std::vector<EmbeddedPiece> BuildEmbedding(const std::vector<PD_T>& summands,
                                           const std::vector<Int>& unknot_colors,
                                           bool coloredQ,
-                                          const Config& config)
+                                          const Config& config,
+                                          Knoodle::PRNG_T& rng)
 {
     PDC_T pdc;
 
@@ -3188,6 +3298,7 @@ std::vector<EmbeddedPiece> BuildEmbedding(const std::vector<PD_T>& summands,
     }
 
     Reapr_T reapr(BuildReaprSettings(config));
+    reapr.RandomEngine() = DerivedEngine(rng);   // --seed governs Reapr too
 
     std::vector<EmbeddedPiece> pieces;
 
@@ -3196,16 +3307,21 @@ std::vector<EmbeddedPiece> BuildEmbedding(const std::vector<PD_T>& summands,
         const PD_T& pd = pdc.Diagram(i);
         if (!pd.ValidQ() || pd.CrossingCount() <= Int(0)) { continue; }
 
-        // Rotate the embedding into general position, the same way
-        // PlanarDiagramComplex/Simplify.hpp does before reprojecting one.
-        // Reapr's raw output takes x and y straight off the OrthoDraw grid, so
-        // the over/under "jump" it inserts at each crossing is an exactly
-        // vertical edge -- which projects to a POINT. FindIntersections then
-        // rejects the whole embedding ("Detected N degenerate edges"), meaning
-        // an unrotated emission could not be read back by Knoodle itself.
-        // (Reapr already randomizes by default via permute_randomQ, so this
-        // costs no determinism that was on offer.)
-        LinkEmb_T emb = reapr.Embedding(pd, reapr.RandomRotation());
+        // Exactly the embedding Reapr builds, never rotated: x and y straight
+        // off the OrthoDraw grid (integers), z its scaled levels. So the
+        // output's axes ARE Reapr's, and
+        //   knoodledraw --embedding | knoodledraw --projection=x
+        // is a true side view of it.
+        //
+        // This used to be reapr.Embedding(pd, reapr.RandomRotation()), a
+        // stopgap from before the exact projector: the over/under "jump" Reapr
+        // inserts at each crossing is an exactly vertical edge, which projects
+        // to a point, and the floating-point projector could not read that
+        // back. The exact projector resolves such degeneracies by symbolic
+        // perturbation (100 of 100 unrotated trefoil and figure-eight
+        // embeddings projected, 2026-11-07; test/cli_contract_check.py keeps
+        // checking it).
+        LinkEmb_T emb = reapr.Embedding(pd);
         if (!emb.ValidQ() || emb.EdgeCount() <= Int(0)) { continue; }
 
         pieces.push_back(EmbeddedPiece{std::move(emb), Real(0)});
@@ -3221,8 +3337,12 @@ std::vector<EmbeddedPiece> BuildEmbedding(const std::vector<PD_T>& summands,
  * bounding boxes may be linked, which would change the link type of the output.
  * `x_cursor` runs across the whole output stream, so pieces from different input
  * knots are kept apart too.
+ *
+ * The gap is a whole number of `x_step`s, the x grid size of Reapr's layout.
+ * Reapr's x coordinates lie on multiples of half that step, so the shifted
+ * pieces stay on the same grid as unshifted ones: integers for an even step.
  */
-void PlacePieces(std::vector<EmbeddedPiece>& pieces, Real& x_cursor)
+void PlacePieces(std::vector<EmbeddedPiece>& pieces, Real& x_cursor, Real x_step)
 {
     std::vector<std::pair<Real,Real>> spans;
     spans.reserve(pieces.size());
@@ -3234,7 +3354,7 @@ void PlacePieces(std::vector<EmbeddedPiece>& pieces, Real& x_cursor)
         widest = std::max(widest, spans.back().second - spans.back().first);
     }
 
-    const Real gap = (widest > Real(0)) ? Real(0.25) * widest : Real(1);
+    const Real gap = x_step * std::max(Real(1), std::ceil(Real(0.25) * widest / x_step));
 
     for (std::size_t i = 0; i < pieces.size(); ++i)
     {
@@ -3381,21 +3501,23 @@ bool EmbedKnot(const std::vector<PD_T>& summands,
                const std::vector<Int>& unknot_colors,
                bool coloredQ,
                const Config& config,
+               Knoodle::PRNG_T& rng,
                Real& x_cursor)
 {
     std::vector<EmbeddedPiece> pieces =
-        BuildEmbedding(summands, unknot_colors, coloredQ, config);
+        BuildEmbedding(summands, unknot_colors, coloredQ, config, rng);
 
     if (pieces.empty())
     {
-        std::cerr << "Warning: --embedding produced no geometry for this diagram.\n";
+        Warn() << "Warning: --embedding produced no geometry for this diagram.\n";
         // An empty diagram is not a failure of the run; --format=wl still owes
         // the caller one association per knot so the stream stays line-aligned.
         if (config.wolfram_mode) { std::cout << "<|\"Components\"->{}|>\n"; }
         return true;
     }
 
-    PlacePieces(pieces, x_cursor);
+    PlacePieces(pieces, x_cursor,
+                static_cast<Real>(BuildReaprSettings(config).ortho_draw_settings.x_grid_size));
 
     if (config.wolfram_mode) { EmitWolframEmbedding(pieces, std::cout); }
     else                     { EmitEmbeddingXYZ(pieces, std::cout);     }
@@ -4470,7 +4592,7 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
 
     if (records_drawn == 0)
     {
-        std::cerr << "knoodledraw: warning: trace stream contained no records\n";
+        Warn() << "knoodledraw: warning: trace stream contained no records\n";
     }
     return true;
 }
@@ -4498,7 +4620,7 @@ bool ProcessStream(std::istream& input,
 
     while (!reached_eof)
     {
-        auto input_knot = ReadKnot(input, config.randomize_projection, rng, source_name, reached_eof);
+        auto input_knot = ReadKnot(input, config.input_options, rng, source_name, reached_eof);
 
         if (!input_knot)
         {
@@ -4524,7 +4646,7 @@ bool ProcessStream(std::istream& input,
             const bool coloredQ = (cols == 3 || cols == 6 || cols == 7);
 
             if (!EmbedKnot(input_knot->summands, input_knot->unknot_colors,
-                           coloredQ, config, x_cursor)) return false;
+                           coloredQ, config, rng, x_cursor)) return false;
             any_drawn = true;
             continue;
         }
@@ -4539,64 +4661,6 @@ bool ProcessStream(std::istream& input,
     }
 
     return true;
-}
-
-/**
- * @brief Process a .kndlxyz file (multi-component 3D link embedding).
- */
-bool ProcessXYZFile(const std::string& filepath, const Config& config, Real& x_cursor)
-{
-    LinkEmb_T link = LinkEmb_T::FromFile(std::filesystem::path(filepath));
-
-    if (config.randomize_projection)
-    {
-        // Rotate the whole embedding at once (not each component independently,
-        // which would distort the link's actual geometric arrangement) with a
-        // proper random rotation -- the same mechanism already used elsewhere
-        // (PlanarDiagramComplex/Simplify.hpp: emb.Transform(reapr.RandomRotation())).
-        Reapr_T reapr;
-        link.Transform(reapr.RandomRotation());
-    }
-
-    PDC_T pdc(std::move(link));
-
-    if (pdc.DiagramCount() == 0)
-    {
-        std::cerr << "Error: Failed to create diagram from .kndlxyz file: " << filepath << "\n";
-        return false;
-    }
-
-    // A trivial (0-crossing, unknot) diagram in the complex must NOT reach
-    // OrthoDraw_T's constructor -- unlike the streaming/ReadKnot path (which
-    // already separates these into unknot_colors before any diagram is
-    // built), pdc.Diagram(i) here can be trivial, and constructing an OrthoDraw
-    // from a 0-crossing PlanarDiagram crashes. Filter it out here instead, the
-    // same way ReadKnot does -- and since .kndlxyz components are colored
-    // automatically (by component order), each trivial diagram's color is
-    // recorded rather than discarded.
-    std::vector<PD_T> summands;
-    std::vector<Int>  unknot_colors;
-    for (Int i = 0; i < pdc.DiagramCount(); ++i)
-    {
-        PD_T pd(pdc.Diagram(i));
-        if (pd.CrossingCount() > Int(0))
-        {
-            summands.push_back(std::move(pd));
-        }
-        else
-        {
-            unknot_colors.push_back(pd.FirstColor());
-        }
-    }
-
-    // .kndlxyz components are colored automatically (by component order), so the
-    // connect-sum rejoining in BuildEmbedding is always safe on this path.
-    if (config.embedding_mode)
-    {
-        return EmbedKnot(summands, unknot_colors, /*coloredQ=*/true, config, x_cursor);
-    }
-
-    return DrawKnot(summands, config, unknot_colors);
 }
 
 } // anonymous namespace
@@ -4641,8 +4705,11 @@ int main(int argc, char* argv[])
         ChooseDiagnosticDir("knoodledraw", /*streaming_mode=*/true, std::nullopt);
     const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
 
-    // Initialize random number generator
-    Knoodle::PRNG_T rng = Knoodle::InitializedRandomEngine<Knoodle::PRNG_T>();
+    g_quiet = config.quiet;
+
+    // Every random choice follows from this one seed (see SeededEngine).
+    g_run_seed = config.seed.value_or(FreshSeed());
+    Knoodle::PRNG_T rng = SeededEngine(g_run_seed);
 
     bool success = true;
 
@@ -4656,7 +4723,7 @@ int main(int argc, char* argv[])
         // interactive terminal, say so, so a bare invocation does not look hung.
         if (StdinIsInteractive())
         {
-            std::cerr << "knoodledraw: reading diagrams from stdin (Ctrl-D to end). "
+            Warn() << "knoodledraw: reading diagrams from stdin (Ctrl-D to end). "
                          "Pipe a stream or pass a file; --help for usage.\n";
         }
         success = ProcessStream(std::cin, "stdin", config, rng, x_cursor);
@@ -4681,21 +4748,6 @@ int main(int argc, char* argv[])
                 {
                     std::cout << "k\n";
                 }
-            }
-
-            // Route .kndlxyz files to the specialized handler
-            std::filesystem::path fpath(filename);
-            if (fpath.extension() == ".kndlxyz")
-            {
-                if (!ProcessXYZFile(filename, config, x_cursor))
-                {
-                    success = false;
-                }
-                else
-                {
-                    first_file = false;
-                }
-                continue;
             }
 
             std::ifstream file(filename);

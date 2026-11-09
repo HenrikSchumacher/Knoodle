@@ -18,9 +18,11 @@ name: ci
 #   * rockylinux:9  -> clang (Rocky's system gcc is 11; distro clang builds fine),
 #                      Sapelo2-cluster (Rocky 9.x) proxy
 #
-# Light tier only: the three tools + --help smoke, then the self-contained test
-# drivers that need no Git-LFS data and no UMFPACK/BLAS (see
-# scripts/ci-build-and-test.sh). The heavy UMFPACK/KLUT tier is out of scope.
+# Light tier only: the three tools + --help smoke, then the light-tier test
+# drivers that need no UMFPACK/BLAS (see scripts/ci-build-and-test.sh). The KLUT
+# tables (data/Klut, Git LFS, ~24 MB) are fetched, cached on the host runners, so
+# knoodleidentify really identifies; the rest of the LFS data (data/diagrams) is
+# not. The heavy UMFPACK tier is out of scope.
 
 on:
   push:
@@ -68,11 +70,24 @@ jobs:
 
       - name: Fetch submodules (ssh->https, no LFS)
         # .gitmodules uses git@github.com: SSH URLs and Tensors nests Tools, so
-        # rewrite to https and init recursively. No LFS: the light tier needs no
-        # KLUT data.
+        # rewrite to https and init recursively. The submodules need no LFS.
         run: |
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git submodule update --init --recursive
+
+      - name: List the KLUT tables' LFS objects (the cache key)
+        run: git lfs ls-files --long --include="data/Klut/**" | cut -d' ' -f1 | sort > .klut-lfs-oids
+
+      - name: Restore the KLUT tables' LFS objects
+        # Saves LFS bandwidth: the tables change rarely, so most runs download
+        # nothing. A new table set gets a new key.
+        uses: actions/cache@v4
+        with:
+          path: .git/lfs/objects
+          key: klut-lfs-${{ runner.os }}-${{ hashFiles('.klut-lfs-oids') }}
+
+      - name: Fetch the KLUT tables (Git LFS, data/Klut only)
+        run: bash scripts/ci-fetch-klut.sh
 
       - name: Install deps (macOS -- Boost + SuiteSparse)
         if: runner.os == 'macOS'
@@ -124,7 +139,7 @@ jobs:
         # gcc-c++ (gcc 15), make, git (for checkout + submodules), Boost +
         # SuiteSparse (umfpack.h under /usr/include/suitesparse), python3.
         run: |
-          dnf -y install gcc-c++ make git boost-devel suitesparse-devel \
+          dnf -y install gcc-c++ make git git-lfs boost-devel suitesparse-devel \
                          python3 findutils
 
       - name: Install toolchain + deps (Rocky 9)
@@ -134,7 +149,7 @@ jobs:
         run: |
           dnf -y install epel-release dnf-plugins-core
           dnf config-manager --set-enabled crb
-          dnf -y install clang make git boost-devel suitesparse-devel \
+          dnf -y install clang make git git-lfs boost-devel suitesparse-devel \
                          python3 findutils
 
       - name: Check out
@@ -145,6 +160,10 @@ jobs:
           git config --global --add safe.directory '*'
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git submodule update --init --recursive
+
+      - name: Fetch the KLUT tables (Git LFS, data/Klut only)
+        # No cache in the containers: these jobs run on push/cron only.
+        run: bash scripts/ci-fetch-klut.sh
 
       - name: Build tools + run light-tier tests
         run: bash scripts/ci-build-and-test.sh
@@ -191,7 +210,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            clang make git ca-certificates curl gnupg libboost-dev \
+            clang make git git-lfs ca-certificates curl gnupg libboost-dev \
             libsuitesparse-dev python3
           if [ -n "${{ matrix.llvm }}" ]; then
             V="${{ matrix.llvm }}"
@@ -212,6 +231,9 @@ jobs:
           git config --global --add safe.directory '*'
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git submodule update --init --recursive
+
+      - name: Fetch the KLUT tables (Git LFS, data/Klut only)
+        run: bash scripts/ci-fetch-klut.sh
 
       - name: Build tools + run light-tier tests
         run: bash scripts/ci-build-and-test.sh

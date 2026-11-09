@@ -2,7 +2,7 @@
  * @file knoodlesimplify.cpp
  * @brief knoodlesimplify - A command-line tool for knot and link diagram simplification.
  *
- * This tool reads knot/link diagrams (as PD codes, 3D geometry, or .kndlxyz files),
+ * This tool reads knot/link diagrams (as PD codes or 3D geometry),
  * simplifies them using various algorithms, and outputs the simplified diagrams.
  *
  * Usage: knoodlesimplify [options] [input_files...]
@@ -10,7 +10,7 @@
  * Input formats:
  *   - PD code: Lines with 4, 5, 6, or 7 tab-separated integers per crossing
  *   - 3D geometry: Lines with 3 tab-separated numbers (coordinates)
- *   - .kndlxyz: Multi-component 3D link embedding (blank lines separate components)
+ *   - .kndlxyz: the same 3-column format (blank lines separate components)
  *
  * Output format (knoodlesimplify format):
  *   k           <- knot/link separator
@@ -112,6 +112,7 @@ struct ProcessingStats
  *
  * @param input The input knot with its summands.
  * @param config Configuration options.
+ * @param rng The tool's engine (--seed); each Reapr's engine is drawn from it.
  * @param output_pdc If non-null, every resulting diagram (trivial or not) is
  *        ALSO pushed here, for --format=pdc output -- unlike `result`, which
  *        the standard TSV writer treats losslessly only up to the point where
@@ -120,7 +121,8 @@ struct ProcessingStats
  *        PlanarDiagramComplex's own native serialization.
  * @return The simplified knot with timing information.
  */
-SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T* output_pdc = nullptr)
+SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config,
+                            Knoodle::PRNG_T& rng, PDC_T* output_pdc = nullptr)
 {
     SimplifiedKnot result;
 
@@ -205,7 +207,25 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T*
                 PD_T pd_copy = colorize(PD_T(pd_in));
                 PDC_T pdc(std::move(pd_copy));
 
-                pdc.Simplify(args);
+                // The Reapr pdc.Simplify(args) would build for itself
+                // (Simplify.hpp), but with its engine drawn from ours, so that
+                // --seed governs the re-embedding too. Simplify(reapr, args)
+                // takes these settings from the Reapr instead of from args,
+                // which is why they are copied over field by field.
+                PDC_T::Reapr_T reapr({
+                    .permute_randomQ     = args.permute_randomQ,
+                    .energy              = args.energy,
+                    .ortho_draw_settings = {
+                        .randomize_bends          = args.randomize_bends,
+                        .randomize_virtual_edgesQ = args.randomize_virtual_edgesQ,
+                        .compaction_method        = args.compaction_method
+                    },
+                    .scaling             = args.scaling,
+                    .z_grid_size         = args.z_grid_size
+                });
+                reapr.RandomEngine() = DerivedEngine(rng);
+
+                pdc.Simplify(reapr, args);
 
                 if (pdc.DiagramCount() == 0)
                 {
@@ -620,70 +640,51 @@ std::filesystem::path GetSimplifiedFilename(const std::filesystem::path& input_p
 }
 
 /**
- * @brief Process a .kndlxyz file (multi-component 3D link embedding).
+ * @brief Simplify, write and report one knot that has already been read.
  *
- * @param filepath Path to the .kndlxyz file.
+ * @param input_knot The knot.
+ * @param input_time How long reading it took.
+ * @param source_name Its file name, for per-file output, or "stdin".
  * @param output_stream Optional output stream (nullptr for per-file output).
  * @param config Configuration.
+ * @param rng The tool's engine (--seed).
  * @param stats Statistics accumulator.
  * @param first_knot_in_output Whether this is the first knot being written.
  * @return true on success.
  */
-bool ProcessXYZFile(const std::string& filepath,
-                    std::ostream* output_stream,
-                    const Config& config,
-                    ProcessingStats& stats,
-                    bool& first_knot_in_output)
+bool ProcessKnot(const InputKnot& input_knot,
+                 Duration input_time,
+                 const std::string& source_name,
+                 std::ostream* output_stream,
+                 const Config& config,
+                 Knoodle::PRNG_T& rng,
+                 ProcessingStats& stats,
+                 bool& first_knot_in_output)
 {
-    Duration input_time{0};
-    PDC_T pdc;
-
-    {
-        ScopedTimer timer(input_time);
-        LinkEmb_T link = LinkEmb_T::FromFile(std::filesystem::path(filepath));
-
-        if (config.randomize_projection)
-        {
-            // Rotate the whole embedding at once (not each component
-            // independently, which would distort the link's actual geometric
-            // arrangement) with a proper random rotation -- the same mechanism
-            // already used elsewhere (PlanarDiagramComplex/Simplify.hpp:
-            // emb.Transform(reapr.RandomRotation())).
-            Reapr_T reapr;
-            link.Transform(reapr.RandomRotation());
-        }
-
-        // PDC constructor from LinkEmbedding calls FindIntersections internally
-        pdc = PDC_T(std::move(link));
-    }
-
-    if (pdc.DiagramCount() == 0)
-    {
-        LogError("Failed to create diagram from .kndlxyz file: " + filepath);
-        return false;
-    }
-
-    // Create an InputKnot for reporting
-    InputKnot input_knot;
-    input_knot.source_description = filepath;
-    input_knot.had_3d_geometry = true;
-    input_knot.input_column_count = 7;  // .kndlxyz always outputs colored format
-
-    // Record input crossing counts before simplification
-    for (Int i = 0; i < pdc.DiagramCount(); ++i)
-    {
-        const auto& pd = pdc.Diagram(i);
-        Int cc = pd.CrossingCount();
-        input_knot.summands.push_back(PD_T(pd));
-        input_knot.crossing_counts.push_back(cc);
-        input_knot.total_crossings += cc;
-    }
-
     // Simplification phase
     PDC_T output_pdc;
-    SimplifiedKnot simplified = SimplifyKnot(input_knot, config, config.pdc_format ? &output_pdc : nullptr);
+    SimplifiedKnot simplified = SimplifyKnot(input_knot, config, rng, config.pdc_format ? &output_pdc : nullptr);
 
-    // Output phase (always 7-column / colored for .kndlxyz)
+    // Determine output format based on input column count.
+    //
+    // Colors are also written whenever the result has more than one summand,
+    // even for uncolored input. Splitting a diagram is exactly when the color
+    // stops being redundant: it is the only thing recording that two summands
+    // were once one closed curve (a connected sum) rather than two (a split
+    // link), and a consumer such as `knoodledraw --embedding` cannot rebuild
+    // the correct link type without it. SimplifyKnot has already given
+    // uncolored input real per-link-component colors for this purpose.
+    //
+    // 3D input with several components (or explicit '#color' lines) is a
+    // colored link already, and is written as one.
+    const bool split_into_summands =
+        (simplified.summands.size() + static_cast<std::size_t>(simplified.unknot_count)) > 1;
+
+    const bool colored_output = (input_knot.input_column_count >= 6)
+                             || input_knot.colored_3d
+                             || split_into_summands;
+
+    // Output phase
     Duration output_time{0};
 
     {
@@ -691,16 +692,19 @@ bool ProcessXYZFile(const std::string& filepath,
 
         if (output_stream)
         {
+            // Writing to shared output stream
             WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, *output_stream,
-                             !first_knot_in_output, true);
+                             !first_knot_in_output || output_stream != &std::cout,
+                             colored_output);
             first_knot_in_output = false;
         }
-        else
+        else if (!config.streaming_mode)
         {
-            std::filesystem::path input_path(filepath);
+            // Per-file output. Staged, and committed only if nothing went
+            // wrong while producing this knot (see AtomicOutFile).
+            std::filesystem::path input_path(source_name);
             std::filesystem::path output_path = GetSimplifiedFilename(input_path);
 
-            // Staged: committed only if nothing went wrong producing this knot.
             const long errors_before = ErrorTotal();
 
             AtomicOutFile file(output_path);
@@ -710,7 +714,7 @@ bool ProcessXYZFile(const std::string& filepath,
                 return false;
             }
 
-            WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file.Stream(), true, true);
+            WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file.Stream(), true, colored_output);
 
             if (ErrorTotal() != errors_before)
             {
@@ -730,7 +734,8 @@ bool ProcessXYZFile(const std::string& filepath,
     // Reporting phase
     if (config.quiet)
     {
-        *g_log_stream << "\r" << (stats.total_knots + 1) << " links processed" << std::flush;
+        // In quiet mode, just print a counter that updates in place
+        *g_log_stream << "\r" << (stats.total_knots + 1) << " knots processed" << std::flush;
     }
     else
     {
@@ -784,7 +789,7 @@ bool ProcessSource(std::istream& input,
 
         {
             ScopedTimer timer(input_time);
-            input_knot = ReadKnot(input, config.randomize_projection, rng, source_name, reached_eof);
+            input_knot = ReadKnot(input, config.input_options, rng, source_name, reached_eof);
         }
 
         if (!input_knot)
@@ -801,95 +806,11 @@ bool ProcessSource(std::istream& input,
             continue;
         }
 
-        // Simplification phase
-        PDC_T output_pdc;
-        SimplifiedKnot simplified = SimplifyKnot(*input_knot, config, config.pdc_format ? &output_pdc : nullptr);
-
-        // Determine output format based on input column count.
-        //
-        // Colors are also written whenever the result has more than one summand,
-        // even for uncolored input. Splitting a diagram is exactly when the color
-        // stops being redundant: it is the only thing recording that two summands
-        // were once one closed curve (a connected sum) rather than two (a split
-        // link), and a consumer such as `knoodledraw --embedding` cannot rebuild
-        // the correct link type without it. SimplifyKnot has already given
-        // uncolored input real per-link-component colors for this purpose.
-        const bool split_into_summands =
-            (simplified.summands.size() + static_cast<std::size_t>(simplified.unknot_count)) > 1;
-
-        bool colored_output = (input_knot->input_column_count >= 6) || split_into_summands;
-
-        // Output phase
-        Duration output_time{0};
-
+        if (!ProcessKnot(*input_knot, input_time, source_name, output_stream, config,
+                         rng, stats, first_knot_in_output))
         {
-            ScopedTimer timer(output_time);
-
-            if (output_stream)
-            {
-                // Writing to shared output stream
-                WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, *output_stream,
-                                 !first_knot_in_output || !config.streaming_mode,
-                                 colored_output);
-                first_knot_in_output = false;
-            }
-            else if (!config.streaming_mode)
-            {
-                // Per-file output. Staged, and committed only if nothing went
-                // wrong while producing this knot (see AtomicOutFile).
-                std::filesystem::path input_path(source_name);
-                std::filesystem::path output_path = GetSimplifiedFilename(input_path);
-
-                const long errors_before = ErrorTotal();
-
-                AtomicOutFile file(output_path);
-                if (!file.Good())
-                {
-                    LogError("Failed to open " + output_path.string() + " for writing");
-                    return false;
-                }
-
-                WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file.Stream(), true, colored_output);
-
-                if (ErrorTotal() != errors_before)
-                {
-                    file.Abort();
-                    *g_log_stream << "Refusing to write " << output_path.string()
-                                  << ": the library reported an error while producing it.\n";
-                    return false;
-                }
-                if (!file.Commit())
-                {
-                    LogError("Failed to move output into place: " + output_path.string());
-                    return false;
-                }
-            }
+            return false;
         }
-
-        // Reporting phase
-        if (config.quiet)
-        {
-            // In quiet mode, just print a counter that updates in place
-            *g_log_stream << "\r" << (stats.total_knots + 1) << " knots processed" << std::flush;
-        }
-        else
-        {
-            WriteKnotReport(*input_knot, simplified, config, input_time, output_time);
-        }
-
-        // Update stats
-        stats.input_crossings  += input_knot->total_crossings;
-        stats.output_crossings += simplified.total_crossings;
-        stats.total_summands   += simplified.TotalSummandCount();
-        stats.proven_minimal_summands += simplified.TotalProvenMinimalCount();
-        if (simplified.FullySimplifiedQ())
-        {
-            ++stats.fully_simplified_knots;
-        }
-        stats.input_time       += input_time;
-        stats.simplify_time    += simplified.simplify_time;
-        stats.output_time      += output_time;
-        ++stats.total_knots;
     }
 
     return true;
@@ -931,8 +852,16 @@ int main(int argc, char* argv[])
     // the moment Rattle's projection fails (its default is the user's home
     // directory). Alongside the output file when we have one, else a per-process
     // temp directory. Snapshot what is already there so we only report our own.
+    // No input files and a pipe on stdin: read it, as --streaming-mode does,
+    // but with the log on stderr and --output honoured. A terminal on stdin
+    // still gets the usage text, below.
+    const bool piped_stdin = !config.streaming_mode && config.input_files.empty()
+                          && !StdinIsInteractive();
+    const bool stdout_output = config.streaming_mode
+                            || (piped_stdin && !config.output_file);
+
     const std::filesystem::path diag_dir =
-        ChooseDiagnosticDir("knoodlesimplify", config.streaming_mode, config.output_file);
+        ChooseDiagnosticDir("knoodlesimplify", stdout_output, config.output_file);
     const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
 
     if (!InitLogging(config.streaming_mode, "knoodlesimplify.log"))
@@ -940,8 +869,9 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    // Initialize random number generator
-    Knoodle::PRNG_T rng = Knoodle::InitializedRandomEngine<Knoodle::PRNG_T>();
+    // Every random choice follows from this one seed (see SeededEngine).
+    g_run_seed = config.seed.value_or(FreshSeed());
+    Knoodle::PRNG_T rng = SeededEngine(g_run_seed);
 
     // Statistics accumulator
     ProcessingStats stats;
@@ -960,6 +890,10 @@ int main(int argc, char* argv[])
     if (config.streaming_mode)
     {
         Log("knoodlesimplify in stream mode, expect input from stdin, will direct output to stdout");
+        output_stream = &std::cout;
+    }
+    else if (piped_stdin && !config.output_file)
+    {
         output_stream = &std::cout;
     }
     else if (config.output_file)
@@ -993,6 +927,15 @@ int main(int argc, char* argv[])
             ++stats.files_processed;
         }
     }
+    else if (piped_stdin)
+    {
+        success = ProcessSource(std::cin, "stdin", output_stream, config, rng,
+                                stats, first_knot_in_output);
+        if (success)
+        {
+            ++stats.files_processed;
+        }
+    }
     else if (config.input_files.empty())
     {
         // No input files specified - display help
@@ -1008,22 +951,6 @@ int main(int argc, char* argv[])
             if (output_stream && !first_knot_in_output && config.input_files.size() > 1)
             {
                 *output_stream << "%file " << filename << "\n";
-            }
-
-            // Route .kndlxyz files to the specialized handler
-            std::filesystem::path fpath(filename);
-            if (fpath.extension() == ".kndlxyz")
-            {
-                if (!ProcessXYZFile(filename, output_stream, config,
-                                    stats, first_knot_in_output))
-                {
-                    success = false;
-                }
-                else
-                {
-                    ++stats.files_processed;
-                }
-                continue;
             }
 
             std::ifstream file(filename);
@@ -1074,7 +1001,7 @@ int main(int argc, char* argv[])
                      "The output would be unreliable (the library discards diagrams it"
                      " has flagged as invalid), so no file was produced.\n";
         }
-        else if (config.streaming_mode)
+        else if (stdout_output)
         {
             // Already-piped bytes cannot be recalled; the exit code is the contract.
             notice = "\nknoodlesimplify: " + ErrorSummary()
@@ -1107,6 +1034,10 @@ int main(int argc, char* argv[])
         if (config.streaming_mode)
         {
             inputs = "  (stdin, --streaming-mode)\n";
+        }
+        else if (piped_stdin)
+        {
+            inputs = "  (stdin, piped)\n";
         }
         for (const auto& f : config.input_files)
         {

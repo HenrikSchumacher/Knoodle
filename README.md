@@ -99,7 +99,7 @@ _PolyFold_ produces a directory containing files named "Tools_Log.txt" (for debu
 _Knoodle_ ships four command-line knot tools — _knoodlesimplify_, _knoodledraw_, _knoodleidentify_, and _knoodleprove_ — which are installed by the homebrew formula alongside _PolyFold_. They can also be compiled by running make in the tools subdirectory. The first three share a common set of input formats and are designed to compose as Unix filters, so a typical pipeline looks like:
 
 ```
-knoodlesimplify --streaming-mode < input.tsv | knoodledraw
+knoodlesimplify < input.tsv | knoodledraw
 generator | knoodleidentify
 ```
 
@@ -114,7 +114,7 @@ The three diagram tools auto-detect their input. You can give a tool a single fi
 |5	| signed PD code (4 arcs + handedness) |
 |6	| unsigned PD code + link-component colors |
 |7	| signed PD code + link-component colors |
-|3	| 3D geometry (x, y, z coordinates) |
+|3	| 3D geometry (x, y, z coordinates); a blank line starts a new link component |
 
 
 and also `.kndlxyz` files, which describe a multi-component 3D link embedding as a collection of polylines. `.kndlxyz` is the multi-component extension of the 3-column 3D geometry format. It is plain text in which each non-blank line is one vertex, given as three whitespace-separated real numbers:
@@ -123,14 +123,48 @@ and also `.kndlxyz` files, which describe a multi-component 3D link embedding as
 ```  
 A block of consecutive vertex lines describes a single closed polygonal link component (the last vertex is joined back to the
 first). A blank line separates one component from the next, so a file with k blank-line-delimited blocks is a k-component link.
-Components are numbered/colored in the order they appear (0, 1, 2, …). The geometry is projected to a diagram the same way as
-3-column input — by default down the z-axis — so use `--randomize-projection` if any segments are vertical. A file containing only non-blank lines with coordinates is parsed as a knot (one-component link) as one would expect.
+Components are numbered/colored in the order they appear (0, 1, 2, …), unless every block is preceded by a `#color N` line;
+any other line starting with `#` is a comment. A file containing only non-blank lines with coordinates is parsed as a knot
+(one-component link) as one would expect. 3-column data in any file or stream follows the same rules, so a `.kndlxyz` file
+can also be piped to a tool on stdin.
 
-Within a file or stream, knots and connected summands are separated by lines containing `k` and `s`, exactly as they are in _polyfold_ output (see the _PolyFold_ section above). When the input is 3D geometry, the default projection is down the z-axis, so pass `--randomize-projection` if your geometry contains vertical segments.
+3D input is projected down the z-axis by default. Vertical segments and other degenerate projections need no special care:
+integer coordinates are projected exactly, and floating-point coordinates are scaled by a power of 2 onto an integer grid and
+then projected exactly, with symbolic perturbation resolving every degeneracy. A vertex that repeats the one before it is
+dropped. All three diagram tools take the same flags for 3D input:
+
+- `--projection=z|x|y|random` chooses the direction. `x` and `y` project down those axes, exactly. `random` first applies a
+  uniformly random rotation to the whole link: an exact integer rotation for integer coordinates, a floating-point one
+  otherwise. `--randomize-projection` is the old name for `--projection=random`. (It used to give 3-column input a random
+  shear instead of a rotation: an oblique view at most about 35° off the z-axis.)
+
+  `--projection` applies to 3D input only. A PD code is already a diagram: it passes through unchanged, and is never
+  embedded and re-viewed from another side. To view a PD code's _ReAPR_ embedding from the side, embed it first:
+  `knoodledraw --embedding pd.tsv | knoodledraw --projection=x`. `--embedding` writes exactly the embedding _ReAPR_
+  builds, never rotated: x and y are the integer grid of its OrthoDraw layout, and z is its levels, stretched so that the
+  z extent is `--reapr-scaling` times the smaller of the x and y extents. So z is often not a whole number (for one
+  26-crossing figure-eight diagram the levels were 0, ±46.67 and −93.33). `--z-grid-size=N` fixes the spacing instead:
+  consecutive levels are N units apart, z = N·level, and _ReAPR_'s levels are integers, so z is too. It is the z sibling
+  of `--x-grid-size` and `--y-grid-size`, which under `--embedding` set the x and y grid of _ReAPR_'s OrthoDraw layout
+  (default 20 units) rather than the drawing's. x and y lie on multiples of half the grid size, because _ReAPR_ adds the
+  midpoint of two layout vertices on some arcs, so keep those two even for an integer lattice knot:
+  `knoodledraw --embedding --x-grid-size=2 --y-grid-size=2 --z-grid-size=2` gives a compact one. knoodlesimplify and
+  knoodleidentify take the z spacing as `--reapr-z-grid-size`.
+- `--exact-input` refuses 3D input that cannot be projected exactly. Integer coordinates always can. Floating-point
+  coordinates can only if they land exactly on the integer grid (dyadic values like 0.25 do; 0.01 does not), if they are not
+  far from the origin compared with their spread, and if they are not rotated by `--projection=random`.
+- `--seed=N` seeds every random choice the tool makes: the random projection, and the _ReAPR_ embeddings of
+  `knoodlesimplify -s=6`, `knoodledraw --embedding` and `knoodleidentify`. The same seed repeats a run on the same build;
+  the standard library's random distributions differ between libc++ and libstdc++, so it may not repeat on another one.
+  One random source is out of its reach: the bend randomization of the OrthoDraw layout inside _ReAPR_. To repeat a
+  `knoodlesimplify -s=6` run exactly, add `--randomize-bends=0 --no-randomize-virtual-edges`. `knoodledraw --embedding`
+  has no switch for it yet. Without `--seed`, a seed is drawn at random, and a failing run's error report names it.
+
+Within a file or stream, knots and connected summands are separated by lines containing `k` and `s`, exactly as they are in _polyfold_ output (see the _PolyFold_ section above).
 
 ## knoodlesimplify
 
-_knoodlesimplify_ is a convenient interface to the knot simplifications in _Knoodle_. It reads diagrams (as PD codes or 3D polygons) and writes simplified PD codes. With `--streaming-mode` it reads from stdin and writes to stdout, so it can be dropped into a pipeline; it is also a quick and robust way to convert polygons to PD codes (use `-s=0` to project a polygon to a PD code with no simplification).
+_knoodlesimplify_ is a convenient interface to the knot simplifications in _Knoodle_. It reads diagrams (as PD codes or 3D polygons) and writes simplified PD codes. Given no input files and a pipe on stdin, it reads stdin and writes stdout (or `--output=FILE`), so it can be dropped into a pipeline. `--streaming-mode` does the same and also moves its log to a file, which is how the Mathematica paclet drives it. It is also a quick and robust way to convert polygons to PD codes (use `-s=0` to project a polygon to a PD code with no simplification).
 
 ```
 Usage: knoodlesimplify [options] [input_files...]
@@ -150,8 +184,17 @@ Simplification options:
 
 Input options:
   --input=FILE                Specify input file (can use multiple times)
-  --streaming-mode            Read from stdin, write to stdout
-  --randomize-projection      Apply random shear to 3D geometry projection
+                              With no input files and stdin a pipe, read stdin
+                              and write stdout (or --output=FILE)
+  --streaming-mode            Read from stdin, write to stdout, and move the
+                              log to a file (what the Mathematica paclet uses)
+  --projection=P              How 3D input is projected (default: z):
+                                z, x, y  down that axis (exact)
+                                random   after a uniformly random rotation
+                                         (exact for integer coordinates)
+  --randomize-projection      Same as --projection=random
+  --exact-input               Refuse 3D input that cannot be projected exactly
+  --seed=N                    Seed every random choice (N in [0, 2^64))
 
 Output options:
   --output=FILE               Write all output to FILE
@@ -160,6 +203,9 @@ Output options:
 Other:
   -h, --help                  Show this help message
 ```
+
+`knoodlesimplify --help` also lists the fine-tuning flags for the simplifier
+(`--reapr-rotation-trials`, `--reapr-z-grid-size`, `--randomize-bends`, `--dijkstra-strategy`, ...).
 
 ## knoodledraw
 
@@ -175,8 +221,10 @@ Quality presets:
   --quality=PRESET            fast, default, best, debug
 
 Grid and spacing:
-  --x-grid-size=N             Horizontal grid size (default: 4/6/8 for 0/1/2+ labels)
-  --y-grid-size=N             Vertical grid size (default: 2/3/4 for 0/1/2+ labels)
+  --x-grid-size=N             Horizontal grid size (default: 4/6/8 for 0/1/2+ labels;
+                              with --embedding, of Reapr's grid: default 20)
+  --y-grid-size=N             Vertical grid size (default: 2/3/4 for 0/1/2+ labels;
+                              with --embedding, of Reapr's grid: default 20)
   --x-gap-size=N              Horizontal gap size (default: 1)
   --y-gap-size=N              Vertical gap size (default: 1)
   --x-rounding-radius=N       Horizontal rounding radius (default: 4)
@@ -210,15 +258,22 @@ Boolean tuning (--flag / --no-flag):
   dual-simplex (off)          Use dual simplex method
 
 Input options:
-  --randomize-projection      Apply random shear to 3D geometry projection
+  --projection=P              How 3D input is projected: z (default), x, y, random
+  --randomize-projection      Same as --projection=random
+  --exact-input               Refuse 3D input that cannot be projected exactly
+  --seed=N                    Seed every random choice (N in [0, 2^64))
 
 Other:
+  -q, --quiet                 No warnings or notices on stderr (errors still
+                              print, and still make the exit status nonzero)
   -h, --help                  Show this help message
 ```
 
+`knoodledraw --help` also documents `--format=wl`, `--embedding`, and the pass-move and trace options.
+
 Examples:
 ```
-  knoodlesimplify --streaming-mode < input.tsv | knoodledraw
+  knoodlesimplify < input.tsv | knoodledraw
   knoodledraw diagram.tsv
   knoodledraw --quality=fast --ascii diagram.tsv
   knoodledraw --quality=debug --ascii diagram.tsv
@@ -226,7 +281,7 @@ Examples:
 
 ## knoodleidentify
 
-_knoodleidentify_ identifies the knot type of each input diagram by looking it up in the Knoodle Knot Lookup Table (KLUT). It reads raw diagrams (the same formats as _knoodlesimplify_) and simplifies them internally — so feed it the same stream you would feed _knoodlesimplify_, not the output of _knoodlesimplify_. For each input it decomposes the knot into prime summands, simplifies (escalating with _ReAPR_ when needed), and looks each summand up, writing one line per knot.
+_knoodleidentify_ identifies the knot type of each input diagram by looking it up in the Knoodle Knot Lookup Table (KLUT). It reads raw diagrams (PD codes or 3D polygons, as _knoodlesimplify_ reads them from a stream; a `.kndlxyz` file reads as it is) and simplifies them internally — so feed it the same stream you would feed _knoodlesimplify_, not the output of _knoodlesimplify_. For each input it decomposes the knot into prime summands, simplifies (escalating with _ReAPR_ when needed), and looks each summand up, writing one line per knot.
 
 By default each line is a Wolfram Language association mapping each distinct prime summand to its multiplicity, which parses directly via ToExpression, e.g.
 
@@ -265,13 +320,31 @@ Options:
   --allow-other-tables  Use tables from a different table set than the
                       one this build expects (Klut_Manifest.txt names
                       the set). Knot numbering can differ between sets.
+  --escalation-rounds=N  Max Reapr escalation rounds per candidate
+                      (default 4)
+  --escalation-band=C Rounds beyond the first 2 run only while the
+                      stalled diagram has <= C crossings (default 16)
+  --reapr-rotation-trials=N  Reprojections per embedding during escalation
+                      (default 5). --rotation-trials=N is the same flag.
+  --reapr-energy=E    Reapr's energy for the escalation embeddings
+                      (default: TV)
+  --reapr-scaling=X   Reapr's 3D grid scaling (default: 1.0)
+  --reapr-z-grid-size=N  Put consecutive levels of Reapr's embeddings N
+                      units apart (z = N*level; its x and y grid is 20
+                      units) instead of scaling them. Not with
+                      --reapr-scaling.
   --expanded          One line per knot, summands joined by ' # ' (uses
                       the raw K[...] table names).
   --tsv               Per-summand output: knot_index, summand_index,
                       crossing_count, name (tab-separated).
-  --quiet             Suppress the stderr summary and per-summand warnings.
-                      Errors still print, and a NotFound still makes the
-                      exit status nonzero.
+  -q, --quiet         Suppress the stderr summary, the per-summand warnings
+                      and the reading-from-the-terminal notice. Errors
+                      still print, and a NotFound still makes the exit
+                      status nonzero.
+  --projection=P      How 3D input is projected: z (default), x, y, random
+  --randomize-projection  Same as --projection=random
+  --exact-input       Refuse 3D input that cannot be projected exactly
+  --seed=N            Seed every random choice (N in [0, 2^64))
   -h, --help          Show this help.
 ```
   

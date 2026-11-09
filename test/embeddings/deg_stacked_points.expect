@@ -21,11 +21,12 @@
 # assertion also fired when integral coordinates were transformed by a
 # truncated, singular rotation matrix -- one bug behind three symptoms.
 #
-# NOT reachable from the CLI today: tools/knoodle_io.hpp binds
-# LinkEmbedding<Real,Int,float>, the float class, which handles this gracefully
-# (the tools report library errors and exit 1). It is reachable now by any
-# direct user of LinkEmbedding2/3/4, and it blocks the switchover those classes
-# are headed for.
+# NOT reachable from the CLI: since 2026-11 the tools drop a vertex that repeats
+# the one before it, exactly, before projecting (tools/knoodle_io.hpp,
+# DropRepeatedVertices), on the lattice and the floating-point path alike.
+# Before that, after the LinkEmbedding promotion, the CLI did reach it: shifted
+# off the lattice by +0.5 this fixture aborted every tool here (exit 134). It is
+# still reachable by any direct user of LinkEmbedding.
 note = two distinct zero-length edges sharing a projected point
 knot = unknot (a square with two doubled corners, pushed out of plane)
 

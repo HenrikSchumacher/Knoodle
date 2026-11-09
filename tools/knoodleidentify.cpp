@@ -2,8 +2,8 @@
  * @file knoodleidentify.cpp
  * @brief knoodleidentify - identify knot diagrams via the KLUT (Knot LookUp Table).
  *
- * Reads RAW knot/link diagrams (PD codes or 3D embeddings, same input formats as
- * knoodlesimplify) from stdin or files, runs the KLUT identify protocol on each
+ * Reads RAW knot/link diagrams (PD codes or 3D polygons, as knoodlesimplify reads
+ * them from a stream; a .kndlxyz file reads as it is) from stdin or files, runs the KLUT identify protocol on each
  * (decompose -> simplify -> escalate with Reapr -> look each prime summand up),
  * and emits one identification per input knot.
  *
@@ -70,7 +70,11 @@ struct Config
     bool expanded       = false;             ///< '#'-joined per-summand output
     bool tsv            = false;             ///< Per-summand TSV output
     bool quiet          = false;             ///< Suppress stderr summary/warnings
-    bool randomize_projection = false;       ///< Apply random shear to 3D geometry projection
+    InputOptions input_options;              ///< --projection, --exact-input
+    std::optional<std::uint64_t> seed;       ///< --seed (else one is drawn at startup)
+    std::optional<Energy_T> reapr_energy;    ///< --reapr-energy (else Reapr's default)
+    std::optional<double>   reapr_scaling;   ///< --reapr-scaling (else Reapr's default)
+    std::optional<Int>      reapr_z_grid_size; ///< --reapr-z-grid-size (else Reapr's scaled levels)
     bool verify_tables  = false;             ///< Check the tables in full, report, read no input
     bool allow_other_tables = false;         ///< Accept a table set other than kKlutTableSet
     ki::Size_T escalation_rounds = ki::IdentifyParams{}.cap;      ///< Reapr escalation rounds per candidate
@@ -96,10 +100,12 @@ void PrintUsage()
         "  knoodleidentify diagrams.tsv       # identify diagrams from a file\n"
         "  knoodleidentify                    # read diagrams from the terminal (Ctrl-D)\n"
         "\n"
-        "Reads RAW knot/link diagrams (PD codes or 3D embeddings, same formats as\n"
-        "knoodlesimplify; 'k' separates diagrams) from stdin or the given files,\n"
-        "runs the KLUT identify protocol on each (decompose, simplify, escalate\n"
-        "with Reapr, look each prime summand up), and writes one line per knot.\n"
+        "Reads RAW knot/link diagrams from stdin or the given files, 'k' between\n"
+        "diagrams: PD codes (4-7 columns, as knoodlesimplify reads them) or 3D\n"
+        "polygons (3 columns; a blank line starts a new link component, so a\n"
+        ".kndlxyz file reads as it is). It runs the KLUT identify protocol on\n"
+        "each (decompose, simplify, escalate with Reapr, look each prime summand\n"
+        "up), and writes one line per knot.\n"
         "\n"
         "Self-contained: it simplifies internally -- feed it the SAME stream you\n"
         "would feed knoodlesimplify (generator | knoodleidentify), not the output\n"
@@ -146,16 +152,42 @@ void PrintUsage()
         "                      table range + 3): a fixpoint near table range\n"
         "                      plausibly hides a table knot, one far above it\n"
         "                      does not. Set large to disable banding.\n"
-        "  --rotation-trials=N Reprojections per embedding during escalation\n"
-        "                      (default 5).\n"
+        "  --reapr-rotation-trials=N  Reprojections per embedding during escalation\n"
+        "                      (default 5). --rotation-trials=N is the same flag.\n"
+        "  --reapr-energy=E    Reapr's energy for the escalation embeddings:\n"
+        "                      " + ValidEnergies() + " (default: TV)\n"
+        "  --reapr-scaling=X   Reapr's 3D grid scaling (default: 1.0)\n"
+        "  --reapr-z-grid-size=N  Put consecutive levels of Reapr's embeddings N\n"
+        "                      units apart (z = N*level; its x and y grid is 20\n"
+        "                      units) instead of scaling them. Not with\n"
+        "                      --reapr-scaling.\n"
         "  --expanded          One line per knot, summands joined by ' # ' (uses\n"
         "                      the raw K[...] table names).\n"
         "  --tsv               Per-summand output: knot_index, summand_index,\n"
         "                      crossing_count, name (tab-separated).\n"
-        "  --quiet             Suppress the stderr summary and per-summand warnings.\n"
-        "                      Errors still print, and a NotFound still makes the\n"
-        "                      exit status nonzero.\n"
-        "  --randomize-projection  Apply random shear to 3D geometry projection.\n"
+        "  -q, --quiet         Suppress the stderr summary, the per-summand warnings\n"
+        "                      and the reading-from-the-terminal notice. Errors\n"
+        "                      still print, and a NotFound still makes the exit\n"
+        "                      status nonzero.\n"
+        "  --projection=P      How 3D input is projected (default: z): z, x or y\n"
+        "                      projects down that axis (exact); random after a\n"
+        "                      uniformly random rotation (exact for integer\n"
+        "                      coordinates). 3D input only: a PD code is\n"
+        "                      already a diagram, and is never embedded and\n"
+        "                      re-viewed from another side (for that, pipe\n"
+        "                      knoodledraw --embedding into --projection=x or y).\n"
+        "  --randomize-projection  Same as --projection=random. (3-column input\n"
+        "                      used to get a random shear instead, an oblique view\n"
+        "                      at most ~35 degrees off the z-axis; it now gets a\n"
+        "                      full rotation.)\n"
+        "  --exact-input       Refuse 3D input that cannot be projected exactly:\n"
+        "                      non-integer coordinates that do not land exactly on\n"
+        "                      Knoodle's integer grid, or that --projection=random\n"
+        "                      would have to rotate.\n"
+        "  --seed=N            Seed every random choice (N in [0, 2^64)): the\n"
+        "                      random projection and Reapr's escalation. The same\n"
+        "                      seed repeats a run on the same build, except for\n"
+        "                      Reapr's internal bend randomization.\n"
         "  -h, --help          Show this help.\n"
         "\n"
         "Knot symbols (default / --tsv); c=crossings, i=index, the third field is the\n"
@@ -205,10 +237,17 @@ constexpr std::string_view kKnownFlags[] = {
     "--escalation-rounds",
     "--escalation-band",
     "--rotation-trials",
+    "--reapr-rotation-trials",
+    "--reapr-energy",
+    "--reapr-scaling",
+    "--reapr-z-grid-size",
     "--expanded",
     "--tsv",
     "--quiet",
+    "--projection",
     "--randomize-projection",
+    "--exact-input",
+    "--seed",
     "--verify-tables",
     "--allow-other-tables",
 };
@@ -241,8 +280,7 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             if (!parsed || *parsed < 1 || *parsed > 64)
             {
                 LogError("Invalid --escalation-rounds (expected 1-64)");
-                config.help_requested = true;
-                return config;
+                return std::nullopt;
             }
             config.escalation_rounds = static_cast<ki::Size_T>(*parsed);
         }
@@ -252,21 +290,56 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             if (!parsed || *parsed < 0)
             {
                 LogError("Invalid --escalation-band (expected >= 0)");
-                config.help_requested = true;
-                return config;
+                return std::nullopt;
             }
             config.escalation_band = *parsed;
         }
-        else if (arg.starts_with("--rotation-trials="))
+        else if (arg.starts_with("--rotation-trials=")
+                 || arg.starts_with("--reapr-rotation-trials="))
         {
-            auto parsed = ParseInt(arg.substr(18));
+            const std::string_view value = arg.substr(arg.find('=') + 1);
+            auto parsed = ParseInt(value);
             if (!parsed || *parsed < 1 || *parsed > 1024)
             {
-                LogError("Invalid --rotation-trials (expected 1-1024)");
-                config.help_requested = true;
-                return config;
+                LogError("Invalid --reapr-rotation-trials (expected 1-1024)");
+                return std::nullopt;
             }
             config.rotation_trials = static_cast<ki::Size_T>(*parsed);
+        }
+        else if (arg.starts_with("--reapr-energy="))
+        {
+            const auto e = ParseEnergy(arg.substr(15));
+            if (!e)
+            {
+                LogError("Unknown --reapr-energy value: '" + std::string(arg.substr(15))
+                         + "' (valid: " + ValidEnergies() + ")");
+                return std::nullopt;
+            }
+            config.reapr_energy = *e;
+        }
+        else if (arg.starts_with("--reapr-scaling="))
+        {
+            const std::string value(arg.substr(16));
+            std::size_t used = 0;
+            double x = 0;
+            try { x = std::stod(value, &used); } catch (const std::exception&) { used = 0; }
+            if (used == 0 || used != value.size() || !(x > 0) || !std::isfinite(x))
+            {
+                LogError("Invalid --reapr-scaling (expected a positive number): " + value);
+                return std::nullopt;
+            }
+            config.reapr_scaling = x;
+        }
+        else if (arg.starts_with("--reapr-z-grid-size="))
+        {
+            const auto n = ParsePositiveInt(arg.substr(20));
+            if (!n)
+            {
+                LogError("Invalid --reapr-z-grid-size (expected a positive integer): "
+                         + std::string(arg.substr(20)));
+                return std::nullopt;
+            }
+            config.reapr_z_grid_size = *n;
         }
         else if (arg.starts_with("--max-crossings="))
         {
@@ -289,13 +362,39 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.tsv = true;
         }
-        else if (arg == "--quiet")
+        else if (arg == "--quiet" || arg == "-q")
         {
             config.quiet = true;
         }
+        else if (arg.starts_with("--projection="))
+        {
+            const auto p = ParseProjection(arg.substr(13));
+            if (!p)
+            {
+                LogError("Unknown --projection value: '" + std::string(arg.substr(13))
+                         + "' (valid: z, x, y, random)");
+                return std::nullopt;
+            }
+            config.input_options.projection = *p;
+        }
         else if (arg == "--randomize-projection")
         {
-            config.randomize_projection = true;
+            config.input_options.projection = Projection_T::Random;
+        }
+        else if (arg == "--exact-input")
+        {
+            config.input_options.exact_input = true;
+        }
+        else if (arg.starts_with("--seed="))
+        {
+            const auto seed = ParseSeed(arg.substr(7));
+            if (!seed)
+            {
+                LogError("Invalid --seed value: '" + std::string(arg.substr(7))
+                         + "' (a decimal integer from 0 to 2^64 - 1)");
+                return std::nullopt;
+            }
+            config.seed = *seed;
         }
         else if (arg == "--verify-tables")
         {
@@ -317,6 +416,12 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         }
     }
 
+    if (config.reapr_z_grid_size && config.reapr_scaling)
+    {
+        LogError("--reapr-z-grid-size and --reapr-scaling both set Reapr's z spacing;"
+                 " use one or the other");
+        return std::nullopt;
+    }
     if (config.verify_tables && !config.input_files.empty())
     {
         LogError("--verify-tables checks the KLUT tables and reads no input; "
@@ -1469,7 +1574,7 @@ StreamEnd ProcessStream(std::istream& input, const std::string& source_name,
 
     while (!reached_eof)
     {
-        auto input_knot = ReadKnot(input, config.randomize_projection, rng, source_name, reached_eof);
+        auto input_knot = ReadKnot(input, config.input_options, rng, source_name, reached_eof);
 
         if (!input_knot)
         {
@@ -1495,16 +1600,31 @@ StreamEnd ProcessStream(std::istream& input, const std::string& source_name,
         const Int input_crossings =
             (pdc.DiagramCount() > Int(0)) ? pdc.CrossingCount() : Int(0);
 
-        ki::IdentifyParams params;
-        params.cap     = config.escalation_rounds;
-        params.deep_cx = config.escalation_band;
-        params.rot     = config.rotation_trials;
-        // A knot above --max-crossings is over this run's table range, so it is
-        // Unidentified, not a "table gap" NotFound.
-        params.max_cx  = config.max_crossings;
+        // 3D input knows its component count exactly. A split link -- a knot
+        // beside a distant circle, say -- projects to the knot's diagram plus
+        // a crossingless component, and the crossingless one carries no
+        // diagram for Identify to count, so it would pass for the knot.
+        const bool link_3d = input_knot->had_3d_geometry
+                          && input_knot->component_count_3d > Int(1);
 
-        ki::IdentifyResult res =
-            ki::Identify(klut, std::move(pdc), reapr, params);
+        ki::IdentifyResult res;
+
+        if (link_3d)
+        {
+            res.status = ki::IdentifyResult::Status::LinkOutOfScope;
+        }
+        else
+        {
+            ki::IdentifyParams params;
+            params.cap     = config.escalation_rounds;
+            params.deep_cx = config.escalation_band;
+            params.rot     = config.rotation_trials;
+            // A knot above --max-crossings is over this run's table range, so it is
+            // Unidentified, not a "table gap" NotFound.
+            params.max_cx  = config.max_crossings;
+
+            res = ki::Identify(klut, std::move(pdc), reapr, params);
+        }
 
         // A subtable that would not load is the table's fault, not the
         // diagram's: report it as such rather than as NotFound, and print
@@ -1706,8 +1826,17 @@ int main(int argc, char* argv[])
         ChooseDiagnosticDir("knoodleidentify", /*streaming_mode=*/true, std::nullopt);
     const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
 
-    ki::Reapr_T reapr{};
-    Knoodle::PRNG_T rng = Knoodle::InitializedRandomEngine<Knoodle::PRNG_T>();
+    // Every random choice follows from this one seed (see SeededEngine): the
+    // random projection draws from rng, and Reapr from an engine drawn from it.
+    g_run_seed = config.seed.value_or(FreshSeed());
+    Knoodle::PRNG_T rng = SeededEngine(g_run_seed);
+
+    ki::Reapr_T::Settings_T reapr_settings;
+    if (config.reapr_energy)  { reapr_settings.energy  = *config.reapr_energy; }
+    if (config.reapr_scaling) { reapr_settings.scaling = static_cast<Real>(*config.reapr_scaling); }
+    if (config.reapr_z_grid_size) { reapr_settings.z_grid_size = *config.reapr_z_grid_size; }
+    ki::Reapr_T reapr(reapr_settings);
+    reapr.RandomEngine() = DerivedEngine(rng);
 
     Stats stats;
     bool success = true;
@@ -1717,7 +1846,7 @@ int main(int argc, char* argv[])
     {
         // Unix filter: no files -> read stdin. If stdin is an interactive terminal
         // (no pipe/redirect), say so, so a bare invocation does not just look hung.
-        if (StdinIsInteractive())
+        if (StdinIsInteractive() && !config.quiet)
         {
             Log("knoodleidentify: reading diagrams from stdin (Ctrl-D to end). "
                 "Pipe a stream or pass a file; --help for usage.");
