@@ -68,8 +68,8 @@ examples/Example_Knoodle/Diagram_Simplify3.txt
 examples/Example_Knoodle/Diagram_Simplify4.txt
 examples/Example_Knoodle/Diagram_Simplify5.txt
 examples/Example_Knoodle/Diagram_unsimplified.txt
-examples/Example_Knoodle/Knoodle/Tools_Log.txt
-examples/Example_Knoodle/Knoodle/Tools_Profile.tsv
+examples/Example_Knoodle/Tools_Log.txt
+examples/Example_Knoodle/Tools_Profile.tsv
 
 
 tools/ExampleKnot_simplified.tsv
