@@ -38,7 +38,26 @@ public:
             return;
         }
 //        failedQ = (!ifstream(k_file).good()) || (!ifstream(v_file).good());
-        failedQ = (!std::filesystem::exists(k_file)) || (!std::filesystem::exists(v_file));
+        
+        // A missing file is not an error: the table just stops short of this
+        // many crossings (see Klut's constructor). A file that cannot even be
+        // checked -- e.g., under a directory without search permission -- is;
+        // and the throwing overload of exists would escape this constructor.
+        std::error_code k_ec;
+        std::error_code v_ec;
+        const bool k_existsQ = std::filesystem::exists(k_file, k_ec);
+        const bool v_existsQ = std::filesystem::exists(v_file, v_ec);
+        
+        if( k_ec )
+        {
+            eprint(ClassName(), "(", crossing_count, "): Could not check for ", k_file.string(), ": ", k_ec.message(), ". Aborting with fail.");
+        }
+        if( v_ec )
+        {
+            eprint(ClassName(), "(", crossing_count, "): Could not check for ", v_file.string(), ": ", v_ec.message(), ". Aborting with fail.");
+        }
+        
+        failedQ = !k_existsQ || !v_existsQ;
     }
     
     
@@ -94,39 +113,56 @@ private:
         ID_T id = 0;
         Size_T counter = 0;
         
-        while( v_stream )
+        while( true )
         {
             Name_T knot_name;
-            Size_T knot_count;
+            Size_T knot_count = 0;
             
-            v_stream >> knot_name;
+            if( !(v_stream >> knot_name) )
+            {
+                // Only a clean end of file ends the table.
+                if( v_stream.eof() ) { break; }
             
-            if( v_stream.eof() ) { break; }
+                eprint(tag(), ": Could not read entry ", knot_names.size() + Size_T(1), " of ", v_file.string(), ". Aborting with incomplete table." );
+                Fail();
+                return;
+            }
             
-            v_stream >> knot_count;
+            // A count that does not parse must not silently end the table.
+            if( !(v_stream >> knot_count) || (knot_count == Size_T(0)) )
+            {
+                eprint(tag(), ": ", v_file.string(), " gives no valid key count for ", knot_name, ". Aborting with incomplete table." );
+                Fail();
+                return;
+            }
             
             knot_names.push_back( std::move(knot_name) );
             
             for( Size_T i = 0; i < knot_count; ++i )
             {
-                if( !k_stream )
-                {
-                    eprint(tag(), ": Problem while reading ", counter, "-th key from ", k_file.string(), ". Aborting with incomplete table." );
-                    
-                    TOOLS_LOGDUMP(k_stream.good());
-                    TOOLS_LOGDUMP(k_stream.fail());
-                    TOOLS_LOGDUMP(k_stream.bad());
-                    TOOLS_LOGDUMP(k_stream.eof());
-                    failedQ = true;
-                    return;
-                }
-                
                 Key_T key = {};
                 // Read c_count bytes from the stream.
                 k_stream.read( reinterpret_cast<char *>(&key[0]),
                               static_cast<std::streamsize>(c_count) );
 
-                lut.insert( std::pair{std::move(key), id} );
+                // Check the read itself, not the stream before it: a short read
+                // at the end of the file would insert a zero-padded key.
+                if( k_stream.gcount() != static_cast<std::streamsize>(c_count) )
+                {
+                    eprint(tag(), ": ", k_file.string(), " ends after ", counter, " keys, but ", v_file.string(), " lists more (", knot_names.back(), " has ", knot_count, "). Aborting with incomplete table." );
+                    Fail();
+                    return;
+                }
+                
+                // A key with two entries leaves one of them unreachable.
+                const auto [it, insertedQ] = lut.insert( std::pair{std::move(key), id} );
+                
+                if( !insertedQ )
+                {
+                    eprint(tag(), ": Key ", counter, " of ", k_file.string(), " (for ", knot_names.back(), ") repeats a key of ", knot_names[it->second], ". Aborting with incomplete table." );
+                    Fail();
+                    return;
+                }
                 
                 ++counter;
                 
@@ -135,7 +171,24 @@ private:
             ++id;
         }
 
+        // Every key must belong to an entry of the values file.
+        if( k_stream.peek() != std::ifstream::traits_type::eof() )
+        {
+            eprint(tag(), ": ", k_file.string(), " holds more than the ", counter, " keys listed in ", v_file.string(), ". Aborting with incomplete table." );
+            Fail();
+            return;
+        }
+        
         loadedQ = !failedQ;
+    }
+    
+    // Fail without leaving a partial table behind: SubtableNames, SubtableIDs,
+    // and SubtableCodes export whatever is loaded.
+    void Fail()
+    {
+        lut.clear();
+        knot_names.clear();
+        failedQ = true;
     }
     
 public:

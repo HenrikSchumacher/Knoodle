@@ -73,6 +73,7 @@ klut_check	test	homfly_umfpack	-	--up-to-crossing=8	-	klut_check: [1-9][0-9]* ke
 klut_e2e	test	plain	-	--up-to-crossing=8 --per-crossing=3	-	sampled [1-9][0-9]* of [1-9][0-9]* keys
 klut_identify_check	test	umfpack	-	-	-	-
 klut_identify_random_check	test	umfpack	-	-	-	-
+klut_loader_check	test	plain	-	-	-	KLUT LOADER CHECK OK \([1-9][0-9]* checks, 0 failed\)
 link_alex_probe	test	umfpack	-	-	-	-
 link_color_roundtrip	test	plain	-	-	-	-
 link_inflate_check	test	homfly_umfpack	-	--trials=1 --target=3000	--trials=3	link_inflate_check: [1-9][0-9]*/[1-9][0-9]* trials passed

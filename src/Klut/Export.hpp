@@ -7,7 +7,7 @@ std::vector<std::string> SubtableNames( const Int n )
     
     if( std::cmp_less(n,0) || std::cmp_greater(c,CrossingCount()) )
     {
-        std::vector<std::string>();
+        return std::vector<std::string>();
     }
     
     Subtable & s = subtables[c];

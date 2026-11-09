@@ -25,6 +25,20 @@ report is caught. The only gap left is a flipped bit in a keys file that makes
 no duplicate key: an ordinary run misses it, and `--verify-tables` catches it.
 The S1–S5 PR waits for a discussion with JHC.*
 
+*Status, update 2: JHC asked for the loader fixes as a PR to Henrik, on the
+grounds that a tool used for exhaustive tabulation and computer-assisted proofs
+should be as robust as it can be made. Branch `klut-loader-checks` fixes S1–S5
+and two more found while testing them: S6, `SubtableNames` reads past the end
+of the subtables when asked for too many crossings (a missing `return`); and
+S2b, a values file whose last name has no count left `knot_count`
+uninitialized, so the old loader went on with whatever value it held. S4 is now
+an error, not first-wins. For S5, a missing file stays silent, as Klut's
+constructor documents; a file that cannot be checked is an error instead of an
+exception. A failed subtable now also exports nothing (before, `SubtableNames`
+and friends handed out the half it had read). `test/klut_loader_check` drives
+`Klut` directly on damaged copies of the 3- and 4-crossing tables: the old
+loader fails 27 of its 47 checks, the new one none.*
+
 ## Summary
 
 `knoodleidentify` trusts whatever files it finds. It never checks their size,
@@ -329,6 +343,7 @@ one curated minimal diff on an experimental branch, with a demo, at merge time.
 | S3 | keys left after the last count are ignored | fail unless `k_stream.peek() == EOF` | 2 lines |
 | S4 | duplicate keys are first-wins (left trefoil → right trefoil) | fail when `lut.insert(...).second` is false | 3 lines |
 | S5 | constructor marks missing files failed without saying so; uses throwing `fs::exists` | `eprint` the missing file; non-throwing `exists` | 3 lines |
+| S6 | `SubtableNames` out of range falls through (missing `return`) and indexes past the end of `subtables` | add the `return` | 1 line |
 
 ### Homebrew formula (`cantarellalab`, downstream)
 
