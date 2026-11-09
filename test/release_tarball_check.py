@@ -27,9 +27,9 @@ Two depths, because the light tier reduces rather than skips:
       KNOODLE_VERSION unset so the makefiles must find the tarball's VERSION;
     * run the formula's checks against those binaries: every tool's --help,
       knoodleidentify finding the KLUT next to itself from a scratch directory
-      and naming a 3- and a 13-crossing knot from it (an empty input, which is
-      what the formula runs, loads no subtable), and the PolyFold smoke run;
-      and each binary reports the tarball's version.
+      and naming a 3- and a 13-crossing knot from it, knoodleidentify
+      --verify-tables (every table file against Klut_Manifest.txt), and the
+      PolyFold smoke run; and each binary reports the tarball's version.
 
 The heavy build compiles every tool from scratch (minutes) and needs git-lfs,
 Boost and SuiteSparse. That is the heavy tier's job; the light tier and CI get
@@ -176,6 +176,8 @@ def build_checks(ship):
         keys = os.path.join(root, "data", "Klut", "Klut_Keys_13.bin")
         size = os.path.getsize(keys) if os.path.exists(keys) else 0
         check(size > 1_000_000, f"the KLUT keys are real data, not LFS pointers ({size} bytes)")
+        check(os.path.exists(os.path.join(root, "data", "Klut", "Klut_Manifest.txt")),
+              "the KLUT manifest ships with the tables")
 
         section("build from the unpacked tree")
         env = dict(os.environ)
@@ -232,6 +234,15 @@ def build_checks(ship):
         check(p.stdout.split() == ['K[3,1,1,"e/r"]', 'K[13,1,1,"e/r"]'],
               "knoodleidentify names the trefoil and 13a1 from the tarball's KLUT",
               p.stdout + p.stderr)
+        check("warning" not in p.stderr, "knoodleidentify gives no warning about the tarball's KLUT",
+              p.stderr)
+
+        # Every table file against the manifest's SHA-256, and the table set
+        # against the one the binary was built for.
+        p = subprocess.run([os.path.join(root, "tools", "knoodleidentify"), "--verify-tables"],
+                           cwd=scratch, env=env, capture_output=True, text=True, timeout=300)
+        check(p.returncode == 0 and "verified: table set" in p.stdout,
+              "knoodleidentify --verify-tables passes on the tarball's KLUT", p.stdout + p.stderr)
 
         polyfold = os.path.join(root, "devel", "PolyFold", "polyfold")
         out = os.path.join(scratch, "pf")

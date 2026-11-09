@@ -15,6 +15,16 @@ duplicated key still pass silently. They need T7 (a checksum) or T1b (an eager
 load). A table swapped mid-run is now an error. Still open: T1b, T7, T9, the
 S1–S5 PR to Henrik, F1–F2 and P1–P3.*
 
+*Status, update: JHC then approved T1b, T7, T9 and the formula and paclet
+fixes, and they are implemented in the commit after the Batch A one (the
+formula and paclet changes are in their own repositories). T7 checks the
+values files' SHA-256 on every run and the keys files' only with
+`--verify-tables`, and refuses a table set other than the build's unless
+`--allow-other-tables`. With T1b and T7 together, every damage case in this
+report is caught. The only gap left is a flipped bit in a keys file that makes
+no duplicate key: an ordinary run misses it, and `--verify-tables` catches it.
+The S1–S5 PR waits for a discussion with JHC.*
+
 ## Summary
 
 `knoodleidentify` trusts whatever files it finds. It never checks their size,

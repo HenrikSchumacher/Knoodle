@@ -306,10 +306,20 @@ Options:
                       then ./data/Klut with a warning. The stderr summary
                       names the directory used. The tables are checked
                       before any input is read: missing, unreadable,
-                      truncated or malformed files, and Git LFS pointer
-                      files (run `git lfs pull` in a checkout), stop the
-                      run with exit status 1 and nothing on stdout.
+                      truncated or malformed files, Git LFS pointer
+                      files (run `git lfs pull` in a checkout), and files
+                      that disagree with Klut_Manifest.txt stop the run
+                      with exit status 1 and nothing on stdout.
   --max-crossings=N   Use subtables up to N crossings (3-13, default 13).
+                      A knot with more crossings is reported as
+                      Unidentified, as it is above 13 by default.
+  --verify-tables     Check the KLUT tables in full, including the
+                      SHA-256 of every file against Klut_Manifest.txt,
+                      print one line saying so, and exit (0 if they
+                      pass). Reads no input. For install checks.
+  --allow-other-tables  Use tables from a different table set than the
+                      one this build expects (Klut_Manifest.txt names
+                      the set). Knot numbering can differ between sets.
   --escalation-rounds=N  Max Reapr escalation rounds per candidate
                       (default 4)
   --escalation-band=C Rounds beyond the first 2 run only while the
@@ -338,8 +348,10 @@ Options:
   -h, --help          Show this help.
 ```
   
-The knot-symbol forms (in the default and --tsv output) are: KnotSymbol[c,i,a,"sym"] for an identified knot (c crossings, index i, alternating flag a, symmetry coset "sym"); Unidentified[N,PD] for a diagram with more than 13 crossings (over the table range); NotFound[N,PD] for a diagram of 13 or fewer crossings left unresolved after ReAPR (this should not happen, and it makes the exit status 1); Link[N] for multi-component input (the table is knots-only); and Invalid[] for an invalid diagram or internal error. Unknot summands are the connect-sum identity and are omitted.
+The knot-symbol forms (in the default and --tsv output) are: KnotSymbol[c,i,a,"sym"] for an identified knot (c crossings, index i, alternating flag a, symmetry coset "sym"); Unidentified[N,PD] for a diagram with more than 13 crossings, or more than `--max-crossings` (over the table range); NotFound[N,PD] for a diagram of 13 or fewer crossings left unresolved after ReAPR (this should not happen, and it makes the exit status 1); Link[N] for multi-component input (the table is knots-only); and Invalid[] for an invalid diagram or internal error. Unknot summands are the connect-sum identity and are omitted.
 
 The KLUT itself is about 23 MB of data in `data/Klut` (`Klut_Keys_NN.bin` and `Klut_Values_NN.tsv` for 3 to 13 crossings), stored in this repository with [Git LFS](https://git-lfs.com). The homebrew formula installs it alongside the tool. If you build _knoodleidentify_ from a git checkout, install git-lfs and run `git lfs pull` first: a clone made without Git LFS (CI checkouts with `lfs: false` included) holds small text pointer files in place of the tables. _knoodleidentify_ checks for these before loading anything and stops with an error that names the directory, rather than reporting every knot as `NotFound`.
 
-The same startup check catches tables that are missing, empty, unreadable, cut short, or not in the expected format, and stops before reading any input: a damaged table used to produce wrong knot names with exit status 0. It cannot see damage that leaves the files' structure intact, such as a single changed digit in a knot's index; [docs/klut-table-failure-audit.md](docs/klut-table-failure-audit.md) lists what is and is not caught. If you keep more than one copy of the tables, the last line of the stderr summary says which directory answered.
+The same startup check catches tables that are missing, empty, unreadable, cut short, or not in the expected format, and stops before reading any input: a damaged table used to produce wrong knot names with exit status 0. _knoodleidentify_ then loads every table, which takes about 55 ms, and checks that no key was lost to a duplicate. `data/Klut/Klut_Manifest.txt` lists each table file's size and SHA-256 and names the table set. Every run checks the tables' sizes and the values files' SHA-256 against it, and `knoodleidentify --verify-tables` checks every file's SHA-256 (use it after installing or copying the tables). A table set other than the one the program was built for is refused unless you pass `--allow-other-tables`, because knot numbering can change between table sets. Tables without a manifest get a warning. [docs/klut-table-failure-audit.md](docs/klut-table-failure-audit.md) lists what each check catches. If you keep more than one copy of the tables, the last line of the stderr summary says which directory answered, and which table set.
+
+If you change the tables, run `scripts/klut-manifest.py` to rewrite the manifest and `tools/klut_table_set.hpp`, then rebuild.
