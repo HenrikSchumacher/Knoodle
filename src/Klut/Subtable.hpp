@@ -64,17 +64,22 @@ public:
         std::error_code k_ec;
         std::error_code v_ec;
 
-        if( !std::filesystem::exists(k_file, k_ec) )
+        // exists(path, ec) returns false for a missing file too, with ec CLEAR.
+        // Only a set ec means the check itself failed.
+        const bool k_existsQ = std::filesystem::exists(k_file, k_ec);
+        const bool v_existsQ = std::filesystem::exists(v_file, v_ec);
+
+        if( k_ec )
         {
             Msgr::eprint( "Subtable()", "Could not check for ", k_file, ": ", k_ec.message(), ". Aborting with fail.");
-            failedQ = true;
         }
 
-        if( !std::filesystem::exists(v_file, v_ec) )
+        if( v_ec )
         {
             Msgr::eprint( "Subtable()", "Could not check for ", v_file, ": ", v_ec.message(), ". Aborting with fail.");
-            failedQ = true;
         }
+
+        failedQ = !k_existsQ || !v_existsQ;
     }
     
     
