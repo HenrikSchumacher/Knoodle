@@ -4,6 +4,17 @@
 LFS-pointer check, committed locally and not pushed). This is an audit only:
 nothing here changes behaviour yet. The fixes in the last section wait for JHC.*
 
+*Status, later on 2026-11-08: JHC approved Batch A, and the commit after this
+report implements it (T1–T6, T8 in its pre-manifest form, T10, and
+`test/klut_table_check.py`). The results below describe the tool before that
+commit. Of the six silent wrong-name cases in the summary, three are now
+refused at startup: the count-digit flip, the 4 KiB zero fill, and the tested
+name-digit flip (it happened to duplicate another name; a flip to an unused
+index would still pass). The alternating-flag flip, the reordered names and the
+duplicated key still pass silently. They need T7 (a checksum) or T1b (an eager
+load). A table swapped mid-run is now an error. Still open: T1b, T7, T9, the
+S1–S5 PR to Henrik, F1–F2 and P1–P3.*
+
 ## Summary
 
 `knoodleidentify` trusts whatever files it finds. It never checks their size,

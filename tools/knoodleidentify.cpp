@@ -107,11 +107,17 @@ void PrintUsage()
         "\n"
         "Options:\n"
         "  --data-dir=PATH     KLUT data directory containing Klut_Keys_NN.bin\n"
-        "                      and Klut_Values_NN.tsv. Default: $KNOODLE_KLUT_DIR,\n"
-        "                      else data/Klut next to this executable's parent,\n"
-        "                      else ./data/Klut. The tables are stored with Git\n"
-        "                      LFS: in a git checkout, run `git lfs pull` first.\n"
-        "                      A directory of LFS pointer files is refused.\n"
+        "                      and Klut_Values_NN.tsv. If this or $KNOODLE_KLUT_DIR\n"
+        "                      is given, it is the only place looked (a wrong one\n"
+        "                      is an error). Otherwise: ../share/knoodle/Klut,\n"
+        "                      then ../data/Klut, both relative to the directory\n"
+        "                      holding the real executable (symlinks resolved),\n"
+        "                      then ./data/Klut with a warning. The stderr summary\n"
+        "                      names the directory used. The tables are checked\n"
+        "                      before any input is read: missing, unreadable,\n"
+        "                      truncated or malformed files, and Git LFS pointer\n"
+        "                      files (run `git lfs pull` in a checkout), stop the\n"
+        "                      run with exit status 1 and nothing on stdout.\n"
         "  --max-crossings=N   Use subtables up to N crossings (3-13, default 13).\n"
         "  --escalation-rounds=N  Max Reapr escalation rounds per candidate\n"
         "                      (default 4). Each round doubles embedding trials.\n"
@@ -130,6 +136,8 @@ void PrintUsage()
         "  --tsv               Per-summand output: knot_index, summand_index,\n"
         "                      crossing_count, name (tab-separated).\n"
         "  --quiet             Suppress the stderr summary and per-summand warnings.\n"
+        "                      Errors still print, and a NotFound still makes the\n"
+        "                      exit status nonzero.\n"
         "  --randomize-projection  Apply random shear to 3D geometry projection.\n"
         "  -h, --help          Show this help.\n"
         "\n"
@@ -138,7 +146,8 @@ void PrintUsage()
         "  KnotSymbol[c,i,a,\"sym\"]  identified knot; a (alternating) is True/False\n"
         "  Unidentified[N,PD]       N>13 crossings, over the table range; PD = signed\n"
         "                           PD code of the unresolved diagram (for analysis)\n"
-        "  NotFound[N,PD]           <=13 yet unresolved after Reapr (suspicious!); PD too\n"
+        "  NotFound[N,PD]           <=13 yet unresolved after Reapr (suspicious!); PD too;\n"
+        "                           exit status 1\n"
         "  Link[N]                  multi-component input (the table is knots-only)\n"
         "  Invalid[]                invalid diagram / internal error\n"
         "  (unknot summands are the connect-sum identity and are omitted)\n"
@@ -324,130 +333,429 @@ std::filesystem::path SelfExecutablePath()
 #endif
 }
 
+/// The KLUT directory in use, and how it was chosen (for messages and the summary).
+struct DataDir
+{
+    std::filesystem::path path;
+    std::string           source;   ///< e.g. "--data-dir", "next to the executable"
+};
+
+/// What a candidate directory turned out to be.
+enum class Probe { Found, Absent, Unreadable };
+
+/**
+ * @brief Does `dir` hold a KLUT? Never throws.
+ *
+ * The throwing std::filesystem::exists() turns "permission denied" into an
+ * uncaught filesystem_error, i.e. abort() -- a crash, and a crash report on
+ * macOS -- so use the error_code overload and report the error instead.
+ * Not-a-directory and does-not-exist both come back as Absent.
+ */
+Probe ProbeDataDir(const std::filesystem::path& dir, std::string& why)
+{
+    std::error_code ec;
+    const bool there = std::filesystem::exists(dir / "Klut_Values_03.tsv", ec);
+    if (ec) { why = ec.message(); return Probe::Unreadable; }
+    return there ? Probe::Found : Probe::Absent;
+}
+
 /**
  * @brief Resolve the KLUT data directory.
  *
- * Search order (first hit wins):
- *   1. --data-dir=PATH                        (explicit override)
- *   2. $KNOODLE_KLUT_DIR                       (explicit override)
+ * An explicit choice is the only candidate, so a wrong one is an error rather
+ * than a quiet switch to some other table set:
+ *   1. --data-dir=PATH
+ *   2. $KNOODLE_KLUT_DIR                       (if set and non-empty)
+ * Otherwise, first hit wins:
  *   3. <exe_dir>/../share/knoodle/Klut         (FHS install: bin/ <-> ../share/)
  *   4. <exe_dir>/../data/Klut                  (in-tree build: tools/ <-> ../data/)
  *   5. KNOODLE_KLUT_DIR compile-time default   (baked-in prefix, if defined)
- *   6. ./data/Klut                             (CWD, dev convenience only)
+ *   6. ./data/Klut                             (CWD, dev convenience; warns)
  *
  * Candidates 3-4 are anchored to the *real* executable path, not argv[0] or the
- * CWD, so a from-$PATH invocation of an installed binary resolves correctly.
+ * CWD, so a from-$PATH invocation of an installed binary resolves correctly. A
+ * candidate that exists but cannot be read stops the search with an error:
+ * it means a broken install, not an absent one.
  */
-std::optional<std::filesystem::path> ResolveDataDir(const Config& config)
+std::optional<DataDir> ResolveDataDir(const Config& config)
 {
     namespace fs = std::filesystem;
 
-    std::vector<fs::path> candidates;
+    std::string why;
+
+    const auto only = [&why](const fs::path& dir, const std::string& source)
+        -> std::optional<DataDir>
+    {
+        switch (ProbeDataDir(dir, why))
+        {
+            case Probe::Found:
+                return DataDir{dir, source};
+            case Probe::Unreadable:
+                LogError("Cannot read the KLUT directory " + dir.string()
+                         + " (given by " + source + "): " + why + ".");
+                return std::nullopt;
+            case Probe::Absent:
+                LogError("Could not find KLUT tables in " + dir.string()
+                         + " (given by " + source + "): there is no "
+                           "Klut_Values_03.tsv there.");
+                LogError("Point " + source + " at a directory holding "
+                         "Klut_Keys_NN.bin and Klut_Values_NN.tsv (data/Klut "
+                         "in a Knoodle checkout).");
+                return std::nullopt;
+        }
+        return std::nullopt;
+    };
 
     if (config.data_dir)
     {
-        candidates.emplace_back(*config.data_dir);
+        return only(*config.data_dir, "--data-dir");
     }
-    else
+    if (const char* env = std::getenv("KNOODLE_KLUT_DIR"); env != nullptr && *env != '\0')
     {
-        if (const char* env = std::getenv("KNOODLE_KLUT_DIR"))
-        {
-            candidates.emplace_back(env);
-        }
+        return only(env, "$KNOODLE_KLUT_DIR");
+    }
 
-        fs::path exe = SelfExecutablePath();
-        if (!exe.empty() && exe.has_parent_path())
-        {
-            const fs::path exe_dir = exe.parent_path();
-            // Installed layout: <prefix>/bin/knoodleidentify next to
-            // <prefix>/share/knoodle/Klut (Homebrew keg, make install PREFIX=...).
-            candidates.push_back(exe_dir.parent_path() / "share" / "knoodle" / "Klut");
-            // In-tree build: tools/knoodleidentify next to <repo>/data/Klut.
-            candidates.push_back(exe_dir.parent_path() / "data" / "Klut");
-        }
+    std::vector<DataDir> candidates;
+
+    fs::path exe = SelfExecutablePath();
+    if (!exe.empty() && exe.has_parent_path())
+    {
+        const fs::path exe_dir = exe.parent_path();
+        // Installed layout: <prefix>/bin/knoodleidentify next to
+        // <prefix>/share/knoodle/Klut (Homebrew keg, make install PREFIX=...).
+        candidates.push_back({exe_dir.parent_path() / "share" / "knoodle" / "Klut",
+                              "next to the executable"});
+        // In-tree build: tools/knoodleidentify next to <repo>/data/Klut.
+        candidates.push_back({exe_dir.parent_path() / "data" / "Klut",
+                              "next to the executable"});
+    }
 
 #ifdef KNOODLE_KLUT_DIR
-        // Optional build-time default (e.g. -DKNOODLE_KLUT_DIR=/usr/local/share/...).
-        candidates.emplace_back(KNOODLE_KLUT_DIR);
+    // Optional build-time default (e.g. -DKNOODLE_KLUT_DIR=/usr/local/share/...).
+    candidates.push_back({KNOODLE_KLUT_DIR, "the compiled-in default"});
 #endif
 
-        // Last-ditch dev convenience: relative to the current directory.
-        candidates.push_back(fs::path("data") / "Klut");
-    }
+    // Last-ditch dev convenience: relative to the current directory.
+    candidates.push_back({fs::path("data") / "Klut", "the current directory"});
 
-    for (const fs::path& dir : candidates)
+    for (const DataDir& cand : candidates)
     {
-        // The 3-crossing subtable always exists in a valid KLUT directory.
-        if (fs::exists(dir / "Klut_Values_03.tsv"))
+        switch (ProbeDataDir(cand.path, why))
         {
-            return dir;
+            case Probe::Found:
+                if (cand.source == "the current directory")
+                {
+                    // Not an error, but an answer from whatever data/Klut happens
+                    // to sit in the CWD (an old checkout, say) should not pass
+                    // unannounced, so this prints even under --quiet.
+                    std::error_code ec;
+                    const fs::path abs = fs::absolute(cand.path, ec);
+                    Log("knoodleidentify: warning: no KLUT next to this executable; "
+                        "using " + (ec ? cand.path : abs).string()
+                        + " from the current directory.");
+                    return DataDir{ec ? cand.path : abs, cand.source};
+                }
+                return cand;
+            case Probe::Unreadable:
+            {
+                std::error_code ec;
+                const fs::path abs = fs::absolute(cand.path, ec);
+                LogError("Cannot read the KLUT directory " + (ec ? cand.path : abs).string()
+                         + " (" + cand.source + "): " + why + ".");
+                return std::nullopt;
+            }
+            case Probe::Absent:
+                break;
         }
     }
 
     LogError("Could not find KLUT data directory. Tried:");
-    for (const fs::path& dir : candidates)
+    for (const DataDir& cand : candidates)
     {
-        LogError("  " + dir.string());
+        LogError("  " + cand.path.string());
     }
     LogError("Specify one with --data-dir=PATH or $KNOODLE_KLUT_DIR.");
     return std::nullopt;
 }
 
+//==============================================================================
+// Table check: refuse damaged tables before reading any input
+//==============================================================================
+//
+// Klut trusts its files. Its reader (src/Klut/Subtable.hpp) does not notice a
+// missing or unreadable file until the first diagram of that size arrives, a
+// count that fails to parse silently ends the table, and a key file that is one
+// key short or has keys left over passes unremarked. Damage of that kind does
+// not come back as an error: it comes back as NotFound, or as a wrong knot name
+// -- a one-bit flip in one count shifts every later knot's keys and misnames
+// 33,813 of them (docs/klut-table-failure-audit.md). So before anything is
+// identified, check what can be checked without loading the tables: every file
+// is there and readable, each values file parses strictly, and each keys file is
+// exactly as long as its values file says. That costs a read of the ~0.85 MB of
+// values files and a stat of each keys file.
+//
+// This does not catch damage that keeps the structure intact (a flipped digit
+// in a knot's index, a flipped bit inside a key, a values file regenerated in a
+// different order). Only a checksum can see those.
+
 /**
- * @brief Refuse a KLUT directory whose tables are Git LFS pointer files.
+ * @brief Is `name` a well-formed table name for crossing number `c`?
  *
- * data/Klut is stored with Git LFS. A checkout made without it (no git-lfs
- * installed, GIT_LFS_SKIP_SMUDGE=1, actions/checkout with lfs: false) holds
- * ~130-byte text stubs in place of the tables, each starting with the line
- * "version https://git-lfs.github.com/spec/v1". Klut reads those without
- * complaint and then misses every lookup, so a plain trefoil comes back as
- * NotFound[3, ...] with a "table gap?" warning -- an answer that blames the
- * table rather than the checkout. Look at the files before loading them.
- *
- * Only the subtables up to max_crossings are checked: those are the ones Klut
- * will read. A missing file is not this function's business.
- *
- * @return true if no table file in `dir` is an LFS pointer; otherwise false,
- *         after saying which directory and what to do.
+ * K[c,i,j,"coset"]: c this subtable's crossing number; i >= 1 with no leading
+ * zero; j the alternating flag, 0 or 1; coset a '/'-joined set of distinct
+ * symmetries from e, r, m, mr.
  */
-bool KlutTablesAreReal(const std::filesystem::path& dir, Int max_crossings)
+bool ValidKlutName(std::string_view name, Int c)
+{
+    const std::string head = "K[" + std::to_string(c) + ",";
+    if (!name.starts_with(head) || !name.ends_with("\"]")) { return false; }
+
+    std::string_view rest = name.substr(head.size(), name.size() - head.size() - 2);
+
+    const std::size_t comma = rest.find(',');
+    if (comma == std::string_view::npos) { return false; }
+    const std::string_view index = rest.substr(0, comma);
+    if (index.empty() || index.size() > 9 || index[0] == '0') { return false; }
+    for (char ch : index) { if (ch < '0' || ch > '9') { return false; } }
+
+    rest = rest.substr(comma + 1);                       // j,"coset
+    if (rest.size() < 4 || (rest[0] != '0' && rest[0] != '1')
+        || rest[1] != ',' || rest[2] != '"') { return false; }
+
+    std::string_view coset = rest.substr(3);
+    std::vector<std::string_view> seen;
+    while (true)
+    {
+        const std::size_t slash = coset.find('/');
+        const std::string_view part = coset.substr(0, slash);
+        if (part != "e" && part != "r" && part != "m" && part != "mr") { return false; }
+        if (std::find(seen.begin(), seen.end(), part) != seen.end()) { return false; }
+        seen.push_back(part);
+        if (slash == std::string_view::npos) { break; }
+        coset = coset.substr(slash + 1);
+    }
+    return true;
+}
+
+/**
+ * @brief Strictly parse one Klut_Values_NN.tsv.
+ *
+ * Every line is `name<TAB>count<LF>`, printable ASCII, with a valid name for
+ * crossing number `c`, a positive count, and no name twice. On success fills
+ * `names` (in file order, so names[id] is knot id's name) and `total` (the sum
+ * of the counts, i.e. the number of keys the keys file must hold).
+ *
+ * @return "" on success, else what is wrong, with the line number.
+ */
+std::string ParseKlutValues(const std::string& text, const std::string& file, Int c,
+                            std::vector<std::string>& names, std::uint64_t& total)
+{
+    if (text.empty()) { return file + ": empty"; }
+    if (text.back() != '\n') { return file + ": does not end with a newline (truncated?)"; }
+
+    std::map<std::string_view, std::size_t> first_line;
+    std::size_t pos = 0;
+    std::size_t line = 0;
+    while (pos < text.size())
+    {
+        ++line;
+        const std::size_t nl = text.find('\n', pos);
+        const std::string_view l(text.data() + pos, nl - pos);
+        pos = nl + 1;
+
+        const std::string where = file + " line " + std::to_string(line) + ": ";
+
+        for (std::size_t k = 0; k < l.size(); ++k)
+        {
+            const auto ch = static_cast<unsigned char>(l[k]);
+            if ((ch < 0x21 || ch > 0x7e) && ch != '\t')
+            {
+                char hex[8];
+                std::snprintf(hex, sizeof hex, "0x%02x", ch);
+                return where + "unexpected byte " + hex + " at column "
+                     + std::to_string(k + 1);
+            }
+        }
+
+        const std::size_t tab = l.find('\t');
+        if (tab == std::string_view::npos || l.find('\t', tab + 1) != std::string_view::npos)
+        {
+            return where + "expected `name<TAB>count`";
+        }
+        const std::string_view name  = l.substr(0, tab);
+        const std::string_view count = l.substr(tab + 1);
+
+        if (!ValidKlutName(name, c))
+        {
+            return where + "`" + std::string(name) + "` is not a K[" + std::to_string(c)
+                 + ",i,j,\"coset\"] name";
+        }
+
+        bool count_ok = !count.empty() && count.size() <= 9 && count[0] != '0';
+        for (char ch : count) { count_ok = count_ok && ch >= '0' && ch <= '9'; }
+        if (!count_ok)
+        {
+            return where + "`" + std::string(count) + "` is not a key count";
+        }
+
+        if (const auto [it, fresh] = first_line.emplace(name, line); !fresh)
+        {
+            return where + std::string(name) + " also appears on line "
+                 + std::to_string(it->second);
+        }
+
+        names.emplace_back(name);
+        total += std::stoull(std::string(count));
+    }
+    return "";
+}
+
+/**
+ * @brief Refuse a KLUT directory whose tables are missing, unreadable,
+ *        Git LFS pointers, or structurally damaged.
+ *
+ * Checks the subtables up to max_crossings, the ones Klut will read. Runs
+ * before any input is read, so a refusal leaves stdout empty.
+ *
+ * @param names  On success, the validated names of each subtable, by crossing
+ *               number (NameBook compares Klut's own reading against them).
+ * @return true if the tables pass; otherwise false, after saying which
+ *         directory, which files, and what to do.
+ */
+bool KlutTablesAreSound(const std::filesystem::path& dir, Int max_crossings,
+                        std::map<Int, std::vector<std::string>>& names)
 {
     namespace fs = std::filesystem;
 
+    // A checkout made without Git LFS (no git-lfs installed, GIT_LFS_SKIP_SMUDGE=1,
+    // actions/checkout with lfs: false) holds ~130-byte text stubs in place of the
+    // tables, each starting with this line. It is the commonest way to get bad
+    // tables, so it gets its own message.
     static constexpr std::string_view lfs_header = "version https://git-lfs.github.com/spec/";
 
-    std::vector<fs::path> pointers;
-    Int checked = 0;
+    std::vector<fs::path>    pointers;
+    std::vector<std::string> problems;
+    Int opened = 0;
+
+    // Open one table file. Returns false (after noting why) unless it is a
+    // readable regular file that is not an LFS pointer. `whole` reads all of it.
+    const auto open = [&](const fs::path& p, bool whole, std::string& bytes,
+                          std::uintmax_t& size) -> bool
+    {
+        const std::string file = p.filename().string();
+        std::error_code ec;
+        const fs::file_status st = fs::status(p, ec);
+        if (st.type() == fs::file_type::not_found)
+        {
+            problems.push_back(file + ": missing");
+            return false;
+        }
+        if (ec)
+        {
+            problems.push_back(file + ": cannot be examined: " + ec.message());
+            return false;
+        }
+        if (!fs::is_regular_file(st))
+        {
+            problems.push_back(file + ": not a regular file");
+            return false;
+        }
+        std::ifstream in(p, std::ios::binary);
+        if (!in)
+        {
+            problems.push_back(file + ": cannot be opened for reading (check its permissions)");
+            return false;
+        }
+        ++opened;
+        size = fs::file_size(p, ec);
+        if (ec)
+        {
+            problems.push_back(file + ": cannot get its size: " + ec.message());
+            return false;
+        }
+        const std::size_t want = whole ? static_cast<std::size_t>(size) : lfs_header.size();
+        bytes.assign(want, '\0');
+        in.read(bytes.data(), static_cast<std::streamsize>(want));
+        bytes.resize(static_cast<std::size_t>(in.gcount()));
+        if (bytes.starts_with(lfs_header))
+        {
+            pointers.push_back(p);
+            return false;
+        }
+        if (whole && bytes.size() != want)
+        {
+            problems.push_back(file + ": read only " + std::to_string(bytes.size())
+                               + " of its " + std::to_string(want) + " bytes");
+            return false;
+        }
+        return true;
+    };
+
     for (Int c = 3; c <= max_crossings; ++c)
     {
         const std::string cc = (c < 10 ? "0" : "") + std::to_string(c);
-        for (const fs::path& file : {dir / ("Klut_Keys_"   + cc + ".bin"),
-                                    dir / ("Klut_Values_" + cc + ".tsv")})
+        const fs::path keys   = dir / ("Klut_Keys_"   + cc + ".bin");
+        const fs::path values = dir / ("Klut_Values_" + cc + ".tsv");
+
+        std::string    key_head, value_text;
+        std::uintmax_t key_size = 0, value_size = 0;
+        const bool keys_ok   = open(keys,   false, key_head,   key_size);
+        const bool values_ok = open(values, true,  value_text, value_size);
+        if (!keys_ok || !values_ok) { continue; }
+
+        std::vector<std::string> v;
+        std::uint64_t total = 0;
+        const std::string bad = ParseKlutValues(value_text, values.filename().string(), c, v, total);
+        if (!bad.empty())
         {
-            std::ifstream in(file, std::ios::binary);
-            if (!in) { continue; }
-            ++checked;
-            std::string head(lfs_header.size(), '\0');
-            in.read(head.data(), static_cast<std::streamsize>(head.size()));
-            if (in.gcount() == static_cast<std::streamsize>(head.size())
-                && head == lfs_header)
-            {
-                pointers.push_back(file);
-            }
+            problems.push_back(bad);
+            continue;
         }
+
+        const std::uint64_t want = total * static_cast<std::uint64_t>(c);
+        if (key_size != want)
+        {
+            problems.push_back(keys.filename().string() + " holds " + std::to_string(key_size)
+                + " bytes, but " + values.filename().string() + " lists " + std::to_string(total)
+                + " keys of " + std::to_string(c) + " bytes (" + std::to_string(want)
+                + " bytes): the pair is truncated or does not belong together");
+            continue;
+        }
+
+        names[c] = std::move(v);
     }
 
-    if (pointers.empty()) { return true; }
+    if (!pointers.empty())
+    {
+        LogError("The KLUT tables in " + dir.string() + " are Git LFS pointer files, "
+                 "not tables (" + std::to_string(pointers.size()) + " of "
+                 + std::to_string(opened) + " files"
+                 + (pointers.size() == 1 ? ": " : ", e.g. ")
+                 + pointers.front().filename().string() + ").");
+        LogError("That happens when Knoodle is cloned without Git LFS. Install "
+                 "git-lfs and run `git lfs pull` in the repository, or point "
+                 "--data-dir (or $KNOODLE_KLUT_DIR) at a directory holding the "
+                 "real tables.");
+        return false;
+    }
 
-    LogError("The KLUT tables in " + dir.string() + " are Git LFS pointer files, "
-             "not tables (" + std::to_string(pointers.size()) + " of "
-             + std::to_string(checked) + " files"
-             + (pointers.size() == 1 ? ": " : ", e.g. ")
-             + pointers.front().filename().string() + ").");
-    LogError("That happens when Knoodle is cloned without Git LFS. Install "
-             "git-lfs and run `git lfs pull` in the repository, or point "
-             "--data-dir (or $KNOODLE_KLUT_DIR) at a directory holding the "
-             "real tables.");
+    if (problems.empty()) { return true; }
+
+    LogError("The KLUT tables in " + dir.string() + " are damaged or incomplete ("
+             + std::to_string(problems.size()) + " problem"
+             + (problems.size() == 1 ? "" : "s") + "):");
+    constexpr std::size_t shown = 12;
+    for (std::size_t i = 0; i < problems.size() && i < shown; ++i)
+    {
+        LogError("  " + problems[i]);
+    }
+    if (problems.size() > shown)
+    {
+        LogError("  ... and " + std::to_string(problems.size() - shown) + " more");
+    }
+    LogError("Nothing will be identified from them. Reinstall Knoodle, or point "
+             "--data-dir (or $KNOODLE_KLUT_DIR) at a complete copy of the tables "
+             "(data/Klut in a Knoodle checkout, after `git lfs pull`).");
     return false;
 }
 
@@ -455,36 +763,69 @@ bool KlutTablesAreReal(const std::filesystem::path& dir, Int max_crossings)
 // Name resolution: (crossing_count, id) -> K[c,i,j,"sym"]
 //==============================================================================
 
-/// Identify returns a compact (crossing_count, subtable id). The id is the knot's
-/// 0-based index within crossing-number subtable c, i.e. the id-th line of
-/// Klut_Values_cc.tsv. Load those name lists once for human-readable rendering.
-std::map<Int, std::vector<std::string>>
-LoadNames(const std::filesystem::path& dir, Int max_crossings)
+/**
+ * @brief Turns Identify's (crossing_count, subtable id) into the table's name.
+ *
+ * The id is the knot's 0-based line in Klut_Values_cc.tsv as Klut read it, so
+ * the names come from that same reading (Klut::SubtableNames), never from a
+ * second parse of the file. Klut reads a subtable only when it is first used,
+ * possibly long after KlutTablesAreSound checked it; the first time each
+ * subtable is used, its names are compared with the checked ones, and a
+ * difference -- the files changed while we ran -- is a table error.
+ */
+class NameBook
 {
-    std::map<Int, std::vector<std::string>> names;
-    for (Int c = 3; c <= max_crossings; ++c)
-    {
-        const std::string cc = (c < 10 ? "0" : "") + std::to_string(c);
-        std::ifstream vf(dir / ("Klut_Values_" + cc + ".tsv"));
-        if (!vf) { continue; }
-        std::vector<std::string> v;
-        std::string name; long count;
-        while (vf >> name >> count) { v.push_back(name); }
-        names[c] = std::move(v);
-    }
-    return names;
-}
+public:
+    NameBook(Klut& klut, std::map<Int, std::vector<std::string>> checked,
+             std::string dir)
+    :   klut_(klut), checked_(std::move(checked)), dir_(std::move(dir))
+    {}
 
-std::string NameOf(const std::map<Int, std::vector<std::string>>& names,
-                   Int c, Klut::ID_T id)
-{
-    auto it = names.find(c);
-    if (it != names.end() && static_cast<std::size_t>(id) < it->second.size())
+    /// Does the c-crossing subtable Klut read still match the one checked at
+    /// startup? Loads it if need be. Logs and returns false if not.
+    bool Verify(Int c)
     {
+        // Outside the loaded range there is nothing to compare (and
+        // Klut::SubtableNames does not bounds-check).
+        if (c < Int(3) || static_cast<Knoodle::Size_T>(c) > klut_.CrossingCount()) { return true; }
+        if (loaded_.contains(c)) { return true; }
+
+        std::vector<std::string> read = klut_.SubtableNames(c);
+        const auto chk = checked_.find(c);
+        if (chk == checked_.end() || read != chk->second)
+        {
+            LogError("The " + std::to_string(c) + "-crossing KLUT table in " + dir_
+                     + " changed after knoodleidentify started: its names no longer "
+                       "match the ones checked at startup.");
+            return false;
+        }
+        loaded_.emplace(c, std::move(read));
+        return true;
+    }
+
+    /// The name of knot `id` among the c-crossing knots, or nullopt after
+    /// logging a table error.
+    std::optional<std::string> Name(Int c, Klut::ID_T id)
+    {
+        if (!Verify(c)) { return std::nullopt; }
+        const auto it = loaded_.find(c);
+        if (it == loaded_.end() || static_cast<std::size_t>(id) >= it->second.size())
+        {
+            LogError("Internal error: the " + std::to_string(c) + "-crossing KLUT table "
+                     "returned id " + std::to_string(id) + ", which it does not list.");
+            return std::nullopt;
+        }
         return it->second[id];
     }
-    return "K[" + std::to_string(c) + ",?,?,\"?\"]";  // defensive; should not occur
-}
+
+    const std::string& Dir() const { return dir_; }
+
+private:
+    Klut& klut_;
+    std::map<Int, std::vector<std::string>> checked_;
+    std::map<Int, std::vector<std::string>> loaded_;
+    std::string dir_;
+};
 
 //==============================================================================
 // Identification
@@ -645,19 +986,22 @@ bool SummandLess(const Summand& a, const Summand& b)
 }
 
 /// Convert one Identify result-summand to a render Summand, resolving its name.
-Summand ConvertSummand(const ki::Summand& rs,
-                       const std::map<Int, std::vector<std::string>>& names,
-                       Stats& stats)
+/// nullopt means the name could not be had from the table (already logged).
+std::optional<Summand> ConvertSummand(const ki::Summand& rs, NameBook& names, Stats& stats)
 {
     Summand s;
     s.crossings = rs.crossings;
     switch (rs.kind)
     {
         case ki::Summand::Kind::Identified:
+        {
+            const std::optional<std::string> name = names.Name(rs.crossings, rs.id);
+            if (!name) { return std::nullopt; }
             s.kind = Kind::Identified;
-            ParseRawName(NameOf(names, rs.crossings, rs.id), s);
+            ParseRawName(*name, s);
             ++stats.identified;
             break;
+        }
         case ki::Summand::Kind::Unidentified:
             s.kind = Kind::OverRange;
             s.pd_code = rs.pd_code;
@@ -672,13 +1016,20 @@ Summand ConvertSummand(const ki::Summand& rs,
     return s;
 }
 
+/// How ProcessStream ended.
+enum class StreamEnd
+{
+    Done,        ///< read to the end
+    ParseError,  ///< bad input; the caller moves on to the next file
+    TableError,  ///< the KLUT failed mid-run; the caller stops everything
+};
+
 /**
  * @brief Process one input stream; writes identifications to stdout.
  */
-bool ProcessStream(std::istream& input, const std::string& source_name,
-                   const Config& config, Klut& klut,
-                   const std::map<Int, std::vector<std::string>>& names,
-                   ki::Reapr_T& reapr, Stats& stats, Knoodle::PRNG_T& rng)
+StreamEnd ProcessStream(std::istream& input, const std::string& source_name,
+                        const Config& config, Klut& klut, NameBook& names,
+                        ki::Reapr_T& reapr, Stats& stats, Knoodle::PRNG_T& rng)
 {
     bool reached_eof = false;
 
@@ -689,7 +1040,7 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
         if (!input_knot)
         {
             if (reached_eof) { continue; }
-            return false;  // Parse error
+            return StreamEnd::ParseError;
         }
 
         ++stats.knots;
@@ -718,6 +1069,19 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
         ki::IdentifyResult res =
             ki::Identify(klut, std::move(pdc), reapr, params);
 
+        // A subtable that would not load is the table's fault, not the
+        // diagram's: report it as such rather than as NotFound, and print
+        // nothing more, since every later answer would come from the same
+        // broken table.
+        if (res.table_error)
+        {
+            LogError("The " + std::to_string(res.table_error_crossings)
+                     + "-crossing KLUT table in " + names.Dir() + " failed to load "
+                       "(see above) while identifying knot " + std::to_string(stats.knots)
+                     + ". Stopping.");
+            return StreamEnd::TableError;
+        }
+
         std::vector<Summand> summands;
 
         if (res.status == ki::IdentifyResult::Status::LinkOutOfScope)
@@ -736,7 +1100,19 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
             }
             for (const ki::Summand& rs : res.summands)
             {
-                summands.push_back(ConvertSummand(rs, names, stats));
+                std::optional<Summand> s = ConvertSummand(rs, names, stats);
+                // A miss is only a miss if the table is still the one checked
+                // at startup: one truncated mid-run would also miss.
+                if (s && s->kind == Kind::NotFound && !names.Verify(s->crossings))
+                {
+                    s.reset();
+                }
+                if (!s)
+                {
+                    LogError("Stopping at knot " + std::to_string(stats.knots) + ".");
+                    return StreamEnd::TableError;
+                }
+                summands.push_back(std::move(*s));
                 ++stats.summands;
             }
             // Empty (and not a link) means everything reduced away: the unknot.
@@ -802,23 +1178,26 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
 
         std::cout << std::flush;
 
-        if (!config.quiet)
+        for (std::size_t i = 0; i < summands.size(); ++i)
         {
-            for (std::size_t i = 0; i < summands.size(); ++i)
+            if (summands[i].kind != Kind::NotFound) { continue; }
+            if (config.quiet)
             {
-                if (summands[i].kind == Kind::NotFound)
-                {
-                    LogError("knot " + std::to_string(stats.knots) +
-                             ", summand " + std::to_string(i + 1) + ": " +
-                             std::to_string(summands[i].crossings) +
-                             " crossings, <=13 yet unresolved after Reapr — "
-                             "table gap or a hard simplification case?");
-                }
+                // --quiet hides the message, not the verdict: NotFound still
+                // makes the exit status nonzero.
+                ++g_tool_error_count;
+                continue;
             }
+            LogError("knot " + std::to_string(stats.knots) +
+                     ", summand " + std::to_string(i + 1) + ": " +
+                     std::to_string(summands[i].crossings) +
+                     " crossings, <=" + std::to_string(config.max_crossings) +
+                     " yet unresolved after Reapr — "
+                     "table gap or a hard simplification case?");
         }
     }
 
-    return true;
+    return StreamEnd::Done;
 }
 
 } // anonymous namespace
@@ -850,8 +1229,11 @@ int main(int argc, char* argv[])
         return EXIT_SUCCESS;
     }
 
-    auto data_dir = ResolveDataDir(config);
-    if (!data_dir || !KlutTablesAreReal(*data_dir, config.max_crossings))
+    // Find the tables and check them before reading any input, so that a table
+    // problem is an error with empty stdout, never an answer.
+    const std::optional<DataDir> data_dir = ResolveDataDir(config);
+    std::map<Int, std::vector<std::string>> checked_names;
+    if (!data_dir || !KlutTablesAreSound(data_dir->path, config.max_crossings, checked_names))
     {
         return EXIT_FAILURE;
     }
@@ -866,14 +1248,15 @@ int main(int argc, char* argv[])
         ChooseDiagnosticDir("knoodleidentify", /*streaming_mode=*/true, std::nullopt);
     const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
 
-    Klut klut(*data_dir, static_cast<Knoodle::Size_T>(config.max_crossings));
-    auto names = LoadNames(*data_dir, config.max_crossings);
+    Klut klut(data_dir->path, static_cast<Knoodle::Size_T>(config.max_crossings));
+    NameBook names(klut, std::move(checked_names), data_dir->path.string());
 
     ki::Reapr_T reapr{};
     Knoodle::PRNG_T rng = Knoodle::InitializedRandomEngine<Knoodle::PRNG_T>();
 
     Stats stats;
     bool success = true;
+    bool table_failed = false;
 
     if (config.input_files.empty())
     {
@@ -884,7 +1267,9 @@ int main(int argc, char* argv[])
             Log("knoodleidentify: reading diagrams from stdin (Ctrl-D to end). "
                 "Pipe a stream or pass a file; --help for usage.");
         }
-        success = ProcessStream(std::cin, "stdin", config, klut, names, reapr, stats, rng);
+        const StreamEnd end = ProcessStream(std::cin, "stdin", config, klut, names, reapr, stats, rng);
+        success      = (end == StreamEnd::Done);
+        table_failed = (end == StreamEnd::TableError);
     }
     else
     {
@@ -897,10 +1282,9 @@ int main(int argc, char* argv[])
                 success = false;
                 continue;
             }
-            if (!ProcessStream(file, filename, config, klut, names, reapr, stats, rng))
-            {
-                success = false;
-            }
+            const StreamEnd end = ProcessStream(file, filename, config, klut, names, reapr, stats, rng);
+            if (end != StreamEnd::Done) { success = false; }
+            if (end == StreamEnd::TableError) { table_failed = true; break; }
         }
     }
 
@@ -914,13 +1298,35 @@ int main(int argc, char* argv[])
             std::to_string(stats.over_range) + " over table range, " +
             std::to_string(stats.links) + " links, " +
             std::to_string(stats.invalid) + " invalid)");
+        // Which table set answered: with several ways to choose one, this is
+        // the only way to tell afterwards.
+        Log("knoodleidentify: KLUT tables from " + data_dir->path.string()
+            + " (" + data_dir->source + ")");
     }
 
     if (ErrorsSeen())
     {
-        std::cerr << "\nknoodleidentify: " << ErrorSummary()
-                  << " during this run -- the identifications above are UNRELIABLE"
-                     " (the library discards diagrams it has flagged as invalid).\n";
+        const long library_errors = (g_cerr_tap != nullptr) ? g_cerr_tap->Count() : 0;
+        if (table_failed)
+        {
+            std::cerr << "\nknoodleidentify: stopped at knot " << stats.knots
+                      << " because a KLUT table failed (see above). Lines printed"
+                         " before that came from subtables that loaded; nothing"
+                         " after it was identified.\n";
+        }
+        else if (library_errors == 0 && g_tool_error_count == stats.not_found)
+        {
+            std::cerr << "\nknoodleidentify: " << stats.not_found << " summand"
+                      << (stats.not_found == 1 ? "" : "s") << " came back NotFound"
+                      << " (" << config.max_crossings << " or fewer crossings, yet"
+                         " unresolved after Reapr), so the exit status is nonzero.\n";
+        }
+        else
+        {
+            std::cerr << "\nknoodleidentify: " << ErrorSummary()
+                      << " during this run -- the identifications above are UNRELIABLE"
+                         " (the library discards diagrams it has flagged as invalid).\n";
+        }
 
         std::string invocation;
         for (int i = 0; i < argc; ++i)

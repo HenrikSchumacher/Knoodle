@@ -36,22 +36,29 @@ fi
 [ -f submodules/Tensors/Tensors.hpp ] || { echo "ERROR: submodules not initialized (git submodule update --init --recursive)"; exit 1; }
 [ -f submodules/Tensors/submodules/Tools/Tools.hpp ] || { echo "ERROR: nested submodule Tools missing (need --recursive)"; exit 1; }
 
-# The bulk of the KLUT is the .bin keys (Klut_Keys_13.bin alone is ~20 MB), so a
-# .tsv-only check is not enough: if LFS didn't smudge the .bin we'd ship pointer
-# stubs and a silently broken knoodleidentify. Verify a representative .tsv AND the
-# largest .bin -- both must exist, not be Git-LFS pointers, and the big .bin must be
-# real-sized (a pointer is ~130 bytes; ~20 MB expected).
+# Check all 22 KLUT files, not a sample: if LFS didn't smudge one of them we'd ship
+# a pointer stub, and a damaged table can make knoodleidentify name knots wrongly
+# (docs/klut-table-failure-audit.md). Each subtable is a pair: Klut_Values_NN.tsv
+# lists `name<TAB>count` lines, and Klut_Keys_NN.bin must hold exactly
+# NN * (sum of the counts) bytes. This is the structural part of the check
+# knoodleidentify itself makes at startup; release_tarball_check then runs the
+# built tool against the unpacked tables.
 file_size() { stat -f '%z' "$1" 2>/dev/null || stat -c '%s' "$1" 2>/dev/null || echo 0; }
-for f in data/Klut/Klut_Values_03.tsv data/Klut/Klut_Keys_13.bin; do
-  [ -f "$f" ] || { echo "ERROR: missing $f -- run: git submodule update --init --recursive && git lfs pull"; exit 1; }
-  if head -c 64 "$f" | grep -q 'git-lfs'; then
-    echo "ERROR: $f is a Git-LFS pointer, not content. Run: git lfs pull"; exit 1
+for c in 03 04 05 06 07 08 09 10 11 12 13; do
+  keys="data/Klut/Klut_Keys_$c.bin"; values="data/Klut/Klut_Values_$c.tsv"
+  for f in "$keys" "$values"; do
+    [ -f "$f" ] || { echo "ERROR: missing $f -- run: git submodule update --init --recursive && git lfs pull"; exit 1; }
+    if head -c 64 "$f" | grep -q 'git-lfs'; then
+      echo "ERROR: $f is a Git-LFS pointer, not content. Run: git lfs pull"; exit 1
+    fi
+  done
+  total="$(awk -F'\t' 'NF != 2 || $2 !~ /^[1-9][0-9]*$/ { bad = 1 } { s += $2 } END { print (bad ? -1 : s) }' "$values")"
+  [ "$total" -gt 0 ] 2>/dev/null || { echo "ERROR: $values is not a list of name<TAB>count lines."; exit 1; }
+  want=$(( total * 10#$c )); have="$(file_size "$keys")"
+  if [ "$have" != "$want" ]; then
+    echo "ERROR: $keys holds $have bytes, but $values lists $total keys of $((10#$c)) bytes ($want bytes)."; exit 1
   fi
 done
-keys_sz="$(file_size data/Klut/Klut_Keys_13.bin)"
-if [ "${keys_sz:-0}" -lt 1000000 ]; then
-  echo "ERROR: data/Klut/Klut_Keys_13.bin is only ${keys_sz} bytes (expected ~20 MB); the KLUT keys are not fully present (LFS not pulled?)."; exit 1
-fi
 
 # 3) Stage the build-relevant trees (validated minimal set) + the runtime KLUT.
 # This is an ALLOWLIST: only the trees named here ship. `test/` and `docs/` are
