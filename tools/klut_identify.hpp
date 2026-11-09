@@ -87,6 +87,12 @@ struct IdentifyResult
     std::vector<Summand> summands;        // status==Knot && empty  =>  the unknot
     bool                 component_error = false;  // Simplify changed component count (a bug)
     Size_T               reapr_calls = 0;          // escalation Simplify invocations (diagnostic)
+    // A subtable failed to load (the lookup returned Klut::error): the table,
+    // not the diagram, is at fault. Identify stops at once, so `summands` is
+    // incomplete and must not be reported as an answer. Before this flag, the
+    // error was treated as a miss, escalated, and came back as NotFound.
+    bool                 table_error = false;
+    Int                  table_error_crossings = 0;  // the subtable that failed
 };
 
 namespace detail
@@ -128,6 +134,17 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
     R.status          = IdentifyResult::Status::Knot;
     R.component_error = false;
     R.reapr_calls     = Size_T{0};
+    R.table_error     = false;
+    R.table_error_crossings = Int(0);
+
+    // Klut::error means the subtable for c crossings failed to load. Stop:
+    // record it, leave both scratch complexes empty as promised, and return.
+    auto table_failed = [&R, &work, &temp](Int c) {
+        R.table_error = true;
+        R.table_error_crossings = c;
+        work.Clear();
+        temp.Clear();
+    };
 
     // Push()/Pop()/Clear() are lock-guarded: on a locked complex they do nothing
     // and warn, because they cannot verify that arc colors stay consistent
@@ -190,6 +207,7 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
             const PD_T& D = temp.Diagram(0);
             if( !D.ValidQ() || D.CrossingCount() == Int(0) ) { temp.Clear(); continue; }  // unknot/invalid -> drop
             auto [c, id] = Lookup(table, D, q.max_cx);
+            if( id == Klut::error ) { table_failed(c); return; }
             if( Found(id) ) { R.summands.push_back(Summand{Summand::Kind::Identified, id, c, {}}); temp.Clear(); continue; }
         }
 
@@ -217,6 +235,7 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
             const PD_T& D = temp.Diagram(0);
             if( D.CrossingCount() == Int(0) ) { done = true; break; }   // reduced away -> drop
             auto [c, id] = Lookup(table, D, q.max_cx);
+            if( id == Klut::error ) { table_failed(c); return; }
             if( Found(id) ) { R.summands.push_back(Summand{Summand::Kind::Identified, id, c, {}}); done = true; break; }
             if( n < Size_T(64) ) { n *= Size_T(2); }  // escalate (schedule to be tuned via klut_bench)
         }
