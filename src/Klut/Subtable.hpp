@@ -63,17 +63,16 @@ public:
         // and the throwing overload of exists would escape this constructor.
         std::error_code k_ec;
         std::error_code v_ec;
-        const bool k_existsQ = std::filesystem::exists(k_file, k_ec);
-        const bool v_existsQ = std::filesystem::exists(v_file, v_ec);
-        
-        if( k_ec )
+
+        if( !std::filesystem::exists(k_file, k_ec) )
         {
-            Msgr::eprint( "Subtable()", "Could not check for ", k_file.string(), ": ", k_ec.message(), ". Aborting with fail.");
+            Msgr::eprint( "Subtable()", "Could not check for ", k_file, ": ", k_ec.message(), ". Aborting with fail.");
             failedQ = true;
         }
-        if( v_ec )
+
+        if( !std::filesystem::exists(v_file, v_ec) )
         {
-            Msgr::eprint( "Subtable()", "Could not check for ", v_file.string(), ": ", v_ec.message(), ". Aborting with fail.");
+            Msgr::eprint( "Subtable()", "Could not check for ", v_file, ": ", v_ec.message(), ". Aborting with fail.");
             failedQ = true;
         }
     }
@@ -175,7 +174,7 @@ private:
                 
                 if( !insertedQ )
                 {
-                    Msgr::eprint("Read", "Key ", counter, " of ", k_file.string(), " (for ", knot_names.back(), ") repeats a key of ", knot_names[it->second], ". Aborting with incomplete table." );
+                    Msgr::eprint("Read", "Key ", counter, " of ", k_file, " (for ", knot_names.back(), ") repeats a key of ", knot_names[it->second], ". Aborting with incomplete table." );
                     Fail();
                     return;
                 }
