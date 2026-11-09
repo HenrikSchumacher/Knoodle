@@ -14,6 +14,8 @@ namespace Knoodle
     {
     public:
 
+        using Class_T = Klut;
+        
         // We have one byte per crossing.
         // We need to store a number in [0,...,n[ per crossing.
         // And we need two extra bits for over/under and left/right-handed.
@@ -127,6 +129,11 @@ namespace Knoodle
         
     public:
 
+        const Path_T & Path()
+        {
+            return data_directory;
+        }
+        
         /*!@brief Return the path to the file that contains the keys for all prime knots of exactly `crossing_count` crossings.*/
         Path_T KeyFile( Size_T crossing_count ) const
         {
@@ -148,14 +155,17 @@ namespace Knoodle
         
     public:
         
-        static constexpr std::string MethodName( const std::string & tag )
+        using Msgr = Tools::Messenger<Class_T>;
+                
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("Klut");
+            return ct_string("Klut");
         }
         
     }; // class Klut

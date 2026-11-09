@@ -16,7 +16,7 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) c
     if( !stream )
     {
         
-        Msgr::eprint("WriteToFile","Could not open file ", file.string(), ". Aborting.");
+        Msgr::eprint("WriteToFile","Could not open file ", file, ". Aborting.");
         return false;
     }
     

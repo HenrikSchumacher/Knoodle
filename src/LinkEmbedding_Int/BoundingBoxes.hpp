@@ -52,7 +52,7 @@ void ComputeBoundingBoxes() const
     // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the entries only via data(i,j), so this is safe!
     
 //    T.template ComputeBoundingBoxes<2,3>( edge_coords.data(), box_coords.data() );
-    if constexpr ( mortonQ )
+    if constexpr ( mortonQ && !reorderQ )
     {
         T.template ComputeBoundingBoxes<2>(
             [this]( Int i, Int j ) { return this->EdgeData(p[i],j); },
@@ -73,5 +73,13 @@ void ComputeBoundingBoxes() const
 
 bool BoxesIntersectQ( const Int i, const Int j ) const
 {
-    return T.BoxesIntersectQ( box_coords.data(i), box_coords.data(j) );
+    const bool b = T.BoxesIntersectQ( box_coords.data(i), box_coords.data(j) );
+    
+    if constexpr ( countersQ )
+    {
+        ++box_box_check_count;
+        box_box_intersection_count += b;
+    }
+    
+    return b;
 }

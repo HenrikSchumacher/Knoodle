@@ -36,7 +36,7 @@ void LoadPlantriPDCodes(
         Tools::InString s (file);
         if( s.EmptyQ() )
         {
-            eprint(tag() + ": File  " + file.string() + " is empty.");
+            eprint(tag(), ": File  ", file, " is empty.");
             return;
         }
         

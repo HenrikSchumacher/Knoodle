@@ -196,7 +196,23 @@ void ComputeIntersections() const
         
         intersections.RequireCapacity( Int{2} * EdgeCount() );
         
+        if constexpr ( countersQ )
+        {
+            box_box_check_count        = 0;
+            box_box_intersection_count = 0;
+            edge_edge_check_count      = 0;
+        }
+        
         FindIntersectingEdges_DFS();
+        
+//        if constexpr ( countersQ )
+//        {
+//            logvalprint("number of edges", EdgeCount());
+//            logvalprint("number of box-box checks", box_box_check_count);
+//            logvalprint("number of box-box intersections", box_box_intersection_count);
+//            logvalprint("number of edge-edge checks", edge_edge_check_count);
+//            logvalprint("number of edge-edge intersections", intersections.Size());
+//        }
     }
     
     // TODO: To reduce peak memory, we could free the bounding boxes here.

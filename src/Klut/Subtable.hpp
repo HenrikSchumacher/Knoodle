@@ -4,7 +4,11 @@ public:
 // Stores and looks up data for a fixed number of crossings.
 class Subtable
 {
+public:
+    
     friend Klut;
+    
+    using Class_T = Subtable;
     
 private:
     
@@ -33,12 +37,22 @@ public:
     {
         if( crossing_count > max_crossing_count )
         {
-            eprint(ClassName() + "(" + ToString(crossing_count) + "): Requested number of crossings is too big. Aborting with fail.");
+            Msgr::eprint( "Subtable()", "Requested number of crossings ", crossing_count, "is too big. Aborting with fail.");
             failedQ = true;
             return;
         }
-//        failedQ = (!ifstream(k_file).good()) || (!ifstream(v_file).good());
-        failedQ = (!std::filesystem::exists(k_file)) || (!std::filesystem::exists(v_file));
+
+        if( !std::filesystem::exists(k_file) )
+        {
+            failedQ = true;
+            Msgr::eprint( "Subtable()", "Could not find file ", k_file, ".");
+        }
+        
+        if( !std::filesystem::exists(v_file) )
+        {
+            failedQ = true;
+            Msgr::eprint( "Subtable()", "Could not find file ", v_file, ".");
+        }
     }
     
     
@@ -61,9 +75,7 @@ private:
     
     void Read()
     {
-        [[maybe_unused]] auto tag = [](){ return MethodName("Read"); };
-        
-        TOOLS_PTIMER(timer,tag());
+        TOOLS_PTIMER(timer,MethodName("Read"));
         
         if( failedQ ) { return; }
         if( loadedQ ) { return; }
@@ -75,7 +87,7 @@ private:
         std::ifstream v_stream ( v_file, std::ios::in );
         if( !v_stream )
         {
-            eprint(tag(), ": Could not open ", v_file.string(), ". Aborting with incomplete table." );
+            Msgr::eprint("Read", "Could not open ", v_file, ". Aborting with incomplete table." );
             failedQ = true;
             return;
         }
@@ -83,7 +95,7 @@ private:
         std::ifstream k_stream ( k_file, std::ios::binary );
         if( !k_stream )
         {
-            eprint(tag(), ": Could not open ", k_file.string(), ". Aborting with incomplete table." );
+            Msgr::eprint("Read", "Could not open ", k_file, ". Aborting with incomplete table." );
             failedQ = true;
             return;
         }
@@ -111,7 +123,7 @@ private:
             {
                 if( !k_stream )
                 {
-                    eprint(tag(), ": Problem while reading ", counter, "-th key from ", k_file.string(), ". Aborting with incomplete table." );
+                    Msgr::eprint("Read", "Problem while reading ", counter, "-th key from ", k_file, ". Aborting with incomplete table." );
                     
                     TOOLS_LOGDUMP(k_stream.good());
                     TOOLS_LOGDUMP(k_stream.fail());
@@ -183,15 +195,18 @@ public:
     }
     
 public:
-    
-    static std::string MethodName( const std::string & tag )
+                   
+    using Msgr = Tools::Messenger<Class_T>;
+           
+    template<typename A>
+    static consteval auto MethodName( const A & tag )
     {
-        return ClassName() + "::" + tag;
+        return Msgr::MethodName(tag);
     }
-    
-    static std::string ClassName()
+
+    static consteval auto ClassName()
     {
-        return std::string("Klut::Subtable");
+        return ct_string("Klut::Subtable");
     }
-    
+                   
 }; // class Subtable

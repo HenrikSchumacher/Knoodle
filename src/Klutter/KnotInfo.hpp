@@ -31,7 +31,7 @@ void LoadKnotInfo(
     std::ifstream name_stream ( name_file, std::ios::binary );
     if( !name_stream )
     {
-        eprint(tag() + ": Could not open " + name_file.string() +". Aborting with incomplete table." );
+        eprint(tag(), ": Could not open ", name_file, ". Aborting with incomplete table." );
         return;
     }
     
@@ -41,7 +41,7 @@ void LoadKnotInfo(
         Tools::InString s (pd_code_file);
         if( s.EmptyQ() )
         {
-            eprint(tag() + ": File  " + pd_code_file.string() + " is empty.");
+            eprint(tag(), ": File  ", pd_code_file, " is empty.");
             return;
         }
         

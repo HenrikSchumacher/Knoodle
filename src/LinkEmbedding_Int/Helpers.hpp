@@ -21,7 +21,7 @@ bool ValidQ() const
 /*!@brief The maximum modulus of all vertex coordinates. Used for computing `RelativeRoundingError.`*/
 Real MaxModulus() const
 {
-    return (global_hi - global_lo).MaxNorm();
+    return Max(global_lo.MaxNorm(),global_hi.MaxNorm());
 }
 
 /*!@brief Return the scaling factor that was used the last time integer edge coordinates were computed. Defaults to `1`.*/
@@ -100,4 +100,56 @@ void DeleteTree()
     
 //    edge_times = Tensor1<Time_T,Int>();
     intersections = Aggregator<Intersection_T,Int>();
+}
+
+/*!@brief Return the count of box-box checks performed during computation of intersections.
+ *
+ * This is only meant as tool for development and  profiling. Counting is deactivated in production builds. This feature might be silently removed later.
+ */
+
+Size_T BoxBoxCheckCount() const
+{
+    if constexpr ( countersQ )
+    {
+        return box_box_check_count;
+    }
+    else
+    {
+        // We intentionally return an unlikely value.
+        return static_cast<Size_T>(-1);
+    }
+}
+
+/*!@brief Return the count of box-box intersections found during computation of intersections.
+ *
+ * This is only meant as tool for development and  profiling. Counting is deactivated in production builds. This feature might be silently removed later.
+ */
+Size_T BoxBoxIntersectionCount() const
+{
+    if constexpr ( countersQ )
+    {
+        return box_box_intersection_count;
+    }
+    else
+    {
+        // We intentionally return an unlikely value.
+        return static_cast<Size_T>(-1);
+    }
+}
+
+/*!@brief Return the count of edge-edge checks performed during computation of intersections.
+ *
+ * This is only meant as tool for development and  profiling. Counting is deactivated in production builds. This feature might be silently removed later.
+ */
+Size_T EdgeEdgeCheckCount() const
+{
+    if constexpr ( countersQ )
+    {
+        return edge_edge_check_count;
+    }
+    else
+    {
+        // We intentionally return an unlikely value.
+        return static_cast<Size_T>(-1);
+    }
 }
