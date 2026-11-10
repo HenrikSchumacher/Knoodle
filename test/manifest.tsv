@@ -35,6 +35,10 @@
 #
 # NOT LISTED, deliberately:
 #   libhomfly, build  infrastructure, not targets
+#   orthodraw_regression.py  a by-hand tool, in no tier: it compares OrthoDraw's
+#                     drawings with test/orthodraw_golden.txt (Git LFS corpus),
+#                     and a changed drawing is not a failure. Its machinery is
+#                     tested by orthodraw_regression_check.
 #
 # NEEDS THE TOOLS BUILT: klut_e2e shells out to ../tools/knoodlesimplify and
 # ../tools/knoodleidentify. It is really a tool-contract test that happens to
@@ -98,3 +102,4 @@ draw_trace_check	script	-	draw_trace_check.py	-	-	\([1-9][0-9]* checks, 0 failed
 r1_draw_check	script	-	r1_draw_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 prove_check	script	-	prove_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
 exterior_thread_check	script	-	exterior_thread_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)
+orthodraw_regression_check	script	-	orthodraw_regression_check.py	-	-	orthodraw_regression_check: \([1-9][0-9]* checks, 0 failed\)
