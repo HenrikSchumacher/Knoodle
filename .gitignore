@@ -91,6 +91,7 @@ test/canon_check
 test/animate_build_check
 test/animate_morph_check
 test/animate_morph_umfpack_check
+test/animate_sweep_check
 test/animate_scene_check
 test/component_check
 test/diagram_sanity_check
