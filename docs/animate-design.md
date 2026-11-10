@@ -1,8 +1,11 @@
 # The Knoodle animator: design
 
-Status: design agreed 2026-11-10 (JHC); nothing is implemented yet. Henrik: at about
-6,000 lines this needs no design review. The estimates below are from reading the
-prototype, not from built code.
+Status: design agreed 2026-11-10 (JHC). Henrik: at about 6,000 lines this needs no
+design review. The estimates below are from reading the prototype, not from built code.
+
+Built so far (2026-11-10): `src/Animate/PlaneDrawing.hpp` (466 lines), `Mesh.hpp` (405)
+and `Morph.hpp` (770), with `test/animate_morph_check.cpp`. See "What the first three
+pieces found" at the end.
 
 This document replaces the prototype on the local branch `orthomorph` (112 commits,
 about 21,000 lines of animation code, never pushed). That branch was the experiment
@@ -253,3 +256,78 @@ would want as library calls. Moving them is its own piece of work.
    now-bounded side in the fresh layout.
 6. **The redraw view choice** may shrink less than assumed unless it can share
    `knoodleprove`'s lattice projection.
+
+## What the first three pieces found (2026-11-10)
+
+Risk 3 was "the failure rate of the triangulation on the corpus is unknown; the target
+is zero". Measured with `test/animate_morph_check`. Per exterior face it makes seven
+morphs between layouts of one diagram (other bend settings; another compaction; a
+quarter turn; a half turn; a sheared copy turned 37 degrees at 1000 times the size; a
+copy a million times smaller), and one more per diagram without the steady centre and
+shape.
+
+| Diagrams | Morphs | Could not be made |
+|---|---|---|
+| The committed traces' states and results: 91 diagrams of up to 266 crossings, 8 exterior faces each | 4,487 | 0 |
+| 780 diagrams from `data/diagrams` (hard unknots, the link table sample), 3 exterior faces each | 17,160 | 0 |
+| 20 random unknots of about 3,350 crossings, 1 exterior face each | 160 | 0 |
+
+The first two rows are the same with UMFPACK and with BiCGSTAB; the third was run with
+UMFPACK only. Every frame of every morph passed the contract (every triangle positive,
+the two ends exact, no two strand pieces meeting).
+
+It was not zero at first. Before two changes, 4 of 140 morphs on the 3,000-crossing
+diagrams and 5 or 6 of 16,380 on the others could not be made, every one of them the
+copy a million times smaller, every one for the same reason: "the triangulation is not
+valid in the second drawing: n triangles not positive". The rings were sized to hold
+both drawings in place, so the small drawing sat in a huge annulus of needle triangles
+below the flatness tolerance. Now each drawing is brought to its own centre and unit
+size before anything is built (and the frames are solved there), so the triangulation
+does not depend on where the drawings are or how large; and a polygon's corner counts
+as an ear's tip only above a second, larger tolerance, so that a point interpolated
+onto a segment (off it by rounding) cannot pass for a corner.
+
+How the construction differs from the design text:
+
+- **No cut-finding search.** The prototype routed two cuts with step halving. Here each
+  drawing's outside region is ear-clipped on its own and the cut is the shortest path
+  through that triangulation (Dijkstra). One cut is enough: the cut annulus is a
+  polygon that touches itself, which the ear clipping accepts.
+- **The frame is a stack of rings, not a square.** Two unrelated layouts put the cut at
+  unrelated angles, so a fixed frame would force the cut to wind. Instead the innermost
+  ring turns with the cut and the rings between share the turn out; a strip between two
+  rings has one triangulation valid for any turn up to a whole side. No search, no
+  tolerance.
+- **The overlay has no geometry in it.** Which chords of the two triangulations cross,
+  and in what order, is read off the vertex numbers; each crossing is placed evenly
+  along its chord. The prototype clipped triangles numerically with fixed tolerances.
+  Ears common to both drawings are clipped first, which keeps the overlay small.
+- **Only connected diagrams.** A face of a connected diagram is one closed walk, so the
+  only region that needs a cut is the outside. A split diagram is refused with a
+  reason; nothing in the corpus is one.
+
+What was wrong or under-budgeted in this document:
+
+- `PlaneDrawing` is 466 lines against 350. The export, the kit and the matching are
+  about as estimated; reading the faces off the geometry (so that a drawing does not
+  depend on a `PlanarDiagram`'s face numbering) and the embedding check were not
+  counted. `Mesh.hpp` (405 against 400) and `Morph.hpp` (770 against 800) are on budget.
+- "Use Tools' `Oriented2D.hpp`" saves nothing: its corrected predicate does not compile
+  from `Knoodle.hpp` (it calls `TwoMulFMA`, declared in `Interval.hpp`, which is not
+  included), and only the naive one is usable. `PlaneDrawing.hpp` has its own 6 lines.
+- The UMFPACK wrapper needs each row's columns sorted (unsorted, every solve failed).
+  The BiCGSTAB estimate was right, and BiCGSTAB converged on everything it was given;
+  it is about twice as slow, and it was not run on the 3,000-crossing diagrams.
+- `OrthoDraw` seeds its random engine itself, so a `randomize_bends` layout cannot be
+  reproduced: the counts above move a little from run to run, and a failure report
+  names the diagram and the exterior but cannot replay the layout.
+- "Relative tolerances" has a floor the design did not mention: a drawing's interpolated
+  points are only as exact as its coordinates, about 1e-16 times (distance from the
+  origin / segment length). A drawing very far from the origin for its size will fail.
+- Not a failure, but a cost: the overlay adds points. The 266-crossing diagram's 1,700
+  drawing points become a problem of about 6,000; a 3,350-crossing one's 18,000 become
+  up to 77,000 (about a third of a second a morph at four frames, with UMFPACK). Unrelated layouts also turn the innermost
+  ring by more than a full turn in places (up to 26 rings of 12 points).
+- Not tested: drawings that are not affine images of an orthogonal layout (the turn's
+  circular arcs, a redraw's oblique view). Risk 4 stands. Mesh refinement is built and
+  unit-tested but the morph does not use it; the sweep will.
