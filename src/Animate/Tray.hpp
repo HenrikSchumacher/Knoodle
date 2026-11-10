@@ -104,19 +104,16 @@ namespace Knoodle::Animate
         }
         if( cum[n] <= 0 ) { return false; }
         cx /= Real(n); cy /= Real(n);
-        // the loop at `points` places evenly spaced along it, from its first point
+        // the loop itself, every corner kept, each edge cut into pieces so that there are about `points` in all
         std::vector<P2> start;
-        std::size_t j = 0;
-        for( int i = 0; i < o.points; ++i )
+        for( std::size_t i = 0; i < n; ++i )
         {
-            const Real s = cum[n] * i / o.points;
-            while( j + 1 < n && cum[j+1] <= s ) { ++j; }
-            const Real len = cum[j+1] - cum[j], t = (len > 0) ? (s - cum[j]) / len : 0;
-            const P2 & a = loop[j], & b = loop[(j + 1) % n];
-            start.push_back(P2{ a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t });
+            const P2 & a = loop[i], & b = loop[(i + 1) % n];
+            const int pieces = std::max(1, static_cast<int>(std::lround(o.points * (cum[i+1] - cum[i]) / cum[n])));
+            for( int s = 0; s < pieces; ++s ) { const Real t = Real(s) / pieces; start.push_back(P2{ a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t }); }
         }
         // the square turns the same way and starts in the same direction, so the morph does not twist
-        const std::vector<P2> square = RoundedSquare(TrayCentre(slot, o), o.size, o.corner, o.points, area > 0, std::atan2(loop[0].y - cy, loop[0].x - cx));
+        const std::vector<P2> square = RoundedSquare(TrayCentre(slot, o), o.size, o.corner, static_cast<int>(start.size()), area > 0, std::atan2(loop[0].y - cy, loop[0].x - cx));
         Path p; p.role = Role::Token; p.color = color; p.closed = true; p.round = true; p.layer = o.layer; p.space = Space::WorldToScreen;
         sc.paths.push_back(p);
         sc.keys[0].pts.push_back(start);

@@ -15,6 +15,7 @@
 #include "Pass.hpp"
 #include "Diagram.hpp"
 #include "Turn.hpp"
+#include "Redraw.hpp"
 #if __has_include("Sweep.hpp")
     #include "Sweep.hpp"
     #define KNOODLE_ANIMATE_SWEEP 1
@@ -47,7 +48,9 @@ namespace Knoodle::Animate
         Real t_cut     = 1.0;       // a drawing shown still before a cut
         Real t_end     = 1.5;
         Real height    = 0.35;      // in a turn of the sphere: how far a strand sits above or below the surface at a crossing
-        Real turn_tilt = 0.45;      // the camera's tilt during a turn
+        Real turn_tilt = 0.45;
+        Real t_fog     = 0.6;       // a redraw: the depth colouring coming in, and going out
+        Real t_rotate  = 2.6;       // ... and the turn between      // the camera's tilt during a turn
         Idx  reshape_frames = 48;
         Real round = 0.3;           // Morph's steady-shape parameter
         Real pad   = 3;             // world units kept clear round a drawing
@@ -213,6 +216,7 @@ namespace Knoodle::Animate
                 bool doneQ = false;
                 if( kind == "r1" ) { doneQ = R1(*rec.state, *rec.move, next, D, note); }
                 else if( kind == "pass" || kind == "middlepass" ) { doneQ = Pass(rec, next, D, note); }
+                else if( kind == "redraw" ) { doneQ = Redraw(rec, next, D, note); }
                 else               { note = "A " + kind + " move is not animated yet: the picture cuts to the next diagram."; }
                 if( !doneQ )
                 {
@@ -309,11 +313,22 @@ namespace Knoodle::Animate
             layoutQ = false;                        // until D is F
             xk = detail::TurnToward(F, D, xc);
             xd = detail::MoveTo(F, D.Bounds().Centre());
+            if( !MorphTo(D, std::move(F), pd.CrossingCount(), note) ) { return false; }
+            layoutQ = true;
+            return true;
+        }
+
+        /*!@brief The reshape from D into F, another drawing of the same diagram
+         * with the same labels and exterior. On success D is F. */
+        bool MorphTo( PlaneDrawing & D, PlaneDrawing F, Int crossings, std::string & note, const ViewBox * box = nullptr )
+        {
+            std::string why;
+            layoutQ = false;
             MorphResult R;
             if( !Morph(D, F, EasedTimes(opt.reshape_frames), opt.round, R, why) ) { note = "The reshape could not be made: " + why; return false; }
             Scene sc;
             sc.label = "Reshape diagram"; sc.duration = opt.t_reshape; sc.easing = Easing::Linear;      // the frames are eased already
-            sc.crossings_before = sc.crossings_after = static_cast<int>(pd.CrossingCount());
+            sc.crossings_before = sc.crossings_after = static_cast<int>(crossings);
             for( std::size_t f = 0; f < R.frames.size(); ++f )
             {
                 detail::Drawn dr = detail::DrawnOf(DrawingAt(D, R.match, R.frames[f]));
@@ -322,9 +337,8 @@ namespace Knoodle::Animate
                 sc.keys.push_back(std::move(k));
             }
             AddTray(sc, tray, opt.tray);
-            Push(std::move(sc), false);
+            Push(std::move(sc), false, box);
             D = std::move(F);
-            layoutQ = true;
             return true;
         }
 
@@ -810,25 +824,167 @@ namespace Knoodle::Animate
             for( Idx f = 0; f < frames.size(); ++f ) { go.keys.push_back(key(frames[f], f == 0)); }
             AddTray(go, tray, opt.tray); Push(std::move(go), false);
 
-            // components the move left with no crossing go to the tray
-            for( Idx f = 0; f < P.freed.size(); ++f )
+            SpinOffs(P.after, P.freed, P.freed_colors, base.crossings_after);
+            Settle(P.after, mine, next, D);
+            return true;
+        }
+
+        /*!@brief Components a move left with no crossing slide to the tray, one after another. */
+        void SpinOffs( const PlaneDrawing & after, const std::vector<Polyline> & freed, const std::vector<long long> & colors, int crossings )
+        {
+            for( Idx f = 0; f < freed.size(); ++f )
             {
-                Scene slide = SceneOf(detail::DrawnOf(P.after), "Spin-off", opt.t_spin, base.crossings_after, base.crossings_after, "");
+                Scene slide = SceneOf(detail::DrawnOf(after), "Spin-off", opt.t_spin, crossings, crossings, "");
                 slide.easing = Easing::Smoother;
                 slide.keys.push_back(slide.keys[0]);
-                for( Idx g = f + 1; g < P.freed.size(); ++g )       // those still waiting their turn
+                for( Idx g = f + 1; g < freed.size(); ++g )         // those still waiting their turn
                 {
-                    Path p; p.closed = true; p.color = static_cast<int>(P.freed_colors[g]); slide.paths.push_back(p);
-                    std::vector<P2> q; for( const Point & z : P.freed[g] ) { q.push_back(detail::ToP2(z)); }
+                    Path p; p.closed = true; p.color = static_cast<int>(colors[g]); slide.paths.push_back(p);
+                    std::vector<P2> q; for( const Point & z : freed[g] ) { q.push_back(detail::ToP2(z)); }
                     slide.keys[0].pts.push_back(q); slide.keys[1].pts.push_back(q);
                 }
                 AddTray(slide, tray, opt.tray);
-                std::vector<P2> loop; for( const Point & z : P.freed[f] ) { loop.push_back(detail::ToP2(z)); }
-                AddSpinOff(slide, loop, static_cast<int>(P.freed_colors[f]), static_cast<int>(tray.size()), opt.tray);
+                std::vector<P2> loop; for( const Point & z : freed[f] ) { loop.push_back(detail::ToP2(z)); }
+                AddSpinOff(slide, loop, static_cast<int>(colors[f]), static_cast<int>(tray.size()), opt.tray);
                 Push(std::move(slide), false);
-                tray.push_back(static_cast<int>(P.freed_colors[f]));
+                tray.push_back(static_cast<int>(colors[f]));
             }
-            Settle(P.after, mine, next, D);
+        }
+
+        /*!@brief A redraw: the drawing reshapes into the view of the record's
+         * space curve E; the curve turns by the record's rotation, with depth
+         * colouring; the view of the turned curve reshapes into a fresh layout
+         * of the next diagram. The view is along (a, b, 1), for the largest
+         * tilt of a ladder at which E is seen as this record's diagram and
+         * R E as the next one's. False, with a note, if it has to be a cut. */
+        bool Redraw( const Record_T & rec, const PD_T * next, PlaneDrawing & D, std::string & note )
+        {
+            const PD_T & pd = *rec.state;
+            std::string why;
+            // the rotation: one of the two turns by a third about (1, 1, 1)
+            int R[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            {
+                const auto at = rec.move->find("rot=");
+                if( at == std::string::npos ) { note = "The redraw names no rotation."; return false; }
+                std::size_t i = at + 4; int got = 0;
+                while( got < 9 && i < rec.move->size() )
+                {
+                    std::size_t used = 0;
+                    try { R[got] = std::stoi(rec.move->substr(i), &used); } catch( const std::exception & ) { break; }
+                    ++got; i += used; if( i < rec.move->size() && (*rec.move)[i] == ',' ) { ++i; }
+                }
+                if( got != 9 ) { note = "The redraw's rotation does not parse."; return false; }
+            }
+            const bool plusQ  = (R[0] == 0 && R[3] == 1 && R[6] == 0 && R[1] == 0 && R[4] == 0 && R[7] == 1 && R[2] == 1 && R[5] == 0 && R[8] == 0);
+            const bool minusQ = (R[0] == 0 && R[3] == 0 && R[6] == 1 && R[1] == 1 && R[4] == 0 && R[7] == 0 && R[2] == 0 && R[5] == 1 && R[8] == 0);
+            if( !plusQ && !minusQ ) { note = "The redraw's rotation is not a turn by a third about (1, 1, 1)."; return false; }
+            if( rec.embedding.empty() || rec.embedding_ptr.size() < 2 ) { note = "The redraw carries no curve."; return false; }
+            if( detail::EmptyQ(D) ) { note = "There is no drawing to start the redraw from."; return false; }
+
+            // the curve, placed over the drawing in hand and at its size
+            const Idx nc = rec.embedding_ptr.size() - 1;
+            std::vector<std::vector<P3>> E (nc), RE (nc);
+            std::vector<long long> colors;
+            Real lo[3] = { 1e300, 1e300, 1e300 }, hi[3] = { -1e300, -1e300, -1e300 };
+            for( Idx k = 0; k < nc; ++k )
+            {
+                colors.push_back(k < rec.embedding_colors.size() ? static_cast<long long>(rec.embedding_colors[k]) : static_cast<long long>(k));
+                for( Int v = rec.embedding_ptr[k]; v < rec.embedding_ptr[k+1]; ++v )
+                {
+                    const P3 p { static_cast<Real>(rec.embedding[static_cast<Idx>(3 * v)]), static_cast<Real>(rec.embedding[static_cast<Idx>(3 * v + 1)]), static_cast<Real>(rec.embedding[static_cast<Idx>(3 * v + 2)]) };
+                    E[k].push_back(p);
+                    lo[0] = std::min(lo[0], p.x); lo[1] = std::min(lo[1], p.y); lo[2] = std::min(lo[2], p.z);
+                    hi[0] = std::max(hi[0], p.x); hi[1] = std::max(hi[1], p.y); hi[2] = std::max(hi[2], p.z);
+                }
+            }
+            const auto B = D.Bounds(); const Point cD = B.Centre();
+            const Real scale = std::max(B.hi[0] - B.lo[0], B.hi[1] - B.lo[1]) / std::max(std::max(hi[0] - lo[0], hi[1] - lo[1]), 1e-300);
+            const P3 c { cD[0], cD[1], 0 };
+            Real radius = 0;
+            for( Idx k = 0; k < nc; ++k )
+            {
+                for( P3 & p : E[k] )
+                {
+                    const Real v[3] = { scale * (p.x - (lo[0] + hi[0]) / 2), scale * (p.y - (lo[1] + hi[1]) / 2), scale * (p.z - (lo[2] + hi[2]) / 2) };
+                    p = P3{ c.x + v[0], c.y + v[1], c.z + v[2] };
+                    RE[k].push_back(P3{ c.x + R[0] * v[0] + R[1] * v[1] + R[2] * v[2], c.y + R[3] * v[0] + R[4] * v[1] + R[5] * v[2], c.z + R[6] * v[0] + R[7] * v[1] + R[8] * v[2] });
+                    radius = std::max(radius, std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]));
+                }
+            }
+
+            // the tilt: the largest of a ladder that shows both diagrams
+            PlaneDrawing G0, V1; PD_T mine1; std::vector<Polyline> loops1; std::vector<long long> loop_colors1;
+            Real a = 0, b = 0; bool foundQ = false; std::string last = "no tilt was tried";
+            for( Real N : { 3.0, 4.0, 6.0, 8.0, 12.0, 16.0, 24.0, 32.0, 48.0, 64.0, 96.0, 128.0 } )
+            {
+                for( Real M : { 3.0, 5.0, 7.0 } )
+                {
+                    a = 1 / N; b = a / M;
+                    PlaneDrawing V0; std::vector<Polyline> loops0; std::vector<long long> lc0;
+                    if( !ViewDrawing(E, colors, a, b, V0, loops0, lc0, why) ) { last = why; continue; }
+                    if( !loops0.empty() || detail::EmptyQ(V0) ) { last = "a component of the curve crosses nothing in the view"; continue; }
+                    std::vector<Idx> cw = detail::ClockwiseFaces(V0);
+                    if( cw.size() != 1 ) { last = "the view of the curve is not connected"; continue; }
+                    V0.exterior_arc = cw[0] / 2; V0.exterior_forwardQ = (cw[0] % 2) != 0;
+                    const PD_T mine0 = ToPlanarDiagram<PD_T>(V0, why);
+                    if( !mine0.ValidQ() || !Relabel(V0, mine0, pd, G0, why) ) { last = "the view of the curve is not the record's diagram: " + why; continue; }
+                    if( !ViewDrawing(RE, colors, a, b, V1, loops1, loop_colors1, why) ) { last = why; continue; }
+                    mine1 = PD_T();
+                    if( !detail::EmptyQ(V1) )
+                    {
+                        cw = detail::ClockwiseFaces(V1);
+                        if( cw.size() != 1 ) { last = "the view of the turned curve is not connected"; continue; }
+                        V1.exterior_arc = cw[0] / 2; V1.exterior_forwardQ = (cw[0] % 2) != 0;
+                        mine1 = ToPlanarDiagram<PD_T>(V1, why);
+                        PlaneDrawing tmp;
+                        if( !mine1.ValidQ() || !next || !HasCrossings(*next) || !Relabel(V1, mine1, *next, tmp, why) ) { last = "the view of the turned curve is not the next diagram: " + why; continue; }
+                    }
+                    else if( next && HasCrossings(*next) ) { last = "the turned curve shows no crossing, and the next diagram has some"; continue; }
+                    foundQ = true; break;
+                }
+                if( foundQ ) { break; }
+            }
+            if( !foundQ ) { note = "No view shows the redraw's two diagrams (" + last + ")."; return false; }
+
+            // the drawing in hand must have the view's exterior: if not, turn the sphere first
+            const Int want = PassDescriptor<Int>::LeftFace(pd, static_cast<Int>(G0.ExteriorDarc()));
+            if( want != PassDescriptor<Int>::LeftFace(pd, static_cast<Int>(D.ExteriorDarc())) )
+            {
+                std::vector<Int> avoid;
+                for( Int f = 0; f < pd.FaceCount(); ++f ) { if( f != want ) { avoid.push_back(f); } }
+                const Real m = B.Size();
+                const Polyline everywhere { { B.lo[0] - m, B.lo[1] - m }, { B.hi[0] + m, B.lo[1] - m }, { B.hi[0] + m, B.hi[1] + m }, { B.lo[0] - m, B.hi[1] + m } };
+                Idx darc = 0; Point pole { 0, 0 };
+                if( !FaceInside(pd, D, everywhere, avoid, darc, pole) ) { note = "The redraw's curve was recorded on another exterior face, and that face cannot be put outside."; return false; }
+                Still(D, "Diagram", opt.t_hold, pd, "");
+                if( !TurnTo(pd, D, darc, pole, "The redraw's curve was recorded with another face outside, so that face is put outside first.", note) ) { return false; }
+            }
+
+            // one box for the reshape in, the turn, and what it leaves
+            ViewBox box { c.x - 1.15 * radius, c.y - 1.15 * radius, c.x + 1.15 * radius, c.y + 1.15 * radius };
+            auto grow = [&]( const PlaneDrawing & X ) { if( detail::EmptyQ(X) ) { return; } const auto Bx = X.Bounds(); box.x0 = std::min(box.x0, Bx.lo[0]); box.y0 = std::min(box.y0, Bx.lo[1]); box.x1 = std::max(box.x1, Bx.hi[0]); box.y1 = std::max(box.y1, Bx.hi[1]); };
+            grow(D); grow(G0); grow(V1);
+            box.x0 -= opt.pad; box.y0 -= opt.pad; box.x1 += opt.pad; box.y1 += opt.pad;
+            Still(D, "Diagram", opt.t_hold, pd, "");
+            if( !MorphTo(D, G0, pd.CrossingCount(), note, &box) ) { return false; }
+
+            Scene sc;
+            sc.kind = Scene::Kind::Space; sc.label = "Redraw move";
+            sc.crossings_before = static_cast<int>(pd.CrossingCount());
+            sc.crossings_after  = (next && next->ValidQ()) ? static_cast<int>(next->CrossingCount()) : 0;
+            sc.tilt_a = a; sc.tilt_b = b; sc.depth = radius;
+            Stage st; st.map = Map3::Affine; st.centre = c; st.axis = P3{ 1, 1, 1 };
+            for( Idx k = 0; k < nc; ++k ) { Curve3 cv; cv.color = static_cast<int>(colors[k]); cv.pts = E[k]; st.curves.push_back(std::move(cv)); }
+            const Real third = (plusQ ? 1 : -1) * 2.0943951023931953;
+            Stage in = st;   in.duration = opt.t_fog;      in.fog0 = 0; in.fog1 = 1;
+            Stage turn = st; turn.duration = opt.t_rotate; turn.angle1 = third; turn.fog0 = turn.fog1 = 1;
+            Stage out = st;  out.duration = opt.t_fog;     out.angle0 = out.angle1 = third; out.fog0 = 1; out.fog1 = 0;
+            sc.stages = { in, turn, out };
+            sc.duration = 2 * opt.t_fog + opt.t_rotate;
+            Push(std::move(sc), false, &box);
+
+            SpinOffs(V1, loops1, loop_colors1, (next && next->ValidQ()) ? static_cast<int>(next->CrossingCount()) : 0);
+            Settle(V1, mine1, next, D);
             return true;
         }
 

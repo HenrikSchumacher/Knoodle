@@ -108,6 +108,8 @@ namespace Knoodle::Animate
                 (S.over[i1] ? H.over : H.under)[0] = a;
             }
         }
+        // the two passages of a crossing were placed along two different strands: make them one point exactly
+        for( PlaneDrawing::Arc & A : E.arcs ) { A.pts.front() = E.crossings[A.tail].p; A.pts.back() = E.crossings[A.head].p; }
         E.WalkComponents(color);
         return true;
     }
@@ -297,13 +299,16 @@ namespace Knoodle::Animate
             out.met_arc.push_back(T.arc[m.s]);
             out.met_at.push_back(Point{ c[0] + (d[0] - c[0]) * m.t, c[1] + (d[1] - c[1]) * m.t });
         }
-        struct Ins { Idx s; Real t; long x; char over; };
+        struct Ins { Idx s; Real t; long x; char over; Point q; };
         std::vector<std::vector<Ins>> ins (Wv.strands.size());
         for( Idx i = 0; i < meets.size(); ++i )
         {
             const long x = Wv.next_crossing++;
-            ins[k].push_back(Ins{ meets[i].rs, meets[i].rt, x, over_new[i] });
-            ins[meets[i].j].push_back(Ins{ meets[i].s, meets[i].t, x, static_cast<char>(over_new[i] ? 0 : 1) });
+            // one point for both passages, worked out on the pieces as they are now (before any is cut)
+            const Point & ra = S.p[meets[i].rs], & rb = S.p[(meets[i].rs + 1) % S.p.size()];
+            const Point at { ra[0] + (rb[0] - ra[0]) * meets[i].rt, ra[1] + (rb[1] - ra[1]) * meets[i].rt };
+            ins[k].push_back(Ins{ meets[i].rs, meets[i].rt, x, over_new[i], at });
+            ins[meets[i].j].push_back(Ins{ meets[i].s, meets[i].t, x, static_cast<char>(over_new[i] ? 0 : 1), at });
         }
         for( Idx j = 0; j < Wv.strands.size(); ++j )
         {
@@ -311,10 +316,8 @@ namespace Knoodle::Animate
             std::sort(ins[j].begin(), ins[j].end(), []( const Ins & p, const Ins & q ) { return (p.s != q.s) ? (p.s > q.s) : (p.t > q.t); });
             for( const Ins & e : ins[j] )
             {
-                const Point & a = T.p[e.s], & b = T.p[(e.s + 1) % T.p.size()];
-                const Point q { a[0] + (b[0] - a[0]) * e.t, a[1] + (b[1] - a[1]) * e.t };
                 const auto at = static_cast<std::ptrdiff_t>(e.s) + 1;
-                T.p.insert(T.p.begin() + at, q); T.x.insert(T.x.begin() + at, e.x); T.over.insert(T.over.begin() + at, e.over);
+                T.p.insert(T.p.begin() + at, e.q); T.x.insert(T.x.begin() + at, e.x); T.over.insert(T.over.begin() + at, e.over);
                 T.arc.insert(T.arc.begin() + at, T.arc[e.s]);
             }
         }

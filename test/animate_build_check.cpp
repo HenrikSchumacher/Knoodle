@@ -115,8 +115,9 @@ int main()
             {
                 ++my_cuts;
                 Check(s.note.find("is not animated yet") != std::string::npos || s.note.find("is not built yet") != std::string::npos
-                      || s.note.find("carries no witness") != std::string::npos,
-                      name + ": a cut only for what is not built yet, or for a middle pass with no witness (" + s.note + ")");
+                      || s.note.find("carries no witness") != std::string::npos
+                      || (name == "redraw_split_refused.trace" && s.note.find("is not connected") != std::string::npos),
+                      name + ": a cut only for what is not built yet, a middle pass with no witness, or the split redraw (" + s.note + ")");
             }
             Check(s.duration > 0 && (!s.keys.empty() || !s.stages.empty()), name + ": a scene has a duration and a picture");
             if( s.label == "Turn the sphere" ) { ++turns; }
