@@ -363,7 +363,7 @@ namespace Knoodle::Animate
         /*!@brief A curl removal: the loop contracts to its crossing, then the
          * drawing reshapes into a fresh layout of `next`. False, with a note,
          * if it has to be a cut; D is then unchanged. */
-        bool R1( const PD_T & pd, const std::string & move, const PD_T * next, PlaneDrawing & D, std::string & note )
+        bool R1( const PD_T & pd, const std::string & move, const PD_T * next, PlaneDrawing & D, std::string & note, bool turnedQ = false )
         {
             using namespace KnoodleR1View;
             R1Descriptor<Int> desc; std::string why;
@@ -377,7 +377,20 @@ namespace Knoodle::Animate
             if( PassDescriptor<Int>::LeftFace(pd, static_cast<Int>(D.ExteriorDarc())) == r.monogon )
             {
                 // The curl's own face is the outside: pulling it in would sweep it across everything.
-                if( !lastQ ) { note = "The curl's loop is drawn round the rest of the diagram; turning the sphere first is not built yet."; return false; }
+                if( !lastQ )
+                {
+                    // Put another face outside first, and start again.
+                    if( turnedQ ) { note = "The curl's loop is still drawn round the rest of the diagram after a turn."; return false; }
+                    const auto B = D.Bounds();
+                    const Real m = B.Size();
+                    const Polyline everywhere { { B.lo[0] - m, B.lo[1] - m }, { B.hi[0] + m, B.lo[1] - m }, { B.hi[0] + m, B.hi[1] + m }, { B.lo[0] - m, B.hi[1] + m } };
+                    Idx darc = 0; Point pole { 0, 0 };
+                    if( !FaceInside(pd, D, everywhere, { r.monogon }, darc, pole) ) { note = "The curl's loop is drawn round the rest of the diagram, and no other face can be put outside."; return false; }
+                    Still(D, "Diagram", opt.t_hold, pd, "");
+                    if( !TurnTo(pd, D, darc, pole, "The next curl's loop is the outside of the drawing, so another face is put outside first.", note) ) { return false; }
+                    if( !Reshape(D, pd, note) ) { return false; }
+                    return R1(pd, move, next, D, note, true);
+                }
                 std::swap(a, ap); an = ap;          // at a last crossing either loop goes: show the twin
                 note = "The trace removes the outer curl; the inner one is shown instead, with the same result.";
             }
