@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knoodle player</title>
+<!--
+  A player for knoodle-animation version 2 files (src/Animate/Json.hpp).
+  One file, no dependencies, no build step. Open it in a browser and drop an
+  animation on it, or serve it beside one:  knoodle-player.html#file.json
+
+  The picture is a port of src/Animate/Frame.hpp, function for function. That
+  file is the reference: when the two differ, this one is wrong.
+
+  For other pages:  KnoodlePlayer.load(json), .seek(seconds), .setStyle({...}),
+  and KnoodleAnimation.frameAt(animation, seconds, style, width, height).
+-->
+<style>
+  :root { --page: #f4f4f8; --text: #222; --muted: #667; --line: #c9cbe0; --accent: #1B1F8A; }
+  @media (prefers-color-scheme: dark) { :root { --page: #14171c; --text: #dde; --muted: #99a; --line: #333a46; --accent: #9aa2ff; } }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.4 system-ui, sans-serif; display: flex; flex-direction: column; }
+  main { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 12px; }
+  canvas { max-width: 100%; max-height: 100%; aspect-ratio: 16 / 9; width: 100%; border: 1px solid var(--line); background: #fff; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--line); }
+  .bar input[type=range] { flex: 1; min-width: 140px; accent-color: var(--accent); }
+  button, select { font: inherit; padding: 3px 10px; border: 1px solid var(--line); background: transparent; color: inherit; border-radius: 4px; cursor: pointer; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #label { font-weight: 600; min-width: 11em; }
+  #count, #clock, #note { color: var(--muted); font-variant-numeric: tabular-nums; }
+  #note { flex-basis: 100%; min-height: 1.4em; }
+  label { display: inline-flex; gap: 6px; align-items: center; }
+  input[type=color] { width: 28px; height: 22px; padding: 0; border: 1px solid var(--line); background: none; }
+  body.drop canvas { outline: 3px dashed var(--accent); }
+</style>
+</head>
+<body>
+<main><canvas id="view" width="1600" height="900"></canvas></main>
+<div class="bar">
+  <button id="play">Play</button>
+  <button id="prev" title="Previous scene">&#9664;</button>
+  <button id="next" title="Next scene">&#9654;</button>
+  <input id="time" type="range" min="0" max="1" step="0.001" value="0" aria-label="Time">
+  <span id="clock">0.0 / 0.0 s</span>
+  <label>Speed <select id="speed"><option value="0.25">&frac14;&times;</option><option value="0.5">&frac12;&times;</option><option value="1" selected>1&times;</option><option value="2">2&times;</option></select></label>
+</div>
+<div class="bar">
+  <span id="label">No animation loaded</span><span id="count"></span>
+  <label>Theme <select id="theme"><option value="talk">Talk</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+  <label>Ground <input id="c_background" type="color"></label>
+  <label>Ink <input id="c_ink" type="color"></label>
+  <label>Moving <input id="c_moving" type="color"></label>
+  <label>Disk <input id="c_disk" type="color"><input id="a_disk" type="range" min="0" max="1" step="0.05" style="flex:0 0 70px;min-width:70px" aria-label="Disk opacity"></label>
+  <button id="open">Open&hellip;</button><input id="file" type="file" accept=".json,application/json" hidden>
+  <span id="note">Drop a knoodle-animation file here.</span>
+</div>
+
+<script id="core">
+// ---------------------------------------------------------------------------
+// The picture: a port of src/Animate/Frame.hpp. Points are [x, y, depth].
+// ---------------------------------------------------------------------------
+const KnoodleAnimation = (() => {
+  const lerp = (a, b, u) => a + (b - a) * u, clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+  const smoother = u => { u = clamp(u, 0, 1); return u * u * u * (u * (6 * u - 15) + 10); };
+
+  const base = { background: [1,1,1,1], ink: [0,0,0,1], moving: [0.106,0.122,0.541,1], route: [0.533,0.545,0.784,0.9],
+    disk: [0.820,0.827,0.949,0.75], fog: [0.86,0.87,0.95,1], components: [],
+    stroke: 0.28, min_stroke: 1 / 128, route_width: 0.8, gap: 1.7, fog_depth: 0.55, fog_width: 0.35, margin: 0.06, token_stroke: 1 / 300 };
+  const styles = {
+    talk: base,
+    light: { ...base, ink: [0.18,0.18,0.18,1], moving: [0,0.55,0.62,1], route: [0.86,0.58,0,0.8], disk: [0.80,0.80,0.80,0.55], fog: [0.79,0.84,0.93,1],
+      components: [[0.18,0.18,0.18,1], [0.11,0.12,0.54,1], [0.80,0,0.17,1], [0,0.47,0.24,1]] },
+    dark: { ...base, background: [0.055,0.078,0.102,1], ink: [0.725,0.776,0.827,1], moving: [0.373,0.843,0.843,1], route: [1,0.843,0.373,0.8],
+      disk: [0.22,0.25,0.29,0.55], fog: [0.122,0.208,0.322,1], components: [[0.725,0.776,0.827,1], [0.60,0.65,1,1], [1,0.55,0.55,1], [0.55,0.9,0.6,1]] },
+  };
+  const colorOf = (st, role, color) => {
+    if (role === 'Moving' || role === 'Loop') return st.moving;
+    if (role === 'Route') return st.route;
+    if (role === 'Disk') return st.disk;
+    return (color < 0 || !st.components.length) ? st.ink : st.components[color % st.components.length];
+  };
+  const mix = (p, q, f) => p.map((v, i) => v + (q[i] - v) * f);
+
+  const dist = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+  function arcLengths(p, closed) {
+    const cum = [0];
+    for (let i = 1; i < p.length + (closed ? 1 : 0); i++) cum.push(cum[i - 1] + dist(p[i - 1], p[i % p.length]));
+    return cum;
+  }
+  function pointAt(p, cum, s) {
+    let j = 0; while (j < cum.length && cum[j] <= s) j++;            // upper bound
+    if (j === 0) return p[0];
+    if (j >= cum.length) return p[(cum.length - 1) % p.length];
+    const len = cum[j] - cum[j - 1], t = len > 0 ? (s - cum[j - 1]) / len : 0, a = p[j - 1], b = p[j % p.length];
+    return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+  }
+  function subCurve(p, cum, closed, s0, s1) {
+    const L = cum[cum.length - 1], at = s => pointAt(p, cum, (closed && s >= L) ? s - L : s), out = [at(s0)];
+    for (let lap = 0; lap < (closed ? 2 : 1); lap++) for (let j = 0; j < p.length; j++) { const s = cum[j] + lap * L; if (s > s0 && s < s1) out.push(p[j]); }
+    out.push(at(s1));
+    return out;
+  }
+  // What is left of [0, L] after the cuts [centre, half]; null means nothing was cut.
+  function kept(cuts, L, closed) {
+    if (!cuts.length || L <= 0) return null;
+    let iv = [];
+    for (const [c, h] of cuts) {
+      let a = c - h, b = c + h;
+      if (closed) { if (b - a >= L) return []; a = a % L; if (a < 0) a += L; b = a + 2 * h; }
+      else { a = Math.max(a, 0); b = Math.min(b, L); if (b <= a) continue; }
+      iv.push([a, b]);
+    }
+    if (!iv.length) return null;
+    iv.sort((u, v) => u[0] - v[0] || u[1] - v[1]);
+    const m = [];
+    for (const v of iv) { if (m.length && v[0] <= m[m.length - 1][1]) m[m.length - 1][1] = Math.max(m[m.length - 1][1], v[1]); else m.push([v[0], v[1]]); }
+    const out = [];
+    if (closed) {
+      while (m.length > 1 && m[m.length - 1][1] >= m[0][0] + L) { m[0][0] = m[m.length - 1][0] - L; m.pop(); }
+      if (m.length === 1 && m[0][1] - m[0][0] >= L) return [];
+      for (let i = 0; i < m.length; i++) { const a = m[i][1], b = i + 1 < m.length ? m[i + 1][0] : m[0][0] + L; if (b > a) out.push([a, b]); }
+    } else {
+      let a = 0;
+      for (const v of m) { if (v[0] > a) out.push([a, v[0]]); a = v[1]; }
+      if (L > a) out.push([a, L]);
+    }
+    return out;
+  }
+  function tangent(p, closed, i) {
+    const n = p.length; if (n < 2) return [1, 0];
+    const a = p[i > 0 ? i - 1 : (closed ? n - 1 : 0)], b = p[i + 1 < n ? i + 1 : (closed ? 0 : n - 1)], d = dist(a, b);
+    return d > 0 ? [(b[0] - a[0]) / d, (b[1] - a[1]) / d] : [1, 0];
+  }
+  const slant = (t, u) => 1 / Math.max(0.35, Math.abs(t[0] * u[1] - t[1] * u[0]));
+  function makeView(b0, b1, u, W, H, margin) {
+    const b = b0.map((v, i) => lerp(v, b1[i], u)), bw = Math.max(b[2] - b[0], 1e-9), bh = Math.max(b[3] - b[1], 1e-9);
+    const s = Math.min(W * (1 - 2 * margin) / bw, H * (1 - 2 * margin) / bh), cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2;
+    return { s, world: (x, y) => [W / 2 + (x - cx) * s, H / 2 - (y - cy) * s], screen: (x, y) => [x * H, H - y * H] };
+  }
+  const pushStroke = (f, p, color, width, round, closed) => { if (p.length >= 2 && color[3] > 0) f.items.push({ fill: false, pts: p, color, width, round, closed }); };
+
+  function flatFrame(sc, local, st, f) {
+    const keys = sc.Keys; if (!keys.length) return;
+    const ulin = sc.Duration > 0 ? clamp(local / sc.Duration, 0, 1) : 1, u = sc.Easing === 'Smoother' ? smoother(ulin) : ulin;
+    const K = keys.length, np = sc.Paths.length, pos = u * (K - 1), i0 = Math.min(Math.floor(pos), K - 1), i1 = Math.min(i0 + 1, K - 1);
+    let w = pos - i0, lerpQ = i1 !== i0;
+    for (let j = 0; lerpQ && j < np; j++) lerpQ = keys[i0].Points[j].length === keys[i1].Points[j].length;
+    if (!lerpQ) w = (w < 0.5 || i1 === i0) ? 0 : 1;
+    const ka = keys[i0], kb = keys[i1], kc = w < 0.5 ? ka : kb;
+    const V = makeView(sc.View[0], sc.View[1], smoother(ulin), f.width, f.height, st.margin), wpx = Math.max(st.stroke * V.s, st.min_stroke * f.height);
+    const px = [];
+    for (let j = 0; j < np; j++) {
+      const P = sc.Paths[j];
+      const map = (q, key) => {
+        if (P.Space === 'World') return V.world(q[0], q[1]);
+        if (P.Space === 'Screen') return V.screen(q[0], q[1]);
+        const g = K > 1 ? key / (K - 1) : 1, a = V.world(q[0], q[1]), b = V.screen(q[0], q[1]);
+        return [lerp(a[0], b[0], g), lerp(a[1], b[1], g)];
+      };
+      const A = ka.Points[j], B = kb.Points[j];
+      if (w <= 0 || w >= 1) px.push((w <= 0 ? A : B).map(q => { const z = map(q, w <= 0 ? i0 : i1); return [z[0], z[1], 0]; }));
+      else px.push(A.map((q, i) => { const a = map(q, i0), b = map(B[i], i1); return [lerp(a[0], b[0], w), lerp(a[1], b[1], w), 0]; }));
+    }
+    const order = [];
+    sc.Fills.forEach((F, i) => order.push({ layer: F.Layer, kind: 0, index: i }));
+    sc.Paths.forEach((P, j) => order.push({ layer: P.Layer, kind: 1, index: j }));
+    order.sort((a, b) => a.layer - b.layer || a.kind - b.kind || a.index - b.index);
+    for (const d of order) {
+      if (d.kind === 0) {
+        const F = sc.Fills[d.index], ring = [];
+        for (const [j, rev] of F.Parts) { const p = px[j]; for (let i = 0; i < p.length; i++) ring.push(p[rev ? p.length - 1 - i : i]); }
+        if (ring.length >= 3) f.items.push({ fill: true, rings: [ring], color: colorOf(st, F.Role, -1) });
+        continue;
+      }
+      const j = d.index, P = sc.Paths[j], p = px[j]; if (p.length < 2) continue;
+      const col = colorOf(st, P.Role, P.Color).slice(); col[3] *= lerp(P.Alpha[0], P.Alpha[1], u);
+      const onscreen = P.Space === 'World' ? 0 : ((P.Space === 'Screen' || K < 2) ? 1 : (i0 + w) / (K - 1));
+      const width = lerp(wpx * (P.Role === 'Route' ? st.route_width : 1), st.token_stroke * f.height, onscreen);
+      if (P.Role === 'Token' && p.length >= 3) { const c = col.slice(); c[3] *= lerp(0.35, 0.85, onscreen); f.items.push({ fill: true, rings: [p], color: c }); }
+      const cum = arcLengths(p, P.Closed), cuts = [];
+      for (const [under, iu, over, io] of kc.Cuts) {
+        if (under !== j || iu >= p.length) continue;
+        const o = px[over]; if (io >= o.length) continue;
+        cuts.push([cum[iu], st.gap * wpx * slant(tangent(p, P.Closed, iu), tangent(o, sc.Paths[over].Closed, io))]);
+      }
+      const k = kept(cuts, cum[cum.length - 1], P.Closed);
+      if (k === null) { pushStroke(f, p, col, width, P.Round, P.Closed); continue; }
+      for (const [a, b] of k) pushStroke(f, subCurve(p, cum, P.Closed, a, b), col, width, P.Round, false);
+    }
+  }
+
+  function rotate(v, axis, angle) {
+    const n = Math.hypot(axis[0], axis[1], axis[2]); if (n <= 0 || angle === 0) return v;
+    const k = axis.map(a => a / n), c = Math.cos(angle), s = Math.sin(angle), kv = k[0] * v[0] + k[1] * v[1] + k[2] * v[2];
+    const cr = [k[1] * v[2] - k[2] * v[1], k[2] * v[0] - k[0] * v[2], k[0] * v[1] - k[1] * v[0]];
+    return [0, 1, 2].map(i => v[i] * c + cr[i] * s + k[i] * kv * (1 - c));
+  }
+  function finish(S, q, fin) {
+    if (fin <= 0) return q;
+    const F = S.Finish, dx = q[0] - F.Origin[0], dy = q[1] - F.Origin[1], r = Math.hypot(dx, dy);
+    const fr = (F.Rmin <= 0 || r <= F.Rmin) ? r : F.Rmin * (1 + Math.log(r / F.Rmin)), g = r > 0 ? (1 - fin) + fin * fr / r : 1;
+    const z = [F.Origin[0] + dx * g, F.Origin[1] + dy * g];
+    return [(1 - fin) * z[0] + fin * F.Scale * (z[0] - F.Shift[0]), (1 - fin) * z[1] + fin * F.Scale * (z[1] - F.Shift[1])];
+  }
+  function stagePoint(S, p, angle, lift, roll, fin, fullHeight) {
+    const C = S.Centre;
+    if (S.Map === 'Affine') { const w = rotate([p[0] - C[0], p[1] - C[1], lift * (p[2] - C[2])], S.Axis, angle); return [C[0] + w[0], C[1] + w[1], C[2] + w[2]]; }
+    const q = finish(S, p, fin), x = q[0] - C[0], y = q[1] - C[1], h = p[2] * (fullHeight ? 1 : Math.min(1, 4 * roll));
+    if (roll < 1e-9) return [q[0], q[1], h];
+    const R = S.Radius / roll, t = 4 * R * R / (x * x + y * y + 4 * R * R), Sx = t * x, Sy = t * y, Sz = 2 * R * (1 - t);
+    const w = rotate([Sx - h * Sx / R, Sy - h * Sy / R, Sz + h * (R - Sz) / R - R], S.Axis, angle);
+    return [C[0] + w[0], C[1] + w[1], w[2] + R];
+  }
+  function spaceFrame(sc, local, st, f) {
+    const stages = sc.Stages; if (!stages.length) return;
+    let k = 0, tl = local; while (k + 1 < stages.length && tl >= stages[k].Duration) { tl -= stages[k].Duration; k++; }
+    const S = stages[k], u = smoother(S.Duration > 0 ? tl / S.Duration : 1);
+    const angle = lerp(S.Angle[0], S.Angle[1], u), lift = lerp(S.Lift[0], S.Lift[1], u), roll = lerp(S.Roll[0], S.Roll[1], u);
+    const fin = lerp(S.Finish.Amount[0], S.Finish.Amount[1], u), fog = lerp(S.Fog[0], S.Fog[1], u);
+    const ulin = sc.Duration > 0 ? clamp(local / sc.Duration, 0, 1) : 1;
+    const V = makeView(sc.View[0], sc.View[1], smoother(ulin), f.width, f.height, st.margin), wpx = Math.max(st.stroke * V.s, st.min_stroke * f.height);
+    const nc = S.Curves.length, px = [], cum = []; let dmin = Infinity, dmax = -Infinity;
+    for (let c = 0; c < nc; c++) {
+      px.push(S.Curves[c].Points.map(p => { const X = stagePoint(S, p, angle, lift, roll, fin, false), z = V.world(X[0] - sc.Tilt[0] * X[2], X[1] - sc.Tilt[1] * X[2]);
+        dmin = Math.min(dmin, X[2]); dmax = Math.max(dmax, X[2]); return [z[0], z[1], X[2]]; }));
+      cum.push(arcLengths(px[c], true));
+    }
+    const cuts = px.map(() => []);
+    if (S.Map === 'Roll') {
+      for (const [a, ia, b, ib] of S.Crossings) {
+        if (a >= nc || b >= nc || ia >= px[a].length || ib >= px[b].length) continue;
+        const kk = slant(tangent(px[a], true, ia), tangent(px[b], true, ib));
+        const za = stagePoint(S, S.Curves[a].Points[ia], angle, lift, roll, fin, true)[2], zb = stagePoint(S, S.Curves[b].Points[ib], angle, lift, roll, fin, true)[2];
+        if (za < zb) cuts[a].push([cum[a][ia], st.gap * wpx * kk]); else cuts[b].push([cum[b][ib], st.gap * wpx * kk]);
+      }
+    } else {
+      const segs = [];
+      for (let c = 0; c < nc; c++) { const n = px[c].length; for (let i = 0; i < n; i++) { const a = px[c][i], b = px[c][(i + 1) % n];
+        segs.push({ x0: Math.min(a[0], b[0]), x1: Math.max(a[0], b[0]), y0: Math.min(a[1], b[1]), y1: Math.max(a[1], b[1]), c, i }); } }
+      segs.sort((a, b) => a.x0 - b.x0);
+      for (let m = 0; m < segs.length; m++) for (let l = m + 1; l < segs.length && segs[l].x0 <= segs[m].x1; l++) {
+        const s = segs[m], t = segs[l]; if (t.y0 > s.y1 || t.y1 < s.y0) continue;
+        const ns = px[s.c].length, nt = px[t.c].length;
+        if (s.c === t.c && (s.i === t.i || (s.i + 1) % ns === t.i || (t.i + 1) % nt === s.i)) continue;
+        const a = px[s.c][s.i], b = px[s.c][(s.i + 1) % ns], c = px[t.c][t.i], d = px[t.c][(t.i + 1) % nt];
+        const rx = b[0] - a[0], ry = b[1] - a[1], sx = d[0] - c[0], sy = d[1] - c[1], den = rx * sy - ry * sx; if (den === 0) continue;
+        const ta = ((c[0] - a[0]) * sy - (c[1] - a[1]) * sx) / den, tc = ((c[0] - a[0]) * ry - (c[1] - a[1]) * rx) / den;
+        if (ta <= 0 || ta >= 1 || tc <= 0 || tc >= 1) continue;
+        const la = Math.hypot(rx, ry), lc = Math.hypot(sx, sy), kk = 1 / Math.max(0.35, Math.abs(den) / Math.max(la * lc, 1e-300));
+        if (lerp(a[2], b[2], ta) < lerp(c[2], d[2], tc)) cuts[s.c].push([cum[s.c][s.i] + ta * la, st.gap * wpx * kk]);
+        else cuts[t.c].push([cum[t.c][t.i] + tc * lc, st.gap * wpx * kk]);
+      }
+    }
+    const LEVELS = 24, span = Math.max(dmax - dmin, 1e-12), dmid = (dmin + dmax) / 2, depth = Math.max(sc.Depth, 1e-12), runs = [];
+    for (let c = 0; c < nc; c++) {
+      if (px[c].length < 2) continue;
+      let k2 = kept(cuts[c], cum[c][cum[c].length - 1], true); if (k2 === null) k2 = [[0, cum[c][cum[c].length - 1]]];
+      const baseCol = colorOf(st, 'Strand', S.Curves[c].Color);
+      for (const [a, b] of k2) {
+        const piece = subCurve(px[c], cum[c], true, a, b); let band = -1;
+        for (let i = 0; i + 1 < piece.length; i++) {
+          const d = (piece[i][2] + piece[i + 1][2]) / 2, nb = fog > 0 ? Math.min(LEVELS - 1, Math.floor(LEVELS * (d - dmin) / span)) : 0;
+          if (nb !== band) {
+            const far = clamp((dmax - d) / (2 * depth), 0, 1);
+            runs.push({ band: nb, pts: [piece[i]], color: mix(baseCol, [st.fog[0], st.fog[1], st.fog[2], baseCol[3]], st.fog_depth * fog * far),
+              width: wpx * (1 + st.fog_width * fog * clamp((d - dmid) / depth, -1, 1)) });
+            band = nb;
+          }
+          runs[runs.length - 1].pts.push(piece[i + 1]);
+        }
+      }
+    }
+    runs.map((r, i) => [r, i]).sort((a, b) => a[0].band - b[0].band || a[1] - b[1]).forEach(([r]) => pushStroke(f, r.pts, r.color, r.width, true, false));
+  }
+
+  const duration = A => A.Scenes.reduce((t, s) => t + s.Duration, 0);
+  function locate(A, t) {
+    if (!A.Scenes.length) return null;
+    if (t < 0) t = 0;
+    for (let i = 0; i < A.Scenes.length; i++) {
+      const d = A.Scenes[i].Duration;
+      if (t < d || i + 1 === A.Scenes.length) return { scene: i, local: t < d ? t : d };
+      t -= d;
+    }
+    return null;
+  }
+  function frameAt(A, seconds, st, width, height) {
+    const f = { width, height, background: st.background, items: [], scene: 0, label: '', note: '', crossings: [0, 0] };
+    const at = locate(A, seconds); if (!at) return f;
+    const sc = A.Scenes[at.scene];
+    f.scene = at.scene; f.label = sc.Label; f.note = sc.Note || ''; f.crossings = sc.Crossings;
+    if (sc.Kind === 'Flat') flatFrame(sc, at.local, st, f); else spaceFrame(sc, at.local, st, f);
+    return f;
+  }
+  const css = c => `rgba(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)},${c[3]})`;
+  function draw(ctx, f) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = css(f.background); ctx.fillRect(0, 0, f.width, f.height);
+    for (const it of f.items) {
+      ctx.beginPath();
+      for (const ring of (it.fill ? it.rings : [it.pts])) { ring.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); if (it.fill || it.closed) ctx.closePath(); }
+      if (it.fill) { ctx.fillStyle = css(it.color); ctx.fill('nonzero'); }
+      else { ctx.strokeStyle = css(it.color); ctx.lineWidth = it.width; ctx.lineJoin = it.round ? 'round' : 'miter'; ctx.miterLimit = 4; ctx.lineCap = it.round ? 'round' : 'butt'; ctx.stroke(); }
+    }
+  }
+  return { styles, frameAt, draw, duration, locate, stagePoint, finish, smoother };
+})();
+</script>
+
+<script>
+// ---------------------------------------------------------------------------
+// The player: a canvas, a clock and a few controls.
+// ---------------------------------------------------------------------------
+const KnoodlePlayer = (() => {
+  const $ = id => document.getElementById(id), cv = $('view'), ctx = cv.getContext('2d');
+  let A = null, t = 0, playing = false, last = 0, style = { ...KnoodleAnimation.styles.talk };
+  const hex = c => '#' + c.slice(0, 3).map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
+  const unhex = (h, a) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255).concat([a]);
+
+  function render() {
+    const total = A ? KnoodleAnimation.duration(A) : 0;
+    $('time').max = total || 1; $('time').value = t;
+    $('clock').textContent = `${t.toFixed(1)} / ${total.toFixed(1)} s`;
+    if (!A) { ctx.fillStyle = hex(style.background); ctx.fillRect(0, 0, cv.width, cv.height); return; }
+    const f = KnoodleAnimation.frameAt(A, t, style, cv.width, cv.height);
+    KnoodleAnimation.draw(ctx, f);
+    $('label').textContent = f.label || 'Scene ' + (f.scene + 1);
+    $('count').textContent = f.crossings[0] === f.crossings[1] ? `${f.crossings[0]} crossings` : `${f.crossings[0]} → ${f.crossings[1]} crossings`;
+    $('note').textContent = f.note;
+  }
+  function tick(now) {
+    if (!playing) return;
+    t += (now - last) / 1000 * +$('speed').value; last = now;
+    if (A && t >= KnoodleAnimation.duration(A)) { t = KnoodleAnimation.duration(A); setPlaying(false); }
+    render(); if (playing) requestAnimationFrame(tick);
+  }
+  function setPlaying(on) {
+    playing = on && !!A; $('play').textContent = playing ? 'Pause' : 'Play';
+    if (playing) { if (t >= KnoodleAnimation.duration(A)) t = 0; last = performance.now(); requestAnimationFrame(tick); }
+  }
+  function sceneStart(i) { let s = 0; for (let k = 0; k < i; k++) s += A.Scenes[k].Duration; return s; }
+  function step(dir) {
+    if (!A) return;
+    const at = KnoodleAnimation.locate(A, t), here = sceneStart(at.scene);
+    const i = dir > 0 ? Math.min(at.scene + 1, A.Scenes.length - 1) : (t - here > 0.3 ? at.scene : Math.max(at.scene - 1, 0));
+    t = sceneStart(i); render();
+  }
+  function syncControls() {
+    for (const k of ['background', 'ink', 'moving', 'disk']) $('c_' + k).value = hex(style[k]);
+    $('a_disk').value = style.disk[3];
+  }
+  function load(json) {
+    const a = typeof json === 'string' ? JSON.parse(json) : json;
+    if (a.Format !== 'knoodle-animation' || a.Version !== 2) throw new Error('This is not a knoodle-animation version 2 file.');
+    A = a; t = 0; setPlaying(false); document.title = (a.Source || 'animation') + ' – Knoodle player'; render();
+  }
+  function fail(e) { $('note').textContent = e.message || String(e); }
+  function setStyle(patch) { style = { ...style, ...patch }; syncControls(); render(); }
+
+  $('play').onclick = () => setPlaying(!playing);
+  $('prev').onclick = () => step(-1); $('next').onclick = () => step(1);
+  $('time').oninput = () => { t = +$('time').value; render(); };
+  $('theme').onchange = () => { style = { ...KnoodleAnimation.styles[$('theme').value] }; syncControls(); render(); };
+  for (const k of ['background', 'ink', 'moving', 'disk']) $('c_' + k).oninput = () => { style[k] = unhex($('c_' + k).value, style[k][3]); render(); };
+  $('a_disk').oninput = () => { style.disk = style.disk.slice(0, 3).concat([+$('a_disk').value]); render(); };
+  $('open').onclick = () => $('file').click();
+  $('file').onchange = () => { const f = $('file').files[0]; if (f) f.text().then(load).catch(fail); };
+  addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('drop'); });
+  addEventListener('dragleave', () => document.body.classList.remove('drop'));
+  addEventListener('drop', e => { e.preventDefault(); document.body.classList.remove('drop'); const f = e.dataTransfer.files[0]; if (f) f.text().then(load).catch(fail); });
+  addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (e.key === ' ') { e.preventDefault(); setPlaying(!playing); } else if (e.key === 'ArrowLeft') step(-1); else if (e.key === 'ArrowRight') step(1);
+  });
+  syncControls(); render();
+  if (location.hash.length > 1) fetch(decodeURIComponent(location.hash.slice(1))).then(r => r.text()).then(load).catch(fail);
+  return { load, setStyle, seek: s => { t = s; render(); }, play: () => setPlaying(true), pause: () => setPlaying(false) };
+})();
+</script>
+</body>
+</html>

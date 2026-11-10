@@ -87,6 +87,7 @@ test/inflate_fail_*.tsv
 # exactly this set.
 test/alexander_normalization_check
 test/canon_check
+test/animate_scene_check
 test/component_check
 test/diagram_sanity_check
 test/embedding_check
