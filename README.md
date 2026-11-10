@@ -9,7 +9,7 @@ To use the Knoodle classes in your own programs, clone this repository. To make 
 
     git clone --depth 1 --recurse-submodules --shallow-submodules git@github.com:HenrikSchumacher/Knoodle.git
 
-Knoodle's command line tools _polyfold_, _knoodlesimplify_, _knoodledraw_, _knoodleidentify_, and _knoodleprove_ (but *not* the Knoodle headers themselves) can be installed via _homebrew_ on a wide variety of systems. The native platform is MacOS/Apple Clang. Installation is continuously tested via GitHub Actions on the `ubuntu-latest` and `macos-26` runners, and WSL2 uses the same Linuxbrew path as native Linux. It should install on a wide variety of linux systems with the following commands: 
+Knoodle's command line tools _polyfold_, _knoodlesimplify_, _knoodledraw_, _knoodleidentify_, and _knoodleprove_ (but *not* the Knoodle headers themselves) can be installed via _homebrew_ on a wide variety of systems. The native platform is MacOS/Apple Clang. Installation is continuously tested via GitHub Actions on the `ubuntu-latest`, `macos-26` and `macos-15` runners, and WSL2 uses the same Linuxbrew path as native Linux. It should install on a wide variety of linux systems with the following commands: 
 
 ```
 brew tap designbynumbers/cantarellalab
