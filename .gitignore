@@ -65,6 +65,7 @@ tools/ExampleKnot_simplified.tsv
 tools/knoodlesimplify
 tools/knoodledraw
 tools/knoodleidentify
+tools/knoodlemovie
 tools/knoodleprove
 tools/*.d
 test/*.d
@@ -87,6 +88,9 @@ test/inflate_fail_*.tsv
 # exactly this set.
 test/alexander_normalization_check
 test/canon_check
+test/animate_build_check
+test/animate_morph_check
+test/animate_morph_umfpack_check
 test/animate_scene_check
 test/component_check
 test/diagram_sanity_check
