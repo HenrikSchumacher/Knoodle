@@ -118,7 +118,7 @@ static Scene HopfScene()
     Scene sc;
     sc.label = "Reshape diagram"; sc.crossings_before = sc.crossings_after = 2;
     sc.duration = 2; sc.easing = Easing::Linear;
-    sc.view0 = sc.view1 = Box{ -1, -1, 7, 7 };
+    sc.view0 = sc.view1 = ViewBox{ -1, -1, 7, 7 };
     sc.paths.resize(2);
     sc.paths[0].closed = sc.paths[1].closed = true;
     sc.paths[0].color = 0; sc.paths[1].color = 1;
@@ -203,7 +203,7 @@ int main( int argc, char ** argv )
     {
         // a pass disk, opacity, layers, a slanted crossing, a token on the screen
         Scene sc;
-        sc.duration = 1; sc.easing = Easing::Linear; sc.view0 = sc.view1 = Box{ 0, 0, 10, 10 };
+        sc.duration = 1; sc.easing = Easing::Linear; sc.view0 = sc.view1 = ViewBox{ 0, 0, 10, 10 };
         sc.paths.resize(4);
         sc.paths[0].role = Role::Moving; sc.paths[0].layer = 2; sc.paths[0].alpha0 = 1; sc.paths[0].alpha1 = 0.3;
         sc.paths[1].role = Role::Route;  sc.paths[1].layer = 1;
@@ -232,7 +232,7 @@ int main( int argc, char ** argv )
         }
         const Frame g = FrameAt(A, 1, st, W, H);
         if( g.items.size() == 7 ) { Near(g.items[4].stroke.color.a, 0.3 * st.moving.a, 1e-12, "opacity runs from alpha0 to alpha1"); }
-        A.scenes[0].view1 = Box{ 0, 0, 20, 20 };
+        A.scenes[0].view1 = ViewBox{ 0, 0, 20, 20 };
         const Frame z = FrameAt(A, 1, st, W, H);
         if( z.items.size() == 7 )
         {
@@ -244,7 +244,7 @@ int main( int argc, char ** argv )
     // ---- a space scene, Affine: crossings from the geometry -----------------
     {
         Scene sc; sc.kind = Scene::Kind::Space; sc.duration = 2; sc.tilt_b = 0.5; sc.depth = 2;
-        sc.view0 = sc.view1 = Box{ -3, -3, 5, 5 };
+        sc.view0 = sc.view1 = ViewBox{ -3, -3, 5, 5 };
         Stage S; S.map = Map3::Affine; S.duration = 2; S.angle0 = 0; S.angle1 = 0;
         S.curves.resize(2);
         S.curves[0].pts = { {-2,-2,0}, {2,-2,0}, {2,2,0}, {-2,2,0} };          // flat, in z = 0
@@ -352,7 +352,7 @@ int main( int argc, char ** argv )
         Scene sc; sc.kind = Scene::Kind::Space; sc.label = "Turn the sphere"; sc.stages = T.stages;
         sc.duration = 0; for( const Stage & s : sc.stages ) { sc.duration += s.duration; }
         sc.tilt_b = 0.45; sc.depth = T.radius;
-        sc.view0 = sc.view1 = Box{ -3, -2, 9, 10 };
+        sc.view0 = sc.view1 = ViewBox{ -3, -2, 9, 10 };
         turned.scenes.push_back(sc);
         const Frame a = FrameAt(turned, 0, st, W, H);
         Check(a.items.size() == 2, "the turn's first frame is the flat drawing: two strokes, one gap each");
@@ -388,7 +388,7 @@ int main( int argc, char ** argv )
         Near(RoundedSquare(P2{ 0, 0 }, 2, 0.25, 8, false, 1.5707963267948966)[0].y, 1, 1e-9, "it starts in the direction asked for");
 
         Scene sc = HopfScene();                                 // two keys
-        sc.view0 = sc.view1 = Box{ -1, -1, 7, 7 };
+        sc.view0 = sc.view1 = ViewBox{ -1, -1, 7, 7 };
         const std::vector<P2> loop { {0,0}, {4,0}, {4,4}, {0,4} };
         Check(AddSpinOff(sc, loop, 1, 2), "a spin-off is added to a scene of two keys");
         AddTray(sc, { 0, 3 });

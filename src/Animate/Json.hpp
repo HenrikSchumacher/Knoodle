@@ -44,7 +44,7 @@ namespace Knoodle::Animate
             void Key( const char * k, bool first = false ) { if( !first ) { s += ','; } s += '"'; s += k; s += "\":"; }
             void Pair( Real a, Real b, int d = 4 ) { s += '['; Num(a, d); s += ','; Num(b, d); s += ']'; }
             void Triple( const P3 & p, int d = 4 ) { s += '['; Num(p.x, d); s += ','; Num(p.y, d); s += ','; Num(p.z, d); s += ']'; }
-            void Box4( const Box & b ) { s += '['; Num(b.x0); s += ','; Num(b.y0); s += ','; Num(b.x1); s += ','; Num(b.y1); s += ']'; }
+            void Box4( const ViewBox & b ) { s += '['; Num(b.x0); s += ','; Num(b.y0); s += ','; Num(b.x1); s += ','; Num(b.y1); s += ']'; }
         };
 
         inline const char * Name( Role r )

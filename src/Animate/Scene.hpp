@@ -27,7 +27,7 @@ namespace Knoodle::Animate
 
     struct P2 { Real x = 0, y = 0; };
     struct P3 { Real x = 0, y = 0, z = 0; };
-    struct Box { Real x0 = 0, y0 = 0, x1 = 1, y1 = 1; };
+    struct ViewBox { Real x0 = 0, y0 = 0, x1 = 1, y1 = 1; };
 
     /*!@brief What a path is; the style sheet turns it into a look. */
     enum class Role : std::uint8_t { Strand, Moving, Route, Disk, Loop, Token };
@@ -155,7 +155,7 @@ namespace Knoodle::Animate
         int         crossings_before = 0, crossings_after = 0;
         Real        duration = 1;           // Space: the sum of its stages' durations
         Easing      easing   = Easing::Smoother;
-        Box         view0, view1;           // the camera's box at the start and at the end
+        ViewBox         view0, view1;           // the camera's box at the start and at the end
 
         // Flat
         std::vector<Path> paths;

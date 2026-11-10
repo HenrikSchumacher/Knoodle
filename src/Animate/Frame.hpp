@@ -161,9 +161,9 @@ namespace Knoodle::Animate
             P2 Screen( Real x, Real y ) const { return P2{ x * H, H - y * H }; }
         };
 
-        inline View MakeView( const Box & b0, const Box & b1, Real u, Real W, Real H, Real margin )
+        inline View MakeView( const ViewBox & b0, const ViewBox & b1, Real u, Real W, Real H, Real margin )
         {
-            const Box b { Lerp(b0.x0, b1.x0, u), Lerp(b0.y0, b1.y0, u), Lerp(b0.x1, b1.x1, u), Lerp(b0.y1, b1.y1, u) };
+            const ViewBox b { Lerp(b0.x0, b1.x0, u), Lerp(b0.y0, b1.y0, u), Lerp(b0.x1, b1.x1, u), Lerp(b0.y1, b1.y1, u) };
             const Real bw = std::max(b.x1 - b.x0, 1e-9), bh = std::max(b.y1 - b.y0, 1e-9);
             const Real s = std::min(W * (1 - 2 * margin) / bw, H * (1 - 2 * margin) / bh);
             return View{ (b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, s, W / 2, H / 2, H };
