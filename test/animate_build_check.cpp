@@ -63,7 +63,7 @@ int main()
 
     const An::Style style = An::Style::Talk();
     const Real W = 1280, H = 720;
-    int readbacks = 0, traces = 0, scenes = 0, curls = 0, reshapes = 0, cuts = 0, spins = 0;
+    int turns = 0, readbacks = 0, traces = 0, scenes = 0, curls = 0, reshapes = 0, cuts = 0, spins = 0;
     for( const fs::path & file : files )
     {
         const std::string name = file.filename().string();
@@ -118,7 +118,8 @@ int main()
                       || s.note.find("carries no witness") != std::string::npos,
                       name + ": a cut only for what is not built yet, or for a middle pass with no witness (" + s.note + ")");
             }
-            Check(s.duration > 0 && !s.keys.empty(), name + ": a scene has a duration and a picture");
+            Check(s.duration > 0 && (!s.keys.empty() || !s.stages.empty()), name + ": a scene has a duration and a picture");
+            if( s.label == "Turn the sphere" ) { ++turns; }
             for( const An::Key & k : s.keys ) { Check(k.pts.size() == s.paths.size(), name + ": a key has a polyline for every path"); }
         }
         for( const An::Path & p : A.scenes.back().paths ) { if( p.role == An::Role::Token ) { ++tokens; } }
@@ -144,7 +145,7 @@ int main()
         Check(balanced && depth == 0 && j.size() > 100, name + ": its JSON is balanced");
         if( name == "r1_last_curl.trace" ) { Check(tokens == 1 && A.scenes.back().crossings_after == 0, name + ": the last curl leaves one square in the tray and no crossings"); }
     }
-    std::printf("read back %d layouts; ", readbacks);
+    std::printf("read back %d layouts; turns of the sphere %d; ", readbacks, turns);
     std::printf("traces=%d scenes=%d curls=%d reshapes=%d spin-offs=%d cuts=%d\n", traces, scenes, curls, reshapes, spins, cuts);
     Check(curls >= 13 && reshapes >= 10 && spins >= 2, "curls, reshapes and spin-offs were all exercised");
     std::printf("animate_build_check: (%d checks, %d failed)\n", g_checks, g_failed);

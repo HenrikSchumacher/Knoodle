@@ -33,6 +33,7 @@ namespace Knoodle::Animate
         std::vector<Stage>     stages;      // roll up, turn, unroll
         std::vector<Curve3>    left;        // the drawing the turn leaves: (x, y, h), cut as the stages' curves are
         std::vector<Crossing3> crossings;   // the crossings, in the cut curves' indices
+        std::vector<std::vector<int>> at;   // per curve: where each vertex that came in is in the cut curve
         Real radius = 0, angle = 0;
     };
 
@@ -66,15 +67,18 @@ namespace Knoodle::Animate
                 at[c].push_back(int(dense[c].pts.size()));
                 const Real len = std::hypot(b.x - a.x, b.y - a.y);
                 Real t = 0;
-                while( t < 1 )
+                while( true )
                 {
                     dense[c].pts.push_back(P3{ a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t });
                     const P3 & q = dense[c].pts.back();
                     const Real step = std::min(opt.max_step, std::max(0.02, opt.near * std::hypot(q.x - pole.x, q.y - pole.y)));
-                    t = (len > 0) ? t + step / len : 1;
+                    // the last piece of an edge is never a sliver: stop while there is still a step and a half to go
+                    if( len <= 0 || t + 1.5 * step / len >= 1 ) { break; }
+                    t += step / len;
                 }
             }
         }
+        out.at = at;
         for( const Crossing3 & x : crossings ) { out.crossings.push_back(Crossing3{ x.a, at[std::size_t(x.a)][std::size_t(x.ia)], x.b, at[std::size_t(x.b)][std::size_t(x.ib)] }); }
 
         // the turn that takes the pole's point of the sphere to the top

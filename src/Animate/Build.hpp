@@ -14,6 +14,7 @@
 #include "Tray.hpp"
 #include "Pass.hpp"
 #include "Diagram.hpp"
+#include "Turn.hpp"
 #if __has_include("Sweep.hpp")
     #include "Sweep.hpp"
     #define KNOODLE_ANIMATE_SWEEP 1
@@ -45,6 +46,8 @@ namespace Knoodle::Animate
         Real t_spin    = 1.2;       // a spin-off's slide to the tray
         Real t_cut     = 1.0;       // a drawing shown still before a cut
         Real t_end     = 1.5;
+        Real height    = 0.35;      // in a turn of the sphere: how far a strand sits above or below the surface at a crossing
+        Real turn_tilt = 0.45;      // the camera's tilt during a turn
         Idx  reshape_frames = 48;
         Real round = 0.3;           // Morph's steady-shape parameter
         Real pad   = 3;             // world units kept clear round a drawing
@@ -261,11 +264,15 @@ namespace Knoodle::Animate
             return layoutQ;
         }
 
-        void Push( Scene && sc, bool still )
+        void Push( Scene && sc, bool still, const ViewBox * box = nullptr )
         {
             ViewBox b;
-            if( !detail::WorldBox(sc, opt.pad, b) ) { b = own.empty() ? ViewBox{ -10, -10, 10, 10 } : own.back(); }
-            if( !still && !own.empty() && !stillQ.back() ) { b = own.back(); }       // two moving scenes in a row: the camera stays put
+            if( box ) { b = *box; }
+            else
+            {
+                if( !detail::WorldBox(sc, opt.pad, b) ) { b = own.empty() ? ViewBox{ -10, -10, 10, 10 } : own.back(); }
+                if( !still && !own.empty() && !stillQ.back() ) { b = own.back(); }   // two moving scenes in a row: the camera stays put
+            }
             sc.view0 = sc.view1 = b;
             own.push_back(b); stillQ.push_back(still ? 1 : 0);
             A.scenes.push_back(std::move(sc));
@@ -535,7 +542,108 @@ namespace Knoodle::Animate
          * shown still; the strand sweeping across the disk; the drawing left
          * reshaping into a fresh layout. False, with a note, if it has to be a
          * cut; D is then unchanged. */
-        bool Pass( const Record_T & rec, const PD_T * next, PlaneDrawing & D, std::string & note )
+        /*!@brief A face of D to put outside before a move whose loop is
+         * `loop`: one inside the loop, not one of `avoid` (faces of pd), and
+         * the roomiest such. Gives a darc with that face on its left and a
+         * point well inside it. */
+        bool FaceInside( const PD_T & pd, const PlaneDrawing & D, const Polyline & loop, const std::vector<Int> & avoid, Idx & darc, Point & pole ) const
+        {
+            std::vector<std::vector<Idx>> faces; std::string why;
+            if( !D.Faces(faces, why) ) { return false; }
+            Real best = 0;
+            for( const auto & f : faces )
+            {
+                const Int face = PassDescriptor<Int>::LeftFace(pd, static_cast<Int>(f[0]));
+                if( std::find(avoid.begin(), avoid.end(), face) != avoid.end() ) { continue; }
+                if( std::find(f.begin(), f.end(), D.ExteriorDarc()) != f.end() ) { continue; }
+                Polyline poly;
+                for( Idx d : f ) { const Polyline & L = D.arcs[d / 2].pts; for( Idx i = 0; i + 1 < L.size(); ++i ) { poly.push_back((d % 2) ? L[i] : L[L.size() - 1 - i]); } }
+                // a point well inside: of the midpoints of pairs of its corners, the one farthest from its edge
+                for( Idx i = 0; i < poly.size(); ++i ) { for( Idx j = i + 1; j < poly.size(); ++j )
+                {
+                    const Point m { (poly[i][0] + poly[j][0]) / 2, (poly[i][1] + poly[j][1]) / 2 };
+                    if( !Inside(poly, m) || !Inside(loop, m) ) { continue; }
+                    Real clear = 1e300;
+                    for( Idx e = 0; e < poly.size() && clear > best; ++e )
+                    {
+                        const Point & a = poly[e], & b = poly[(e + 1) % poly.size()];
+                        const Real dx = b[0] - a[0], dy = b[1] - a[1], d2 = dx * dx + dy * dy;
+                        const Real t = (d2 > 0) ? std::min(1.0, std::max(0.0, ((m[0] - a[0]) * dx + (m[1] - a[1]) * dy) / d2)) : 0;
+                        clear = std::min(clear, std::hypot(m[0] - a[0] - t * dx, m[1] - a[1] - t * dy));
+                    }
+                    if( clear > best ) { best = clear; darc = f[0]; pole = m; }
+                } }
+            }
+            return best > 0;
+        }
+
+        /*!@brief Turn the sphere: put the face on the left of `darc` outside,
+         * with `pole`, a point of it, sent to infinity. On success D is the
+         * drawing the turn leaves (edges cut into arcs of circles), with that
+         * exterior; it is not a layout. */
+        bool TurnTo( const PD_T & pd, PlaneDrawing & D, Idx darc, const Point & pole, const std::string & reason, std::string & note )
+        {
+            std::vector<Curve3> curves (D.components.size());
+            std::vector<Idx> start (D.arcs.size(), 0);
+            for( Idx k = 0; k < D.components.size(); ++k )
+            {
+                curves[k].color = static_cast<int>(D.colors[k]);
+                for( Idx a : D.components[k] )
+                {
+                    const PlaneDrawing::Arc & A = D.arcs[a];
+                    const Real hT = (D.crossings[A.tail].over[1] == a) ? opt.height : -opt.height, hH = (D.crossings[A.head].over[0] == a) ? opt.height : -opt.height;
+                    const std::vector<Real> prm = Params(A.pts);
+                    start[a] = curves[k].pts.size();
+                    for( Idx i = 0; i + 1 < A.pts.size(); ++i ) { curves[k].pts.push_back(P3{ A.pts[i][0], A.pts[i][1], hT + (hH - hT) * prm[i] }); }
+                }
+            }
+            std::vector<Crossing3> xs;
+            for( const PlaneDrawing::Crossing & C : D.crossings )
+            {
+                if( C.over[1] == None ) { continue; }
+                xs.push_back(Crossing3{ static_cast<int>(D.arcs[C.under[1]].component), static_cast<int>(start[C.under[1]]),
+                                        static_cast<int>(D.arcs[C.over[1]].component),  static_cast<int>(start[C.over[1]]) });
+            }
+            const TurnResult T = Turn(curves, xs, P2{ pole[0], pole[1] });
+            // the drawing it leaves, in D's labels
+            PlaneDrawing G = D;
+            for( Idx k = 0; k < D.components.size(); ++k )
+            {
+                const auto & comp = D.components[k];
+                const auto & L = T.left[k].pts;
+                for( Idx s = 0; s < comp.size(); ++s )
+                {
+                    const Idx a = comp[s], b = comp[(s + 1) % comp.size()];
+                    const Idx i0 = static_cast<Idx>(T.at[k][start[a]]), i1 = static_cast<Idx>(T.at[k][start[b]]);
+                    Polyline q;
+                    for( Idx i = i0; ; i = (i + 1) % L.size() ) { q.push_back(Point{ L[i].x, L[i].y }); if( i == i1 && q.size() > 1 ) { break; } }
+                    G.arcs[a].pts = std::move(q);
+                    G.crossings[G.arcs[a].tail].p = G.arcs[a].pts.front();
+                }
+            }
+            G.exterior_arc = darc / 2; G.exterior_forwardQ = (darc % 2) != 0;
+            {
+                const std::vector<Idx> cw = detail::ClockwiseFaces(G);
+                std::vector<std::vector<Idx>> faces; std::string why;
+                bool okQ = (cw.size() == 1) && G.Faces(faces, why);
+                if( okQ ) { okQ = false; for( const auto & f : faces ) { if( std::find(f.begin(), f.end(), cw[0]) != f.end() ) { okQ = std::find(f.begin(), f.end(), darc) != f.end(); } } }
+                if( !okQ ) { note = "The turn of the sphere did not put the chosen face outside."; return false; }
+            }
+            Scene sc;
+            sc.kind = Scene::Kind::Space; sc.label = "Turn the sphere"; sc.note = reason;
+            sc.crossings_before = sc.crossings_after = static_cast<int>(pd.CrossingCount());
+            sc.stages = T.stages; sc.duration = 0;
+            for( const Stage & s : sc.stages ) { sc.duration += s.duration; }
+            sc.tilt_a = 0; sc.tilt_b = opt.turn_tilt; sc.depth = T.radius;
+            const auto B = D.Bounds(); const Point c = B.Centre(); const Real R = T.radius;
+            ViewBox box { std::min(B.lo[0], c[0] - 1.15 * R) - opt.pad, std::min(B.lo[1], c[1] - R - 2 * R * opt.turn_tilt) - opt.pad,
+                          std::max(B.hi[0], c[0] + 1.15 * R) + opt.pad, std::max(B.hi[1], c[1] + 1.15 * R) + opt.pad };
+            Push(std::move(sc), false, &box);
+            D = std::move(G); layoutQ = false;
+            return true;
+        }
+
+        bool Pass( const Record_T & rec, const PD_T * next, PlaneDrawing & D, std::string & note, bool turnedQ = false )
         {
             const PD_T & pd = *rec.state;
             PassDescriptor<Int> mv; std::string why;
@@ -606,7 +714,19 @@ namespace Knoodle::Animate
                     ++(Inside(loop, At(L, prm, f)) ? inside : outside);
                 }
                 if( inside > 0 && outside > 0 ) { note = "The witness's pieces lie on both sides of the strand's loop in this drawing."; return false; }
-                if( outside > 0 ) { note = "The middle pass goes round the back of the sphere; turning the sphere first is not built yet."; return false; }
+                if( outside > 0 )
+                {
+                    // The witness side holds infinity. Put a face of the other side outside first, and start again.
+                    if( turnedQ ) { note = "The middle pass still goes round the back of the sphere after a turn."; return false; }
+                    std::vector<Int> corridor { PassDescriptor<Int>::LeftFace(pd, mv.depart) };
+                    for( Int da : mv.cross ) { corridor.push_back(PassDescriptor<Int>::RightFace(pd, da)); }
+                    Idx darc = 0; Point pole { 0, 0 };
+                    if( !FaceInside(pd, D, loop, corridor, darc, pole) ) { note = "The middle pass goes round the back of the sphere, and no face clear of its corridor can be put outside."; return false; }
+                    Still(D, "Diagram", opt.t_hold, pd, "");
+                    if( !TurnTo(pd, D, darc, pole, "The next move sweeps the side that holds infinity, so another face is put outside first.", note) ) { return false; }
+                    if( !Reshape(D, pd, note) ) { return false; }
+                    return Pass(rec, next, D, note, true);
+                }
             }
             auto over_at = [&]( Idx j, Idx s, Real t ) -> bool
             {
