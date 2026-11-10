@@ -49,6 +49,10 @@ R1_TRACE = os.path.join(HERE, "r1_trace_example.txt")
 REDRAW = os.path.join(HERE, "redraw_example.trace")
 REDRAW_LINK = os.path.join(HERE, "redraw_link_example.trace")
 REDRAW_SPLIT = os.path.join(HERE, "redraw_split_refused.trace")
+# Written by test/redraw_record (a Reapr-style lattice lift of a real diagram):
+REDRAW_GENERATED = [("redraw_goeritz.trace", 1, 11, 19),
+                    ("redraw_link_generated.trace", 2, 10, 24),
+                    ("redraw_mpf_unlink.trace", 1, 15, 25)]
 R1_SPINOFF = os.path.join(HERE, "r1_spinoff_example.txt")
 R1_EMPTY_RESULT = os.path.join(HERE, "r1_empty_result.trace")
 R1_LAST_CURL = os.path.join(HERE, "r1_last_curl.trace")
@@ -297,6 +301,22 @@ check("projection: VERIFIED (E has 2 component(s), 8 lattice vertices" in out,
       "redraw link: project(E) is the Hopf snapshot, colours kept", out)
 check("trace: VERIFIED (4 crossings expected, 4 found, colours kept)" in out,
       "redraw link: project(R*E) is the next snapshot, colours kept", out)
+
+# The generated witnesses: realistic sizes, Reapr's lift, both rotations used.
+for name, comps, before, after in REDRAW_GENERATED:
+    rc, out, _ = run(PROVE, [os.path.join(HERE, name)])
+    check(rc == 0, f"{name}: exit 0", out)
+    check(f"projection: VERIFIED (E has {comps} component(s)" in out
+          and f"project(E) is the snapshot, {before} crossings, colours kept" in out,
+          f"{name}: project(E) is the snapshot", out)
+    check(f"trace: VERIFIED ({after} crossings expected, {after} found, colours kept)" in out,
+          f"{name}: project(R*E) is the next snapshot", out)
+
+# A middle-pass-free unknot, redrawn once, then untied by middlestrands: the
+# whole stream is a proof.
+rc, out, _ = run(PROVE, [os.path.join(HERE, "redraw_mpf_unlink.trace")])
+check("stream unlink: VERIFIED" in out and "16 moves" in out,
+      "redraw_mpf_unlink: one redraw + 15 middlestrands moves unknot a middle-pass-free diagram", out)
 
 rc, out, _ = run(PROVE, [REDRAW_SPLIT])
 check(rc == 1 and "rotated: MISMATCH" in out
