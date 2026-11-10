@@ -3,9 +3,10 @@
 Status: design agreed 2026-11-10 (JHC). Henrik: at about 6,000 lines this needs no
 design review. The estimates below are from reading the prototype, not from built code.
 
-Built so far (2026-11-10): `src/Animate/PlaneDrawing.hpp` (466 lines), `Mesh.hpp` (405)
-and `Morph.hpp` (770), with `test/animate_morph_check.cpp`. See "What the first three
-pieces found" at the end.
+Built (2026-11-10): the library in `src/Animate/`, `tools/knoodlemovie` and
+`players/knoodle-player.html`, 5,679 lines, with four C++ tests. Every kind of move in
+the committed traces is animated. See "What is built" and "What the first three pieces
+found" at the end.
 
 This document replaces the prototype on the local branch `orthomorph` (112 commits,
 about 21,000 lines of animation code, never pushed). That branch was the experiment
@@ -331,3 +332,98 @@ What was wrong or under-budgeted in this document:
 - Not tested: drawings that are not affine images of an orthogonal layout (the turn's
   circular arcs, a redraw's oblique view). Risk 4 stands. Mesh refinement is built and
   unit-tested but the morph does not use it; the sweep will.
+
+## What is built (2026-11-10)
+
+`tools/knoodlemovie TRACE` writes the animation as JSON for the web player
+(`--json=FILE`), one frame as a PPM (`--frame=SECONDS`), or every frame as raw rgb24 for
+ffmpeg. It has a Makefile target but is not in `all` and is not installed.
+
+| File | What it holds | Lines | Planned |
+|---|---|---|---|
+| `PlaneDrawing.hpp` | the drawing type, the polyline kit, matching | 466 | 350 |
+| `Mesh.hpp` | ear clipping, refinement, the sparse solve | 405 | 400 |
+| `Morph.hpp` | the Floater–Gotsman morph | 770 | 800 |
+| `Sweep.hpp` | the harmonic sweep | 616 | 420 |
+| `Pass.hpp` | the weave; pass surgery; welding a sweep frame to the still strands | 396 | 500, with the next two |
+| `Diagram.hpp` | `ToPlanarDiagram`: the diagram a drawing draws | 60 | |
+| `Build.hpp` | the build loop; r1, pass, middle pass, redraw; turns; spin-offs; the camera | 1,006 | 450 + 120 + 450 |
+| `Redraw.hpp` | the view of a space curve as a drawing | 98 | |
+| `Turn.hpp` | the turn of the sphere | 131 | 180 |
+| `Tray.hpp` | spin-offs and the tray | 124 | 200 |
+| `Scene.hpp` | scenes, roles, the style sheet | 278 | part of 450 |
+| `Frame.hpp` | `FrameAt` | 476 | 280 |
+| `Json.hpp` | `ToJSON` | 185 | 100 |
+| `Raster.hpp` | the rasterizer | 179 | part of 300 |
+| `tools/knoodlemovie.cpp` | the tool | 108 | part of 300 |
+| `players/knoodle-player.html` | the web player | 381 | 670 |
+| **Total** | | **5,679** | **5,340** |
+
+The plan's 6,040 included 700 lines of tests; without them it was 5,340, so this is about
+340 over. `Sweep.hpp` and `Frame.hpp` are the two that ran over. The tests are 1,433 lines
+(JHC, 2026-11-10: fast tests are wanted and do not count).
+
+Tests, all C++, all in the light tier:
+
+| Test | What it checks |
+|---|---|
+| `animate_morph_check` | the kits; the morph's contract on every state of the committed traces (and, by hand, about 21,800 morphs: none failed) |
+| `animate_sweep_check` | the sweep's contract and its timing by area, on pockets, lobes and scaled copies (490 checks) |
+| `animate_scene_check` | `FrameAt`, gaps, the camera, space scenes, the turn, the tray, `ToJSON`, the rasterizer's pixels (102 checks) |
+| `animate_build_check` | every committed trace builds; a layout read back as a diagram is the diagram, label for label; nothing jumps from one scene to the next except at a cut; every cut has a reason on a short list (5,222 checks) |
+
+On the 13 committed traces: 15 curl removals, 20 passes, 7 middle passes with a witness and
+2 redraws animate; 5 turns of the sphere are inserted; 6 components go to the tray. Two
+cuts remain, both with a reason: a middle pass that carries no witness, and the redraw
+whose turned curve is a split link (`redraw_split_refused.trace`, which `knoodleprove`
+refuses too).
+
+What happened to the risks:
+
+1. **Splicing the after-drawing directly: done, and it holds.** The drawing is held as a
+   weave (each component a closed polyline with its crossings named at the vertices), a
+   pass is three edits to it, and the drawing left is read back, turned into a diagram by
+   `ToPlanarDiagram`, and carried to the next record's labels by the colour-kept
+   isomorphism. Every pass and middle pass in the traces passes that check. No picture is
+   printed and parsed anywhere.
+2. **One morph front end: holds.** Layouts, drawings left by moves, views of space curves
+   and drawings left by turns all go through the same `Morph`.
+3. **No fallback morph: holds.** No reshape failed on the traces once the bugs below were
+   fixed.
+4. **The drawing a turn leaves: the reshape copes,** on the 5 turns in the traces. One
+   real failure on the way: the turn's edge subdivision could leave a piece 1e-14 long,
+   which ear clipping rightly refused.
+5. **Routing after a turn: holds** on the traces. The face put outside is the roomiest
+   one inside the strand's loop that the corridor does not pass through.
+6. **The redraw view choice** came out small (98 lines plus about 150 in `Build.hpp`): a
+   ladder of tilts, each checked by the isomorphism, with no exact integer projection.
+   That is enough for a picture; `knoodleprove` remains the check.
+
+What the design had wrong, or did not say:
+
+- **A redraw has no separate lift.** The reshape into the tilted view is the lift. The
+  space scene is depth colouring in, the turn, depth colouring out.
+- **The exterior named by a curl's own arc flips when the curl goes.** The face outside a
+  loop is on the other side of the strand the loop joins. The exterior is now read off
+  the drawing after every surgery (the one face that runs clockwise).
+- **A route may cross the strand's own old position** (FHW's first pass). It makes no
+  crossing there, and the sweep's region is then a chain of lobes.
+- **The first layout takes the trace's `#view exterior=`.** After that the drawing's own
+  exterior is carried, and a turn is inserted when a move needs another.
+- **A fresh layout is turned by the nearest quarter turn** before a reshape, so that the
+  picture does not spin.
+
+Not done:
+
+- `Build.hpp` includes `tools/r1_move.hpp` and `tools/diagram_agreement.hpp`. Moving the
+  picture-independent headers to `src/` is sequence step 2, still to do.
+- `knoodledraw --animate` does not exist; `knoodlemovie --json` does that job.
+- The two point types (`Point` in `PlaneDrawing.hpp`, `P2` in `Scene.hpp`) are not unified.
+- The picture is plainer than the prototype's: no halo where a strand passes over the
+  disk, no rounded corners in a reshape or a redraw, the disk always drawn below the
+  strands of its layer.
+- The web player's frames agree with `FrameAt` numerically, and its interface code has
+  been run against a stub page, but it has not been opened in a browser.
+- The tray is not drawn during a turn or a redraw (space scenes have no paths).
+- Timings, the camera and the look of a turn have not been tuned by anyone watching.
+- The corpus beyond the committed traces has not been run through `Build`.
