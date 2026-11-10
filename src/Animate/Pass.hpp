@@ -31,6 +31,7 @@ namespace Knoodle::Animate
             Polyline          p;        // closed: the last point joins the first
             std::vector<long> x;        // per vertex: the crossing it passes through there, or -1
             std::vector<char> over;     // per vertex with a crossing: is this the over passage?
+            std::vector<Idx>  arc;      // per vertex: the drawing's arc that the segment from here runs on (None on a route)
             long long         color = 0;
         };
         std::vector<Strand> strands;
@@ -56,6 +57,7 @@ namespace Knoodle::Animate
                     S.p.push_back(L[i]);
                     S.x.push_back((i == 0) ? static_cast<long>(D.arcs[a].tail) : -1);
                     S.over.push_back((i == 0 && D.crossings[D.arcs[a].tail].over[1] == a) ? 1 : 0);
+                    S.arc.push_back(a);
                 }
             }
             Wv.strands.push_back(std::move(S));
@@ -136,6 +138,9 @@ namespace Knoodle::Animate
         std::vector<Polyline>  still;               // every strand with W taken out; W's own is open, from the head dot round to the tail dot
         std::vector<char>      still_closed;
         std::vector<long long> still_color;
+        std::vector<std::vector<Idx>> still_arc;    // per still vertex: the drawing's arc that the segment from there runs on
+        std::vector<Idx>       met_arc;             // the arcs the route meets, in its own order, and ...
+        std::vector<Point>     met_at;              // ... where
         std::vector<Cut>       still_cuts;          // the crossings among them: (under path, vertex, over path, vertex)
         std::vector<Cut>       w_cuts;              // W's own crossings before the move: under/over are still paths, or -1 for W
         PlaneDrawing           after;               // the drawing the move leaves, in labels of its own
@@ -179,26 +184,26 @@ namespace Knoodle::Animate
             Weave::Strand R; R.color = S.color;
             auto same = [&]( const Point & u, const Point & v ) { return std::hypot(u[0] - v[0], u[1] - v[1]) <= tol; };
             // add a point; one that repeats the last and names no crossing is not added. Returns its place.
-            auto put = [&]( const Point & q, long x, char o ) -> Idx
+            auto put = [&]( const Point & q, long x, char o, Idx arc ) -> Idx
             {
-                if( !R.p.empty() && same(q, R.p.back()) && x < 0 ) { return R.p.size() - 1; }
-                if( !R.p.empty() && same(q, R.p.back()) && R.x.back() < 0 ) { R.x.back() = x; R.over.back() = o; return R.p.size() - 1; }
-                R.p.push_back(q); R.x.push_back(x); R.over.push_back(o);
+                if( !R.p.empty() && same(q, R.p.back()) && x < 0 ) { R.arc.back() = arc; return R.p.size() - 1; }
+                if( !R.p.empty() && same(q, R.p.back()) && R.x.back() < 0 ) { R.x.back() = x; R.over.back() = o; R.arc.back() = arc; return R.p.size() - 1; }
+                R.p.push_back(q); R.x.push_back(x); R.over.push_back(o); R.arc.push_back(arc);
                 return R.p.size() - 1;
             };
-            put(d1, -1, 0);
+            put(d1, -1, 0, a1);
             Idx mark = None;
-            if( s2 == s1 && t2 > t1 ) { mark = put(d2, -1, 0); }           // both dots on one segment, in order
+            if( s2 == s1 && t2 > t1 ) { mark = put(d2, -1, 0, a2); }       // both dots on one segment, in order
             for( Idx step = 0; step < n; ++step )
             {
                 const Idx g = (s1 + step) % n;                              // the segment being walked
-                if( step > 0 && g == s2 && mark == None ) { mark = put(d2, -1, 0); }
+                if( step > 0 && g == s2 && mark == None ) { mark = put(d2, -1, 0, a2); }
                 const Idx v = (g + 1) % n;
-                put(S.p[v], S.x[v], S.over[v]);
+                put(S.p[v], S.x[v], S.over[v], S.arc[v]);
             }
-            if( mark == None && s2 == s1 ) { mark = put(d2, -1, 0); }      // the second dot comes last, just before the first
+            if( mark == None && s2 == s1 ) { mark = put(d2, -1, 0, a2); }  // the second dot comes last, just before the first
             if( mark == None ) { why = "the second dot was not met going round the strand"; return false; }
-            if( R.p.size() > 1 && same(R.p.back(), R.p.front()) && R.x.back() < 0 ) { R.p.pop_back(); R.x.pop_back(); R.over.pop_back(); }
+            if( R.p.size() > 1 && same(R.p.back(), R.p.front()) && R.x.back() < 0 ) { R.p.pop_back(); R.x.pop_back(); R.over.pop_back(); R.arc.pop_back(); }
             if( mark >= R.p.size() ) { mark = 0; }
             S = std::move(R);
             s2 = mark;
@@ -221,7 +226,7 @@ namespace Knoodle::Animate
         for( Idx j = 0; j < Wv.strands.size(); ++j )
         {
             const Weave::Strand & T = Wv.strands[j];
-            Polyline L; std::vector<Idx> from;
+            Polyline L; std::vector<Idx> from; std::vector<Idx> arcOf;
             if( j == k ) { for( Idx i = s2; i < nS; ++i ) { L.push_back(T.p[i]); from.push_back(i); } L.push_back(T.p[0]); from.push_back(0); }
             else         { for( Idx i = 0; i < T.p.size(); ++i ) { L.push_back(T.p[i]); from.push_back(i); } }
             for( Idx v = 0; v < L.size(); ++v )
@@ -233,7 +238,8 @@ namespace Knoodle::Animate
                 auto & e = live.emplace(T.x[i], std::array<int,4>{ -1, 0, -1, 0 }).first->second;
                 e[T.over[i] ? 2 : 0] = static_cast<int>(j); e[T.over[i] ? 3 : 1] = static_cast<int>(v);
             }
-            out.still.push_back(std::move(L)); out.still_closed.push_back(j != k); out.still_color.push_back(T.color);
+            for( Idx i : from ) { arcOf.push_back(T.arc[i]); }
+            out.still.push_back(std::move(L)); out.still_closed.push_back(j != k); out.still_color.push_back(T.color); out.still_arc.push_back(std::move(arcOf));
         }
         for( const auto & [x, e] : live ) { if( e[0] >= 0 && e[2] >= 0 ) { out.still_cuts.push_back(Cut{ e[0], e[1], e[2], e[3] }); } }
         for( Idx i = 1; i < s2; ++i )
@@ -251,9 +257,9 @@ namespace Knoodle::Animate
         {
             Polyline r = route; if( !forwardQ ) { std::reverse(r.begin(), r.end()); }
             Weave::Strand R; R.color = S.color;
-            for( Idx i = 0; i + 1 < r.size(); ++i ) { R.p.push_back(r[i]); R.x.push_back(-1); R.over.push_back(0); }
+            for( Idx i = 0; i + 1 < r.size(); ++i ) { R.p.push_back(r[i]); R.x.push_back(-1); R.over.push_back(0); R.arc.push_back(None); }
             const Idx m = R.p.size();                               // the second dot's place now
-            for( Idx i = s2; i < nS; ++i ) { R.p.push_back(S.p[i]); R.x.push_back(S.x[i]); R.over.push_back(S.over[i]); }
+            for( Idx i = s2; i < nS; ++i ) { R.p.push_back(S.p[i]); R.x.push_back(S.x[i]); R.over.push_back(S.over[i]); R.arc.push_back(S.arc[i]); }
             S = std::move(R);
             s2 = m;
         }
@@ -284,6 +290,13 @@ namespace Knoodle::Animate
         std::sort(meets.begin(), meets.end(), []( const Meet & p, const Meet & q ) { return p.along < q.along; });
         if( meets.size() != over_new.size() ) { why = "the route meets " + std::to_string(meets.size()) + " strands, and the move says " + std::to_string(over_new.size()); return false; }
         out.added = meets.size();
+        for( const Meet & m : meets )
+        {
+            const Weave::Strand & T = Wv.strands[m.j];
+            const Point & c = T.p[m.s], & d = T.p[(m.s + 1) % T.p.size()];
+            out.met_arc.push_back(T.arc[m.s]);
+            out.met_at.push_back(Point{ c[0] + (d[0] - c[0]) * m.t, c[1] + (d[1] - c[1]) * m.t });
+        }
         struct Ins { Idx s; Real t; long x; char over; };
         std::vector<std::vector<Ins>> ins (Wv.strands.size());
         for( Idx i = 0; i < meets.size(); ++i )
@@ -302,6 +315,7 @@ namespace Knoodle::Animate
                 const Point q { a[0] + (b[0] - a[0]) * e.t, a[1] + (b[1] - a[1]) * e.t };
                 const auto at = static_cast<std::ptrdiff_t>(e.s) + 1;
                 T.p.insert(T.p.begin() + at, q); T.x.insert(T.x.begin() + at, e.x); T.over.insert(T.over.begin() + at, e.over);
+                T.arc.insert(T.arc.begin() + at, T.arc[e.s]);
             }
         }
         return DrawingOf(Wv, out.after, out.freed, out.freed_colors, why);
@@ -309,13 +323,16 @@ namespace Knoodle::Animate
 
     /*!@brief Weld a moving polyline to the still ones for one frame: wherever
      * `moving` properly crosses a still polyline, both get a vertex there and
-     * a cut is made (the moving strand goes over everything if `overQ`, else
-     * under). `cuts` come in as the cuts among the stills and are kept, their
+     * a cut is made: `over_at(path, segment, t)` says whether the moving strand
+     * goes over the still one where it meets that segment (before any vertex
+     * is added) at t along it. `cuts` come in as the cuts among the stills and are kept, their
      * vertices renumbered. In the cuts, path `moving_path` is the moving one. */
-    inline void Weld( std::vector<std::vector<P2>> & still, const std::vector<char> & closed, std::vector<P2> & moving, int moving_path,
-                      bool overQ, std::vector<Cut> & cuts )
+    template<class Role_T>
+    void Weld( std::vector<std::vector<P2>> & still, const std::vector<char> & closed, std::vector<P2> & moving, int moving_path,
+               Role_T && over_at, std::vector<Cut> & cuts )
     {
         struct Hit { Idx seg; Real t; int id; };
+        std::vector<char> overs;
         std::vector<std::vector<Hit>> on (still.size());
         std::vector<Hit> onM;
         int ids = 0;
@@ -334,6 +351,7 @@ namespace Knoodle::Animate
                     if( ta < 0 || ta >= 1 || tc < 0 || tc >= 1 ) { continue; }
                     if( (ms == 0 && ta <= 1e-9) ) { continue; }             // the dot itself, where the stub ends
                     on[j].push_back(Hit{ s, tc, ids }); onM.push_back(Hit{ ms, ta, ids }); ++ids;
+                    overs.push_back(over_at(j, s, tc) ? 1 : 0);
                 }
             }
         }
@@ -367,7 +385,7 @@ namespace Knoodle::Animate
         }
         for( Idx i = 0; i < static_cast<Idx>(ids); ++i )
         {
-            if( overQ ) { cuts.push_back(Cut{ where[i].first, where[i].second, whereM[i].first, whereM[i].second }); }
+            if( overs[i] ) { cuts.push_back(Cut{ where[i].first, where[i].second, whereM[i].first, whereM[i].second }); }
             else        { cuts.push_back(Cut{ whereM[i].first, whereM[i].second, where[i].first, where[i].second }); }
         }
     }

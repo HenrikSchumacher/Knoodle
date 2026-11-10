@@ -24,6 +24,7 @@
 #include "../../tools/r1_move.hpp"
 #include "../../tools/diagram_agreement.hpp"
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -195,7 +196,9 @@ namespace Knoodle::Animate
             if( recs.empty() ) { why = "the trace has no diagram"; return false; }
 
             PlaneDrawing D;
-            if( HasCrossings(*recs[0]->state) && !Layout(*recs[0]->state, Int(-1), D, why) ) { return false; }
+            // the trace may say which face to put outside (`#view exterior=`)
+            const Int face0 = recs[0]->exterior_da ? PassDescriptor<Int>::LeftFace(*recs[0]->state, *recs[0]->exterior_da) : Int(-1);
+            if( HasCrossings(*recs[0]->state) && !Layout(*recs[0]->state, face0, D, why) ) { return false; }
             Still(D, "Diagram", opt.t_layout, *recs[0]->state, "");
             for( std::size_t i = 0; i < recs.size(); ++i )
             {
@@ -206,7 +209,7 @@ namespace Knoodle::Animate
                 std::string note;
                 bool doneQ = false;
                 if( kind == "r1" ) { doneQ = R1(*rec.state, *rec.move, next, D, note); }
-                else if( kind == "pass" ) { doneQ = Pass(*rec.state, *rec.move, next, D, note); }
+                else if( kind == "pass" || kind == "middlepass" ) { doneQ = Pass(rec, next, D, note); }
                 else               { note = "A " + kind + " move is not animated yet: the picture cuts to the next diagram."; }
                 if( !doneQ )
                 {
@@ -532,11 +535,12 @@ namespace Knoodle::Animate
          * shown still; the strand sweeping across the disk; the drawing left
          * reshaping into a fresh layout. False, with a note, if it has to be a
          * cut; D is then unchanged. */
-        bool Pass( const PD_T & pd, const std::string & move, const PD_T * next, PlaneDrawing & D, std::string & note )
+        bool Pass( const Record_T & rec, const PD_T * next, PlaneDrawing & D, std::string & note )
         {
+            const PD_T & pd = *rec.state;
             PassDescriptor<Int> mv; std::string why;
-            if( !PassDescriptor<Int>::Parse(move, mv, why) ) { note = "The pass move does not parse: " + why; return false; }
-            if( mv.middlepassQ ) { note = "A middlepass move is not animated yet: the picture cuts to the next diagram."; return false; }
+            if( !PassDescriptor<Int>::Parse(*rec.move, mv, why) ) { note = "The pass move does not parse: " + why; return false; }
+            if( mv.middlepassQ && !rec.feas ) { note = "The middle pass carries no witness, so its levels are not known."; return false; }
             if( !layoutQ || !H ) { note = "The drawing in hand is not a layout, so no corridor can be routed in it."; return false; }
             const Int margin = static_cast<Int>(opt.margin);
             OrthoDecorate<PD_T> deco (*H, margin);
@@ -570,6 +574,56 @@ namespace Knoodle::Animate
                 if( !mine.ValidQ() ) { note = "The drawing the move leaves is not a diagram: " + why; return false; }
             }
 
+            // A middle pass: the level of every piece of its witness side, and which side that is here.
+            std::map<std::pair<Idx,int>,char> level;        // (arc, half) -> a, b or f
+            std::map<Idx,Real> split;                       // a route-crossed arc -> how far along it the route crosses
+            const Real tol = 1e-9 * std::max(D.Bounds().Size(), 1e-300);
+            auto along = [&]( Idx a, const Point & q, Real & f )
+            {
+                const Polyline & L = D.arcs[a].pts;
+                Idx seg = 0; Real t = 0;
+                if( !Locate(L, 0, L.size() - 1, q, tol, seg, t) ) { return false; }
+                Real before = 0, total = 0;
+                for( Idx i = 0; i + 1 < L.size(); ++i ) { const Real d = Dist(L[i], L[i+1]); if( i < seg ) { before += d; } else if( i == seg ) { before += t * d; } total += d; }
+                f = (total > 0) ? before / total : 0;
+                return true;
+            };
+            if( mv.middlepassQ )
+            {
+                for( const auto & cls : rec.feas->classes ) { for( const auto & pc : cls.pieces ) { level[{ static_cast<Idx>(pc.arc), pc.half }] = cls.label; } }
+                for( Idx i = 0; i < P.met_arc.size(); ++i ) { Real f = 0.5; if( P.met_arc[i] != None && along(P.met_arc[i], P.met_at[i], f) ) { split[P.met_arc[i]] = f; } }
+                Polyline loop = P.W;
+                for( Idx i = P.route.size(); i-- > 0; ) { loop.push_back(P.route[i]); }
+                Idx inside = 0, outside = 0;
+                for( const auto & [key, label] : level )
+                {
+                    const Idx a = key.first;
+                    if( a >= D.arcs.size() || !D.ActiveQ(a) ) { continue; }
+                    const Real s = split.count(a) ? split[a] : 0.5;
+                    const Real f = (key.second < 0) ? 0.5 : ((key.second == 0) ? s / 2 : (1 + s) / 2);
+                    const Polyline & L = D.arcs[a].pts;
+                    const std::vector<Real> prm = Params(L);
+                    ++(Inside(loop, At(L, prm, f)) ? inside : outside);
+                }
+                if( inside > 0 && outside > 0 ) { note = "The witness's pieces lie on both sides of the strand's loop in this drawing."; return false; }
+                if( outside > 0 ) { note = "The middle pass goes round the back of the sphere; turning the sphere first is not built yet."; return false; }
+            }
+            auto over_at = [&]( Idx j, Idx s, Real t ) -> bool
+            {
+                if( !mv.middlepassQ ) { return overQ; }
+                const Idx a = P.still_arc[j][s];
+                if( a == None ) { return overQ; }
+                int half = -1;
+                if( split.count(a) )
+                {
+                    const Point & c = P.still[j][s], & d = P.still[j][(s + 1) % P.still[j].size()];
+                    Real f = 0;
+                    half = (along(a, Point{ c[0] + (d[0] - c[0]) * t, c[1] + (d[1] - c[1]) * t }, f) && f > split[a]) ? 1 : 0;
+                }
+                const auto it = level.find({ a, half });
+                return (it == level.end()) ? overQ : (it->second != 'a');        // above the disk: the strand goes under it
+            };
+
             // the frames of the sweep
             std::vector<Polyline> frames;
             std::string method;
@@ -589,7 +643,7 @@ namespace Knoodle::Animate
             // the paths: the stills, the route, the strand
             const int ns = static_cast<int>(P.still.size()), iroute = ns, istrand = ns + 1;
             Scene base;
-            base.label = "Pass move"; base.note = method; base.easing = Easing::Linear;
+            base.label = mv.middlepassQ ? "Middle pass move" : "Pass move"; base.note = method; base.easing = Easing::Linear;
             base.crossings_before = static_cast<int>(pd.CrossingCount());
             base.crossings_after  = static_cast<int>(pd.CrossingCount()) - static_cast<int>(P.removed) + static_cast<int>(P.added);
             std::vector<std::vector<P2>> still (P.still.size());
@@ -607,11 +661,11 @@ namespace Knoodle::Animate
             {
                 Key k; k.pts = still; k.cuts = P.still_cuts;
                 std::vector<P2> moving; for( const Point & q : frame ) { moving.push_back(detail::ToP2(q)); }
-                if( firstQ )            // on W itself the crossings are the diagram\'s own, at shared points
+                if( firstQ )            // on W itself the crossings are the diagram's own, at shared points
                 {
                     for( Cut c : P.w_cuts ) { if( c.under < 0 ) { c.under = istrand; } if( c.over < 0 ) { c.over = istrand; } k.cuts.push_back(c); }
                 }
-                else { Weld(k.pts, P.still_closed, moving, istrand, overQ, k.cuts); }
+                else { Weld(k.pts, P.still_closed, moving, istrand, over_at, k.cuts); }
                 k.pts.push_back(routeP); k.pts.push_back(std::move(moving));
                 return k;
             };

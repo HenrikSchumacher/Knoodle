@@ -114,8 +114,9 @@ int main()
             if( s.label == "Cut" )
             {
                 ++my_cuts;
-                Check(s.note.find("is not animated yet") != std::string::npos || s.note.find("is not built yet") != std::string::npos,
-                      name + ": a cut only for what is not built yet (" + s.note + ")");
+                Check(s.note.find("is not animated yet") != std::string::npos || s.note.find("is not built yet") != std::string::npos
+                      || s.note.find("carries no witness") != std::string::npos,
+                      name + ": a cut only for what is not built yet, or for a middle pass with no witness (" + s.note + ")");
             }
             Check(s.duration > 0 && !s.keys.empty(), name + ": a scene has a duration and a picture");
             for( const An::Key & k : s.keys ) { Check(k.pts.size() == s.paths.size(), name + ": a key has a polyline for every path"); }
