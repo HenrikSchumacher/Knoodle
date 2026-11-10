@@ -12,11 +12,19 @@
 #include "Morph.hpp"
 #include "Scene.hpp"
 #include "Tray.hpp"
+#include "Pass.hpp"
+#include "Diagram.hpp"
+#if __has_include("Sweep.hpp")
+    #include "Sweep.hpp"
+    #define KNOODLE_ANIMATE_SWEEP 1
+#endif
 
 #include "../PassDescriptor.hpp"
+#include "../OrthoDecorate.hpp"
 #include "../../tools/r1_move.hpp"
 #include "../../tools/diagram_agreement.hpp"
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -27,6 +35,10 @@ namespace Knoodle::Animate
         Real t_layout  = 1.0;       // the first drawing, still
         Real t_hold    = 0.7;       // before a move
         Real t_r1      = 1.2;       // a curl's contraction
+        Real t_pass_hold = 1.0;     // a pass: its strand, route and disk shown still
+        Real t_pass    = 3.2;       // the sweep
+        Idx  pass_frames = 96;
+        Int64 margin   = 4;         // cells round the layout that a corridor may use
         Real t_after   = 0.4;       // after a move, before the reshape
         Real t_reshape = 2.2;
         Real t_spin    = 1.2;       // a spin-off's slide to the tray
@@ -81,19 +93,21 @@ namespace Knoodle::Animate
             return true;
         }
 
-        inline void MoveTo( PlaneDrawing & D, const Point & centre )
+        inline Point MoveTo( PlaneDrawing & D, const Point & centre )
         {
             const Point c = D.Bounds().Centre(), d { centre[0] - c[0], centre[1] - c[1] };
             for( auto & C : D.crossings ) { C.p[0] += d[0]; C.p[1] += d[1]; }
             for( auto & A : D.arcs ) { for( Point & p : A.pts ) { p[0] += d[0]; p[1] += d[1]; } }
+            return d;
         }
 
         /*!@brief Turn F by the quarter turn about its centre that brings its
          * crossings nearest to D's (both drawings of one diagram, same labels),
          * so that a reshape does not spin the picture. */
-        inline void TurnToward( PlaneDrawing & F, const PlaneDrawing & D )
+        inline int TurnToward( PlaneDrawing & F, const PlaneDrawing & D, Point & about )
         {
             const Point cf = F.Bounds().Centre(), cd = D.Bounds().Centre();
+            about = cf;
             int best = 0; Real least = 1e300;
             for( int k = 0; k < 4; ++k )
             {
@@ -110,6 +124,7 @@ namespace Knoodle::Animate
             auto turn = [&]( Point & p ) { Real x = p[0] - cf[0], y = p[1] - cf[1]; for( int q = 0; q < best; ++q ) { const Real t = x; x = -y; y = t; } p = Point{ cf[0] + x, cf[1] + y }; };
             for( auto & C : F.crossings ) { turn(C.p); }
             for( auto & A : F.arcs ) { for( Point & p : A.pts ) { turn(p); } }
+            return best;
         }
 
         /*!@brief A box round everything a flat scene draws in the world. */
@@ -191,6 +206,7 @@ namespace Knoodle::Animate
                 std::string note;
                 bool doneQ = false;
                 if( kind == "r1" ) { doneQ = R1(*rec.state, *rec.move, next, D, note); }
+                else if( kind == "pass" ) { doneQ = Pass(*rec.state, *rec.move, next, D, note); }
                 else               { note = "A " + kind + " move is not animated yet: the picture cuts to the next diagram."; }
                 if( !doneQ )
                 {
@@ -218,12 +234,28 @@ namespace Knoodle::Animate
 
         static bool HasCrossings( const PD_T & pd ) { return pd.ValidQ() && pd.CrossingCount() > Int(0); }
 
-        bool Layout( const PD_T & pd, Int face, PlaneDrawing & D, std::string & why ) const
+        // The layout the drawing in hand came from, and how it was placed: turned `xk` quarter
+        // turns about `xc`, then moved by `xd`. A corridor is routed in the layout and carried over.
+        std::unique_ptr<OD_T> H;
+        int   xk = 0;
+        Point xc { 0, 0 }, xd { 0, 0 };
+        bool  layoutQ = false;          // is the drawing in hand that layout, placed so?
+
+        Point Placed( Real x, Real y ) const
+        {
+            x -= xc[0]; y -= xc[1];
+            for( int q = 0; q < xk; ++q ) { const Real t = x; x = -y; y = t; }
+            return Point{ xc[0] + x + xd[0], xc[1] + y + xd[1] };
+        }
+
+        bool Layout( const PD_T & pd, Int face, PlaneDrawing & D, std::string & why )
         {
             typename OD_T::Settings_T s {};
             s.x_grid_size = s.y_grid_size = Int(4);      // world units: the lattice is 4 apart, a stroke 0.28 wide
-            OD_T H (pd, face, s);
-            return FromOrthoDraw(H, pd, D, why);
+            H = std::make_unique<OD_T>(pd, face, s);
+            xk = 0; xc = xd = Point{ 0, 0 };
+            layoutQ = FromOrthoDraw(*H, pd, D, why);
+            return layoutQ;
         }
 
         void Push( Scene && sc, bool still )
@@ -264,8 +296,9 @@ namespace Knoodle::Animate
             const Int face = PassDescriptor<Int>::LeftFace(pd, static_cast<Int>(D.ExteriorDarc()));
             if( face < Int(0) ) { note = "The drawing's exterior names no face of the next diagram."; return false; }
             if( !Layout(pd, face, F, why) ) { note = "No layout of the next diagram: " + why; return false; }
-            detail::TurnToward(F, D);
-            detail::MoveTo(F, D.Bounds().Centre());
+            layoutQ = false;                        // until D is F
+            xk = detail::TurnToward(F, D, xc);
+            xd = detail::MoveTo(F, D.Bounds().Centre());
             MorphResult R;
             if( !Morph(D, F, EasedTimes(opt.reshape_frames), opt.round, R, why) ) { note = "The reshape could not be made: " + why; return false; }
             Scene sc;
@@ -281,6 +314,7 @@ namespace Knoodle::Animate
             AddTray(sc, tray, opt.tray);
             Push(std::move(sc), false);
             D = std::move(F);
+            layoutQ = true;
             return true;
         }
 
@@ -447,7 +481,7 @@ namespace Knoodle::Animate
             }
             if( !next || !HasCrossings(*next) || detail::EmptyQ(E) )
             {
-                D = std::move(E);
+                D = std::move(E); layoutQ = false;
                 Still(D, "Diagram", opt.t_after, after, "");
                 return true;
             }
@@ -465,6 +499,149 @@ namespace Knoodle::Animate
             if( !Layout(*next, Int(-1), F, why) ) { F = PlaneDrawing{}; }
             D = std::move(F);
             Still(D, "Diagram", opt.t_after, *next, "");
+            return true;
+        }
+
+        /*!@brief After a move: the drawing it left goes into the next record's
+         * labels and reshapes into a fresh layout; or, failing that, a cut.
+         * `mine` is the diagram E draws. Always leaves D ready for the next move. */
+        void Settle( PlaneDrawing & E, const PD_T & mine, const PD_T * next, PlaneDrawing & D )
+        {
+            std::string why, n2;
+            if( !next || !HasCrossings(*next) || detail::EmptyQ(E) )
+            {
+                D = std::move(E); layoutQ = false;
+                Still(D, "Diagram", opt.t_after, mine, "");
+                return;
+            }
+            PlaneDrawing G;
+            if( !Relabel(E, mine, *next, G, why) ) { n2 = "The drawing the move left is not the next diagram: " + why; }
+            else
+            {
+                Still(G, "Diagram", opt.t_after, *next, "");
+                if( Reshape(G, *next, n2) ) { D = std::move(G); return; }
+            }
+            Still(E, "Cut", opt.t_cut, mine, n2);
+            PlaneDrawing F;
+            if( !Layout(*next, Int(-1), F, why) ) { F = PlaneDrawing{}; layoutQ = false; }
+            D = std::move(F);
+            Still(D, "Diagram", opt.t_after, *next, "");
+        }
+
+        /*!@brief A pass move: the strand, its route and the disk between them
+         * shown still; the strand sweeping across the disk; the drawing left
+         * reshaping into a fresh layout. False, with a note, if it has to be a
+         * cut; D is then unchanged. */
+        bool Pass( const PD_T & pd, const std::string & move, const PD_T * next, PlaneDrawing & D, std::string & note )
+        {
+            PassDescriptor<Int> mv; std::string why;
+            if( !PassDescriptor<Int>::Parse(move, mv, why) ) { note = "The pass move does not parse: " + why; return false; }
+            if( mv.middlepassQ ) { note = "A middlepass move is not animated yet: the picture cuts to the next diagram."; return false; }
+            if( !layoutQ || !H ) { note = "The drawing in hand is not a layout, so no corridor can be routed in it."; return false; }
+            const Int margin = static_cast<Int>(opt.margin);
+            OrthoDecorate<PD_T> deco (*H, margin);
+            const auto pr = deco.RoutePassMove(pd, mv);
+            if( !pr.validQ ) { note = "The corridor does not route in this layout: " + pr.why; return false; }
+            Polyline route;
+            for( const auto & c : pr.route.path ) { route.push_back(Placed(static_cast<Real>(c[0] - margin), static_cast<Real>(c[1] - margin))); }
+            route = Corners(route);
+
+            std::vector<Idx> arcs; std::vector<char> inW (D.arcs.size(), 0);
+            const bool forwardQ = PassDescriptor<Int>::DirOf(mv.strand.front());
+            for( Int da : mv.strand )
+            {
+                if( PassDescriptor<Int>::DirOf(da) != forwardQ ) { note = "The strand does not run one way along its component."; return false; }
+                arcs.push_back(static_cast<Idx>(da / Int(2))); inW[arcs.back()] = 1;
+            }
+            std::vector<char> over_new;
+            for( std::size_t i = 0; i < mv.cross.size(); ++i ) { if( !inW[static_cast<Idx>(mv.cross[i] / Int(2))] ) { over_new.push_back(mv.over[i] ? 1 : 0); } }
+            const bool overQ = !mv.over.empty() ? static_cast<bool>(mv.over[0])
+                             : ((arcs.size() >= 2) ? pd.ArcOverQ(static_cast<Int>(arcs[0]), forwardQ ? PD_T::Head : PD_T::Tail) : true);
+
+            PassPicture P;
+            if( !PassSurgery(D, arcs, forwardQ, route, over_new, P, why) ) { note = "The move does not fit the drawing: " + why; return false; }
+            PD_T mine;
+            if( !detail::EmptyQ(P.after) )
+            {
+                const std::vector<Idx> cw = detail::ClockwiseFaces(P.after);
+                if( cw.size() != 1 ) { note = "The drawing the move leaves is not connected: the reshape after it is not built yet."; return false; }
+                P.after.exterior_arc = cw[0] / 2; P.after.exterior_forwardQ = (cw[0] % 2) != 0;
+                mine = ToPlanarDiagram<PD_T>(P.after, why);
+                if( !mine.ValidQ() ) { note = "The drawing the move leaves is not a diagram: " + why; return false; }
+            }
+
+            // the frames of the sweep
+            std::vector<Polyline> frames;
+            std::string method;
+#ifdef KNOODLE_ANIMATE_SWEEP
+            {
+                std::vector<Real> times;
+                for( Idx f = 0; f < opt.pass_frames; ++f ) { times.push_back(Smoother(static_cast<Real>(f) / static_cast<Real>(opt.pass_frames - 1))); }
+                SweepResult SR;
+                if( Sweep(P.W, P.route, times, SR, why) ) { frames = std::move(SR.frames); }
+                else { method = "The strand jumps to its route: no sweep could be made (" + why + ")."; }
+            }
+#else
+            method = "The strand jumps to its route: the sweep is not built yet.";
+#endif
+            if( frames.empty() ) { frames = { P.W, P.route }; }
+
+            // the paths: the stills, the route, the strand
+            const int ns = static_cast<int>(P.still.size()), iroute = ns, istrand = ns + 1;
+            Scene base;
+            base.label = "Pass move"; base.note = method; base.easing = Easing::Linear;
+            base.crossings_before = static_cast<int>(pd.CrossingCount());
+            base.crossings_after  = static_cast<int>(pd.CrossingCount()) - static_cast<int>(P.removed) + static_cast<int>(P.added);
+            std::vector<std::vector<P2>> still (P.still.size());
+            for( Idx j = 0; j < P.still.size(); ++j )
+            {
+                Path p; p.closed = (P.still_closed[j] != 0); p.color = static_cast<int>(P.still_color[j]);
+                base.paths.push_back(p);
+                for( const Point & q : P.still[j] ) { still[j].push_back(detail::ToP2(q)); }
+            }
+            { Path p; p.role = Role::Route; p.layer = 2; base.paths.push_back(p); }
+            { Path p; p.role = Role::Moving; p.layer = 3; p.round = true; p.color = static_cast<int>(D.colors[D.arcs[arcs[0]].component]); base.paths.push_back(p); }
+            base.fills.push_back(Fill{ Role::Disk, overQ ? 1 : -1, { { istrand, false }, { iroute, true } } });
+            std::vector<P2> routeP; for( const Point & q : P.route ) { routeP.push_back(detail::ToP2(q)); }
+            auto key = [&]( const Polyline & frame, bool firstQ )
+            {
+                Key k; k.pts = still; k.cuts = P.still_cuts;
+                std::vector<P2> moving; for( const Point & q : frame ) { moving.push_back(detail::ToP2(q)); }
+                if( firstQ )            // on W itself the crossings are the diagram\'s own, at shared points
+                {
+                    for( Cut c : P.w_cuts ) { if( c.under < 0 ) { c.under = istrand; } if( c.over < 0 ) { c.over = istrand; } k.cuts.push_back(c); }
+                }
+                else { Weld(k.pts, P.still_closed, moving, istrand, overQ, k.cuts); }
+                k.pts.push_back(routeP); k.pts.push_back(std::move(moving));
+                return k;
+            };
+            Scene hold = base; hold.duration = opt.t_pass_hold;
+            hold.keys.push_back(key(frames.front(), true));
+            AddTray(hold, tray, opt.tray); Push(std::move(hold), true);
+            Scene go = base; go.duration = opt.t_pass;
+            go.paths[static_cast<Idx>(iroute)].alpha0 = go.paths[static_cast<Idx>(iroute)].alpha1 = 0;
+            for( Idx f = 0; f < frames.size(); ++f ) { go.keys.push_back(key(frames[f], f == 0)); }
+            AddTray(go, tray, opt.tray); Push(std::move(go), false);
+
+            // components the move left with no crossing go to the tray
+            for( Idx f = 0; f < P.freed.size(); ++f )
+            {
+                Scene slide = SceneOf(detail::DrawnOf(P.after), "Spin-off", opt.t_spin, base.crossings_after, base.crossings_after, "");
+                slide.easing = Easing::Smoother;
+                slide.keys.push_back(slide.keys[0]);
+                for( Idx g = f + 1; g < P.freed.size(); ++g )       // those still waiting their turn
+                {
+                    Path p; p.closed = true; p.color = static_cast<int>(P.freed_colors[g]); slide.paths.push_back(p);
+                    std::vector<P2> q; for( const Point & z : P.freed[g] ) { q.push_back(detail::ToP2(z)); }
+                    slide.keys[0].pts.push_back(q); slide.keys[1].pts.push_back(q);
+                }
+                AddTray(slide, tray, opt.tray);
+                std::vector<P2> loop; for( const Point & z : P.freed[f] ) { loop.push_back(detail::ToP2(z)); }
+                AddSpinOff(slide, loop, static_cast<int>(P.freed_colors[f]), static_cast<int>(tray.size()), opt.tray);
+                Push(std::move(slide), false);
+                tray.push_back(static_cast<int>(P.freed_colors[f]));
+            }
+            Settle(P.after, mine, next, D);
             return true;
         }
 

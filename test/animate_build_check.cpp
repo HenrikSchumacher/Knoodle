@@ -33,12 +33,14 @@ static void Check( bool ok, const std::string & what )
 
 // What a frame draws, in numbers: the strokes' total length and their box.
 struct Ink { Real length = 0, x0 = 1e300, y0 = 1e300, x1 = -1e300, y1 = -1e300; };
-static Ink InkOf( const An::Frame & f )
+static Ink InkOf( const An::Frame & f, const An::Style & st )
 {
     Ink k;
     for( const An::Item & it : f.items )
     {
         if( it.fillQ ) { continue; }
+        // a pass's route is shown while the picture holds and not while the strand sweeps: it may come and go
+        if( it.stroke.color.r == st.route.r && it.stroke.color.g == st.route.g && it.stroke.color.b == st.route.b ) { continue; }
         const auto & p = it.stroke.pts;
         for( std::size_t i = 0; i < p.size(); ++i )
         {
@@ -129,7 +131,7 @@ int main()
         {
             t += A.scenes[i].duration;
             if( A.scenes[i].label == "Cut" ) { continue; }
-            const Ink a = InkOf(An::FrameAt(A, t - 1e-9, style, W, H)), b = InkOf(An::FrameAt(A, t, style, W, H));
+            const Ink a = InkOf(An::FrameAt(A, t - 1e-9, style, W, H), style), b = InkOf(An::FrameAt(A, t, style, W, H), style);
             const bool sameQ = std::abs(a.length - b.length) <= 0.005 * std::max(a.length, 1.0) + 0.5
                             && std::abs(a.x0 - b.x0) < 1 && std::abs(a.y0 - b.y0) < 1 && std::abs(a.x1 - b.x1) < 1 && std::abs(a.y1 - b.y1) < 1;
             Check(sameQ, name + ": no jump from scene " + std::to_string(i) + " (" + A.scenes[i].label + ") to " + std::to_string(i + 1) + " (" + A.scenes[i+1].label
