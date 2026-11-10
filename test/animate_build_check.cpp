@@ -8,6 +8,7 @@
 #include "../Knoodle.hpp"
 #include "../src/MoveTrace.hpp"
 #include "../src/Animate/Build.hpp"
+#include "../src/Animate/Diagram.hpp"
 #include "../src/Animate/Frame.hpp"
 #include "../src/Animate/Json.hpp"
 
@@ -60,7 +61,7 @@ int main()
 
     const An::Style style = An::Style::Talk();
     const Real W = 1280, H = 720;
-    int traces = 0, scenes = 0, curls = 0, reshapes = 0, cuts = 0, spins = 0;
+    int readbacks = 0, traces = 0, scenes = 0, curls = 0, reshapes = 0, cuts = 0, spins = 0;
     for( const fs::path & file : files )
     {
         const std::string name = file.filename().string();
@@ -70,6 +71,31 @@ int main()
         while( reader.Next(rec, why) == Trace_T::Status::Record ) { records.push_back(rec); }
         int r1_moves = 0, other_moves = 0;
         for( const auto & r : records ) { if( r.candidateQ || !r.state || !r.move ) { continue; } if( r.move->find("kind=r1") != std::string::npos ) { ++r1_moves; } else { ++other_moves; } }
+
+        // a layout, read back as a diagram, is the diagram it was made from: label for label
+        for( const auto & r : records )
+        {
+            if( !r.state || !r.state->ValidQ() || r.state->CrossingCount() <= Int(0) ) { continue; }
+            const PD_T & pd = *r.state;
+            Knoodle::OrthoDraw<PD_T> Hd (pd, Int(-1), Knoodle::OrthoDraw<PD_T>::Settings_T{});
+            An::PlaneDrawing D; std::string w;
+            if( !An::FromOrthoDraw(Hd, pd, D, w) ) { Check(false, name + ": export: " + w); continue; }
+            const PD_T back = An::ToPlanarDiagram<PD_T>(D, w);
+            bool sameQ = back.ValidQ() && back.CrossingCount() == pd.CrossingCount() && back.ArcCount() == pd.ArcCount();
+            for( Int c = 0; sameQ && c < pd.MaxCrossingCount(); ++c )
+            {
+                if( !pd.CrossingActiveQ(c) ) { sameQ = !back.CrossingActiveQ(c); continue; }
+                sameQ = back.CrossingActiveQ(c) && back.CrossingStates()[c] == pd.CrossingStates()[c];
+                for( int io = 0; io < 2; ++io ) { for( int lr = 0; lr < 2; ++lr ) { sameQ = sameQ && back.Crossings()(c, io, lr) == pd.Crossings()(c, io, lr); } }
+            }
+            for( Int a = 0; sameQ && a < pd.MaxArcCount(); ++a )
+            {
+                if( !pd.ArcActiveQ(a) ) { sameQ = !back.ArcActiveQ(a); continue; }
+                sameQ = back.ArcActiveQ(a) && back.Arcs()(a, 0) == pd.Arcs()(a, 0) && back.Arcs()(a, 1) == pd.Arcs()(a, 1) && back.ArcColors()[a] == pd.ArcColors()[a];
+            }
+            ++readbacks;
+            Check(sameQ, name + ": a layout read back as a diagram is the diagram, label for label (" + w + ")");
+        }
 
         An::Animation A;
         const bool builtQ = An::Builder<PD_T>(An::BuildOptions()).Build(records, name, A, why);
@@ -115,6 +141,7 @@ int main()
         Check(balanced && depth == 0 && j.size() > 100, name + ": its JSON is balanced");
         if( name == "r1_last_curl.trace" ) { Check(tokens == 1 && A.scenes.back().crossings_after == 0, name + ": the last curl leaves one square in the tray and no crossings"); }
     }
+    std::printf("read back %d layouts; ", readbacks);
     std::printf("traces=%d scenes=%d curls=%d reshapes=%d spin-offs=%d cuts=%d\n", traces, scenes, curls, reshapes, spins, cuts);
     Check(curls >= 13 && reshapes >= 10 && spins >= 2, "curls, reshapes and spin-offs were all exercised");
     std::printf("animate_build_check: (%d checks, %d failed)\n", g_checks, g_failed);
