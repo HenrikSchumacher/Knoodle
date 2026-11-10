@@ -4,7 +4,7 @@ Status: design agreed 2026-11-10 (JHC). Henrik: at about 6,000 lines this needs 
 design review. The estimates below are from reading the prototype, not from built code.
 
 Built (2026-11-10): the library in `src/Animate/`, `tools/knoodlemovie` and
-`players/knoodle-player.html`, 5,679 lines, with four C++ tests. Every kind of move in
+`players/knoodle-player.html`, 5,987 lines, with four C++ tests. Every kind of move in
 the committed traces is animated. See "What is built" and "What the first three pieces
 found" at the end.
 
@@ -345,9 +345,10 @@ ffmpeg. It has a Makefile target but is not in `all` and is not installed.
 | `Mesh.hpp` | ear clipping, refinement, the sparse solve | 405 | 400 |
 | `Morph.hpp` | the Floater–Gotsman morph | 770 | 800 |
 | `Sweep.hpp` | the harmonic sweep | 616 | 420 |
-| `Pass.hpp` | the weave; pass surgery; welding a sweep frame to the still strands | 396 | 500, with the next two |
+| `Pass.hpp` | the weave; pass surgery; welding a sweep frame to the still strands | 405 | 500, with the next two |
 | `Diagram.hpp` | `ToPlanarDiagram`: the diagram a drawing draws | 60 | |
-| `Build.hpp` | the build loop; r1, pass, middle pass, redraw; turns; spin-offs; the camera | 1,006 | 450 + 120 + 450 |
+| `Build.hpp` | the build loop; r1, pass, middle pass, redraw; turns; spin-offs; the camera | 1,009 | 450 + 120 + 450 |
+| `Route.hpp` | routes through the faces | 296 | (was OrthoDecorate, existing) |
 | `Redraw.hpp` | the view of a space curve as a drawing | 98 | |
 | `Turn.hpp` | the turn of the sphere | 131 | 180 |
 | `Tray.hpp` | spin-offs and the tray | 124 | 200 |
@@ -357,10 +358,11 @@ ffmpeg. It has a Makefile target but is not in `all` and is not installed.
 | `Raster.hpp` | the rasterizer | 179 | part of 300 |
 | `tools/knoodlemovie.cpp` | the tool | 108 | part of 300 |
 | `players/knoodle-player.html` | the web player | 381 | 670 |
-| **Total** | | **5,679** | **5,340** |
+| **Total** | | **5,987** | **5,340** |
 
 The plan's 6,040 included 700 lines of tests; without them it was 5,340, so this is about
-340 over. `Sweep.hpp` and `Frame.hpp` are the two that ran over. The tests are 1,433 lines
+650 over. `Sweep.hpp` and `Frame.hpp` ran over, and `Route.hpp` (296) was not in the plan:
+it replaces the use of `OrthoDecorate`, which is existing code. The tests are 1,433 lines
 (JHC, 2026-11-10: fast tests are wanted and do not count).
 
 Tests, all C++, all in the light tier:
@@ -373,7 +375,8 @@ Tests, all C++, all in the light tier:
 | `animate_build_check` | every committed trace builds; a layout read back as a diagram is the diagram, label for label; nothing jumps from one scene to the next except at a cut; every cut has a reason on a short list (5,222 checks) |
 
 On the 13 committed traces: 15 curl removals, 20 passes, 7 middle passes with a witness and
-2 redraws animate; 5 turns of the sphere are inserted; 6 components go to the tray. Two
+2 redraws animate; 2 turns of the sphere are inserted (5 before routes went through the
+faces); 6 components go to the tray. Two
 cuts remain, both with a reason: a middle pass that carries no witness, and the redraw
 whose turned curve is a split link (`redraw_split_refused.trace`, which `knoodleprove`
 refuses too).
@@ -390,7 +393,8 @@ What happened to the risks:
    and drawings left by turns all go through the same `Morph`.
 3. **No fallback morph: holds.** No reshape failed on the traces once the bugs below were
    fixed.
-4. **The drawing a turn leaves: the reshape copes,** on the 5 turns in the traces. One
+4. **The drawing a turn leaves: the reshape copes,** on every turn the traces have needed (5 with
+   lattice routes, 2 now). One
    real failure on the way: the turn's edge subdivision could leave a piece 1e-14 long,
    which ear clipping rightly refused.
 5. **Routing after a turn: holds** on the traces. The face put outside is the roomiest
@@ -412,6 +416,28 @@ What the design had wrong, or did not say:
   exterior is carried, and a turn is inserted when a move needs another.
 - **A fresh layout is turned by the nearest quarter turn** before a reshape, so that the
   picture does not spin.
+
+**Routes go through the faces, not along the lattice** (JHC, 2026-11-10, after seeing the
+first movies: the morph works on polylines, so a route need not be grid lines). `Route.hpp`
+takes each face of the drawing in hand as a polygon. A leg of the route enters at a point
+of the polygon's boundary and leaves at another, and in between follows the polygon's
+skeleton: the midpoints of the diagonals of a Delaunay triangulation, along the chain of
+triangles from the way in to the way out. A leg, once laid, cuts its polygon in two, so a
+later leg cannot cross it. The outside is a frame round the drawing joined to the
+drawing's outline by a cut; the four ways of placing the cut are the ways round. Where
+the move leaves a choice (which way round; which part of an arc already met) the choices
+are tried in turn, and each route offered is checked the way every route is: the surgery
+must leave the next record's diagram. Of the routes that pass, the builder takes the one
+whose strand sweeps the least area, and for a middle pass one that keeps the witness side
+bounded.
+
+- All 27 pass and middle-pass moves in the committed traces route this way. `Build.hpp`
+  no longer uses `OrthoDecorate`, keeps no layout, and can route in any drawing.
+- Choosing the way round saves turns of the sphere: 2 are needed on the traces, not 5.
+- A route's corner may now lie on the strand it crosses; the surgery and the weld accept
+  that.
+- Not done: the route is the skeleton as it comes, with no smoothing, and it can pass
+  close to a strand where the triangulation is thin.
 
 Not done:
 

@@ -283,7 +283,10 @@ namespace Knoodle::Animate
                     if( den == 0 ) { continue; }
                     const Real ta = ((c[0] - a[0]) * sy - (c[1] - a[1]) * sx) / den, tc = ((c[0] - a[0]) * ry - (c[1] - a[1]) * rx) / den;
                     const Real ea = tol / std::max(std::hypot(rx, ry), 1e-300), ec = tol / std::max(std::hypot(sx, sy), 1e-300);
-                    if( ta <= ea || ta >= 1 - ea || tc < -ec || tc > 1 + ec ) { continue; }
+                    // A route may have a corner on the strand it crosses: that meeting belongs to the piece
+                    // that ends there, not the one that starts there, and the head dot is no meeting at all.
+                    if( ta <= ea || ta > 1 + ea || tc < -ec || tc > 1 + ec ) { continue; }
+                    if( ta >= 1 - ea && rs + 1 == s2 ) { continue; }
                     if( tc <= ec || tc >= 1 - ec ) { why = "the route passes through a corner of another strand"; return false; }
                     meets.push_back(Meet{ forwardQ ? Real(rs) + ta : Real(s2) - Real(rs) - ta, rs, ta, j, s, tc });
                 }
@@ -306,8 +309,12 @@ namespace Knoodle::Animate
             const long x = Wv.next_crossing++;
             // one point for both passages, worked out on the pieces as they are now (before any is cut)
             const Point & ra = S.p[meets[i].rs], & rb = S.p[(meets[i].rs + 1) % S.p.size()];
-            const Point at { ra[0] + (rb[0] - ra[0]) * meets[i].rt, ra[1] + (rb[1] - ra[1]) * meets[i].rt };
-            ins[k].push_back(Ins{ meets[i].rs, meets[i].rt, x, over_new[i], at });
+            const Point at = (meets[i].rt >= 1 - 1e-9) ? rb : Point{ ra[0] + (rb[0] - ra[0]) * meets[i].rt, ra[1] + (rb[1] - ra[1]) * meets[i].rt };
+            if( meets[i].rt >= 1 - 1e-9 )       // at a corner the route already has: name it, add nothing
+            {
+                S.x[meets[i].rs + 1] = x; S.over[meets[i].rs + 1] = over_new[i];
+            }
+            else { ins[k].push_back(Ins{ meets[i].rs, meets[i].rt, x, over_new[i], at }); }
             ins[meets[i].j].push_back(Ins{ meets[i].s, meets[i].t, x, static_cast<char>(over_new[i] ? 0 : 1), at });
         }
         for( Idx j = 0; j < Wv.strands.size(); ++j )
@@ -371,6 +378,8 @@ namespace Knoodle::Animate
                 for( ; h < hits.size() && hits[h].seg == i; ++h )
                 {
                     if( !closedQ && i + 1 == p.size() ) { break; }
+                    // a meeting at a corner the polyline already has takes that corner: no second point on top of it
+                    if( hits[h].t <= 1e-9 ) { place[static_cast<Idx>(hits[h].id)] = { path, static_cast<int>(map[i]) }; continue; }
                     place[static_cast<Idx>(hits[h].id)] = { path, static_cast<int>(q.size()) };
                     q.push_back(P2{ a.x + (b.x - a.x) * hits[h].t, a.y + (b.y - a.y) * hits[h].t });
                 }

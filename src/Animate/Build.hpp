@@ -16,18 +16,17 @@
 #include "Diagram.hpp"
 #include "Turn.hpp"
 #include "Redraw.hpp"
+#include "Route.hpp"
 #if __has_include("Sweep.hpp")
     #include "Sweep.hpp"
     #define KNOODLE_ANIMATE_SWEEP 1
 #endif
 
 #include "../PassDescriptor.hpp"
-#include "../OrthoDecorate.hpp"
 #include "../../tools/r1_move.hpp"
 #include "../../tools/diagram_agreement.hpp"
 
 #include <map>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -41,7 +40,6 @@ namespace Knoodle::Animate
         Real t_pass_hold = 1.0;     // a pass: its strand, route and disk shown still
         Real t_pass    = 3.2;       // the sweep
         Idx  pass_frames = 96;
-        Int64 margin   = 4;         // cells round the layout that a corridor may use
         Real t_after   = 0.4;       // after a move, before the reshape
         Real t_reshape = 2.2;
         Real t_spin    = 1.2;       // a spin-off's slide to the tray
@@ -244,28 +242,12 @@ namespace Knoodle::Animate
 
         static bool HasCrossings( const PD_T & pd ) { return pd.ValidQ() && pd.CrossingCount() > Int(0); }
 
-        // The layout the drawing in hand came from, and how it was placed: turned `xk` quarter
-        // turns about `xc`, then moved by `xd`. A corridor is routed in the layout and carried over.
-        std::unique_ptr<OD_T> H;
-        int   xk = 0;
-        Point xc { 0, 0 }, xd { 0, 0 };
-        bool  layoutQ = false;          // is the drawing in hand that layout, placed so?
-
-        Point Placed( Real x, Real y ) const
-        {
-            x -= xc[0]; y -= xc[1];
-            for( int q = 0; q < xk; ++q ) { const Real t = x; x = -y; y = t; }
-            return Point{ xc[0] + x + xd[0], xc[1] + y + xd[1] };
-        }
-
         bool Layout( const PD_T & pd, Int face, PlaneDrawing & D, std::string & why )
         {
             typename OD_T::Settings_T s {};
             s.x_grid_size = s.y_grid_size = Int(4);      // world units: the lattice is 4 apart, a stroke 0.28 wide
-            H = std::make_unique<OD_T>(pd, face, s);
-            xk = 0; xc = xd = Point{ 0, 0 };
-            layoutQ = FromOrthoDraw(*H, pd, D, why);
-            return layoutQ;
+            OD_T H (pd, face, s);
+            return FromOrthoDraw(H, pd, D, why);
         }
 
         void Push( Scene && sc, bool still, const ViewBox * box = nullptr )
@@ -310,12 +292,10 @@ namespace Knoodle::Animate
             const Int face = PassDescriptor<Int>::LeftFace(pd, static_cast<Int>(D.ExteriorDarc()));
             if( face < Int(0) ) { note = "The drawing's exterior names no face of the next diagram."; return false; }
             if( !Layout(pd, face, F, why) ) { note = "No layout of the next diagram: " + why; return false; }
-            layoutQ = false;                        // until D is F
-            xk = detail::TurnToward(F, D, xc);
-            xd = detail::MoveTo(F, D.Bounds().Centre());
-            if( !MorphTo(D, std::move(F), pd.CrossingCount(), note) ) { return false; }
-            layoutQ = true;
-            return true;
+            Point about { 0, 0 };
+            detail::TurnToward(F, D, about);
+            detail::MoveTo(F, D.Bounds().Centre());
+            return MorphTo(D, std::move(F), pd.CrossingCount(), note);
         }
 
         /*!@brief The reshape from D into F, another drawing of the same diagram
@@ -323,7 +303,6 @@ namespace Knoodle::Animate
         bool MorphTo( PlaneDrawing & D, PlaneDrawing F, Int crossings, std::string & note, const ViewBox * box = nullptr )
         {
             std::string why;
-            layoutQ = false;
             MorphResult R;
             if( !Morph(D, F, EasedTimes(opt.reshape_frames), opt.round, R, why) ) { note = "The reshape could not be made: " + why; return false; }
             Scene sc;
@@ -518,7 +497,7 @@ namespace Knoodle::Animate
             }
             if( !next || !HasCrossings(*next) || detail::EmptyQ(E) )
             {
-                D = std::move(E); layoutQ = false;
+                D = std::move(E);
                 Still(D, "Diagram", opt.t_after, after, "");
                 return true;
             }
@@ -547,7 +526,7 @@ namespace Knoodle::Animate
             std::string why, n2;
             if( !next || !HasCrossings(*next) || detail::EmptyQ(E) )
             {
-                D = std::move(E); layoutQ = false;
+                D = std::move(E);
                 Still(D, "Diagram", opt.t_after, mine, "");
                 return;
             }
@@ -560,7 +539,7 @@ namespace Knoodle::Animate
             }
             Still(E, "Cut", opt.t_cut, mine, n2);
             PlaneDrawing F;
-            if( !Layout(*next, Int(-1), F, why) ) { F = PlaneDrawing{}; layoutQ = false; }
+            if( !Layout(*next, Int(-1), F, why) ) { F = PlaneDrawing{}; }
             D = std::move(F);
             Still(D, "Diagram", opt.t_after, *next, "");
         }
@@ -666,7 +645,7 @@ namespace Knoodle::Animate
             ViewBox box { std::min(B.lo[0], c[0] - 1.15 * R) - opt.pad, std::min(B.lo[1], c[1] - R - 2 * R * opt.turn_tilt) - opt.pad,
                           std::max(B.hi[0], c[0] + 1.15 * R) + opt.pad, std::max(B.hi[1], c[1] + 1.15 * R) + opt.pad };
             Push(std::move(sc), false, &box);
-            D = std::move(G); layoutQ = false;
+            D = std::move(G);
             return true;
         }
 
@@ -676,15 +655,6 @@ namespace Knoodle::Animate
             PassDescriptor<Int> mv; std::string why;
             if( !PassDescriptor<Int>::Parse(*rec.move, mv, why) ) { note = "The pass move does not parse: " + why; return false; }
             if( mv.middlepassQ && !rec.feas ) { note = "The middle pass carries no witness, so its levels are not known."; return false; }
-            if( !layoutQ || !H ) { note = "The drawing in hand is not a layout, so no corridor can be routed in it."; return false; }
-            const Int margin = static_cast<Int>(opt.margin);
-            OrthoDecorate<PD_T> deco (*H, margin);
-            const auto pr = deco.RoutePassMove(pd, mv);
-            if( !pr.validQ ) { note = "The corridor does not route in this layout: " + pr.why; return false; }
-            Polyline route;
-            for( const auto & c : pr.route.path ) { route.push_back(Placed(static_cast<Real>(c[0] - margin), static_cast<Real>(c[1] - margin))); }
-            route = Corners(route);
-
             std::vector<Idx> arcs; std::vector<char> inW (D.arcs.size(), 0);
             const bool forwardQ = PassDescriptor<Int>::DirOf(mv.strand.front());
             for( Int da : mv.strand )
@@ -697,21 +667,9 @@ namespace Knoodle::Animate
             const bool overQ = !mv.over.empty() ? static_cast<bool>(mv.over[0])
                              : ((arcs.size() >= 2) ? pd.ArcOverQ(static_cast<Int>(arcs[0]), forwardQ ? PD_T::Head : PD_T::Tail) : true);
 
-            PassPicture P;
-            if( !PassSurgery(D, arcs, forwardQ, route, over_new, P, why) ) { note = "The move does not fit the drawing: " + why; return false; }
-            PD_T mine;
-            if( !detail::EmptyQ(P.after) )
-            {
-                const std::vector<Idx> cw = detail::ClockwiseFaces(P.after);
-                if( cw.size() != 1 ) { note = "The drawing the move leaves is not connected: the reshape after it is not built yet."; return false; }
-                P.after.exterior_arc = cw[0] / 2; P.after.exterior_forwardQ = (cw[0] % 2) != 0;
-                mine = ToPlanarDiagram<PD_T>(P.after, why);
-                if( !mine.ValidQ() ) { note = "The drawing the move leaves is not a diagram: " + why; return false; }
-            }
-
-            // A middle pass: the level of every piece of its witness side, and which side that is here.
+            // A middle pass: the level of every piece of its witness side.
             std::map<std::pair<Idx,int>,char> level;        // (arc, half) -> a, b or f
-            std::map<Idx,Real> split;                       // a route-crossed arc -> how far along it the route crosses
+            if( mv.middlepassQ ) { for( const auto & cls : rec.feas->classes ) { for( const auto & pc : cls.pieces ) { level[{ static_cast<Idx>(pc.arc), pc.half }] = cls.label; } } }
             const Real tol = 1e-9 * std::max(D.Bounds().Size(), 1e-300);
             auto along = [&]( Idx a, const Point & q, Real & f )
             {
@@ -723,37 +681,82 @@ namespace Knoodle::Animate
                 f = (total > 0) ? before / total : 0;
                 return true;
             };
-            if( mv.middlepassQ )
+
+            // Does a route make the move? 0: no (why says); 1: yes, but the witness side holds infinity; 2: yes.
+            struct Fit { PassPicture P; PD_T mine; std::map<Idx,Real> split; Polyline loop; };
+            auto fit = [&]( const Polyline & route, Fit & F ) -> int
             {
-                for( const auto & cls : rec.feas->classes ) { for( const auto & pc : cls.pieces ) { level[{ static_cast<Idx>(pc.arc), pc.half }] = cls.label; } }
-                for( Idx i = 0; i < P.met_arc.size(); ++i ) { Real f = 0.5; if( P.met_arc[i] != None && along(P.met_arc[i], P.met_at[i], f) ) { split[P.met_arc[i]] = f; } }
-                Polyline loop = P.W;
-                for( Idx i = P.route.size(); i-- > 0; ) { loop.push_back(P.route[i]); }
+                F = Fit{};
+                if( !PassSurgery(D, arcs, forwardQ, route, over_new, F.P, why) ) { return 0; }
+                if( !detail::EmptyQ(F.P.after) )
+                {
+                    const std::vector<Idx> cw = detail::ClockwiseFaces(F.P.after);
+                    if( cw.size() != 1 ) { why = "the drawing the move leaves is not connected"; return 0; }
+                    F.P.after.exterior_arc = cw[0] / 2; F.P.after.exterior_forwardQ = (cw[0] % 2) != 0;
+                    F.mine = ToPlanarDiagram<PD_T>(F.P.after, why);
+                    if( !F.mine.ValidQ() ) { return 0; }
+                    PlaneDrawing tmp;
+                    if( next && HasCrossings(*next) && !Relabel(F.P.after, F.mine, *next, tmp, why) ) { why = "the drawing it leaves is not the next diagram: " + why; return 0; }
+                }
+                else if( next && HasCrossings(*next) ) { why = "it leaves no crossing, and the next diagram has some"; return 0; }
+                F.loop = F.P.W;
+                for( Idx i = F.P.route.size(); i-- > 0; ) { F.loop.push_back(F.P.route[i]); }
+                if( !mv.middlepassQ ) { return 2; }
+                for( Idx i = 0; i < F.P.met_arc.size(); ++i ) { Real f = 0.5; if( F.P.met_arc[i] != None && along(F.P.met_arc[i], F.P.met_at[i], f) ) { F.split[F.P.met_arc[i]] = f; } }
                 Idx inside = 0, outside = 0;
                 for( const auto & [key, label] : level )
                 {
                     const Idx a = key.first;
                     if( a >= D.arcs.size() || !D.ActiveQ(a) ) { continue; }
-                    const Real s = split.count(a) ? split[a] : 0.5;
+                    const Real s = F.split.count(a) ? F.split[a] : 0.5;
                     const Real f = (key.second < 0) ? 0.5 : ((key.second == 0) ? s / 2 : (1 + s) / 2);
                     const Polyline & L = D.arcs[a].pts;
-                    const std::vector<Real> prm = Params(L);
-                    ++(Inside(loop, At(L, prm, f)) ? inside : outside);
+                    ++(Inside(F.loop, At(L, Params(L), f)) ? inside : outside);
                 }
-                if( inside > 0 && outside > 0 ) { note = "The witness's pieces lie on both sides of the strand's loop in this drawing."; return false; }
-                if( outside > 0 )
+                if( inside > 0 && outside > 0 ) { why = "the witness's pieces lie on both sides of the strand's loop"; return 0; }
+                return (outside > 0) ? 1 : 2;
+            };
+
+            // The route: through the faces of the drawing in hand, the first one that makes the move
+            // with its witness side bounded; failing that, one that makes the move at all.
+            Fit F, round_back; int got = 0, good = 0; bool backQ = false; std::string how; Real least = 0;
+            {
+                RouteRequest rq;
+                rq.first_arc = arcs.front(); rq.last_arc = arcs.back(); rq.forwardQ = forwardQ;
+                rq.depart = static_cast<Idx>(mv.depart); rq.land = static_cast<Idx>(mv.land);
+                for( Int da : mv.cross ) { rq.cross.push_back(static_cast<Idx>(da)); }
+                std::string w2;
+                SkeletonRoutes(D, rq, [&]( const Polyline & route )
                 {
-                    // The witness side holds infinity. Put a face of the other side outside first, and start again.
-                    if( turnedQ ) { note = "The middle pass still goes round the back of the sphere after a turn."; return false; }
-                    std::vector<Int> corridor { PassDescriptor<Int>::LeftFace(pd, mv.depart) };
-                    for( Int da : mv.cross ) { corridor.push_back(PassDescriptor<Int>::RightFace(pd, da)); }
-                    Idx darc = 0; Point pole { 0, 0 };
-                    if( !FaceInside(pd, D, loop, corridor, darc, pole) ) { note = "The middle pass goes round the back of the sphere, and no face clear of its corridor can be put outside."; return false; }
-                    Still(D, "Diagram", opt.t_hold, pd, "");
-                    if( !TurnTo(pd, D, darc, pole, "The next move sweeps the side that holds infinity, so another face is put outside first.", note) ) { return false; }
-                    if( !Reshape(D, pd, note) ) { return false; }
-                    return Pass(rec, next, D, note, true);
-                }
+                    // of the routes that make the move, the one whose strand sweeps the least; four are enough to choose from
+                    Fit T; const int g = fit(route, T);
+                    if( g == 2 )
+                    {
+                        const Real swept = std::abs(Area2(T.loop));
+                        if( got != 2 || swept < least ) { F = std::move(T); least = swept; }
+                        got = 2;
+                        return ++good >= 4;
+                    }
+                    if( g == 1 && !backQ ) { round_back = std::move(T); backQ = true; }
+                    return false;
+                }, w2);
+                if( got == 0 && backQ ) { F = std::move(round_back); got = 1; }
+                if( got == 0 ) { how = w2.empty() ? why : w2 + " (" + why + ")"; }
+            }
+            if( got == 0 ) { note = "No route makes the move in this drawing: " + how; return false; }
+            PassPicture & P = F.P; PD_T & mine = F.mine; std::map<Idx,Real> & split = F.split;
+            if( got == 1 )
+            {
+                // The witness side holds infinity. Put a face of the other side outside first, and start again.
+                if( turnedQ ) { note = "The middle pass still goes round the back of the sphere after a turn."; return false; }
+                std::vector<Int> corridor { PassDescriptor<Int>::LeftFace(pd, mv.depart) };
+                for( Int da : mv.cross ) { corridor.push_back(PassDescriptor<Int>::RightFace(pd, da)); }
+                Idx darc = 0; Point pole { 0, 0 };
+                if( !FaceInside(pd, D, F.loop, corridor, darc, pole) ) { note = "The middle pass goes round the back of the sphere, and no face clear of its corridor can be put outside."; return false; }
+                Still(D, "Diagram", opt.t_hold, pd, "");
+                if( !TurnTo(pd, D, darc, pole, "The next move sweeps the side that holds infinity, so another face is put outside first.", note) ) { return false; }
+                if( !Reshape(D, pd, note) ) { return false; }
+                return Pass(rec, next, D, note, true);
             }
             auto over_at = [&]( Idx j, Idx s, Real t ) -> bool
             {
