@@ -12,6 +12,7 @@
 #include "../src/Animate/Json.hpp"
 #include "../src/Animate/Raster.hpp"
 #include "../src/Animate/Turn.hpp"
+#include "../src/Animate/Tray.hpp"
 
 #include <cstdio>
 #include <fstream>
@@ -364,6 +365,56 @@ int main( int argc, char ** argv )
         Check(last.items.size() == 2, "its last frame is flat again: two strokes");
         const Frame mid = FrameAt(turned, T.stages[0].duration + T.stages[1].duration / 2, st, W, H);
         Check(mid.items.size() > 4, "mid-turn it is drawn in depth levels");
+    }
+
+    // ---- spin-offs and the tray -----------------------------------------------
+    Animation spun;
+    {
+        TrayOptions o; o.aspect = 1; o.size = 0.1; o.gap = 0.05; o.margin = 0.05;      // six to a row
+        Near(TrayCentre(0, o).x, 0.1, 1e-12, "the first square is at the bottom left ..."); Near(TrayCentre(0, o).y, 0.1, 1e-12, "... in y too");
+        Near(TrayCentre(5, o).x, 0.1 + 5 * 0.15, 1e-12, "the row fills to the right"); Near(TrayCentre(5, o).y, 0.1, 1e-12, "... on the bottom");
+        Near(TrayCentre(6, o).x, 0.1, 1e-12, "the seventh starts the next row ..."); Near(TrayCentre(6, o).y, 0.25, 1e-12, "... one up");
+        const std::vector<P2> sq = RoundedSquare(P2{ 0, 0 }, 2, 0.25, 4000);
+        Real area = 0, len = 0, worst = 0;
+        for( std::size_t i = 0; i < sq.size(); ++i )
+        {
+            const P2 & a = sq[i], & b = sq[(i + 1) % sq.size()];
+            area += (a.x * b.y - a.y * b.x) / 2; len += std::hypot(b.x - a.x, b.y - a.y);
+            worst = std::max(worst, std::max(std::abs(a.x), std::abs(a.y)));
+        }
+        Near(area, 4 - (4 - 3.14159265358979) * 0.25, 1e-4, "a rounded square's area (counterclockwise)");
+        Near(len, 4 * 1 + 3.14159265358979, 1e-4, "... and its length");
+        Near(worst, 1, 1e-9, "... inside its box");
+        Near(RoundedSquare(P2{ 0, 0 }, 2, 0.25, 8, false, 1.5707963267948966)[0].y, 1, 1e-9, "it starts in the direction asked for");
+
+        Scene sc = HopfScene();                                 // two keys
+        sc.view0 = sc.view1 = Box{ -1, -1, 7, 7 };
+        const std::vector<P2> loop { {0,0}, {4,0}, {4,4}, {0,4} };
+        Check(AddSpinOff(sc, loop, 1, 2), "a spin-off is added to a scene of two keys");
+        AddTray(sc, { 0, 3 });
+        Check(sc.paths.size() == 5 && sc.keys[0].pts.size() == 5 && sc.keys[1].pts.size() == 5, "one path for the spin-off, one for each square in the tray");
+        Check(sc.paths[2].space == Space::WorldToScreen && sc.paths[3].space == Space::Screen && sc.paths[2].color == 1 && sc.paths[4].color == 3, "spaces and colours");
+        Scene one = HopfScene(); one.keys.pop_back();
+        Check(!AddSpinOff(one, loop, 1, 0) && one.paths.size() == 2, "a scene of one key is refused and left alone");
+        // at the start it is the loop, in the world; at the end the square in its place, on the screen
+        spun.scenes.push_back(sc);
+        const Style light = Style::Light();
+        const Frame a = FrameAt(spun, 0, light, 1600, 900), b = FrameAt(spun, sc.duration, light, 1600, 900);
+        const Stroke * sa = nullptr, * sb = nullptr;
+        for( const Item & it : a.items ) { if( !it.fillQ && it.stroke.closed && it.stroke.pts.size() == 48 && !sa ) { sa = &it.stroke; } }
+        for( const Item & it : b.items ) { if( !it.fillQ && it.stroke.closed && it.stroke.pts.size() == 48 && !sb ) { sb = &it.stroke; } }
+        Check(sa && sb, "the spin-off is a closed stroke of 48 points");
+        if( sa && sb )
+        {
+            const Real s = 900 * (1 - 2 * light.margin) / 8;
+            Near(Length(sa->pts, true), 16 * s, 1e-6, "it starts as the loop, in the world");
+            Near(Length(sb->pts, true), 900 * 0.045 * (4 - 8 * 0.28 + 2 * 3.14159265358979 * 0.28), 0.5, "it ends as a rounded square on the screen (48 chords)");
+            const P2 c = TrayCentre(2);
+            Real cx = 0, cy = 0; for( const P2 & p : sb->pts ) { cx += p.x / 48; cy += p.y / 48; }
+            Near(cx, c.x * 900, 0.05, "... at its place in the tray"); Near(cy, 900 - c.y * 900, 0.05, "... from the bottom");
+            Check(sb->color.b == light.components[1].b, "... in its component's colour");
+        }
+        if( !dump.empty() ) { for( int i = 0; i < 3; ++i ) { WritePPM(dump + "/spin" + std::to_string(i) + ".ppm", Draw(FrameAt(spun, sc.duration * i / 2.0, light, 800, 450))); } }
     }
 
     // ---- ToJSON -----------------------------------------------------------

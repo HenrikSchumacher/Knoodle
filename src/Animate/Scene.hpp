@@ -230,6 +230,7 @@ namespace Knoodle::Animate
         Real fog_depth   = 0.55;        // how far toward `fog` the farthest piece goes
         Real fog_width   = 0.35;        // nearer thicker, farther thinner, by this share
         Real margin      = 0.06;        // of the picture, kept clear round the camera's box
+        Real token_stroke = 1.0 / 300;  // stroke width on the screen (the tray), as a share of the picture's height
 
         RGBA Of( Role role, int color ) const
         {
