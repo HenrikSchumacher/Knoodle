@@ -429,7 +429,22 @@ int main( int argc, char ** argv )
         Check(j.find("\"Cuts\":[[0,2,1,1],[1,5,0,4]]") != std::string::npos, "cuts as written");
         Check(j.find("[[0,0],[4,0],[4,2],[4,4],[2,4],[0,4]]") != std::string::npos, "whole numbers are written as integers");
         Check(j.find("\"Map\":\"Roll\"") != std::string::npos && j.find("\"Finish\":{") != std::string::npos, "a roll stage with its finish");
-        if( !dump.empty() ) { std::ofstream(dump + "/turn.json") << j; }
+        if( !dump.empty() )
+        {
+            // everything in one file, and what FrameAt makes of it, for checking another renderer against this one
+            A.scenes.push_back(spun.scenes[0]);
+            std::ofstream(dump + "/all.json") << ToJSON(A);
+            std::ofstream fr (dump + "/frames.txt");
+            const Style light = Style::Light();
+            for( int i = 0; i <= 60; ++i )
+            {
+                const Real t = A.Duration() * i / 60.0;
+                const Frame f = FrameAt(A, t, light, 1600, 900);
+                Real len = 0, wid = 0; long fills = 0;
+                for( const Item & it : f.items ) { if( it.fillQ ) { fills += long(it.shape.rings[0].size()); } else { len += Length(it.stroke.pts, it.stroke.closed); wid += it.stroke.width; } }
+                fr << t << " " << f.items.size() << " " << len << " " << wid << " " << fills << "\n";
+            }
+        }
     }
 
     // ---- the rasterizer -----------------------------------------------------
