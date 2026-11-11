@@ -160,7 +160,8 @@ simplifier that emits them. A redraw recorded on another exterior gets a turn fi
 ### Spin-offs
 
 A spin-off is a component that a move leaves with no crossings; the trace names it by
-colour. It keeps its colour, shrinks to a rounded square, and slides to a tray: a stack
+colour. It keeps its colour, shrinks to a rounded square (its outline only, never filled:
+JHC, 2026-11-11), and slides to a tray: a stack
 of squares that starts at the bottom left of the view and fills to the right, then
 upward. A square carries no mark; its colour identifies it and its place gives the order.
 The tray is a layer over the picture and stays for the rest of the animation.

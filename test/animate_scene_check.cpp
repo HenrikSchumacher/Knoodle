@@ -216,27 +216,27 @@ int main( int argc, char ** argv )
         sc.keys.push_back(k);
         Animation A; A.scenes.push_back(sc);
         const Frame f = FrameAt(A, 0, st, W, H);
-        // order: strand (two pieces, layer 0), disk then route (layer 1), moving (2), token fill + stroke (3)
-        Check(f.items.size() == 7, "seven items in layer order");
-        if( f.items.size() == 7 )
+        // order: strand (two pieces, layer 0), disk then route (layer 1), moving (2), the token's outline (3)
+        Check(f.items.size() == 6, "six items in layer order");
+        if( f.items.size() == 6 )
         {
-            Check(!f.items[0].fillQ && !f.items[1].fillQ && f.items[2].fillQ && !f.items[3].fillQ && !f.items[4].fillQ && f.items[5].fillQ && !f.items[6].fillQ, "a fill comes before a path of its layer");
+            Check(!f.items[0].fillQ && !f.items[1].fillQ && f.items[2].fillQ && !f.items[3].fillQ && !f.items[4].fillQ && !f.items[5].fillQ, "a fill comes before a path of its layer; a token is an outline, never filled");
             Check(f.items[2].shape.rings.size() == 1 && f.items[2].shape.rings[0].size() == 5, "the disk is the strand followed by the route reversed");
             Near(f.items[2].shape.color.a, st.disk.a, 0, "the disk takes the style's colour");
             const Real s = W * (1 - 2 * st.margin) / 10, wpx = std::max(st.stroke * s, st.min_stroke * H);
             const Real total = Length(f.items[0].stroke.pts, false) + Length(f.items[1].stroke.pts, false);
             Near(total, 8 * std::sqrt(2.0) * s - 2 * st.gap * wpx * std::sqrt(2.0), 1e-6, "a 45 degree crossing has a gap sqrt(2) wider");
             Near(f.items[3].stroke.width, wpx * st.route_width, 1e-12, "the route is thinner");
-            Near(f.items[6].stroke.pts[0].x, 0.02 * H, 1e-9, "a screen path is placed by the picture's height ...");
-            Near(f.items[6].stroke.pts[0].y, H - 0.02 * H, 1e-9, "... from its bottom left");
+            Near(f.items[5].stroke.pts[0].x, 0.02 * H, 1e-9, "a screen path is placed by the picture's height ...");
+            Near(f.items[5].stroke.pts[0].y, H - 0.02 * H, 1e-9, "... from its bottom left");
         }
         const Frame g = FrameAt(A, 1, st, W, H);
-        if( g.items.size() == 7 ) { Near(g.items[4].stroke.color.a, 0.3 * st.moving.a, 1e-12, "opacity runs from alpha0 to alpha1"); }
+        if( g.items.size() == 6 ) { Near(g.items[4].stroke.color.a, 0.3 * st.moving.a, 1e-12, "opacity runs from alpha0 to alpha1"); }
         A.scenes[0].view1 = ViewBox{ 0, 0, 20, 20 };
         const Frame z = FrameAt(A, 1, st, W, H);
-        if( z.items.size() == 7 )
+        if( z.items.size() == 6 )
         {
-            Near(z.items[6].stroke.pts[0].x, 0.02 * H, 1e-9, "the camera does not move a screen path");
+            Near(z.items[5].stroke.pts[0].x, 0.02 * H, 1e-9, "the camera does not move a screen path");
             Near(z.items[3].stroke.pts[1].x - z.items[3].stroke.pts[0].x, 6 * W * (1 - 2 * st.margin) / 20, 1e-6, "the camera's box at the end of the scene");
         }
     }

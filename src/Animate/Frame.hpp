@@ -261,12 +261,7 @@ namespace Knoodle::Animate
                 // on the screen (the tray) a stroke is thin whatever the camera does; a spin-off thins as it goes there
                 const Real onscreen = (P.space == Space::World) ? 0 : ((P.space == Space::Screen || K < 2) ? 1 : (Real(i0) + w) / Real(K - 1));
                 const Real width = Lerp(wpx * ((P.role == Role::Route) ? st.route_width : 1.0), st.token_stroke * f.height, onscreen);
-                if( P.role == Role::Token && p.size() >= 3 )
-                {
-                    Item it; it.fillQ = true; it.shape.color = col; it.shape.color.a *= Lerp(0.35, 0.85, onscreen);
-                    std::vector<P2> ring; for( const P3 & q : p ) { ring.push_back(P2{ q.x, q.y }); }
-                    it.shape.rings.push_back(std::move(ring)); f.items.push_back(std::move(it));
-                }
+
                 const std::vector<Real> cum = ArcLengths(p, P.closed);
                 std::vector<std::pair<Real,Real>> cuts;
                 for( const Cut & c : kc.cuts )
