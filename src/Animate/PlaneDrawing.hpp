@@ -380,7 +380,7 @@ namespace Knoodle::Animate
      * reason, if A and B are not drawings of the same plane graph with the
      * same exterior face.
      */
-    inline bool Match( const PlaneDrawing & A, const PlaneDrawing & B, Matched & M, std::string & why, Real merge = 1e-9 )
+    inline bool Match( const PlaneDrawing & A, const PlaneDrawing & B, Matched & M, std::string & why, Real merge = 1e-6 )
     {
         M = Matched{};
         if( A.arcs.size() != B.arcs.size() || A.crossings.size() != B.crossings.size() ) { why = "the drawings have different label ranges"; return false; }

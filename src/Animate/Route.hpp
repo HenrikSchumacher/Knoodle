@@ -298,10 +298,10 @@ namespace Knoodle::Animate
         const auto B = D.Bounds();
         const Real size = std::max(B.Size(), 1e-300), tol = 1e-9 * size;
 
-        // the dots: half way along their arcs, or a third and two thirds when the strand is one arc
+        // the dots, to begin with: half way along their arcs, or a third and two thirds when the strand is one arc
         const bool oneQ = (rq.first_arc == rq.last_arc);
         auto dot = [&]( Idx a, Real f ) { const Polyline & L = D.arcs[a].pts; return At(L, Params(L), rq.forwardQ ? f : 1 - f); };
-        const Point tail = dot(rq.first_arc, oneQ ? 1.0 / 3 : 0.5), head = dot(rq.last_arc, oneQ ? 2.0 / 3 : 0.5);
+        const Point tail0 = dot(rq.first_arc, oneQ ? 1.0 / 3 : 0.5), head0 = dot(rq.last_arc, oneQ ? 2.0 / 3 : 0.5);
 
         // a step: the middle length of the drawing's pieces (the grid step, for a layout)
         std::vector<Real> lens;
@@ -371,6 +371,69 @@ namespace Knoodle::Animate
                     Q = std::move(K);
                 }
                 polys.push_back(std::move(Q));
+            }
+            // The dots slide along their arcs to where the route is shortest: the tail to suit the
+            // route's first leg, then the head to suit its last. Each keeps half a step from its arc's
+            // ends (a quarter of the arc, if that is less), and a strand of one arc keeps them apart.
+            Point tail = tail0, head = head0;
+            {
+                auto shortest = [&]( const std::vector<RoutePoly> & PP, Idx tag_a, const Point & a, bool runsQ, Idx tag_b, const Point & b )
+                {
+                    Real best = std::numeric_limits<Real>::infinity();
+                    for( const RoutePoly & Q0 : PP )
+                    {
+                        RoutePoly Q = Q0;
+                        if( detail::Vertex(Q, tag_a, a, tol) == None ) { continue; }
+                        const std::vector<Point> targets = runsQ ? detail::Runs(Q, tag_b) : std::vector<Point>{ b };
+                        for( const Point & q : targets )
+                        {
+                            RoutePoly W = Q;
+                            const Idx to = detail::Vertex(W, tag_b, q, tol), from = detail::Vertex(W, tag_a, a, tol);
+                            if( to == None || from == None || from == to ) { continue; }
+                            const Polyline leg = detail::Leg(W, from, to);
+                            if( leg.size() >= 2 ) { best = std::min(best, Length(leg)); }
+                        }
+                    }
+                    return best;
+                };
+                // places on arc a between the fractions lo and hi of it, the nearest to the middle first
+                auto places = [&]( Idx a, Real lo, Real hi )
+                {
+                    const Real len = Length(D.arcs[a].pts), m = std::min(step / 2, (hi - lo) * len / 4);
+                    std::vector<Real> f;
+                    for( Real s = lo * len + m; s <= hi * len - m + tol && len > 0; s += step ) { f.push_back(s / len); }
+                    if( len > 0 ) { f.push_back((hi * len - m) / len); }
+                    const Real mid = (lo + hi) / 2;
+                    std::sort(f.begin(), f.end(), [&]( Real x, Real y ) { return std::abs(x - mid) < std::abs(y - mid); });
+                    return f;
+                };
+                const bool legQ = !rq.cross.empty();
+                auto with = [&]( const Point & t, const Point & h )
+                {
+                    std::vector<RoutePoly> PP = polys;
+                    for( RoutePoly & Q : PP ) { for( Idx side = 0; side < 2; ++side ) { detail::Vertex(Q, 2 * rq.first_arc + side, t, tol); detail::Vertex(Q, 2 * rq.last_arc + side, h, tol); } }
+                    return PP;
+                };
+                Real best = std::numeric_limits<Real>::infinity();
+                {
+                    const std::vector<RoutePoly> PP = with(head0, head0);
+                    for( Real f : places(rq.first_arc, 0, oneQ ? 0.45 : 1) )
+                    {
+                        const Point t = dot(rq.first_arc, f);
+                        const Real l = shortest(PP, rq.depart, t, legQ, legQ ? rq.cross.front() : rq.land, head0);
+                        if( l < best - 1e-6 * size ) { best = l; tail = t; }
+                    }
+                }
+                best = std::numeric_limits<Real>::infinity();
+                {
+                    const std::vector<RoutePoly> PP = with(tail, tail);
+                    for( Real f : places(rq.last_arc, oneQ ? 0.55 : 0, 1) )
+                    {
+                        const Point h = dot(rq.last_arc, f);
+                        const Real l = shortest(PP, rq.land, h, legQ, legQ ? (rq.cross.back() ^ Idx(1)) : rq.depart, tail);
+                        if( l < best - 1e-6 * size ) { best = l; head = h; }
+                    }
+                }
             }
             // the dots are vertices, and breaks, wherever their arcs are
             for( RoutePoly & Q : polys )
