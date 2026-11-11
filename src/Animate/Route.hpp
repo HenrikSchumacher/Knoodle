@@ -5,21 +5,33 @@
 // route runs through by the arcs it crosses on the way. Here each face is a
 // polygon; a leg of the route enters at a point of the polygon's boundary and
 // leaves at another, and in between it follows the skeleton of the polygon:
-// the midpoints of the diagonals of a Delaunay triangulation, along the one
-// chain of triangles from the way in to the way out. A leg, once laid, cuts
+// its medial axis, the points as far from one edge as from another, which
+// keeps the route as clear of the strands as the face allows. A leg, once laid, cuts
 // its polygon in two, so later legs cannot cross it.
 //
 // Nothing here needs a lattice: any drawing will do, a layout or not.
 //
-// Standard library, PlaneDrawing.hpp and Mesh.hpp only.
+// Standard library, PlaneDrawing.hpp and Boost.Polygon (its Voronoi diagram
+// of segments, exact on integer input; Boost is already required by Knoodle).
 
 #include "PlaneDrawing.hpp"
-#include "Mesh.hpp"
+
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-enum-float-conversion"      // Boost.Polygon, under C++20
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#endif
+#include <boost/polygon/polygon.hpp>
+#include <boost/polygon/voronoi.hpp>
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 #include <algorithm>
 #include <cmath>
-#include <deque>
 #include <limits>
+#include <queue>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -76,56 +88,149 @@ namespace Knoodle::Animate
         }
 
         /*!@brief The leg from vertex `from` to vertex `to` of the polygon:
-         * the two vertices, and between them the midpoints of the diagonals
-         * the chain of triangles from one to the other crosses. Empty if the
-         * polygon cannot be triangulated. */
+         * each end goes straight in, along the bisector of its corner, to the
+         * polygon's medial axis, and the leg follows the axis between them.
+         * The axis is the inside part of the Voronoi diagram of the polygon's
+         * edges (Boost.Polygon, exact on the snapped corners); the parabolic
+         * pieces round reflex corners are sampled. Empty if there is no way. */
         inline Polyline Leg( const RoutePoly & Q, Idx from, Idx to )
         {
-            std::vector<Idx> V (Q.p.size());
-            for( Idx i = 0; i < V.size(); ++i ) { V[i] = i; }
-            std::vector<Point> P = Q.p;
-            std::vector<Tri> tris;
-            const Drawings one { &P };
-            EarClip(V, one, tris);
-            if( !V.empty() || tris.empty() ) { return {}; }
-            std::string why;
-            if( !Refine(P, tris, std::numeric_limits<Real>::infinity(), why) ) { return {}; }      // flips only: no edge is too long
-            // triangles across each interior edge
-            std::unordered_map<std::uint64_t,std::array<Idx,2>> across;
-            for( Idx t = 0; t < tris.size(); ++t )
+            namespace bp = boost::polygon;
+            using IP = bp::point_data<int>; using IS = bp::segment_data<int>;
+            const Idx n = Q.p.size();
+            if( n < 3 ) { return {}; }
+            Box B; for( const Point & p : Q.p ) { B.Add(p); }
+            const Real size = std::max(B.Size(), 1e-300), scale = static_cast<Real>(1 << 29) / size;
+            auto world = [&]( const Point & q ) { return Point{ B.lo[0] + q[0] / scale, B.lo[1] + q[1] / scale }; };
+            std::vector<IP> ip (n);
+            std::set<std::pair<int,int>> corners;
+            for( Idx i = 0; i < n; ++i )
             {
-                for( int k = 0; k < 3; ++k )
-                {
-                    auto it = across.emplace(EdgeKey(tris[t][k], tris[t][(k + 1) % 3]), std::array<Idx,2>{ None, None }).first;
-                    (it->second[0] == None ? it->second[0] : it->second[1]) = t;
-                }
+                ip[i] = IP{ static_cast<int>(std::llround((Q.p[i][0] - B.lo[0]) * scale)), static_cast<int>(std::llround((Q.p[i][1] - B.lo[1]) * scale)) };
+                corners.insert({ ip[i].x(), ip[i].y() });
             }
-            auto has = [&]( Idx t, Idx v ) { return tris[t][0] == v || tris[t][1] == v || tris[t][2] == v; };
-            std::vector<Idx> prev (tris.size(), None), via_a (tris.size(), None), via_b (tris.size(), None);
-            std::vector<char> seen (tris.size(), 0);
-            std::deque<Idx> queue;
-            for( Idx t = 0; t < tris.size(); ++t ) { if( has(t, from) ) { seen[t] = 1; queue.push_back(t); } }
-            Idx goal = None;
-            while( !queue.empty() && goal == None )
+            std::vector<IS> segs;                               // each edge once: a cut is walked both ways
+            std::set<std::array<int,4>> have;
+            for( Idx i = 0; i < n; ++i )
             {
-                const Idx t = queue.front(); queue.pop_front();
-                if( has(t, to) ) { goal = t; break; }
-                for( int k = 0; k < 3; ++k )
-                {
-                    const Idx a = tris[t][k], b = tris[t][(k + 1) % 3];
-                    const auto & pr = across[EdgeKey(a, b)];
-                    const Idx u = (pr[0] == t) ? pr[1] : pr[0];
-                    if( u == None || seen[u] ) { continue; }
-                    seen[u] = 1; prev[u] = t; via_a[u] = a; via_b[u] = b;
-                    queue.push_back(u);
-                }
+                IP a = ip[i], b = ip[(i + 1) % n];
+                if( a == b ) { continue; }
+                if( std::make_pair(b.x(), b.y()) < std::make_pair(a.x(), a.y()) ) { std::swap(a, b); }
+                if( have.insert({ a.x(), a.y(), b.x(), b.y() }).second ) { segs.push_back(IS{ a, b }); }
             }
-            if( goal == None ) { return {}; }
+            bp::voronoi_diagram<double> vd;
+            bp::construct_voronoi(segs.begin(), segs.end(), &vd);
+
+            // the axis as a graph, in snapped coordinates
+            std::vector<Point> node; std::vector<std::array<Idx,2>> edge;
+            std::vector<Idx> at (vd.num_vertices(), None);
+            auto vert = [&]( const bp::voronoi_diagram<double>::vertex_type * v )
+            {
+                Idx & i = at[static_cast<Idx>(v - &vd.vertices()[0])];
+                if( i == None ) { i = node.size(); node.push_back(Point{ v->x(), v->y() }); }
+                return i;
+            };
+            for( const auto & e : vd.edges() )
+            {
+                if( !e.is_primary() || !e.is_finite() || &e > e.twin() ) { continue; }
+                const Point v0 { e.vertex0()->x(), e.vertex0()->y() }, v1 { e.vertex1()->x(), e.vertex1()->y() };
+                Polyline c { v0 };
+                if( e.is_curved() )
+                {
+                    // a parabola: as far from a corner (the focus) as from the line of an edge
+                    const auto * cp = e.cell(), * cs = e.twin()->cell();
+                    if( !cp->contains_point() ) { std::swap(cp, cs); }
+                    const IS & sp = segs[cp->source_index()], & ss = segs[cs->source_index()];
+                    const IP f = (cp->source_category() == bp::SOURCE_CATEGORY_SEGMENT_START_POINT) ? bp::low(sp) : bp::high(sp);
+                    const Point s0 { static_cast<Real>(bp::low(ss).x()), static_cast<Real>(bp::low(ss).y()) };
+                    Real ux = bp::high(ss).x() - s0[0], uy = bp::high(ss).y() - s0[1];
+                    const Real ul = std::hypot(ux, uy); ux /= ul; uy /= ul;
+                    const Real fx = (f.x() - s0[0]) * ux + (f.y() - s0[1]) * uy, fy = -(f.x() - s0[0]) * uy + (f.y() - s0[1]) * ux;
+                    const Real x0 = (v0[0] - s0[0]) * ux + (v0[1] - s0[1]) * uy, x1 = (v1[0] - s0[0]) * ux + (v1[1] - s0[1]) * uy;
+                    for( int k = 1; k < 8 && fy != 0; ++k )
+                    {
+                        const Real x = x0 + (x1 - x0) * k / 8, y = ((x - fx) * (x - fx) + fy * fy) / (2 * fy);
+                        c.push_back(Point{ s0[0] + x * ux - y * uy, s0[1] + x * uy + y * ux });
+                    }
+                }
+                c.push_back(v1);
+                const Point mid = (c.size() > 2) ? c[c.size() / 2] : Point{ (v0[0] + v1[0]) / 2, (v0[1] + v1[1]) / 2 };
+                if( !Inside(Q.p, world(mid)) ) { continue; }
+                Idx a = vert(e.vertex0());
+                for( Idx i = 1; i + 1 < c.size(); ++i ) { node.push_back(c[i]); edge.push_back({ a, node.size() - 1 }); a = node.size() - 1; }
+                edge.push_back({ a, vert(e.vertex1()) });
+            }
+            if( edge.empty() ) { return {}; }
+
+            // an end goes in along its corner's bisector to the first thing of the axis it meets
+            auto join = [&]( Idx v ) -> Idx
+            {
+                const Point o { static_cast<Real>(ip[v].x()), static_cast<Real>(ip[v].y()) };
+                Idx a = (v + n - 1) % n, b = (v + 1) % n;
+                while( a != v && ip[a] == ip[v] ) { a = (a + n - 1) % n; }
+                while( b != v && ip[b] == ip[v] ) { b = (b + 1) % n; }
+                if( a == v || b == v ) { return None; }
+                Real ax = o[0] - ip[a].x(), ay = o[1] - ip[a].y(), bx = ip[b].x() - o[0], by = ip[b].y() - o[1];
+                const Real al = std::hypot(ax, ay), bl = std::hypot(bx, by);
+                Real dx = -(ay / al + by / bl), dy = ax / al + bx / bl;
+                const Real dl = std::hypot(dx, dy);
+                if( dl < 1e-9 ) { return None; }
+                dx /= dl; dy /= dl;
+                const Real near = 1e-4;                         // of a snapped unit
+                Real best = std::numeric_limits<Real>::infinity(); Idx best_node = None, best_edge = None;
+                for( Idx i = 0; i < node.size(); ++i )
+                {
+                    const Real px = node[i][0] - o[0], py = node[i][1] - o[1], t = px * dx + py * dy;
+                    if( t >= -near && std::abs(px * dy - py * dx) <= near && t < best - near ) { best = std::max(t, Real(0)); best_node = i; best_edge = None; }
+                }
+                for( Idx k = 0; k < edge.size(); ++k )
+                {
+                    const Point & p = node[edge[k][0]], & q = node[edge[k][1]];
+                    const Real ex = q[0] - p[0], ey = q[1] - p[1], den = dx * ey - dy * ex;
+                    if( std::abs(den) <= 1e-12 * std::hypot(ex, ey) ) { continue; }
+                    const Real t = ((p[0] - o[0]) * ey - (p[1] - o[1]) * ex) / den, u = ((p[0] - o[0]) * dy - (p[1] - o[1]) * dx) / den;
+                    if( u < 0 || u > 1 || t < 0 || t >= best - near ) { continue; }
+                    best = t; best_edge = k; best_node = None;
+                }
+                if( best_node != None ) { return best_node; }
+                if( best_edge == None ) { return None; }
+                const std::array<Idx,2> cut = edge[best_edge];
+                node.push_back(Point{ o[0] + best * dx, o[1] + best * dy });
+                edge[best_edge] = { cut[0], node.size() - 1 }; edge.push_back({ node.size() - 1, cut[1] });
+                return node.size() - 1;
+            };
+            const Idx hf = join(from), ht = join(to);
+            if( hf == None || ht == None ) { return {}; }
+
+            // the shortest way along the axis, never through a corner of the polygon
+            std::vector<std::vector<Idx>> nb (node.size());
+            for( const auto & e : edge ) { nb[e[0]].push_back(e[1]); nb[e[1]].push_back(e[0]); }
+            auto cornerQ = [&]( Idx i )
+            {
+                const std::pair<int,int> r { static_cast<int>(std::llround(node[i][0])), static_cast<int>(std::llround(node[i][1])) };
+                return corners.count(r) && std::hypot(node[i][0] - r.first, node[i][1] - r.second) < 1e-3;
+            };
+            std::vector<Real> dist (node.size(), std::numeric_limits<Real>::infinity());
+            std::vector<Idx> prev (node.size(), None);
+            std::priority_queue<std::pair<Real,Idx>, std::vector<std::pair<Real,Idx>>, std::greater<>> heap;
+            dist[hf] = 0; heap.push({ 0, hf });
+            while( !heap.empty() )
+            {
+                const auto [d, i] = heap.top(); heap.pop();
+                if( d > dist[i] ) { continue; }
+                if( i == ht ) { break; }
+                if( i != hf && cornerQ(i) ) { continue; }
+                for( Idx j : nb[i] ) { const Real w = d + Animate::Dist(node[i], node[j]); if( w < dist[j] ) { dist[j] = w; prev[j] = i; heap.push({ w, j }); } }
+            }
+            if( !std::isfinite(dist[ht]) ) { return {}; }
             Polyline back { Q.p[to] };
-            for( Idx t = goal; prev[t] != None; t = prev[t] ) { back.push_back(Point{ (P[via_a[t]][0] + P[via_b[t]][0]) / 2, (P[via_a[t]][1] + P[via_b[t]][1]) / 2 }); }
+            for( Idx i = ht; i != None; i = prev[i] ) { back.push_back(world(node[i])); }
             back.push_back(Q.p[from]);
             std::reverse(back.begin(), back.end());
-            return back;
+            Polyline leg { back.front() };                      // no piece too short to see
+            for( Idx i = 1; i + 1 < back.size(); ++i ) { if( Animate::Dist(back[i], leg.back()) > 1e-7 * size && Animate::Dist(back[i], back.back()) > 1e-7 * size ) { leg.push_back(back[i]); } }
+            leg.push_back(back.back());
+            return leg;
         }
 
         /*!@brief Cut the polygon in two along a leg from its vertex `from` to
