@@ -241,6 +241,18 @@ namespace Knoodle::Animate
 
         bool ActiveQ( Idx a ) const { return arcs[a].tail != None; }
 
+        /*!@brief Put every arc's two ends at its crossings' points exactly. For
+         * after a drawing's points have been moved by a formula: one formula,
+         * compiled at two places, need not round the same way (a compiler may
+         * fuse a multiply and an add at one and not at the other). */
+        void Seat()
+        {
+            for( Idx a = 0; a < arcs.size(); ++a )
+            {
+                if( ActiveQ(a) && !arcs[a].pts.empty() ) { arcs[a].pts.front() = crossings[arcs[a].tail].p; arcs[a].pts.back() = crossings[arcs[a].head].p; }
+            }
+        }
+
         // A directed arc ("darc") is 2 a + 1 for arc a forward and 2 a backward.
         Idx ExteriorDarc() const { return 2 * exterior_arc + (exterior_forwardQ ? 1 : 0); }
 

@@ -210,6 +210,7 @@ static A::PlaneDrawing Mapped( A::PlaneDrawing D, Real angle, Real shear, Real s
     auto map = [=]( Pt p ) { const Real x = p[0] + shear * p[1]; return Pt{ c * x - s * p[1] + shift[0], s * x + c * p[1] + shift[1] }; };
     for( auto & cr : D.crossings ) { cr.p = map(cr.p); }
     for( auto & a : D.arcs ) { for( Pt & p : a.pts ) { p = map(p); } }
+    D.Seat();       // gcc fuses the multiply-adds of `map` in one of these loops and not the other
     return D;
 }
 
