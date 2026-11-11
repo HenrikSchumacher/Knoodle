@@ -138,7 +138,7 @@ else
                      -pthread
 endif
 
-all: knoodlesimplify knoodledraw knoodleidentify knoodleprove
+all: knoodlesimplify knoodledraw knoodleidentify knoodleprove knoodlemovie
 
 knoodlesimplify: knoodlesimplify.cpp $(SHARED_DEPS)
 	@echo "=== Building knoodlesimplify on $(UNAME_S) ==="
@@ -165,8 +165,8 @@ knoodleprove: knoodleprove.cpp $(SHARED_DEPS)
 	$(CXX) $(CXXFLAGS) $(DEPFLAGS) $(CPPFLAGS) knoodleprove.cpp $(LDFLAGS) -o $@
 	@echo "✓ knoodleprove compiled successfully"
 
-# The animator's movie writer (docs/animate-design.md). Not in `all` and not
-# installed yet: it animates only part of a trace so far.
+# The animator's movie writer (docs/animate-design.md). Built by `all`, so that
+# every build compiles the animator; not installed yet.
 knoodlemovie: knoodlemovie.cpp $(SHARED_DEPS)
 	@echo "=== Building knoodlemovie on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) $(DEPFLAGS) $(CPPFLAGS) knoodlemovie.cpp $(LDFLAGS) -o $@

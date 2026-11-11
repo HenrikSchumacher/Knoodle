@@ -48,7 +48,22 @@ int main( int argc, char ** argv )
         auto val = [&]( const char * key ) { const std::string k = key; return (a.rfind(k, 0) == 0) ? a.substr(k.size()) : std::string(); };
         try
         {
-            if( !val("--json=").empty() )       { json = val("--json="); }
+            if( a == "--help" || a == "-h" )
+            {
+                std::printf("Usage: knoodlemovie TRACE [--json=FILE | --frame=SECONDS] [--size=WxH] [--fps=N] [--style=talk|light|dark]\n\n"
+                            "Reads a move trace (the stream knoodleprove checks) and writes its animation:\n"
+                            "  --json=FILE       the animation, for the web player (players/knoodle-player.html)\n"
+                            "  --frame=SECONDS   one frame, as a PPM picture, on standard output\n"
+                            "  (neither)         every frame as raw rgb24 on standard output, for ffmpeg:\n"
+                            "      knoodlemovie TRACE --size=1280x720 --fps=30 | ffmpeg -f rawvideo -pix_fmt rgb24 \\\n"
+                            "        -s 1280x720 -r 30 -i - -pix_fmt yuv420p out.mp4\n\n"
+                            "  --size=WxH        the picture's size (1280x720)\n"
+                            "  --fps=N           frames a second (30)\n"
+                            "  --style=NAME      talk, light or dark (talk)\n\n"
+                            "A summary goes to standard error. examples/traces has traces to try.\n");
+                return 0;
+            }
+            else if( !val("--json=").empty() )  { json = val("--json="); }
             else if( !val("--size=").empty() )  { const std::string v = val("--size="); const auto x = v.find('x'); W = std::stoi(v.substr(0, x)); H = std::stoi(v.substr(x + 1)); }
             else if( !val("--fps=").empty() )   { fps = std::stoi(val("--fps=")); }
             else if( !val("--style=").empty() ) { style_name = val("--style="); }
