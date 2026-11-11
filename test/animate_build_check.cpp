@@ -148,6 +148,24 @@ int main()
         Check(balanced && depth == 0 && j.size() > 100, name + ": its JSON is balanced");
         if( name == "r1_last_curl.trace" ) { Check(tokens == 1 && A.scenes.back().crossings_after == 0, name + ": the last curl leaves one square in the tray and no crossings"); }
     }
+    // the examples (examples/traces) are these fixtures, byte for byte: so what is tested here, and
+    // by the tests of knoodleprove, is what a reader is told to run
+    {
+        const fs::path ex = (dir == fs::path(".")) ? "../examples/traces" : "examples/traces";
+        int examples = 0;
+        auto slurp = []( const fs::path & p ) { std::ifstream in(p, std::ios::binary); return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()); };
+        if( fs::exists(ex) )
+        {
+            for( const auto & e : fs::directory_iterator(ex) )
+            {
+                if( e.path().extension() != ".trace" ) { continue; }
+                ++examples;
+                const fs::path twin = dir / e.path().filename();
+                Check(fs::exists(twin) && slurp(e.path()) == slurp(twin), "examples/traces/" + e.path().filename().string() + " is the test fixture of the same name");
+            }
+            Check(examples >= 1, "examples/traces holds traces");
+        }
+    }
     std::printf("read back %d layouts; turns of the sphere %d; ", readbacks, turns);
     std::printf("traces=%d scenes=%d curls=%d reshapes=%d spin-offs=%d cuts=%d\n", traces, scenes, curls, reshapes, spins, cuts);
     Check(curls >= 13 && reshapes >= 10 && spins >= 2, "curls, reshapes and spin-offs were all exercised");
