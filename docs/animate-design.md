@@ -231,6 +231,13 @@ Nothing in the animator is written in Python.
 1. Split the non-animation work off `orthomorph` into pull requests against main: exact
    lattice input; the exterior-thread seam fix and `ThreadInPlace`; the `OrthoDecorate`
    routing changes; the witness and `OrthoDraw` regression tests.
+   (Done 2026-11-11, and it came out smaller. Exact lattice input was on main already.
+   The seam fix and `ThreadInPlace` were dropped: they served the prototype, and nothing
+   here calls them. The generated redraw witnesses and their generator are the local branch
+   `redraw-witness-fixtures`, the `OrthoDraw` regression test is
+   `orthodraw-regression-test`. The `OrthoDecorate` routing changes are kept on the local
+   branch `orthodecorate-routing` and are not to be sent as a pull request: see "A text
+   backend" below.)
 2. Move the picture-independent headers from `tools/` to `src/` with no change in
    behaviour: exterior threading, witness checking, the R1 and redraw descriptors,
    diagram agreement.
@@ -239,6 +246,7 @@ Nothing in the animator is written in Python.
    loop, `ToJSON` and `FrameAt`.
 4. The web player and `knoodlemovie`.
 5. Elsewhere: the paclet's consumer; the server for the KnotInfo demo.
+6. The text backend (below), and with it the retirement of `OrthoDecorate`.
 
 Separately, about 3,500 lines of `knoodledraw.cpp` are drawing logic that an embedder
 would want as library calls. Moving them is its own piece of work.
@@ -258,6 +266,76 @@ would want as library calls. Moving them is its own piece of work.
    now-bounded side in the fresh layout.
 6. **The redraw view choice** may shrink less than assumed unless it can share
    `knoodleprove`'s lattice projection.
+
+## A text backend, and the end of `OrthoDecorate` (planned 2026-11-11)
+
+Nothing in this section is built.
+
+`knoodledraw --trace` draws a pass move as text: the diagram on `OrthoDraw`'s grid in
+box-drawing characters, with the strand, its route and the labels of arcs and crossings.
+`src/OrthoDecorate.hpp` routes the strand for that picture, on the lattice. Since
+`Route.hpp`, the animator does not use `OrthoDecorate`, so Knoodle has two routers and two
+pictures of the same move, and the text picture is a still from the movie. JHC,
+2026-11-11: `OrthoDecorate` is by now a tool for debugging and for talk pictures, and one
+renderer should make both. What must not be lost: **a reliable ASCII renderer with
+everything labelled clearly.**
+
+So text is a third consumer of the animation, beside the rasterizer and the web player.
+
+**Which frames.** The frames where a move is shown still: the hold of a pass or a middle
+pass (strand, route and disk), and the drawing before and after any move. These are the
+pictures `knoodledraw` draws now. A move starts from a fresh `OrthoDraw` layout, so in its
+hold every still strand runs along grid lines already. The only thing off the lattice is
+the route.
+
+**The route, on the grid.** The backend staircases the route when it draws: horizontal
+and vertical steps on a grid finer than the layout's. `Tighten` holds a route 0.45 of a
+step off its polygon's sides where there is room, so a grid finer than that keeps the
+staircase in the faces the route runs through; where the way is narrower it may not. So
+the staircased route is checked the way every route is: the surgery must leave the next record's diagram. A staircase that
+fails the check is not drawn. `Route.hpp` and the movies do not change. (Considered and
+left alone: making `Tighten` itself keep to horizontal, vertical and 45 degrees. It would
+change the movies for the sake of the text, and box-drawing characters have no diagonal
+that joins `─` and `│`.)
+
+**Labels.** Arcs and crossings are labelled, as in `knoodledraw`'s text now. The display
+list `FrameAt` returns has no labels and movies carry no text, so labels belong to this
+backend alone: it reads them from the drawing (a `PlaneDrawing` keeps the diagram's own
+arc and crossing labels). Placing
+them so that they are always legible is the part whose size is not known.
+
+**Frames in motion** (a reshape, a sweep, a redraw, a turn) are not on a grid. The first
+version does not draw them as text. If they are wanted, the display list can be rasterized
+into character cells (braille dots, two by four to a cell), which needs no grid.
+
+**What this retires, once it is as good:**
+
+| Code | Lines |
+|---|---|
+| `src/OrthoDecorate.hpp` | 1,568 |
+| `tools/pass_view.hpp` | 1,127 |
+| the move overlay in `tools/knoodledraw.cpp` | not counted |
+| `test/orthodecorate_check.cpp`, `pass_view_check.cpp`, `draw_trace_check.py`, `r1_draw_check.py` | 2,352 |
+
+**What has to happen first:**
+
+1. The text backend draws every pass, middle pass and curl removal in the committed
+   traces, labelled, and JHC finds the labels as clear as `knoodledraw`'s. (Whether a run
+   of curl removals starts each one from a layout has to be checked.)
+2. middlestrands' gates (`oracle/verifier_gate.py` and three more) run
+   `knoodledraw --trace --verify` and count its `drawing: VERIFIED` lines. That line says
+   the picture realizes the move. Its successor is the builder's own check, that the
+   surgery leaves the next record's diagram; the gates change to read that. This is a
+   handoff to middlestrands.
+3. `test/witness_check.cpp` builds an `OrthoDecorate` in three places, to check the
+   witness's side convention against a drawing. Those checks move to a `PlaneDrawing`.
+
+Until then `OrthoDecorate` stays on main as it is, and is not improved. The prototype's
+two changes to its router (turns cost; a corridor that crosses nothing can go round the
+drawing) are on the local branch `orthodecorate-routing` (968b2bb7), measured, with the
+text of a pull request written. JHC, 2026-11-11: keep the branch, send no pull request. It
+is insurance: if label placement turns out to be most of what `OrthoDecorate` and its
+overlay are, and this backend is not worth building, those changes are wanted after all.
 
 ## What the first three pieces found (2026-11-10)
 
