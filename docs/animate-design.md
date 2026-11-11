@@ -4,7 +4,7 @@ Status: design agreed 2026-11-10 (JHC). Henrik: at about 6,000 lines this needs 
 design review. The estimates below are from reading the prototype, not from built code.
 
 Built (2026-11-10): the library in `src/Animate/`, `tools/knoodlemovie` and
-`players/knoodle-player.html`, 6,211 lines, with four C++ tests. Every kind of move in
+`players/knoodle-player.html`, 6,431 lines, with four C++ tests. Every kind of move in
 the committed traces is animated. See "What is built" and "What the first three pieces
 found" at the end.
 
@@ -347,21 +347,21 @@ ffmpeg. It has a Makefile target but is not in `all` and is not installed.
 | `Sweep.hpp` | the harmonic sweep | 616 | 420 |
 | `Pass.hpp` | the weave; pass surgery; welding a sweep frame to the still strands | 405 | 500, with the next two |
 | `Diagram.hpp` | `ToPlanarDiagram`: the diagram a drawing draws | 60 | |
-| `Build.hpp` | the build loop; r1, pass, middle pass, redraw; turns; spin-offs; the camera | 1,029 | 450 + 120 + 450 |
-| `Route.hpp` | routes through the faces | 500 | (was OrthoDecorate, existing) |
+| `Build.hpp` | the build loop; r1, pass, middle pass, redraw; turns; spin-offs; the camera | 1,044 | 450 + 120 + 450 |
+| `Route.hpp` | routes through the faces | 582 | (was OrthoDecorate, existing) |
 | `Redraw.hpp` | the view of a space curve as a drawing | 98 | |
-| `Turn.hpp` | the turn of the sphere | 131 | 180 |
+| `Turn.hpp` | the turn of the sphere | 154 | 180 |
 | `Tray.hpp` | spin-offs and the tray | 124 | 200 |
-| `Scene.hpp` | scenes, roles, the style sheet | 278 | part of 450 |
-| `Frame.hpp` | `FrameAt` | 476 | 280 |
-| `Json.hpp` | `ToJSON` | 185 | 100 |
+| `Scene.hpp` | scenes, roles, the style sheet | 283 | part of 450 |
+| `Frame.hpp` | `FrameAt` | 530 | 280 |
+| `Json.hpp` | `ToJSON` | 199 | 100 |
 | `Raster.hpp` | the rasterizer | 179 | part of 300 |
 | `tools/knoodlemovie.cpp` | the tool | 108 | part of 300 |
-| `players/knoodle-player.html` | the web player | 381 | 670 |
-| **Total** | | **6,211** | **5,340** |
+| `players/knoodle-player.html` | the web player | 408 | 670 |
+| **Total** | | **6,431** | **5,340** |
 
 The plan's 6,040 included 700 lines of tests; without them it was 5,340, so this is about
-870 over. `Sweep.hpp` and `Frame.hpp` ran over, and `Route.hpp` (500) was not in the plan:
+1,090 over (JHC, 2026-11-10: the extra length is acceptable). `Sweep.hpp` and `Frame.hpp` ran over, and `Route.hpp` (582) was not in the plan:
 it replaces the use of `OrthoDecorate`, which is existing code. The tests are 1,433 lines
 (JHC, 2026-11-10: fast tests are wanted and do not count).
 
