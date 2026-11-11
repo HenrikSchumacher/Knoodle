@@ -74,7 +74,7 @@ namespace Knoodle::Animate
             if( !sc.note.empty() ) { o.Key("Note"); o.Str(sc.note); }
             o.Key("Crossings"); o.Pair(sc.crossings_before, sc.crossings_after, 0);
             o.Key("Duration"); o.Num(sc.duration);
-            o.Key("Easing"); o.Str((sc.easing == Easing::Smoother) ? "Smoother" : "Linear");
+            o.Key("Easing"); o.Str((sc.easing == Easing::Smoother) ? "Smoother" : (sc.easing == Easing::Step) ? "Step" : "Linear");
             o.Key("View"); o.s += '['; o.Box4(sc.view0); o.s += ','; o.Box4(sc.view1); o.s += ']';
             if( flatQ )
             {

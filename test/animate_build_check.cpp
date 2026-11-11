@@ -112,7 +112,7 @@ int main()
             if( s.label == "Reshape diagram" ) { ++reshapes; }
             if( s.label == "Spin-off" ) { ++spins; }
             // a pass is swept, never jumped: the builder takes a route the strand can sweep to
-            if( s.label == "Pass move" || s.label == "Middle pass move" ) { Check(s.note.find("jumps to its route") == std::string::npos, name + ": the strand is swept to its route (" + s.note + ")"); }
+            if( s.label == "Pass move" || s.label == "Middle pass move" ) { Check(s.easing == An::Easing::Step, name + ": a sweep's keyframes are never blended"); Check(s.note.find("jumps to its route") == std::string::npos, name + ": the strand is swept to its route (" + s.note + ")"); }
             if( s.label == "Cut" )
             {
                 ++my_cuts;

@@ -38,7 +38,9 @@ namespace Knoodle::Animate
      * the screen at the last (a spin-off sliding to the tray). */
     enum class Space : std::uint8_t { World, Screen, WorldToScreen };
 
-    enum class Easing : std::uint8_t { Linear, Smoother };
+    // Step: linear time, and the nearer keyframe is shown, never a blend of two. For scenes whose
+    // keyframes are frames already (a sweep), where a path's points mean different things from one to the next.
+    enum class Easing : std::uint8_t { Linear, Smoother, Step };
 
     /*!@brief s(u) = u^3 (6u^2 - 15u + 10), clamped: zero speed and zero
      * acceleration at both ends. */

@@ -828,7 +828,7 @@ namespace Knoodle::Animate
             // the paths: the stills, the route, the strand
             const int ns = static_cast<int>(P.still.size()), iroute = ns, istrand = ns + 1;
             Scene base;
-            base.label = mv.middlepassQ ? "Middle pass move" : "Pass move"; base.note = method; base.easing = Easing::Linear;
+            base.label = mv.middlepassQ ? "Middle pass move" : "Pass move"; base.note = method; base.easing = Easing::Step;       // a sweep's keyframes are frames: never blended
             base.crossings_before = static_cast<int>(pd.CrossingCount());
             base.crossings_after  = static_cast<int>(pd.CrossingCount()) - static_cast<int>(P.removed) + static_cast<int>(P.added);
             std::vector<std::vector<P2>> still (P.still.size());

@@ -192,7 +192,7 @@ namespace Knoodle::Animate
             const Real pos = u * Real(K - 1);
             const std::size_t i0 = std::min(std::size_t(pos), K - 1), i1 = std::min(i0 + 1, K - 1);
             Real w = pos - Real(i0);
-            bool lerpQ = (i1 != i0);
+            bool lerpQ = (i1 != i0) && (sc.easing != Easing::Step);
             for( std::size_t j = 0; lerpQ && j < np; ++j ) { lerpQ = (sc.keys[i0].pts[j].size() == sc.keys[i1].pts[j].size()); }
             if( !lerpQ ) { w = (w < 0.5 || i1 == i0) ? 0 : 1; }
             const Key & ka = sc.keys[i0], & kb = sc.keys[i1], & kc = (w < 0.5) ? ka : kb;

@@ -143,7 +143,7 @@ const KnoodleAnimation = (() => {
     const keys = sc.Keys; if (!keys.length) return;
     const ulin = sc.Duration > 0 ? clamp(local / sc.Duration, 0, 1) : 1, u = sc.Easing === 'Smoother' ? smoother(ulin) : ulin;
     const K = keys.length, np = sc.Paths.length, pos = u * (K - 1), i0 = Math.min(Math.floor(pos), K - 1), i1 = Math.min(i0 + 1, K - 1);
-    let w = pos - i0, lerpQ = i1 !== i0;
+    let w = pos - i0, lerpQ = i1 !== i0 && sc.Easing !== 'Step';
     for (let j = 0; lerpQ && j < np; j++) lerpQ = keys[i0].Points[j].length === keys[i1].Points[j].length;
     if (!lerpQ) w = (w < 0.5 || i1 === i0) ? 0 : 1;
     const ka = keys[i0], kb = keys[i1], kc = w < 0.5 ? ka : kb;
