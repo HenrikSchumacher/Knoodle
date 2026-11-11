@@ -285,8 +285,8 @@ int main( int argc, char ** argv )
     const P2 pole { 3, 3 };                         // inside the lens the two squares share
     const TurnResult T = Turn(curves, crossings, pole);
     {
-        Check(T.stages.size() == 4, "a turn has four stages: roll up, turn, even out, unroll");
-        const Stage & up = T.stages[0], & turn = T.stages[1], & un = T.stages[2];
+        Check(T.stages.size() == 3, "a turn has three stages: roll up, balance, turn");
+        const Stage & up = T.stages[0], & turn = T.stages[2], & un = T.sphere;
         const Real R = T.radius;
         Check(R > 0 && T.angle > 0.5 && T.angle < 3.2, "a sphere and an angle");
         // rolled flat is the plane; rolled up, every point is on its sphere, h inside it
@@ -300,21 +300,32 @@ int main( int argc, char ** argv )
                 worstFlat = std::max(worstFlat, std::abs(a.x - p.x) + std::abs(a.y - p.y) + std::abs(a.z));
                 const P3 b = StagePoint(up, p, 0, 1, 1, 0);
                 worstSphere = std::max(worstSphere, std::abs(std::sqrt((b.x - up.centre.x) * (b.x - up.centre.x) + (b.y - up.centre.y) * (b.y - up.centre.y) + (b.z - R) * (b.z - R)) - (R - p.z)));
-                // the end of the turn is the start of the unroll, point for point
-                const P3 e = StagePoint(turn, p, turn.angle1, 1, 1, 0), s0 = StagePoint(un, un.curves[c].pts[i], 0, 1, 1, 0);
+                // the turned sphere is the drawing left, lifted: point for point
+                const P3 e = StagePoint(turn, p, turn.angle1, 1, 1, 1), s0 = StagePoint(un, T.left[c].pts[i], 0, 1, 1, 0);
                 worstSeam = std::max(worstSeam, std::abs(e.x - s0.x) + std::abs(e.y - s0.y) + std::abs(e.z - s0.z));
             }
         }
         Near(worstFlat, 0, 1e-12, "rolled flat, the curve is the drawing, in the plane");
         Near(worstSphere, 0, 1e-9, "rolled up, a point with height h is h inside the sphere");
-        Near(worstSeam, 0, 1e-8, "the turn ends where the unroll starts");
-        const P3 top = StagePoint(turn, P3{ pole.x, pole.y, 0 }, turn.angle1, 1, 1, 0);
+        Near(worstSeam, 0, 1e-8, "the drawing left, lifted to the sphere, is the turned sphere");
+        const P3 top = StagePoint(turn, P3{ pole.x, pole.y, 0 }, turn.angle1, 1, 1, 1);
         Near(top.z, 2 * R, 1e-9, "the turn takes the pole to the top");
-        // the drawing left: the size and centre of the one that came in
-        Real x0 = 1e300, y0 = 1e300, x1 = -1e300, y1 = -1e300;
-        for( const Curve3 & c : T.left ) { for( const P3 & p : c.pts ) { x0 = std::min(x0, p.x); y0 = std::min(y0, p.y); x1 = std::max(x1, p.x); y1 = std::max(y1, p.y); } }
-        Near(std::max(x1 - x0, y1 - y0), 6, 1e-9, "the drawing left has the size of the one that came in");
-        Near((x0 + x1) / 2, 3, 1e-9, "... and its centre, in x"); Near((y0 + y1) / 2, 3, 1e-9, "... and in y");
+        // the shift: a map of the unit sphere to itself, undone by the opposite shift
+        {
+            const P3 w { 0.3, -0.5, 0.2 }, x { 0.6, 0.0, 0.8 }, y = Shift(w, x), back = Shift(P3{ -w.x, -w.y, -w.z }, y), same = Shift(P3{ 0, 0, 0 }, x);
+            Near(y.x * y.x + y.y * y.y + y.z * y.z, 1, 1e-12, "a shift keeps the unit sphere");
+            Near(std::abs(back.x - x.x) + std::abs(back.y - x.y) + std::abs(back.z - x.z), 0, 1e-12, "the opposite shift undoes it");
+            Near(std::abs(same.x - x.x) + std::abs(same.y - x.y) + std::abs(same.z - x.z), 0, 0, "the shift by the centre is the identity");
+            Check(y.x * w.x + y.y * w.y + y.z * w.z > x.x * w.x + x.y * w.y + x.z * w.z, "a shift moves points toward its point of the ball");
+        }
+        // balancing: a small square and the rest of the plane come out the same size on the sphere
+        {
+            Curve3 in, rest; in.pts = { {2, 2, 0}, {4, 2, 0}, {4, 4, 0}, {2, 4, 0} }; rest.pts = { {2, 4, 0}, {4, 4, 0}, {4, 2, 0}, {2, 2, 0} };
+            const TurnResult B = Turn(curves, crossings, pole, TurnOptions(), {}, { in, rest });
+            Check(B.spread0 > 0.5, "a small face and a large one: unbalanced as it is rolled up (" + std::to_string(B.spread0) + ")");
+            Check(B.spread1 < 0.02, "... and balanced by a shift (" + std::to_string(B.spread1) + ")");
+            Check(B.shift.x * B.shift.x + B.shift.y * B.shift.y + B.shift.z * B.shift.z < 1, "... whose point is inside the ball");
+        }
         // it is a drawing: no two of its pieces cross, except at the two crossings
         long proper = 0, pieces = 0;
         std::vector<std::pair<P3,P3>> segs;
@@ -336,16 +347,6 @@ int main( int argc, char ** argv )
             Near(std::hypot(a.x - b.x, a.y - b.y), 0, 1e-9, "a crossing's two passages are still one point of the plane");
             Check(a.z * b.z < 0, "... one above, one below");
         }
-        // the finish is one to one along every ray from its origin
-        bool monotone = true; Real last = -1;
-        for( int i = 0; i <= 400; ++i )
-        {
-            const Real r = un.fin_rmin * 0.25 * std::pow(1.03, i);
-            const P2 z = Finish(un, P2{ un.fin_o.x + r, un.fin_o.y }, 0.6), o = Finish(un, un.fin_o, 0.6);
-            const Real rr = std::hypot(z.x - o.x, z.y - o.y);
-            if( rr <= last ) { monotone = false; } last = rr;
-        }
-        Check(monotone, "half finished, the finish still increases along a ray");
     }
     Animation turned;
     {
@@ -361,8 +362,6 @@ int main( int argc, char ** argv )
             const Real s = std::min(W * (1 - 2 * st.margin) / 12, H * (1 - 2 * st.margin) / 12);
                         Near(DistTo(a.items[1].stroke.pts, P2{ W / 2 + (4 - 3) * s, H / 2 - (2 - 4) * s }), 0, 1e-6, "flat, the heights are not in the picture: the over strand runs through the crossing itself");
         }
-        const Frame last = FrameAt(turned, sc.duration, st, W, H);
-        Check(last.items.size() == 2, "its last frame is flat again: two strokes");
         const Frame mid = FrameAt(turned, T.stages[0].duration + T.stages[1].duration / 2, st, W, H);
         Check(mid.items.size() > 4, "mid-turn it is drawn in depth levels");
     }
@@ -428,7 +427,7 @@ int main( int argc, char ** argv )
         Check(j.find("\"Kind\":\"Flat\"") != std::string::npos && j.find("\"Kind\":\"Space\"") != std::string::npos, "both kinds of scene");
         Check(j.find("\"Cuts\":[[0,2,1,1],[1,5,0,4]]") != std::string::npos, "cuts as written");
         Check(j.find("[[0,0],[4,0],[4,2],[4,4],[2,4],[0,4]]") != std::string::npos, "whole numbers are written as integers");
-        Check(j.find("\"Map\":\"Roll\"") != std::string::npos && j.find("\"Finish\":{") != std::string::npos, "a roll stage with its finish");
+        Check(j.find("\"Map\":\"Roll\"") != std::string::npos && j.find("\"Mobius\":{") != std::string::npos, "a roll stage with its shift");
         if( !dump.empty() )
         {
             // everything in one file, and what FrameAt makes of it, for checking another renderer against this one

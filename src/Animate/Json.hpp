@@ -164,15 +164,11 @@ namespace Knoodle::Animate
                     o.Key("Lift");   o.Pair(st.lift0, st.lift1, 6);
                     o.Key("Radius"); o.Num(st.radius);
                     o.Key("Roll");   o.Pair(st.roll0, st.roll1, 6);
-                    o.Key("Finish"); o.s += '{';
-                    o.Key("Origin", true); o.Pair(st.fin_o.x, st.fin_o.y, 6);
-                    o.Key("Rmin");   o.Num(st.fin_rmin, 6);
-                    o.Key("Scale");  o.Num(st.fin_scale, 6);
-                    o.Key("Shift");  o.Pair(st.fin_shift.x, st.fin_shift.y, 6);
-                    o.Key("Amount"); o.Pair(st.fin0, st.fin1, 6);
-                    o.Key("Undo");   o.Num(st.unfinish, 6);
-                    o.Key("Blend");  o.s += (st.blend ? "true" : "false");
+                    o.Key("Mobius"); o.s += '{';
+                    o.Key("Point", true); o.Triple(st.mob, 6);
+                    o.Key("Amount"); o.Pair(st.mob0, st.mob1, 6);
                     o.s += '}';
+                    o.Key("Blend");  o.s += (st.blend ? "true" : "false");
                     o.Key("Fog");    o.Pair(st.fog0, st.fog1);
                     if( !st.marks.empty() )
                     {

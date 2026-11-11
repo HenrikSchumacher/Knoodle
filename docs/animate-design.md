@@ -4,7 +4,7 @@ Status: design agreed 2026-11-10 (JHC). Henrik: at about 6,000 lines this needs 
 design review. The estimates below are from reading the prototype, not from built code.
 
 Built (2026-11-10): the library in `src/Animate/`, `tools/knoodlemovie` and
-`players/knoodle-player.html`, 6,553 lines, with four C++ tests. Every kind of move in
+`players/knoodle-player.html`, 6,601 lines, with four C++ tests. Every kind of move in
 the committed traces is animated. See "What is built" and "What the first three pieces
 found" at the end.
 
@@ -348,21 +348,21 @@ ffmpeg. It has a Makefile target but is not in `all` and is not installed.
 | `Sweep.hpp` | the harmonic sweep | 616 | 420 |
 | `Pass.hpp` | the weave; pass surgery; welding a sweep frame to the still strands | 405 | 500, with the next two |
 | `Diagram.hpp` | `ToPlanarDiagram`: the diagram a drawing draws | 60 | |
-| `Build.hpp` | the build loop; r1, pass, middle pass, redraw; turns; spin-offs; the camera | 1,102 | 450 + 120 + 450 |
+| `Build.hpp` | the build loop; r1, pass, middle pass, redraw; turns; spin-offs; the camera | 1,113 | 450 + 120 + 450 |
 | `Route.hpp` | routes through the faces | 582 | (was OrthoDecorate, existing) |
 | `Redraw.hpp` | the view of a space curve as a drawing | 98 | |
-| `Turn.hpp` | the turn of the sphere | 154 | 180 |
+| `Turn.hpp` | the turn of the sphere | 211 | 180 |
 | `Tray.hpp` | spin-offs and the tray | 124 | 200 |
-| `Scene.hpp` | scenes, roles, the style sheet | 288 | part of 450 |
-| `Frame.hpp` | `FrameAt` | 569 | 280 |
-| `Json.hpp` | `ToJSON` | 201 | 100 |
+| `Scene.hpp` | scenes, roles, the style sheet | 282 | part of 450 |
+| `Frame.hpp` | `FrameAt` | 558 | 280 |
+| `Json.hpp` | `ToJSON` | 197 | 100 |
 | `Raster.hpp` | the rasterizer | 179 | part of 300 |
 | `tools/knoodlemovie.cpp` | the tool | 108 | part of 300 |
-| `players/knoodle-player.html` | the web player | 426 | 670 |
-| **Total** | | **6,553** | **5,340** |
+| `players/knoodle-player.html` | the web player | 427 | 670 |
+| **Total** | | **6,601** | **5,340** |
 
 The plan's 6,040 included 700 lines of tests; without them it was 5,340, so this is about
-1,210 over (JHC, 2026-11-10: the extra length is acceptable). `Sweep.hpp` and `Frame.hpp` ran over, and `Route.hpp` (582) was not in the plan:
+1,260 over (JHC, 2026-11-10: the extra length is acceptable). `Sweep.hpp` and `Frame.hpp` ran over, and `Route.hpp` (582) was not in the plan:
 it replaces the use of `OrthoDecorate`, which is existing code. The tests are 1,433 lines
 (JHC, 2026-11-10: fast tests are wanted and do not count).
 
@@ -436,6 +436,30 @@ then the head to suit its last, tried a step apart and kept half a step from the
 (a quarter of the arc if that is less). This made loops as small as half a step, which showed
 that `Match` kept two corners 1e-9 to 1e-6 apart in parameter as two points on top of one
 another; its merge tolerance is now 1e-6.
+
+**The drawing is balanced on the sphere** (JHC, 2026-11-11). The Moebius maps of the sphere to
+itself that are not rotations are the shifts, one for each point w inside the ball
+(`Shift`, in Frame.hpp: x goes to ((1 - |w|^2) x + 2 (1 + w.x) w) / (1 + 2 w.x + |w|^2); an
+inversion in a sphere square to the unit sphere, then a reflection; the map of the conformal
+barycentre papers). JHC's proposal: after the drawing rolls up, apply the shift that evens
+its faces' areas. A turn is now: point the face out, roll up, balance (the shift comes in
+along the ray from the centre to w), turn the new face's pole to the top, settle into the
+fresh layout on the sphere, unroll. `Stage` carries the shift (`mob`, and how much of it).
+
+What is made least is the spread (standard deviation) of the logarithms of the face areas,
+by a search from the identity along the six axis directions, halving the stride when none
+gains. JHC named largest less smallest area; tried first, it only shrinks the largest face
+(among many faces the smallest is next to nothing whatever is done) and crowds the fine part
+of the drawing to one side. Largest over smallest is not smooth, and the search stops where
+it starts. On the committed traces the spread goes 1.32 to 1.04 (FHW, 32 faces), 1.39 to 1.10
+(16 faces) and 1.10 to 0.16 (4 faces): as JHC expected, it helps small diagrams most.
+
+The balanced sphere, seen from its top, is so much less uneven than the unbalanced one that
+the reshape is now worked out from it directly. The radial logarithmic "finish" map, its
+undoing, and the stage that evened the drawing out are gone; the paragraph below describes
+them as they were for a day. Trap met: face areas are read off fans of triangles and must add
+up to the sphere; they do so only to about one part in a million (neighbouring faces cut
+their common edge at different points), so a check to 1e-6 refused every step of the search.
 
 **The reshape after a turn happens on the sphere** (JHC, 2026-11-10: after a turn "most of
 the content is squashed into a ring round the equator of the sphere"; could the Möbius

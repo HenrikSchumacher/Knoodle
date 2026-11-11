@@ -50,6 +50,7 @@ namespace Knoodle::Animate
         Real t_fog     = 0.6;       // a redraw: the depth colouring coming in, and going out
         Real t_rotate  = 2.6;       // ... and the turn between      // the camera's tilt during a turn
         Idx  reshape_frames = 48;
+        Real t_unroll = 2.4, t_let_go = 0.9;    // after a turn: the layout unrolling; the outside's tint fading
         Idx  turn_frames    = 34;   // of the reshape shown on the sphere, after a turn; the renderer blends between them
         Real round = 0.3;           // Morph's steady-shape parameter
         Real pad   = 3;             // world units kept clear round a drawing
@@ -612,7 +613,7 @@ namespace Knoodle::Animate
             }
         }
 
-        /*!@brief The face on the left of `darc`, as a mark. */
+        /*!@brief The face on the left of `darc`, as a mark; or, for None, every face. */
         static std::vector<Curve3> FaceMark( const PlaneDrawing & E, Idx darc )
         {
             std::vector<Curve3> marks;
@@ -620,7 +621,7 @@ namespace Knoodle::Animate
             if( !E.Faces(faces, w) ) { return marks; }
             for( const auto & f : faces )
             {
-                if( std::find(f.begin(), f.end(), darc) == f.end() ) { continue; }
+                if( darc != None && std::find(f.begin(), f.end(), darc) == f.end() ) { continue; }
                 Curve3 m;
                 for( Idx d : f ) { const Polyline & L = E.arcs[d / 2].pts; for( Idx i = 0; i + 1 < L.size(); ++i ) { const Point & q = (d % 2) ? L[i] : L[L.size() - 1 - i]; m.pts.push_back(P3{ q[0], q[1], 0 }); } }
                 marks.push_back(std::move(m));
@@ -630,14 +631,16 @@ namespace Knoodle::Animate
 
         /*!@brief Put the face on the left of `darc` outside, by a turn of the
          * sphere, and leave D a fresh layout with that exterior. The drawing
-         * rolls up, the sphere turns, the drawing is reshaped into the layout
-         * while still on the sphere, and the layout unrolls. */
+         * rolls up; it is balanced on the sphere, its faces made as nearly of
+         * a size as a Moebius map can; the sphere turns; the drawing is
+         * reshaped into the layout while still on the sphere; and the layout
+         * unrolls. */
         bool TurnTo( const PD_T & pd, PlaneDrawing & D, Idx darc, const Point & pole, const std::string & reason, std::string & note )
         {
             std::vector<Curve3> curves; std::vector<Crossing3> xs; std::vector<Idx> start;
             Lift(D, curves, xs, start);
             // the face that is to be the outside is pointed out
-            const TurnResult T = Turn(curves, xs, P2{ pole[0], pole[1] }, TurnOptions(), FaceMark(D, darc));
+            const TurnResult T = Turn(curves, xs, P2{ pole[0], pole[1] }, TurnOptions(), FaceMark(D, darc), FaceMark(D, None));
             // the drawing it leaves, in D's labels
             PlaneDrawing G = D;
             for( Idx k = 0; k < D.components.size(); ++k )
@@ -665,10 +668,10 @@ namespace Knoodle::Animate
             Scene sc;
             sc.kind = Scene::Kind::Space; sc.label = "Turn the sphere"; sc.note = reason;
             sc.crossings_before = sc.crossings_after = static_cast<int>(pd.CrossingCount());
-            // The layout to end in, and the reshape into it. The turned drawing G is very uneven; the
-            // reshape is worked out from G evened out (as Turn leaves it), but shown on the sphere, with
-            // the evening undone at its start and fading to nothing by its end. So what is seen is: the
-            // turned sphere, the drawing settling on it into the layout, and then the layout unrolling.
+            // The layout to end in, and the reshape into it. G is what the turned sphere looks like from
+            // its top; the reshape is worked out in the plane from G, and every frame of it is lifted
+            // back to the sphere. So what is seen is: the turned sphere, the drawing settling on it into
+            // the layout, and then the layout unrolling.
             PlaneDrawing F; MorphResult M; std::string why;
             bool sphereQ = false;
             {
@@ -678,14 +681,14 @@ namespace Knoodle::Animate
                     Point about { 0, 0 };
                     detail::TurnToward(F, G, about);
                     detail::MoveTo(F, D.Bounds().Centre());
-                    sphereQ = (T.stages.size() == 6) && Morph(G, F, EasedTimes(opt.turn_frames), opt.round, M, why);
+                    sphereQ = Morph(G, F, EasedTimes(opt.turn_frames), opt.round, M, why);
                 }
             }
             Box B = D.Bounds();
+            sc.stages = T.stages;                                                   // point out, roll up, balance, turn
             if( sphereQ )
             {
-                sc.stages.assign(T.stages.begin(), T.stages.begin() + 3);          // point out, roll up, turn
-                const Stage & even = T.stages[3];                                   // carries the finish
+                const Stage & even = T.sphere;                                      // lifts a drawing to the sphere as it stands
                 const Idx K = M.frames.size();
                 for( Idx f = 0; f < K; ++f )
                 {
@@ -695,22 +698,30 @@ namespace Knoodle::Animate
                     Lift(E, s.curves, s.crossings, st);
                     s.marks = FaceMark(E, darc);
                     s.duration = (f + 1 < K) ? opt.t_reshape / static_cast<Real>(K - 1) : 0;
-                    s.roll0 = s.roll1 = 1; s.angle0 = s.angle1 = 0; s.fin0 = s.fin1 = 0; s.fog0 = s.fog1 = 1;
-                    s.unfinish = 1 - Smoother(static_cast<Real>(f) / static_cast<Real>(std::max<Idx>(K - 1, 1)));
                     s.blend = (f + 1 < K);
                     s.mark_in0 = s.mark_in1 = s.mark_out0 = s.mark_out1 = 0; s.mark_line0 = s.mark_line1 = 1;
                     sc.stages.push_back(std::move(s));
                 }
                 Stage unroll = sc.stages.back();
-                unroll.duration = T.stages[4].duration; unroll.unfinish = 0;
+                unroll.duration = opt.t_unroll;
                 unroll.roll0 = 1; unroll.roll1 = 0; unroll.fog0 = 1; unroll.fog1 = 0; unroll.mark_out0 = 0; unroll.mark_out1 = 1;
                 Stage settle = unroll;
-                settle.duration = T.stages[5].duration; settle.roll0 = settle.roll1 = 0; settle.fog0 = settle.fog1 = 0;
+                settle.duration = opt.t_let_go; settle.roll0 = settle.roll1 = 0; settle.fog0 = settle.fog1 = 0;
                 settle.mark_out0 = 1; settle.mark_out1 = 0; settle.mark_line0 = 1; settle.mark_line1 = 0;
                 sc.stages.push_back(std::move(unroll)); sc.stages.push_back(std::move(settle));
                 const Box BF = F.Bounds(); B.Add(BF.lo); B.Add(BF.hi);
             }
-            else { sc.stages = T.stages; }
+            else
+            {
+                // the reshape cannot be shown on the sphere: the turned drawing unrolls as it is
+                Stage unroll = T.sphere;
+                std::vector<Idx> st;
+                Lift(G, unroll.curves, unroll.crossings, st);
+                unroll.marks = FaceMark(G, darc);
+                unroll.duration = opt.t_unroll; unroll.roll0 = 1; unroll.roll1 = 0; unroll.fog0 = 1; unroll.fog1 = 0; unroll.mark_line0 = 1;
+                sc.stages.push_back(std::move(unroll));
+                const Box BG = G.Bounds(); B.Add(BG.lo); B.Add(BG.hi);
+            }
             sc.duration = 0;
             for( const Stage & s : sc.stages ) { sc.duration += s.duration; }
             sc.tilt_a = 0; sc.tilt_b = opt.turn_tilt; sc.depth = T.radius;
@@ -719,7 +730,7 @@ namespace Knoodle::Animate
                           std::max(B.hi[0], c[0] + 1.15 * R) + opt.pad, std::max(B.hi[1], c[1] + 1.15 * R) + opt.pad };
             Push(std::move(sc), false, &box);
             if( sphereQ ) { D = std::move(F); return true; }
-            // the reshape could not be shown on the sphere: the turned drawing unrolls as it is, and is reshaped flat
+            // ... and is reshaped flat
             D = std::move(G);
             return Reshape(D, pd, note);
         }

@@ -111,18 +111,14 @@ namespace Knoodle::Animate
      *
      * Affine: X = centre + Rot(axis, angle) * (x - cx, y - cy, lift * (z - cz)).
      *
-     * Roll:   q = Finish(x, y) (below), relative to centre; X = the point of
-     *         the sphere of radius `radius / roll` tangent to the plane at the
-     *         centre that q lifts to by inverse stereographic projection from
-     *         the sphere's top, moved by h along the inward normal; then
-     *         turned by `angle` about `axis` through the sphere's centre.
-     *         roll = 0 is the flat plane.
-     *
-     * Finish: the identity at fin = 0. At fin = 1: a radial map about `fin_o`
-     *         (r -> r for r <= fin_rmin, else fin_rmin (1 + ln(r / fin_rmin))),
-     *         then q -> fin_scale * (q - fin_shift). In between, each of the
-     *         two is blended linearly with the identity, which keeps the map
-     *         one to one. It evens out the drawing a turn leaves.
+     * Roll:   X = the point of the sphere of radius `radius / roll` tangent
+     *         to the plane at the centre that (x, y) lifts to by inverse
+     *         stereographic projection from the sphere's top, moved by h along
+     *         the inward normal; then shifted (Frame.hpp, `Shift`: a Moebius
+     *         map of the sphere to itself) by the point `mob` of the ball
+     *         scaled by the amount running from mob0 to mob1; then turned by
+     *         `angle` about `axis` through the sphere's centre. roll = 0 is
+     *         the flat plane.
      */
     struct Stage
     {
@@ -137,11 +133,9 @@ namespace Knoodle::Animate
         Real lift0  = 1, lift1  = 1;        // Affine
         Real radius = 1;                    // Roll
         Real roll0  = 0, roll1  = 0;
-        P2   fin_o, fin_shift;
-        Real fin_rmin = 0, fin_scale = 1;
-        Real fin0 = 0, fin1 = 0;
-        Real unfinish = 0;                  // Roll: the curves are given finished; this much of the finish is undone first
-        bool blend    = false;              // the curves, marks and `unfinish` run linearly to the next stage's over this one
+        P3   mob { 0, 0, 0 };               // Roll: the shift's point of the unit ball ...
+        Real mob0 = 0, mob1 = 0;            // ... and how much of it is applied
+        bool blend    = false;              // the curves and marks run linearly to the next stage's over this one
                                             // (the two must match point for point): a reshape, one stage a frame
         Real fog0 = 0, fog1 = 0;            // strength of the depth colouring; under Roll, of the ball's outline too
 

@@ -294,16 +294,17 @@ namespace Knoodle::Animate
         }
     } // namespace detail
 
-    /*!@brief `Stage::Finish` (see Scene.hpp): the map that evens out the
-     * drawing a turn leaves, blended in by `fin` in [0, 1]. */
-    inline P2 Finish( const Stage & s, const P2 & q, Real fin )
+    /*!@brief The shift by w, a point inside the unit ball: a Moebius map of
+     * the unit sphere to itself (x is a unit vector, and so is the result)
+     * that moves the sphere's points toward w. It is the identity at w = 0,
+     * and the shift by -w undoes it. It is conformal: an inversion in a sphere
+     * that meets the unit sphere at right angles, followed by a reflection.
+     * With the rotations, the shifts are all the Moebius maps of the sphere. */
+    inline P3 Shift( const P3 & w, const P3 & x )
     {
-        if( fin <= 0 ) { return q; }
-        const Real dx = q.x - s.fin_o.x, dy = q.y - s.fin_o.y, r = std::hypot(dx, dy);
-        const Real fr = (s.fin_rmin <= 0 || r <= s.fin_rmin) ? r : s.fin_rmin * (1 + std::log(r / s.fin_rmin));
-        const Real g = (r > 0) ? (1 - fin) + fin * fr / r : 1;
-        const P2 z { s.fin_o.x + dx * g, s.fin_o.y + dy * g };
-        return P2{ (1 - fin) * z.x + fin * s.fin_scale * (z.x - s.fin_shift.x), (1 - fin) * z.y + fin * s.fin_scale * (z.y - s.fin_shift.y) };
+        const Real a = w.x * x.x + w.y * x.y + w.z * x.z, b = w.x * w.x + w.y * w.y + w.z * w.z;
+        const Real d = 1 + 2 * a + b, k = 2 * (1 + a);
+        return P3{ ((1 - b) * x.x + k * w.x) / d, ((1 - b) * x.y + k * w.y) / d, ((1 - b) * x.z + k * w.z) / d };
     }
 
     /*!@brief Where a stage puts a point of one of its curves, for given values
@@ -314,35 +315,29 @@ namespace Knoodle::Animate
      * flat drawing exactly, and hands over to a flat scene with no jump.
      * `full_height` gives the point with all of h whatever the roll; the
      * renderer uses it to decide which passage of a crossing is the farther. */
-    /*!@brief Finish undone, by the share u: at u = 1 the point that Finish
-     * (at fin = 1) takes to q. Blended as Finish is, a step at a time. */
-    inline P2 Unfinish( const Stage & s, const P2 & q, Real u )
-    {
-        if( u <= 0 ) { return q; }
-        const Real k = (s.fin_scale != 0) ? 1 / s.fin_scale : 1;
-        const P2 z { (1 - u) * q.x + u * (q.x * k + s.fin_shift.x), (1 - u) * q.y + u * (q.y * k + s.fin_shift.y) };
-        const Real dx = z.x - s.fin_o.x, dy = z.y - s.fin_o.y, r = std::hypot(dx, dy);
-        const Real fr = (s.fin_rmin <= 0 || r <= s.fin_rmin) ? r : s.fin_rmin * std::exp(std::min(r / s.fin_rmin - 1, Real(60)));
-        const Real g = (r > 0) ? (1 - u) + u * fr / r : 1;
-        return P2{ s.fin_o.x + dx * g, s.fin_o.y + dy * g };
-    }
-
-    inline P3 StagePoint( const Stage & s, const P3 & p, Real angle, Real lift, Real roll, Real fin, bool full_height = false )
+    inline P3 StagePoint( const Stage & s, const P3 & p, Real angle, Real lift, Real roll, Real mob, bool full_height = false )
     {
         if( s.map == Map3::Affine )
         {
             const P3 w = detail::Rotate(P3{ p.x - s.centre.x, p.y - s.centre.y, lift * (p.z - s.centre.z) }, s.axis, angle);
             return P3{ s.centre.x + w.x, s.centre.y + w.y, s.centre.z + w.z };
         }
-        const P2 q = Unfinish(s, Finish(s, P2{ p.x, p.y }, fin), s.unfinish);
-        const Real x = q.x - s.centre.x, y = q.y - s.centre.y;
+        const Real x = p.x - s.centre.x, y = p.y - s.centre.y;
         const Real h = p.z * (full_height ? 1.0 : std::min(1.0, 4 * roll));
-        if( roll < 1e-9 ) { return P3{ q.x, q.y, h }; }
+        if( roll < 1e-9 ) { return P3{ p.x, p.y, h }; }
         const Real R = s.radius / roll, t = 4 * R * R / (x * x + y * y + 4 * R * R);
         const P3 S { t * x, t * y, 2 * R * (1 - t) };
-        // h along the inward normal, then the turn about the sphere's centre (0, 0, R)
+        // h along the inward normal; the shift, by `mob` of the stage's point of the ball, keeping the
+        // distance from the sphere's centre (0, 0, R); then the turn about that centre
         const P3 X { S.x - h * S.x / R, S.y - h * S.y / R, S.z + h * (R - S.z) / R };
-        const P3 w = detail::Rotate(P3{ X.x, X.y, X.z - R }, s.axis, angle);
+        P3 v { X.x, X.y, X.z - R };
+        const Real len = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+        if( mob != 0 && len > 0 )
+        {
+            const P3 m = Shift(P3{ s.mob.x * mob, s.mob.y * mob, s.mob.z * mob }, P3{ v.x / len, v.y / len, v.z / len });
+            v = P3{ m.x * len, m.y * len, m.z * len };
+        }
+        const P3 w = detail::Rotate(v, s.axis, angle);
         return P3{ s.centre.x + w.x, s.centre.y + w.y, w.z + R };
     }
 
@@ -375,14 +370,13 @@ namespace Knoodle::Animate
                         } }
                     };
                     mix(mixed.curves, B.curves); mix(mixed.marks, B.marks);
-                    mixed.unfinish = Lerp(A.unfinish, B.unfinish, w);
                     now = &mixed;
                 }
             }
             const Stage & S = *now;
             const Real u     = Smoother((S.duration > 0) ? tl / S.duration : 1);
             const Real angle = Lerp(S.angle0, S.angle1, u), lift = Lerp(S.lift0, S.lift1, u);
-            const Real roll  = Lerp(S.roll0, S.roll1, u),   fin  = Lerp(S.fin0, S.fin1, u), fog = Lerp(S.fog0, S.fog1, u);
+            const Real roll  = Lerp(S.roll0, S.roll1, u),   mob  = Lerp(S.mob0, S.mob1, u), fog = Lerp(S.fog0, S.fog1, u);
             const Real ulin  = (sc.duration > 0) ? Clamp(local / sc.duration, 0, 1) : 1;
             const View V = MakeView(sc.view0, sc.view1, Smoother(ulin), f.width, f.height, st.margin);
             const Real wpx = std::max(st.stroke * V.s, st.min_stroke * f.height);
@@ -395,7 +389,7 @@ namespace Knoodle::Animate
             {
                 for( const P3 & p : S.curves[c].pts )
                 {
-                    const P3 X = StagePoint(S, p, angle, lift, roll, fin);
+                    const P3 X = StagePoint(S, p, angle, lift, roll, mob);
                     const P2 z = V.World(X.x - sc.tilt_a * X.z, X.y - sc.tilt_b * X.z);
                     px[c].push_back(P3{ z.x, z.y, X.z });
                     dmin = std::min(dmin, X.z); dmax = std::max(dmax, X.z);
@@ -413,8 +407,8 @@ namespace Knoodle::Animate
                     const std::size_t a = std::size_t(x.a), ia = std::size_t(x.ia), b = std::size_t(x.b), ib = std::size_t(x.ib);
                     if( a >= nc || b >= nc || ia >= px[a].size() || ib >= px[b].size() ) { continue; }
                     const Real kk = Slant(Tangent(px[a], true, ia), Tangent(px[b], true, ib));
-                    const Real za = StagePoint(S, S.curves[a].pts[ia], angle, lift, roll, fin, true).z;
-                    const Real zb = StagePoint(S, S.curves[b].pts[ib], angle, lift, roll, fin, true).z;
+                    const Real za = StagePoint(S, S.curves[a].pts[ia], angle, lift, roll, mob, true).z;
+                    const Real zb = StagePoint(S, S.curves[b].pts[ib], angle, lift, roll, mob, true).z;
                     if( za < zb ) { cuts[a].emplace_back(cum[a][ia], st.gap * wpx * kk); }
                     else                            { cuts[b].emplace_back(cum[b][ib], st.gap * wpx * kk); }
                 }
@@ -492,7 +486,7 @@ namespace Knoodle::Animate
                 for( const Curve3 & m : S.marks )
                 {
                     std::vector<P2> ring;
-                    for( const P3 & p : m.pts ) { ring.push_back(seen(StagePoint(S, p, angle, lift, roll, fin))); }
+                    for( const P3 & p : m.pts ) { ring.push_back(seen(StagePoint(S, p, angle, lift, roll, mob))); }
                     if( ring.size() < 3 ) { continue; }
                     shape({ ring }, st.disk, m_in);
                     if( m_out > 0 )
