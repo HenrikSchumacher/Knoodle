@@ -420,6 +420,60 @@ namespace Knoodle::Animate
                 }
             }
 
+            // under the curves: the ball, faintly, and the marks
+            auto shape = [&]( std::vector<std::vector<P2>> rings, RGBA c, Real alpha )
+            {
+                c.a *= alpha;
+                if( c.a <= 0 ) { return; }
+                Item it; it.fillQ = true; it.shape.rings = std::move(rings); it.shape.color = c;
+                f.items.push_back(std::move(it));
+            };
+            auto outline = [&]( const std::vector<P2> & ring, RGBA c, Real alpha, Real width )
+            {
+                c.a *= alpha;
+                if( c.a <= 0 || ring.size() < 2 ) { return; }
+                Item it; it.stroke.pts = ring; it.stroke.color = c; it.stroke.width = width; it.stroke.round = true; it.stroke.closed = true;
+                f.items.push_back(std::move(it));
+            };
+            auto seen = [&]( const P3 & X ) { return V.World(X.x - sc.tilt_a * X.z, X.y - sc.tilt_b * X.z); };
+            if( S.map == Map3::Roll && roll > 0.3 && fog > 0 )
+            {
+                // the sphere's outline as the camera sees it: the great circle square to the line of sight
+                const Real R = S.radius / roll, vl = std::sqrt(sc.tilt_a * sc.tilt_a + sc.tilt_b * sc.tilt_b + 1);
+                const P3 v { sc.tilt_a / vl, sc.tilt_b / vl, 1 / vl };
+                const Real el = std::hypot(v.z, v.y);
+                const P3 e1 { 0, v.z / el, -v.y / el }, e2 { v.y * e1.z - v.z * e1.y, v.z * e1.x - v.x * e1.z, v.x * e1.y - v.y * e1.x };
+                std::vector<P2> ring;
+                for( int i = 0; i < 96; ++i )
+                {
+                    const Real a = 6.283185307179586 * i / 96, c = std::cos(a), s = std::sin(a);
+                    ring.push_back(seen(P3{ S.centre.x + R * (c * e1.x + s * e2.x), S.centre.y + R * (c * e1.y + s * e2.y), R + R * (c * e1.z + s * e2.z) }));
+                }
+                const Real show = fog * Clamp((roll - 0.3) / 0.4, 0, 1);
+                shape({ ring }, st.fog, 0.30 * show);
+                outline(ring, st.fog, show, 0.6 * wpx);
+            }
+            {
+                const Real m_in = Lerp(S.mark_in0, S.mark_in1, u), m_out = Lerp(S.mark_out0, S.mark_out1, u), m_line = Lerp(S.mark_line0, S.mark_line1, u);
+                for( const Curve3 & m : S.marks )
+                {
+                    std::vector<P2> ring;
+                    for( const P3 & p : m.pts ) { ring.push_back(seen(StagePoint(S, p, angle, lift, roll, fin))); }
+                    if( ring.size() < 3 ) { continue; }
+                    shape({ ring }, st.disk, m_in);
+                    if( m_out > 0 )
+                    {
+                        // the whole picture but the ring: the nonzero rule wants the ring to run against the frame
+                        Real area = 0;
+                        for( std::size_t i = 0; i < ring.size(); ++i ) { const P2 & a = ring[i], & b = ring[(i + 1) % ring.size()]; area += a.x * b.y - b.x * a.y; }
+                        std::vector<P2> hole = ring;
+                        if( area > 0 ) { std::reverse(hole.begin(), hole.end()); }
+                        shape({ { P2{ 0, 0 }, P2{ f.width, 0 }, P2{ f.width, f.height }, P2{ 0, f.height } }, hole }, st.disk, m_out);
+                    }
+                    outline(ring, st.route, m_line, 2.4 * wpx);
+                }
+            }
+
             // runs of one depth level, far to near
             constexpr int LEVELS = 24;
             const Real span = std::max(dmax - dmin, 1e-12), dmid = (dmin + dmax) / 2;

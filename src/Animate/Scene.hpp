@@ -138,7 +138,12 @@ namespace Knoodle::Animate
         P2   fin_o, fin_shift;
         Real fin_rmin = 0, fin_scale = 1;
         Real fin0 = 0, fin1 = 0;
-        Real fog0 = 0, fog1 = 0;            // strength of the depth colouring
+        Real fog0 = 0, fog1 = 0;            // strength of the depth colouring; under Roll, of the ball's outline too
+
+        // Marks: closed curves (as `curves` are) round regions to point out, drawn under the curves.
+        // A mark is filled inside (`in`), or everywhere but inside (`out`), and outlined (`line`).
+        std::vector<Curve3> marks;
+        Real mark_in0 = 0, mark_in1 = 0, mark_out0 = 0, mark_out1 = 0, mark_line0 = 0, mark_line1 = 0;
     };
 
     //==================================================================

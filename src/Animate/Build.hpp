@@ -610,7 +610,22 @@ namespace Knoodle::Animate
                 xs.push_back(Crossing3{ static_cast<int>(D.arcs[C.under[1]].component), static_cast<int>(start[C.under[1]]),
                                         static_cast<int>(D.arcs[C.over[1]].component),  static_cast<int>(start[C.over[1]]) });
             }
-            const TurnResult T = Turn(curves, xs, P2{ pole[0], pole[1] });
+            // the face that is to be the outside, to point it out
+            std::vector<Curve3> marks;
+            {
+                std::vector<std::vector<Idx>> faces; std::string w;
+                if( D.Faces(faces, w) )
+                {
+                    for( const auto & f : faces )
+                    {
+                        if( std::find(f.begin(), f.end(), darc) == f.end() ) { continue; }
+                        Curve3 m;
+                        for( Idx d : f ) { const Polyline & L = D.arcs[d / 2].pts; for( Idx i = 0; i + 1 < L.size(); ++i ) { const Point & q = (d % 2) ? L[i] : L[L.size() - 1 - i]; m.pts.push_back(P3{ q[0], q[1], 0 }); } }
+                        marks.push_back(std::move(m));
+                    }
+                }
+            }
+            const TurnResult T = Turn(curves, xs, P2{ pole[0], pole[1] }, TurnOptions(), marks);
             // the drawing it leaves, in D's labels
             PlaneDrawing G = D;
             for( Idx k = 0; k < D.components.size(); ++k )

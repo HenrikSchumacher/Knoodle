@@ -26,6 +26,8 @@ namespace Knoodle::Animate
         Real max_step = 1.0;    // longest piece an edge is cut into, far from the pole ...
         Real near     = 0.12;   // ... and, near it, this share of the distance to the pole
         Real t_roll = 2.4, t_turn = 2.6, t_unroll = 2.4;    // seconds
+        Real t_even = 1.2;                                  // evening the drawing out on the sphere, before it unrolls
+        Real t_show = 0.7, t_settle = 0.9;                  // with marks: before, to point the face out; after, to let go of it
     };
 
     struct TurnResult
@@ -41,7 +43,7 @@ namespace Knoodle::Animate
      * face that is to become the exterior) at infinity. The drawing left has
      * the size and the centre of the one that came in. */
     inline TurnResult Turn( const std::vector<Curve3> & curves, const std::vector<Crossing3> & crossings,
-                            const P2 & pole, const TurnOptions & opt = TurnOptions() )
+                            const P2 & pole, const TurnOptions & opt = TurnOptions(), const std::vector<Curve3> & marks = {} )
     {
         TurnResult out;
 
@@ -55,36 +57,38 @@ namespace Knoodle::Animate
         out.radius = R;
 
         // cut every edge into pieces short enough for its image to follow an arc
-        std::vector<Curve3> dense (curves.size());
+        std::vector<Curve3> dense (curves.size()), dense_marks (marks.size());
         std::vector<std::vector<int>> at (curves.size());      // old vertex -> new vertex
-        for( std::size_t c = 0; c < curves.size(); ++c )
+        auto cut = [&]( const Curve3 & in, Curve3 & out_c, std::vector<int> * where )
         {
-            const auto & p = curves[c].pts;
-            dense[c].color = curves[c].color;
+            const auto & p = in.pts;
+            out_c.color = in.color;
             for( std::size_t i = 0; i < p.size(); ++i )
             {
                 const P3 & a = p[i], & b = p[(i + 1) % p.size()];
-                at[c].push_back(int(dense[c].pts.size()));
+                if( where ) { where->push_back(int(out_c.pts.size())); }
                 const Real len = std::hypot(b.x - a.x, b.y - a.y);
                 Real t = 0;
                 while( true )
                 {
-                    dense[c].pts.push_back(P3{ a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t });
-                    const P3 & q = dense[c].pts.back();
+                    out_c.pts.push_back(P3{ a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t });
+                    const P3 & q = out_c.pts.back();
                     const Real step = std::min(opt.max_step, std::max(0.02, opt.near * std::hypot(q.x - pole.x, q.y - pole.y)));
                     // the last piece of an edge is never a sliver: stop while there is still a step and a half to go
                     if( len <= 0 || t + 1.5 * step / len >= 1 ) { break; }
                     t += step / len;
                 }
             }
-        }
+        };
+        for( std::size_t c = 0; c < curves.size(); ++c ) { cut(curves[c], dense[c], &at[c]); }
+        for( std::size_t c = 0; c < marks.size(); ++c ) { cut(marks[c], dense_marks[c], nullptr); }
         out.at = at;
         for( const Crossing3 & x : crossings ) { out.crossings.push_back(Crossing3{ x.a, at[std::size_t(x.a)][std::size_t(x.ia)], x.b, at[std::size_t(x.b)][std::size_t(x.ib)] }); }
 
         // the turn that takes the pole's point of the sphere to the top
         Stage roll;
         roll.map = Map3::Roll; roll.centre = centre; roll.radius = R;
-        roll.curves = dense; roll.crossings = out.crossings;
+        roll.curves = dense; roll.crossings = out.crossings; roll.marks = dense_marks;
         const P3 sp = StagePoint(roll, P3{ pole.x, pole.y, 0 }, 0, 1, 1, 0);
         const P3 a { sp.x - centre.x, sp.y - centre.y, sp.z - R }, b { 0, 0, R };
         P3 axis { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
@@ -101,6 +105,7 @@ namespace Knoodle::Animate
         };
         Stage unroll = roll;
         for( Curve3 & c : unroll.curves ) { for( P3 & p : c.pts ) { const P2 q = moebius(p); p.x = q.x; p.y = q.y; } }
+        for( Curve3 & c : unroll.marks )  { for( P3 & p : c.pts ) { const P2 q = moebius(p); p.x = q.x; p.y = q.y; } }
 
         // the finish: a logarithmic radius about the image of infinity, then back to size
         {
@@ -119,12 +124,30 @@ namespace Knoodle::Animate
 
         Stage up = roll;   up.duration = opt.t_roll;   up.roll0 = 0; up.roll1 = 1; up.fog0 = 0; up.fog1 = 1;
         Stage turn = roll; turn.duration = opt.t_turn; turn.roll0 = turn.roll1 = 1; turn.angle0 = 0; turn.angle1 = angle; turn.fog0 = turn.fog1 = 1;
-        unroll.duration = opt.t_unroll; unroll.roll0 = 1; unroll.roll1 = 0; unroll.angle0 = unroll.angle1 = 0;
-        unroll.fin0 = 0; unroll.fin1 = 1; unroll.fog0 = 1; unroll.fog1 = 0;
+        // The turned drawing is very uneven (a great ring round a small knot). It is evened out while
+        // still on the sphere, and only then unrolled, so that it never leaves the picture on the way.
+        unroll.angle0 = unroll.angle1 = 0;
+        Stage even = unroll; even.duration = opt.t_even; even.roll0 = even.roll1 = 1; even.fin0 = 0; even.fin1 = 1; even.fog0 = even.fog1 = 1;
+        unroll.duration = opt.t_unroll; unroll.roll0 = 1; unroll.roll1 = 0;
+        unroll.fin0 = unroll.fin1 = 1; unroll.fog0 = 1; unroll.fog1 = 0;
 
         out.left = unroll.curves;
         for( Curve3 & c : out.left ) { for( P3 & p : c.pts ) { const P2 z = Finish(unroll, P2{ p.x, p.y }, 1); p.x = z.x; p.y = z.y; } }
-        out.stages = { std::move(up), std::move(turn), std::move(unroll) };
+        if( marks.empty() ) { out.stages = { std::move(up), std::move(turn), std::move(even), std::move(unroll) }; return out; }
+
+        // With a mark (the face that is to be the outside): it is pointed out on the flat drawing, stays
+        // filled while the drawing rolls up, and fades as the sphere turns; as the sphere unrolls, what
+        // was the face opens into the outside, which is filled instead; then it is let go. Its outline
+        // is there throughout.
+        Stage show = up;       show.duration = opt.t_show;     show.roll0 = show.roll1 = 0; show.fog0 = show.fog1 = 0;
+        show.mark_in1 = 1; show.mark_line1 = 1;
+        up.mark_in0 = up.mark_in1 = 1; up.mark_line0 = up.mark_line1 = 1;
+        turn.mark_in0 = 1; turn.mark_in1 = 0; turn.mark_line0 = turn.mark_line1 = 1;
+        even.mark_line0 = even.mark_line1 = 1;
+        unroll.mark_out0 = 0; unroll.mark_out1 = 1; unroll.mark_line0 = unroll.mark_line1 = 1;
+        Stage settle = unroll; settle.duration = opt.t_settle; settle.roll0 = settle.roll1 = 0; settle.fin0 = settle.fin1 = 1; settle.fog0 = settle.fog1 = 0;
+        settle.mark_out0 = 1; settle.mark_out1 = 0; settle.mark_line0 = 1; settle.mark_line1 = 0;
+        out.stages = { std::move(show), std::move(up), std::move(turn), std::move(even), std::move(unroll), std::move(settle) };
         return out;
     }
 

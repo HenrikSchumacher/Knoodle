@@ -172,6 +172,20 @@ namespace Knoodle::Animate
                     o.Key("Amount"); o.Pair(st.fin0, st.fin1, 6);
                     o.s += '}';
                     o.Key("Fog");    o.Pair(st.fog0, st.fog1);
+                    if( !st.marks.empty() )
+                    {
+                        o.Key("Marks"); o.s += '[';
+                        for( std::size_t c = 0; c < st.marks.size(); ++c )
+                        {
+                            o.s += (c ? ",[" : "[");
+                            for( std::size_t i = 0; i < st.marks[c].pts.size(); ++i ) { if( i ) { o.s += ','; } o.Triple(st.marks[c].pts[i]); }
+                            o.s += ']';
+                        }
+                        o.s += ']';
+                        o.Key("MarkIn");   o.Pair(st.mark_in0, st.mark_in1);
+                        o.Key("MarkOut");  o.Pair(st.mark_out0, st.mark_out1);
+                        o.Key("MarkLine"); o.Pair(st.mark_line0, st.mark_line1);
+                    }
                     o.s += '}';
                 }
                 o.s += ']';

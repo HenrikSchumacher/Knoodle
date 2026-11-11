@@ -285,7 +285,7 @@ int main( int argc, char ** argv )
     const P2 pole { 3, 3 };                         // inside the lens the two squares share
     const TurnResult T = Turn(curves, crossings, pole);
     {
-        Check(T.stages.size() == 3, "a turn has three stages");
+        Check(T.stages.size() == 4, "a turn has four stages: roll up, turn, even out, unroll");
         const Stage & up = T.stages[0], & turn = T.stages[1], & un = T.stages[2];
         const Real R = T.radius;
         Check(R > 0 && T.angle > 0.5 && T.angle < 3.2, "a sphere and an angle");
