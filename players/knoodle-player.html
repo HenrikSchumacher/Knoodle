@@ -395,7 +395,8 @@ const KnoodlePlayer = (() => {
     $('a_disk').value = style.disk[3];
   }
   function load(json) {
-    const a = typeof json === 'string' ? JSON.parse(json) : json;
+    let a = json;
+    if (typeof json === 'string') { try { a = JSON.parse(json); } catch (e) { throw new Error('This is not a knoodle-animation file (it is not JSON).'); } }
     if (a.Format !== 'knoodle-animation' || a.Version !== 2) throw new Error('This is not a knoodle-animation version 2 file.');
     A = a; t = 0; setPlaying(false); document.title = (a.Source || 'animation') + ' – Knoodle player'; render();
   }
@@ -418,7 +419,13 @@ const KnoodlePlayer = (() => {
     if (e.key === ' ') { e.preventDefault(); setPlaying(!playing); } else if (e.key === 'ArrowLeft') step(-1); else if (e.key === 'ArrowRight') step(1);
   });
   syncControls(); render();
-  if (location.hash.length > 1) fetch(decodeURIComponent(location.hash.slice(1))).then(r => r.text()).then(load).catch(fail);
+  // knoodle-player.html#file.json loads that file, now and whenever the address changes
+  const fromAddress = () => {
+    if (location.hash.length <= 1) return;
+    const url = decodeURIComponent(location.hash.slice(1));
+    fetch(url).then(r => { if (!r.ok) throw new Error(`Could not load ${url} (the server answered ${r.status}).`); return r.text(); }).then(load).catch(fail);
+  };
+  addEventListener('hashchange', fromAddress); fromAddress();
   return { load, setStyle, seek: s => { t = s; render(); }, play: () => setPlaying(true), pause: () => setPlaying(false) };
 })();
 </script>

@@ -466,7 +466,7 @@ The ball is drawn, faintly. And the turned drawing, which is very uneven, is eve
 still on the sphere and only then unrolled; before, the two ran together and the
 half-unrolled drawing left the picture. The pole was already the roomiest point found in an
 eligible face (`FaceInside`), so that was left alone. The web player draws the same; it was
-smoke-tested with node on turn frames, not compared item for item, and not opened in a browser.
+smoke-tested with node on turn frames (and compared with the C++ pixels in a browser the next day; see below).
 
 **Routes go through the faces, not along the lattice** (JHC, 2026-11-10, after seeing the
 first movies: the morph works on polylines, so a route need not be grid lines). `Route.hpp`
@@ -514,8 +514,14 @@ Not done:
 - The picture is plainer than the prototype's: no halo where a strand passes over the
   disk, no rounded corners in a reshape or a redraw, the disk always drawn below the
   strands of its layer.
-- The web player's frames agree with `FrameAt` numerically, and its interface code has
-  been run against a stub page, but it has not been opened in a browser.
+- The web player was opened in a browser on 2026-11-11 (JHC: "let's test the web player"),
+  served beside the FHW and lasso animations. It loads from the address, plays, pauses,
+  steps scene by scene, takes the space bar, and changes theme, with no console error. Its
+  pixels were compared with the C++ rasterizer's at 13 times across every kind of scene
+  (1600 x 900, averaged over 20-pixel cells): the worst cell differs by 5 of 255. Two faults
+  were found and mended, both in loading: a missing file gave a JSON parse error, and a
+  change of the `#file` in the address did nothing until a reload. Not tried: opening a file
+  with the Open button or by dropping it, other browsers than Chromium, a phone.
 - The tray is not drawn during a turn or a redraw (space scenes have no paths).
 - Timings, the camera and the look of a turn have not been tuned by anyone watching.
 - The corpus beyond the committed traces has not been run through `Build`.
