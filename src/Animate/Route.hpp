@@ -4,34 +4,22 @@
 // (docs/animate-design.md). A pass move names the faces its strand's new
 // route runs through by the arcs it crosses on the way. Here each face is a
 // polygon; a leg of the route enters at a point of the polygon's boundary and
-// leaves at another, and in between it follows the skeleton of the polygon:
-// its medial axis, the points as far from one edge as from another, which
-// keeps the route as clear of the strands as the face allows. A leg, once laid, cuts
-// its polygon in two, so later legs cannot cross it.
+// leaves at another. Which way it goes is read off a triangulation of the
+// polygon (the chain of triangles from the way in to the way out); how it
+// goes is a band pulled taut, held a little off the polygon's sides. A leg,
+// once laid, cuts its polygon in two, so later legs cannot cross it.
 //
 // Nothing here needs a lattice: any drawing will do, a layout or not.
 //
-// Standard library, PlaneDrawing.hpp and Boost.Polygon (its Voronoi diagram
-// of segments, exact on integer input; Boost is already required by Knoodle).
+// Standard library, PlaneDrawing.hpp and Mesh.hpp only.
 
 #include "PlaneDrawing.hpp"
-
-#if defined(__clang__) || defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-enum-float-conversion"      // Boost.Polygon, under C++20
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
-#endif
-#include <boost/polygon/polygon.hpp>
-#include <boost/polygon/voronoi.hpp>
-#if defined(__clang__) || defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
+#include "Mesh.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <deque>
 #include <limits>
-#include <queue>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -88,149 +76,56 @@ namespace Knoodle::Animate
         }
 
         /*!@brief The leg from vertex `from` to vertex `to` of the polygon:
-         * each end goes straight in, along the bisector of its corner, to the
-         * polygon's medial axis, and the leg follows the axis between them.
-         * The axis is the inside part of the Voronoi diagram of the polygon's
-         * edges (Boost.Polygon, exact on the snapped corners); the parabolic
-         * pieces round reflex corners are sampled. Empty if there is no way. */
+         * the two vertices, and between them the midpoints of the diagonals
+         * the chain of triangles from one to the other crosses. Empty if the
+         * polygon cannot be triangulated. */
         inline Polyline Leg( const RoutePoly & Q, Idx from, Idx to )
         {
-            namespace bp = boost::polygon;
-            using IP = bp::point_data<int>; using IS = bp::segment_data<int>;
-            const Idx n = Q.p.size();
-            if( n < 3 ) { return {}; }
-            Box B; for( const Point & p : Q.p ) { B.Add(p); }
-            const Real size = std::max(B.Size(), 1e-300), scale = static_cast<Real>(1 << 29) / size;
-            auto world = [&]( const Point & q ) { return Point{ B.lo[0] + q[0] / scale, B.lo[1] + q[1] / scale }; };
-            std::vector<IP> ip (n);
-            std::set<std::pair<int,int>> corners;
-            for( Idx i = 0; i < n; ++i )
+            std::vector<Idx> V (Q.p.size());
+            for( Idx i = 0; i < V.size(); ++i ) { V[i] = i; }
+            std::vector<Point> P = Q.p;
+            std::vector<Tri> tris;
+            const Drawings one { &P };
+            EarClip(V, one, tris);
+            if( !V.empty() || tris.empty() ) { return {}; }
+            std::string why;
+            if( !Refine(P, tris, std::numeric_limits<Real>::infinity(), why) ) { return {}; }      // flips only: no edge is too long
+            // triangles across each interior edge
+            std::unordered_map<std::uint64_t,std::array<Idx,2>> across;
+            for( Idx t = 0; t < tris.size(); ++t )
             {
-                ip[i] = IP{ static_cast<int>(std::llround((Q.p[i][0] - B.lo[0]) * scale)), static_cast<int>(std::llround((Q.p[i][1] - B.lo[1]) * scale)) };
-                corners.insert({ ip[i].x(), ip[i].y() });
-            }
-            std::vector<IS> segs;                               // each edge once: a cut is walked both ways
-            std::set<std::array<int,4>> have;
-            for( Idx i = 0; i < n; ++i )
-            {
-                IP a = ip[i], b = ip[(i + 1) % n];
-                if( a == b ) { continue; }
-                if( std::make_pair(b.x(), b.y()) < std::make_pair(a.x(), a.y()) ) { std::swap(a, b); }
-                if( have.insert({ a.x(), a.y(), b.x(), b.y() }).second ) { segs.push_back(IS{ a, b }); }
-            }
-            bp::voronoi_diagram<double> vd;
-            bp::construct_voronoi(segs.begin(), segs.end(), &vd);
-
-            // the axis as a graph, in snapped coordinates
-            std::vector<Point> node; std::vector<std::array<Idx,2>> edge;
-            std::vector<Idx> at (vd.num_vertices(), None);
-            auto vert = [&]( const bp::voronoi_diagram<double>::vertex_type * v )
-            {
-                Idx & i = at[static_cast<Idx>(v - &vd.vertices()[0])];
-                if( i == None ) { i = node.size(); node.push_back(Point{ v->x(), v->y() }); }
-                return i;
-            };
-            for( const auto & e : vd.edges() )
-            {
-                if( !e.is_primary() || !e.is_finite() || &e > e.twin() ) { continue; }
-                const Point v0 { e.vertex0()->x(), e.vertex0()->y() }, v1 { e.vertex1()->x(), e.vertex1()->y() };
-                Polyline c { v0 };
-                if( e.is_curved() )
+                for( int k = 0; k < 3; ++k )
                 {
-                    // a parabola: as far from a corner (the focus) as from the line of an edge
-                    const auto * cp = e.cell(), * cs = e.twin()->cell();
-                    if( !cp->contains_point() ) { std::swap(cp, cs); }
-                    const IS & sp = segs[cp->source_index()], & ss = segs[cs->source_index()];
-                    const IP f = (cp->source_category() == bp::SOURCE_CATEGORY_SEGMENT_START_POINT) ? bp::low(sp) : bp::high(sp);
-                    const Point s0 { static_cast<Real>(bp::low(ss).x()), static_cast<Real>(bp::low(ss).y()) };
-                    Real ux = bp::high(ss).x() - s0[0], uy = bp::high(ss).y() - s0[1];
-                    const Real ul = std::hypot(ux, uy); ux /= ul; uy /= ul;
-                    const Real fx = (f.x() - s0[0]) * ux + (f.y() - s0[1]) * uy, fy = -(f.x() - s0[0]) * uy + (f.y() - s0[1]) * ux;
-                    const Real x0 = (v0[0] - s0[0]) * ux + (v0[1] - s0[1]) * uy, x1 = (v1[0] - s0[0]) * ux + (v1[1] - s0[1]) * uy;
-                    for( int k = 1; k < 8 && fy != 0; ++k )
-                    {
-                        const Real x = x0 + (x1 - x0) * k / 8, y = ((x - fx) * (x - fx) + fy * fy) / (2 * fy);
-                        c.push_back(Point{ s0[0] + x * ux - y * uy, s0[1] + x * uy + y * ux });
-                    }
+                    auto it = across.emplace(EdgeKey(tris[t][k], tris[t][(k + 1) % 3]), std::array<Idx,2>{ None, None }).first;
+                    (it->second[0] == None ? it->second[0] : it->second[1]) = t;
                 }
-                c.push_back(v1);
-                const Point mid = (c.size() > 2) ? c[c.size() / 2] : Point{ (v0[0] + v1[0]) / 2, (v0[1] + v1[1]) / 2 };
-                if( !Inside(Q.p, world(mid)) ) { continue; }
-                Idx a = vert(e.vertex0());
-                for( Idx i = 1; i + 1 < c.size(); ++i ) { node.push_back(c[i]); edge.push_back({ a, node.size() - 1 }); a = node.size() - 1; }
-                edge.push_back({ a, vert(e.vertex1()) });
             }
-            if( edge.empty() ) { return {}; }
-
-            // an end goes in along its corner's bisector to the first thing of the axis it meets
-            auto join = [&]( Idx v ) -> Idx
+            auto has = [&]( Idx t, Idx v ) { return tris[t][0] == v || tris[t][1] == v || tris[t][2] == v; };
+            std::vector<Idx> prev (tris.size(), None), via_a (tris.size(), None), via_b (tris.size(), None);
+            std::vector<char> seen (tris.size(), 0);
+            std::deque<Idx> queue;
+            for( Idx t = 0; t < tris.size(); ++t ) { if( has(t, from) ) { seen[t] = 1; queue.push_back(t); } }
+            Idx goal = None;
+            while( !queue.empty() && goal == None )
             {
-                const Point o { static_cast<Real>(ip[v].x()), static_cast<Real>(ip[v].y()) };
-                Idx a = (v + n - 1) % n, b = (v + 1) % n;
-                while( a != v && ip[a] == ip[v] ) { a = (a + n - 1) % n; }
-                while( b != v && ip[b] == ip[v] ) { b = (b + 1) % n; }
-                if( a == v || b == v ) { return None; }
-                Real ax = o[0] - ip[a].x(), ay = o[1] - ip[a].y(), bx = ip[b].x() - o[0], by = ip[b].y() - o[1];
-                const Real al = std::hypot(ax, ay), bl = std::hypot(bx, by);
-                Real dx = -(ay / al + by / bl), dy = ax / al + bx / bl;
-                const Real dl = std::hypot(dx, dy);
-                if( dl < 1e-9 ) { return None; }
-                dx /= dl; dy /= dl;
-                const Real near = 1e-4;                         // of a snapped unit
-                Real best = std::numeric_limits<Real>::infinity(); Idx best_node = None, best_edge = None;
-                for( Idx i = 0; i < node.size(); ++i )
+                const Idx t = queue.front(); queue.pop_front();
+                if( has(t, to) ) { goal = t; break; }
+                for( int k = 0; k < 3; ++k )
                 {
-                    const Real px = node[i][0] - o[0], py = node[i][1] - o[1], t = px * dx + py * dy;
-                    if( t >= -near && std::abs(px * dy - py * dx) <= near && t < best - near ) { best = std::max(t, Real(0)); best_node = i; best_edge = None; }
+                    const Idx a = tris[t][k], b = tris[t][(k + 1) % 3];
+                    const auto & pr = across[EdgeKey(a, b)];
+                    const Idx u = (pr[0] == t) ? pr[1] : pr[0];
+                    if( u == None || seen[u] ) { continue; }
+                    seen[u] = 1; prev[u] = t; via_a[u] = a; via_b[u] = b;
+                    queue.push_back(u);
                 }
-                for( Idx k = 0; k < edge.size(); ++k )
-                {
-                    const Point & p = node[edge[k][0]], & q = node[edge[k][1]];
-                    const Real ex = q[0] - p[0], ey = q[1] - p[1], den = dx * ey - dy * ex;
-                    if( std::abs(den) <= 1e-12 * std::hypot(ex, ey) ) { continue; }
-                    const Real t = ((p[0] - o[0]) * ey - (p[1] - o[1]) * ex) / den, u = ((p[0] - o[0]) * dy - (p[1] - o[1]) * dx) / den;
-                    if( u < 0 || u > 1 || t < 0 || t >= best - near ) { continue; }
-                    best = t; best_edge = k; best_node = None;
-                }
-                if( best_node != None ) { return best_node; }
-                if( best_edge == None ) { return None; }
-                const std::array<Idx,2> cut = edge[best_edge];
-                node.push_back(Point{ o[0] + best * dx, o[1] + best * dy });
-                edge[best_edge] = { cut[0], node.size() - 1 }; edge.push_back({ node.size() - 1, cut[1] });
-                return node.size() - 1;
-            };
-            const Idx hf = join(from), ht = join(to);
-            if( hf == None || ht == None ) { return {}; }
-
-            // the shortest way along the axis, never through a corner of the polygon
-            std::vector<std::vector<Idx>> nb (node.size());
-            for( const auto & e : edge ) { nb[e[0]].push_back(e[1]); nb[e[1]].push_back(e[0]); }
-            auto cornerQ = [&]( Idx i )
-            {
-                const std::pair<int,int> r { static_cast<int>(std::llround(node[i][0])), static_cast<int>(std::llround(node[i][1])) };
-                return corners.count(r) && std::hypot(node[i][0] - r.first, node[i][1] - r.second) < 1e-3;
-            };
-            std::vector<Real> dist (node.size(), std::numeric_limits<Real>::infinity());
-            std::vector<Idx> prev (node.size(), None);
-            std::priority_queue<std::pair<Real,Idx>, std::vector<std::pair<Real,Idx>>, std::greater<>> heap;
-            dist[hf] = 0; heap.push({ 0, hf });
-            while( !heap.empty() )
-            {
-                const auto [d, i] = heap.top(); heap.pop();
-                if( d > dist[i] ) { continue; }
-                if( i == ht ) { break; }
-                if( i != hf && cornerQ(i) ) { continue; }
-                for( Idx j : nb[i] ) { const Real w = d + Animate::Dist(node[i], node[j]); if( w < dist[j] ) { dist[j] = w; prev[j] = i; heap.push({ w, j }); } }
             }
-            if( !std::isfinite(dist[ht]) ) { return {}; }
+            if( goal == None ) { return {}; }
             Polyline back { Q.p[to] };
-            for( Idx i = ht; i != None; i = prev[i] ) { back.push_back(world(node[i])); }
+            for( Idx t = goal; prev[t] != None; t = prev[t] ) { back.push_back(Point{ (P[via_a[t]][0] + P[via_b[t]][0]) / 2, (P[via_a[t]][1] + P[via_b[t]][1]) / 2 }); }
             back.push_back(Q.p[from]);
             std::reverse(back.begin(), back.end());
-            Polyline leg { back.front() };                      // no piece too short to see
-            for( Idx i = 1; i + 1 < back.size(); ++i ) { if( Animate::Dist(back[i], leg.back()) > 1e-7 * size && Animate::Dist(back[i], back.back()) > 1e-7 * size ) { leg.push_back(back[i]); } }
-            leg.push_back(back.back());
-            return leg;
+            return back;
         }
 
         /*!@brief Cut the polygon in two along a leg from its vertex `from` to
@@ -303,32 +198,25 @@ namespace Knoodle::Animate
             return out;
         }
 
-        /*!@brief The leg pulled taut inside its polygon, like a band that
-         * keeps `keep` off the polygon's sides (or as far off them as it was,
-         * where the way is narrower than that). Its ends, and a stem of length
-         * `keep` at each, stay where they are. The medial axis says which way
-         * to go; this says how a hand would draw it. */
-        inline Polyline Tighten( const RoutePoly & Q, const Polyline & leg, Real keep, Real grain )
+        /*!@brief The leg laid as a hand would draw it. `leg` says only which
+         * way to go (any path inside the polygon does: the polygon is a disk).
+         * Each end gets a stem straight in from its corner, of length `keep`
+         * or less; between the stems the leg is first pushed off the polygon's
+         * sides, to `keep` where there is room, and then pulled taut like a
+         * band that will not come nearer a side than `keep`, or than it
+         * already is where the way is narrower. */
+        inline Polyline Tighten( const RoutePoly & Q, Idx from, Idx to, const Polyline & leg, Real keep, Real grain )
         {
-            const Real total = Length(leg);
-            if( leg.size() < 3 || total <= 2 * keep + grain ) { return leg; }
-            // the leg's own corners, and points a grain apart between them
-            Polyline P { leg.front() };
-            for( Idx i = 0; i + 1 < leg.size(); ++i )
-            {
-                const Idx k = static_cast<Idx>(std::ceil(Animate::Dist(leg[i], leg[i+1]) / grain));
-                for( Idx j = 1; j <= std::max<Idx>(k, 1); ++j ) { const Real t = static_cast<Real>(j) / static_cast<Real>(std::max<Idx>(k, 1)); P.push_back(Point{ leg[i][0] + (leg[i+1][0] - leg[i][0]) * t, leg[i][1] + (leg[i+1][1] - leg[i][1]) * t }); }
-            }
-            const Idx n = P.size(), m = Q.p.size();
-            std::vector<char> fixed (n, 0);
-            { Real s = 0; for( Idx i = 0; i < n; ++i ) { if( i > 0 ) { s += Animate::Dist(P[i-1], P[i]); } fixed[i] = (s <= keep || total - s <= keep); } }
-            auto ps = []( const Point & p, const Point & a, const Point & b )
+            const Idx m = Q.p.size();
+            if( leg.size() < 2 || m < 3 ) { return leg; }
+            auto ps = []( const Point & p, const Point & a, const Point & b, Point * at = nullptr )
             {
                 const Real dx = b[0] - a[0], dy = b[1] - a[1], d2 = dx * dx + dy * dy;
                 const Real t = (d2 > 0) ? std::clamp(((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / d2, 0.0, 1.0) : 0.0;
+                if( at ) { *at = Point{ a[0] + t * dx, a[1] + t * dy }; }
                 return std::hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy);
             };
-            // how far the piece ab is from the polygon's sides, as far as `keep` matters
+            // how far the piece ab is from the polygon's sides, as far as `keep` matters; 0 if it crosses one
             auto clear = [&]( const Point & a, const Point & b )
             {
                 Real best = keep;
@@ -342,29 +230,105 @@ namespace Knoodle::Animate
                 }
                 return best;
             };
+            // the top of the stem at corner v: straight in along the corner's bisector, as far as there is room
+            auto stem = [&]( Idx v, Point & top )
+            {
+                Idx a = (v + m - 1) % m, b = (v + 1) % m;
+                while( a != v && Animate::Dist(Q.p[a], Q.p[v]) <= 0 ) { a = (a + m - 1) % m; }
+                while( b != v && Animate::Dist(Q.p[b], Q.p[v]) <= 0 ) { b = (b + 1) % m; }
+                if( a == v || b == v ) { return false; }
+                const Real ax = Q.p[v][0] - Q.p[a][0], ay = Q.p[v][1] - Q.p[a][1], bx = Q.p[b][0] - Q.p[v][0], by = Q.p[b][1] - Q.p[v][1];
+                const Real al = std::hypot(ax, ay), bl = std::hypot(bx, by);
+                Real dx = -(ay / al + by / bl), dy = ax / al + bx / bl;
+                const Real dl = std::hypot(dx, dy);
+                if( dl < 1e-9 ) { return false; }
+                for( Real h = keep; h > keep / 20; h /= 2 )
+                {
+                    top = Point{ Q.p[v][0] + h * dx / dl, Q.p[v][1] + h * dy / dl };
+                    Real room = h;
+                    for( Idx e = 0; e < m && room >= h / 2; ++e ) { room = std::min(room, ps(top, Q.p[e], Q.p[(e + 1) % m])); }
+                    if( room >= h / 2 && Inside(Q.p, top) ) { return true; }
+                }
+                return false;
+            };
+            // the stems, joined to the first point of the leg each can see
+            Polyline L = leg;
+            Point top { 0, 0 };
+            bool s0 = false, s1 = false;
+            if( stem(from, top) )
+            {
+                for( Idx k = 1; k + 1 < L.size() && !s0; ++k )
+                {
+                    if( clear(top, L[k]) <= 0 ) { continue; }
+                    L.erase(L.begin() + 1, L.begin() + static_cast<std::ptrdiff_t>(k)); L.insert(L.begin() + 1, top); s0 = true;
+                }
+            }
+            if( stem(to, top) )
+            {
+                for( Idx k = L.size() - 1; k-- > 1 && !s1; )
+                {
+                    if( clear(top, L[k]) <= 0 ) { continue; }
+                    L.erase(L.begin() + static_cast<std::ptrdiff_t>(k) + 1, L.end() - 1); L.insert(L.end() - 1, top); s1 = true;
+                }
+            }
+            if( L.size() < 4 ) { return L; }
+            // the leg's own corners, and points a grain apart between them
+            Polyline P { L.front() };
+            std::vector<char> fixed { 1 };
+            for( Idx i = 0; i + 1 < L.size(); ++i )
+            {
+                const bool stemQ = (i == 0 && s0) || (i + 2 == L.size() && s1);
+                const Idx k = stemQ ? 1 : std::max<Idx>(static_cast<Idx>(std::ceil(Animate::Dist(L[i], L[i+1]) / grain)), 1);
+                for( Idx j = 1; j <= k; ++j ) { const Real t = static_cast<Real>(j) / static_cast<Real>(k); P.push_back(Point{ L[i][0] + (L[i+1][0] - L[i][0]) * t, L[i][1] + (L[i+1][1] - L[i][1]) * t }); fixed.push_back(0); }
+            }
+            const Idx n = P.size();
+            fixed[n-1] = 1;
+            if( s0 ) { fixed[1] = 1; }
+            if( s1 ) { fixed[n-2] = 1; }
             std::vector<Real> room (n, 0);                      // room[i]: of the piece from P[i] to P[i+1]
             for( Idx i = 0; i + 1 < n; ++i ) { room[i] = clear(P[i], P[i+1]); }
+            Real total = 0;
+            for( Idx i = 0; i + 1 < n; ++i ) { total += Animate::Dist(P[i], P[i+1]); }
+            auto move = [&]( Idx i, const Point & c, bool mustGainQ )
+            {
+                const Real had = std::min(room[i-1], room[i]);
+                const Real r0 = clear(P[i-1], c), r1 = (r0 > 0) ? clear(c, P[i+1]) : Real(0), got = std::min(r0, r1);
+                if( got <= 0 || got < had - 1e-12 * total || (mustGainQ && got <= had) ) { return false; }
+                P[i] = c; room[i-1] = r0; room[i] = r1;
+                return true;
+            };
+            // off the sides
+            for( int sweep = 0; sweep < 60; ++sweep )
+            {
+                bool anyQ = false;
+                for( Idx i = 1; i + 1 < n; ++i )
+                {
+                    if( fixed[i] || std::min(room[i-1], room[i]) >= keep ) { continue; }
+                    Real d = keep; Point at { 0, 0 }, q { 0, 0 };
+                    for( Idx e = 0; e < m; ++e ) { const Real de = ps(P[i], Q.p[e], Q.p[(e + 1) % m], &q); if( de < d ) { d = de; at = q; } }
+                    if( d >= keep || d <= 0 ) { continue; }
+                    const Real go = std::min(keep - d, grain / 2);
+                    anyQ = move(i, Point{ P[i][0] + go * (P[i][0] - at[0]) / d, P[i][1] + go * (P[i][1] - at[1]) / d }, false) || anyQ;
+                }
+                if( !anyQ ) { break; }
+            }
+            // taut
             for( int sweep = 0; sweep < 200; ++sweep )
             {
                 Real moved = 0;
                 for( Idx i = 1; i + 1 < n; ++i )
                 {
                     if( fixed[i] ) { continue; }
-                    const Real floor = std::min(room[i-1], room[i]) - 1e-12 * total;
                     for( Real f : { 1.0, 0.5, 0.25 } )
                     {
-                        const Point c { P[i][0] + f * ((P[i-1][0] + P[i+1][0]) / 2 - P[i][0]), P[i][1] + f * ((P[i-1][1] + P[i+1][1]) / 2 - P[i][1]) };
-                        const Real r0 = clear(P[i-1], c), r1 = (r0 >= floor) ? clear(c, P[i+1]) : Real(0);
-                        if( r0 < floor || r1 < floor ) { continue; }
-                        moved = std::max(moved, Animate::Dist(P[i], c));
-                        P[i] = c; room[i-1] = r0; room[i] = r1;
-                        break;
+                        const Point was = P[i], c { was[0] + f * ((P[i-1][0] + P[i+1][0]) / 2 - was[0]), was[1] + f * ((P[i-1][1] + P[i+1][1]) / 2 - was[1]) };
+                        if( move(i, c, false) ) { moved = std::max(moved, Animate::Dist(was, c)); break; }
                     }
                 }
                 if( moved < 1e-3 * grain ) { break; }
             }
             Polyline out { P[0] };                              // drop what lies on a straight piece
-            for( Idx i = 1; i + 1 < n; ++i ) { if( fixed[i] != fixed[i+1] || ps(P[i], out.back(), P[i+1]) > 1e-3 * grain ) { out.push_back(P[i]); } }
+            for( Idx i = 1; i + 1 < n; ++i ) { if( fixed[i] || ps(P[i], out.back(), P[i+1]) > 1e-3 * grain ) { out.push_back(P[i]); } }
             out.push_back(P[n-1]);
             return out;
         }
@@ -452,7 +416,7 @@ namespace Knoodle::Animate
                     RoutePoly K;
                     auto add = [&]( const Point & q, Idx tag ) { K.p.push_back(q); K.tag.push_back(tag); K.brk.push_back(1); };
                     add(on, None);
-                    for( Idx i = 1; i <= F.size(); ++i ) { add(F[(hit + i) % F.size()], None); }
+                    for( Idx i = 1; i <= F.size(); ++i ) { const Point & q = F[(hit + i) % F.size()]; if( Animate::Dist(q, on) > tol ) { add(q, None); } }     // the cut may land on a corner of the frame
                     add(on, None);
                     for( Idx i = 0; i < Q.p.size(); ++i ) { const Idx j = (v + i) % Q.p.size(); add(Q.p[j], Q.tag[j]); K.brk.back() = 0; }
                     add(Q.p[v], None);
@@ -547,7 +511,7 @@ namespace Knoodle::Animate
                     for( Idx e = 0; e < W.p.size(); ++e ) { if( Animate::Dist(W.p[e], at) <= tol && (W.tag[e] == start_tag || W.tag[(e + W.p.size() - 1) % W.p.size()] == start_tag) ) { from = e; break; } }
                     if( from == None || from == to ) { return {}; }
                     Polyline leg = detail::Leg(W, from, to);
-                    return (tautQ && leg.size() >= 2) ? detail::Tighten(W, leg, 0.45 * step, step / 4) : leg;
+                    return (tautQ && leg.size() >= 2) ? detail::Tighten(W, from, to, leg, 0.45 * step, step / 4) : leg;
                 }
                 bool Leg( std::vector<RoutePoly> polys, Polyline route, Idx start_tag, Idx i )
                 {
