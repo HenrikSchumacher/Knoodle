@@ -683,7 +683,20 @@ namespace Knoodle::Animate
             };
 
             // Does a route make the move? 0: no (why says); 1: yes, but the witness side holds infinity; 2: yes.
-            struct Fit { PassPicture P; PD_T mine; std::map<Idx,Real> split; Polyline loop; };
+            struct Fit { PassPicture P; PD_T mine; std::map<Idx,Real> split; Polyline loop; std::vector<Polyline> frames; std::string no_sweep; };
+            // the frames of the sweep along a route that makes the move, or why there are none
+            auto sweep = [&]( Fit & T )
+            {
+#ifdef KNOODLE_ANIMATE_SWEEP
+                std::vector<Real> times;
+                for( Idx f = 0; f < opt.pass_frames; ++f ) { times.push_back(Smoother(static_cast<Real>(f) / static_cast<Real>(opt.pass_frames - 1))); }
+                SweepResult SR; std::string w;
+                if( Sweep(T.P.W, T.P.route, times, SR, w) ) { T.frames = std::move(SR.frames); }
+                else { T.no_sweep = "The strand jumps to its route: no sweep could be made (" + w + ")."; }
+#else
+                T.no_sweep = "The strand jumps to its route: the sweep is not built yet.";
+#endif
+            };
             auto fit = [&]( const Polyline & route, Fit & F ) -> int
             {
                 F = Fit{};
@@ -728,14 +741,17 @@ namespace Knoodle::Animate
                 std::string w2;
                 SkeletonRoutes(D, rq, [&]( const Polyline & route )
                 {
-                    // of the routes that make the move, the one whose strand sweeps the least; four are enough to choose from
+                    // of the routes that make the move, one the strand can sweep to before one it cannot,
+                    // and then the one whose strand sweeps the least; four that can be swept are enough to choose from
                     Fit T; const int g = fit(route, T);
                     if( g == 2 )
                     {
+                        sweep(T);
                         const Real swept = std::abs(Area2(T.loop));
-                        if( got != 2 || swept < least ) { F = std::move(T); least = swept; }
+                        const bool canQ = !T.frames.empty(), hadQ = (got == 2) && !F.frames.empty();
+                        if( got != 2 || (canQ && !hadQ) || (canQ == hadQ && swept < least) ) { F = std::move(T); least = swept; }
                         got = 2;
-                        return ++good >= 4;
+                        return canQ && ++good >= 4;
                     }
                     if( g == 1 && !backQ ) { round_back = std::move(T); backQ = true; }
                     return false;
@@ -758,6 +774,21 @@ namespace Knoodle::Animate
                 if( !Reshape(D, pd, note) ) { return false; }
                 return Pass(rec, next, D, note, true);
             }
+            if( F.frames.empty() && !turnedQ )
+            {
+                // No route can be swept to: the strand would cross its own other end on the way, because the
+                // side it sweeps holds that end. Put a face of that side outside, and sweep the other side.
+                std::vector<Int> corridor { PassDescriptor<Int>::LeftFace(pd, mv.depart) };
+                for( Int da : mv.cross ) { corridor.push_back(PassDescriptor<Int>::RightFace(pd, da)); }
+                Idx darc = 0; Point pole { 0, 0 };
+                if( FaceInside(pd, D, F.loop, corridor, darc, pole) )
+                {
+                    Still(D, "Diagram", opt.t_hold, pd, "");
+                    if( !TurnTo(pd, D, darc, pole, "The next move's strand would sweep across its own other end, so another face is put outside first.", note) ) { return false; }
+                    if( !Reshape(D, pd, note) ) { return false; }
+                    return Pass(rec, next, D, note, true);
+                }
+            }
             auto over_at = [&]( Idx j, Idx s, Real t ) -> bool
             {
                 if( !mv.middlepassQ ) { return overQ; }
@@ -775,19 +806,8 @@ namespace Knoodle::Animate
             };
 
             // the frames of the sweep
-            std::vector<Polyline> frames;
-            std::string method;
-#ifdef KNOODLE_ANIMATE_SWEEP
-            {
-                std::vector<Real> times;
-                for( Idx f = 0; f < opt.pass_frames; ++f ) { times.push_back(Smoother(static_cast<Real>(f) / static_cast<Real>(opt.pass_frames - 1))); }
-                SweepResult SR;
-                if( Sweep(P.W, P.route, times, SR, why) ) { frames = std::move(SR.frames); }
-                else { method = "The strand jumps to its route: no sweep could be made (" + why + ")."; }
-            }
-#else
-            method = "The strand jumps to its route: the sweep is not built yet.";
-#endif
+            std::vector<Polyline> frames = std::move(F.frames);
+            std::string method = F.no_sweep;
             if( frames.empty() ) { frames = { P.W, P.route }; }
 
             // the paths: the stills, the route, the strand

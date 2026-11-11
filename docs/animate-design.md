@@ -4,7 +4,7 @@ Status: design agreed 2026-11-10 (JHC). Henrik: at about 6,000 lines this needs 
 design review. The estimates below are from reading the prototype, not from built code.
 
 Built (2026-11-10): the library in `src/Animate/`, `tools/knoodlemovie` and
-`players/knoodle-player.html`, 6,128 lines, with four C++ tests. Every kind of move in
+`players/knoodle-player.html`, 6,148 lines, with four C++ tests. Every kind of move in
 the committed traces is animated. See "What is built" and "What the first three pieces
 found" at the end.
 
@@ -347,7 +347,7 @@ ffmpeg. It has a Makefile target but is not in `all` and is not installed.
 | `Sweep.hpp` | the harmonic sweep | 616 | 420 |
 | `Pass.hpp` | the weave; pass surgery; welding a sweep frame to the still strands | 405 | 500, with the next two |
 | `Diagram.hpp` | `ToPlanarDiagram`: the diagram a drawing draws | 60 | |
-| `Build.hpp` | the build loop; r1, pass, middle pass, redraw; turns; spin-offs; the camera | 1,009 | 450 + 120 + 450 |
+| `Build.hpp` | the build loop; r1, pass, middle pass, redraw; turns; spin-offs; the camera | 1,029 | 450 + 120 + 450 |
 | `Route.hpp` | routes through the faces | 437 | (was OrthoDecorate, existing) |
 | `Redraw.hpp` | the view of a space curve as a drawing | 98 | |
 | `Turn.hpp` | the turn of the sphere | 131 | 180 |
@@ -358,10 +358,10 @@ ffmpeg. It has a Makefile target but is not in `all` and is not installed.
 | `Raster.hpp` | the rasterizer | 179 | part of 300 |
 | `tools/knoodlemovie.cpp` | the tool | 108 | part of 300 |
 | `players/knoodle-player.html` | the web player | 381 | 670 |
-| **Total** | | **6,128** | **5,340** |
+| **Total** | | **6,148** | **5,340** |
 
 The plan's 6,040 included 700 lines of tests; without them it was 5,340, so this is about
-790 over. `Sweep.hpp` and `Frame.hpp` ran over, and `Route.hpp` (437) was not in the plan:
+810 over. `Sweep.hpp` and `Frame.hpp` ran over, and `Route.hpp` (437) was not in the plan:
 it replaces the use of `OrthoDecorate`, which is existing code. The tests are 1,433 lines
 (JHC, 2026-11-10: fast tests are wanted and do not count).
 
@@ -416,6 +416,16 @@ What the design had wrong, or did not say:
   exterior is carried, and a turn is inserted when a move needs another.
 - **A fresh layout is turned by the nearest quarter turn** before a reshape, so that the
   picture does not spin.
+
+**Every pass is swept** (JHC, 2026-11-10: "the first harmonic sweep didn't seem to run"). A
+sweep cannot be made when the region the strand sweeps holds the strand's own other end (the
+route crosses W, and one region between W and the route lies inside another). The builder
+used to take the route of least area and, when that could not be swept, jump. Now it takes a
+route that can be swept before one that cannot; and when none can (the route's last leg has
+one way to go, through a face that wraps round the strand), it turns the sphere to put a
+face of that side outside, lays the drawing out again, and sweeps the other side: the same
+turn a middle pass gets when its witness side holds infinity. `animate_build_check` now
+fails on any pass that jumps. On the committed traces: 27 passes, all swept, 3 turns.
 
 **Routes go through the faces, not along the lattice** (JHC, 2026-11-10, after seeing the
 first movies: the morph works on polylines, so a route need not be grid lines). `Route.hpp`
