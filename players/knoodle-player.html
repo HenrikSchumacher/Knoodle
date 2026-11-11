@@ -202,10 +202,17 @@ const KnoodleAnimation = (() => {
     const z = [F.Origin[0] + dx * g, F.Origin[1] + dy * g];
     return [(1 - fin) * z[0] + fin * F.Scale * (z[0] - F.Shift[0]), (1 - fin) * z[1] + fin * F.Scale * (z[1] - F.Shift[1])];
   }
+  function unfinish(S, q, u) {
+    if (!(u > 0)) return q;
+    const F = S.Finish, k = F.Scale !== 0 ? 1 / F.Scale : 1, z = [(1 - u) * q[0] + u * (q[0] * k + F.Shift[0]), (1 - u) * q[1] + u * (q[1] * k + F.Shift[1])];
+    const dx = z[0] - F.Origin[0], dy = z[1] - F.Origin[1], r = Math.hypot(dx, dy);
+    const fr = (F.Rmin <= 0 || r <= F.Rmin) ? r : F.Rmin * Math.exp(Math.min(r / F.Rmin - 1, 60)), g = r > 0 ? (1 - u) + u * fr / r : 1;
+    return [F.Origin[0] + dx * g, F.Origin[1] + dy * g];
+  }
   function stagePoint(S, p, angle, lift, roll, fin, fullHeight) {
     const C = S.Centre;
     if (S.Map === 'Affine') { const w = rotate([p[0] - C[0], p[1] - C[1], lift * (p[2] - C[2])], S.Axis, angle); return [C[0] + w[0], C[1] + w[1], C[2] + w[2]]; }
-    const q = finish(S, p, fin), x = q[0] - C[0], y = q[1] - C[1], h = p[2] * (fullHeight ? 1 : Math.min(1, 4 * roll));
+    const q = unfinish(S, finish(S, p, fin), S.Finish.Undo), x = q[0] - C[0], y = q[1] - C[1], h = p[2] * (fullHeight ? 1 : Math.min(1, 4 * roll));
     if (roll < 1e-9) return [q[0], q[1], h];
     const R = S.Radius / roll, t = 4 * R * R / (x * x + y * y + 4 * R * R), Sx = t * x, Sy = t * y, Sz = 2 * R * (1 - t);
     const w = rotate([Sx - h * Sx / R, Sy - h * Sy / R, Sz + h * (R - Sz) / R - R], S.Axis, angle);
@@ -214,7 +221,18 @@ const KnoodleAnimation = (() => {
   function spaceFrame(sc, local, st, f) {
     const stages = sc.Stages; if (!stages.length) return;
     let k = 0, tl = local; while (k + 1 < stages.length && tl >= stages[k].Duration) { tl -= stages[k].Duration; k++; }
-    const S = stages[k], u = smoother(S.Duration > 0 ? tl / S.Duration : 1);
+    let S = stages[k];
+    if (S.Finish.Blend && k + 1 < stages.length && S.Duration > 0) {      // on its way to the next stage, point for point
+      const B = stages[k + 1], AM = S.Marks || [], BM = B.Marks || [];
+      const same = S.Curves.length === B.Curves.length && AM.length === BM.length && S.Curves.every((c, i) => c.Points.length === B.Curves[i].Points.length) && AM.every((m, i) => m.length === BM[i].length);
+      if (same) {
+        const w = clamp(tl / S.Duration, 0, 1), mixP = (p, q) => [lerp(p[0], q[0], w), lerp(p[1], q[1], w), lerp(p[2], q[2], w)];
+        S = { ...S, Curves: S.Curves.map((c, i) => ({ ...c, Points: c.Points.map((p, j) => mixP(p, B.Curves[i].Points[j])) })),
+              Finish: { ...S.Finish, Undo: lerp(S.Finish.Undo, B.Finish.Undo, w) } };
+        if (S.Marks) S.Marks = AM.map((m, i) => m.map((p, j) => mixP(p, BM[i][j])));
+      }
+    }
+    const u = smoother(S.Duration > 0 ? tl / S.Duration : 1);
     const angle = lerp(S.Angle[0], S.Angle[1], u), lift = lerp(S.Lift[0], S.Lift[1], u), roll = lerp(S.Roll[0], S.Roll[1], u);
     const fin = lerp(S.Finish.Amount[0], S.Finish.Amount[1], u), fog = lerp(S.Fog[0], S.Fog[1], u);
     const ulin = sc.Duration > 0 ? clamp(local / sc.Duration, 0, 1) : 1;

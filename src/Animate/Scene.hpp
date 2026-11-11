@@ -140,6 +140,9 @@ namespace Knoodle::Animate
         P2   fin_o, fin_shift;
         Real fin_rmin = 0, fin_scale = 1;
         Real fin0 = 0, fin1 = 0;
+        Real unfinish = 0;                  // Roll: the curves are given finished; this much of the finish is undone first
+        bool blend    = false;              // the curves, marks and `unfinish` run linearly to the next stage's over this one
+                                            // (the two must match point for point): a reshape, one stage a frame
         Real fog0 = 0, fog1 = 0;            // strength of the depth colouring; under Roll, of the ball's outline too
 
         // Marks: closed curves (as `curves` are) round regions to point out, drawn under the curves.

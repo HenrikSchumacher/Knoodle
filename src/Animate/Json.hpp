@@ -170,6 +170,8 @@ namespace Knoodle::Animate
                     o.Key("Scale");  o.Num(st.fin_scale, 6);
                     o.Key("Shift");  o.Pair(st.fin_shift.x, st.fin_shift.y, 6);
                     o.Key("Amount"); o.Pair(st.fin0, st.fin1, 6);
+                    o.Key("Undo");   o.Num(st.unfinish, 6);
+                    o.Key("Blend");  o.s += (st.blend ? "true" : "false");
                     o.s += '}';
                     o.Key("Fog");    o.Pair(st.fog0, st.fog1);
                     if( !st.marks.empty() )

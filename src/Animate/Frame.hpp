@@ -319,6 +319,19 @@ namespace Knoodle::Animate
      * flat drawing exactly, and hands over to a flat scene with no jump.
      * `full_height` gives the point with all of h whatever the roll; the
      * renderer uses it to decide which passage of a crossing is the farther. */
+    /*!@brief Finish undone, by the share u: at u = 1 the point that Finish
+     * (at fin = 1) takes to q. Blended as Finish is, a step at a time. */
+    inline P2 Unfinish( const Stage & s, const P2 & q, Real u )
+    {
+        if( u <= 0 ) { return q; }
+        const Real k = (s.fin_scale != 0) ? 1 / s.fin_scale : 1;
+        const P2 z { (1 - u) * q.x + u * (q.x * k + s.fin_shift.x), (1 - u) * q.y + u * (q.y * k + s.fin_shift.y) };
+        const Real dx = z.x - s.fin_o.x, dy = z.y - s.fin_o.y, r = std::hypot(dx, dy);
+        const Real fr = (s.fin_rmin <= 0 || r <= s.fin_rmin) ? r : s.fin_rmin * std::exp(std::min(r / s.fin_rmin - 1, Real(60)));
+        const Real g = (r > 0) ? (1 - u) + u * fr / r : 1;
+        return P2{ s.fin_o.x + dx * g, s.fin_o.y + dy * g };
+    }
+
     inline P3 StagePoint( const Stage & s, const P3 & p, Real angle, Real lift, Real roll, Real fin, bool full_height = false )
     {
         if( s.map == Map3::Affine )
@@ -326,7 +339,7 @@ namespace Knoodle::Animate
             const P3 w = detail::Rotate(P3{ p.x - s.centre.x, p.y - s.centre.y, lift * (p.z - s.centre.z) }, s.axis, angle);
             return P3{ s.centre.x + w.x, s.centre.y + w.y, s.centre.z + w.z };
         }
-        const P2 q = Finish(s, P2{ p.x, p.y }, fin);
+        const P2 q = Unfinish(s, Finish(s, P2{ p.x, p.y }, fin), s.unfinish);
         const Real x = q.x - s.centre.x, y = q.y - s.centre.y;
         const Real h = p.z * (full_height ? 1.0 : std::min(1.0, 4 * roll));
         if( roll < 1e-9 ) { return P3{ q.x, q.y, h }; }
@@ -345,7 +358,33 @@ namespace Knoodle::Animate
             if( sc.stages.empty() ) { return; }
             std::size_t k = 0; Real tl = local;
             while( k + 1 < sc.stages.size() && tl >= sc.stages[k].duration ) { tl -= sc.stages[k].duration; ++k; }
-            const Stage & S = sc.stages[k];
+            // a blending stage is on its way to the next one, point for point
+            Stage mixed;
+            const Stage * now = &sc.stages[k];
+            if( now->blend && k + 1 < sc.stages.size() && now->duration > 0 )
+            {
+                const Stage & A = sc.stages[k], & B = sc.stages[k+1];
+                bool sameQ = (A.curves.size() == B.curves.size()) && (A.marks.size() == B.marks.size());
+                for( std::size_t c = 0; sameQ && c < A.curves.size(); ++c ) { sameQ = (A.curves[c].pts.size() == B.curves[c].pts.size()); }
+                for( std::size_t c = 0; sameQ && c < A.marks.size(); ++c )  { sameQ = (A.marks[c].pts.size() == B.marks[c].pts.size()); }
+                if( sameQ )
+                {
+                    const Real w = Clamp(tl / A.duration, 0, 1);
+                    mixed = A;
+                    auto mix = [w]( std::vector<Curve3> & P, const std::vector<Curve3> & Q )
+                    {
+                        for( std::size_t c = 0; c < P.size(); ++c ) { for( std::size_t i = 0; i < P[c].pts.size(); ++i )
+                        {
+                            P3 & p = P[c].pts[i]; const P3 & q = Q[c].pts[i];
+                            p = P3{ Lerp(p.x, q.x, w), Lerp(p.y, q.y, w), Lerp(p.z, q.z, w) };
+                        } }
+                    };
+                    mix(mixed.curves, B.curves); mix(mixed.marks, B.marks);
+                    mixed.unfinish = Lerp(A.unfinish, B.unfinish, w);
+                    now = &mixed;
+                }
+            }
+            const Stage & S = *now;
             const Real u     = Smoother((S.duration > 0) ? tl / S.duration : 1);
             const Real angle = Lerp(S.angle0, S.angle1, u), lift = Lerp(S.lift0, S.lift1, u);
             const Real roll  = Lerp(S.roll0, S.roll1, u),   fin  = Lerp(S.fin0, S.fin1, u), fog = Lerp(S.fog0, S.fog1, u);

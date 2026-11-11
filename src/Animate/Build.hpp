@@ -50,6 +50,7 @@ namespace Knoodle::Animate
         Real t_fog     = 0.6;       // a redraw: the depth colouring coming in, and going out
         Real t_rotate  = 2.6;       // ... and the turn between      // the camera's tilt during a turn
         Idx  reshape_frames = 48;
+        Idx  turn_frames    = 34;   // of the reshape shown on the sphere, after a turn; the renderer blends between them
         Real round = 0.3;           // Morph's steady-shape parameter
         Real pad   = 3;             // world units kept clear round a drawing
         TrayOptions tray;
@@ -381,7 +382,6 @@ namespace Knoodle::Animate
                     if( !FaceInside(pd, D, everywhere, { r.monogon }, darc, pole) ) { note = "The curl's loop is drawn round the rest of the diagram, and no other face can be put outside."; return false; }
                     Still(D, "Diagram", opt.t_hold, pd, "");
                     if( !TurnTo(pd, D, darc, pole, "The next curl's loop is the outside of the drawing, so another face is put outside first.", note) ) { return false; }
-                    if( !Reshape(D, pd, note) ) { return false; }
                     return R1(pd, move, next, D, note, true);
                 }
                 std::swap(a, ap); an = ap;          // at a last crossing either loop goes: show the twin
@@ -587,45 +587,57 @@ namespace Knoodle::Animate
          * with `pole`, a point of it, sent to infinity. On success D is the
          * drawing the turn leaves (edges cut into arcs of circles), with that
          * exterior; it is not a layout. */
-        bool TurnTo( const PD_T & pd, PlaneDrawing & D, Idx darc, const Point & pole, const std::string & reason, std::string & note )
+        /*!@brief A drawing as curves for a rolled-up stage: (x, y, h), h up
+         * at an over passage and down at an under one; and its crossings. */
+        void Lift( const PlaneDrawing & E, std::vector<Curve3> & curves, std::vector<Crossing3> & xs, std::vector<Idx> & start ) const
         {
-            std::vector<Curve3> curves (D.components.size());
-            std::vector<Idx> start (D.arcs.size(), 0);
-            for( Idx k = 0; k < D.components.size(); ++k )
+            curves.assign(E.components.size(), Curve3{}); start.assign(E.arcs.size(), 0); xs.clear();
+            for( Idx k = 0; k < E.components.size(); ++k )
             {
-                curves[k].color = static_cast<int>(D.colors[k]);
-                for( Idx a : D.components[k] )
+                curves[k].color = static_cast<int>(E.colors[k]);
+                for( Idx a : E.components[k] )
                 {
-                    const PlaneDrawing::Arc & A = D.arcs[a];
-                    const Real hT = (D.crossings[A.tail].over[1] == a) ? opt.height : -opt.height, hH = (D.crossings[A.head].over[0] == a) ? opt.height : -opt.height;
+                    const PlaneDrawing::Arc & A = E.arcs[a];
+                    const Real hT = (E.crossings[A.tail].over[1] == a) ? opt.height : -opt.height, hH = (E.crossings[A.head].over[0] == a) ? opt.height : -opt.height;
                     const std::vector<Real> prm = Params(A.pts);
                     start[a] = curves[k].pts.size();
                     for( Idx i = 0; i + 1 < A.pts.size(); ++i ) { curves[k].pts.push_back(P3{ A.pts[i][0], A.pts[i][1], hT + (hH - hT) * prm[i] }); }
                 }
             }
-            std::vector<Crossing3> xs;
-            for( const PlaneDrawing::Crossing & C : D.crossings )
+            for( const PlaneDrawing::Crossing & C : E.crossings )
             {
                 if( C.over[1] == None ) { continue; }
-                xs.push_back(Crossing3{ static_cast<int>(D.arcs[C.under[1]].component), static_cast<int>(start[C.under[1]]),
-                                        static_cast<int>(D.arcs[C.over[1]].component),  static_cast<int>(start[C.over[1]]) });
+                xs.push_back(Crossing3{ static_cast<int>(E.arcs[C.under[1]].component), static_cast<int>(start[C.under[1]]),
+                                        static_cast<int>(E.arcs[C.over[1]].component),  static_cast<int>(start[C.over[1]]) });
             }
-            // the face that is to be the outside, to point it out
+        }
+
+        /*!@brief The face on the left of `darc`, as a mark. */
+        static std::vector<Curve3> FaceMark( const PlaneDrawing & E, Idx darc )
+        {
             std::vector<Curve3> marks;
+            std::vector<std::vector<Idx>> faces; std::string w;
+            if( !E.Faces(faces, w) ) { return marks; }
+            for( const auto & f : faces )
             {
-                std::vector<std::vector<Idx>> faces; std::string w;
-                if( D.Faces(faces, w) )
-                {
-                    for( const auto & f : faces )
-                    {
-                        if( std::find(f.begin(), f.end(), darc) == f.end() ) { continue; }
-                        Curve3 m;
-                        for( Idx d : f ) { const Polyline & L = D.arcs[d / 2].pts; for( Idx i = 0; i + 1 < L.size(); ++i ) { const Point & q = (d % 2) ? L[i] : L[L.size() - 1 - i]; m.pts.push_back(P3{ q[0], q[1], 0 }); } }
-                        marks.push_back(std::move(m));
-                    }
-                }
+                if( std::find(f.begin(), f.end(), darc) == f.end() ) { continue; }
+                Curve3 m;
+                for( Idx d : f ) { const Polyline & L = E.arcs[d / 2].pts; for( Idx i = 0; i + 1 < L.size(); ++i ) { const Point & q = (d % 2) ? L[i] : L[L.size() - 1 - i]; m.pts.push_back(P3{ q[0], q[1], 0 }); } }
+                marks.push_back(std::move(m));
             }
-            const TurnResult T = Turn(curves, xs, P2{ pole[0], pole[1] }, TurnOptions(), marks);
+            return marks;
+        }
+
+        /*!@brief Put the face on the left of `darc` outside, by a turn of the
+         * sphere, and leave D a fresh layout with that exterior. The drawing
+         * rolls up, the sphere turns, the drawing is reshaped into the layout
+         * while still on the sphere, and the layout unrolls. */
+        bool TurnTo( const PD_T & pd, PlaneDrawing & D, Idx darc, const Point & pole, const std::string & reason, std::string & note )
+        {
+            std::vector<Curve3> curves; std::vector<Crossing3> xs; std::vector<Idx> start;
+            Lift(D, curves, xs, start);
+            // the face that is to be the outside is pointed out
+            const TurnResult T = Turn(curves, xs, P2{ pole[0], pole[1] }, TurnOptions(), FaceMark(D, darc));
             // the drawing it leaves, in D's labels
             PlaneDrawing G = D;
             for( Idx k = 0; k < D.components.size(); ++k )
@@ -653,15 +665,63 @@ namespace Knoodle::Animate
             Scene sc;
             sc.kind = Scene::Kind::Space; sc.label = "Turn the sphere"; sc.note = reason;
             sc.crossings_before = sc.crossings_after = static_cast<int>(pd.CrossingCount());
-            sc.stages = T.stages; sc.duration = 0;
+            // The layout to end in, and the reshape into it. The turned drawing G is very uneven; the
+            // reshape is worked out from G evened out (as Turn leaves it), but shown on the sphere, with
+            // the evening undone at its start and fading to nothing by its end. So what is seen is: the
+            // turned sphere, the drawing settling on it into the layout, and then the layout unrolling.
+            PlaneDrawing F; MorphResult M; std::string why;
+            bool sphereQ = false;
+            {
+                const Int face = PassDescriptor<Int>::LeftFace(pd, static_cast<Int>(darc));
+                if( face >= Int(0) && Layout(pd, face, F, why) )
+                {
+                    Point about { 0, 0 };
+                    detail::TurnToward(F, G, about);
+                    detail::MoveTo(F, D.Bounds().Centre());
+                    sphereQ = (T.stages.size() == 6) && Morph(G, F, EasedTimes(opt.turn_frames), opt.round, M, why);
+                }
+            }
+            Box B = D.Bounds();
+            if( sphereQ )
+            {
+                sc.stages.assign(T.stages.begin(), T.stages.begin() + 3);          // point out, roll up, turn
+                const Stage & even = T.stages[3];                                   // carries the finish
+                const Idx K = M.frames.size();
+                for( Idx f = 0; f < K; ++f )
+                {
+                    const PlaneDrawing E = DrawingAt(G, M.match, M.frames[f]);
+                    Stage s = even;
+                    std::vector<Idx> st;
+                    Lift(E, s.curves, s.crossings, st);
+                    s.marks = FaceMark(E, darc);
+                    s.duration = (f + 1 < K) ? opt.t_reshape / static_cast<Real>(K - 1) : 0;
+                    s.roll0 = s.roll1 = 1; s.angle0 = s.angle1 = 0; s.fin0 = s.fin1 = 0; s.fog0 = s.fog1 = 1;
+                    s.unfinish = 1 - Smoother(static_cast<Real>(f) / static_cast<Real>(std::max<Idx>(K - 1, 1)));
+                    s.blend = (f + 1 < K);
+                    s.mark_in0 = s.mark_in1 = s.mark_out0 = s.mark_out1 = 0; s.mark_line0 = s.mark_line1 = 1;
+                    sc.stages.push_back(std::move(s));
+                }
+                Stage unroll = sc.stages.back();
+                unroll.duration = T.stages[4].duration; unroll.unfinish = 0;
+                unroll.roll0 = 1; unroll.roll1 = 0; unroll.fog0 = 1; unroll.fog1 = 0; unroll.mark_out0 = 0; unroll.mark_out1 = 1;
+                Stage settle = unroll;
+                settle.duration = T.stages[5].duration; settle.roll0 = settle.roll1 = 0; settle.fog0 = settle.fog1 = 0;
+                settle.mark_out0 = 1; settle.mark_out1 = 0; settle.mark_line0 = 1; settle.mark_line1 = 0;
+                sc.stages.push_back(std::move(unroll)); sc.stages.push_back(std::move(settle));
+                const Box BF = F.Bounds(); B.Add(BF.lo); B.Add(BF.hi);
+            }
+            else { sc.stages = T.stages; }
+            sc.duration = 0;
             for( const Stage & s : sc.stages ) { sc.duration += s.duration; }
             sc.tilt_a = 0; sc.tilt_b = opt.turn_tilt; sc.depth = T.radius;
-            const auto B = D.Bounds(); const Point c = B.Centre(); const Real R = T.radius;
+            const Point c = D.Bounds().Centre(); const Real R = T.radius;
             ViewBox box { std::min(B.lo[0], c[0] - 1.15 * R) - opt.pad, std::min(B.lo[1], c[1] - R - 2 * R * opt.turn_tilt) - opt.pad,
                           std::max(B.hi[0], c[0] + 1.15 * R) + opt.pad, std::max(B.hi[1], c[1] + 1.15 * R) + opt.pad };
             Push(std::move(sc), false, &box);
+            if( sphereQ ) { D = std::move(F); return true; }
+            // the reshape could not be shown on the sphere: the turned drawing unrolls as it is, and is reshaped flat
             D = std::move(G);
-            return true;
+            return Reshape(D, pd, note);
         }
 
         bool Pass( const Record_T & rec, const PD_T * next, PlaneDrawing & D, std::string & note, bool turnedQ = false )
@@ -786,7 +846,6 @@ namespace Knoodle::Animate
                 if( !FaceInside(pd, D, F.loop, corridor, darc, pole) ) { note = "The middle pass goes round the back of the sphere, and no face clear of its corridor can be put outside."; return false; }
                 Still(D, "Diagram", opt.t_hold, pd, "");
                 if( !TurnTo(pd, D, darc, pole, "The next move sweeps the side that holds infinity, so another face is put outside first.", note) ) { return false; }
-                if( !Reshape(D, pd, note) ) { return false; }
                 return Pass(rec, next, D, note, true);
             }
             if( F.frames.empty() && !turnedQ )
@@ -800,7 +859,6 @@ namespace Knoodle::Animate
                 {
                     Still(D, "Diagram", opt.t_hold, pd, "");
                     if( !TurnTo(pd, D, darc, pole, "The next move's strand would sweep across its own other end, so another face is put outside first.", note) ) { return false; }
-                    if( !Reshape(D, pd, note) ) { return false; }
                     return Pass(rec, next, D, note, true);
                 }
             }

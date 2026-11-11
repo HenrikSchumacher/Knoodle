@@ -4,7 +4,7 @@ Status: design agreed 2026-11-10 (JHC). Henrik: at about 6,000 lines this needs 
 design review. The estimates below are from reading the prototype, not from built code.
 
 Built (2026-11-10): the library in `src/Animate/`, `tools/knoodlemovie` and
-`players/knoodle-player.html`, 6,431 lines, with four C++ tests. Every kind of move in
+`players/knoodle-player.html`, 6,553 lines, with four C++ tests. Every kind of move in
 the committed traces is animated. See "What is built" and "What the first three pieces
 found" at the end.
 
@@ -347,21 +347,21 @@ ffmpeg. It has a Makefile target but is not in `all` and is not installed.
 | `Sweep.hpp` | the harmonic sweep | 616 | 420 |
 | `Pass.hpp` | the weave; pass surgery; welding a sweep frame to the still strands | 405 | 500, with the next two |
 | `Diagram.hpp` | `ToPlanarDiagram`: the diagram a drawing draws | 60 | |
-| `Build.hpp` | the build loop; r1, pass, middle pass, redraw; turns; spin-offs; the camera | 1,044 | 450 + 120 + 450 |
+| `Build.hpp` | the build loop; r1, pass, middle pass, redraw; turns; spin-offs; the camera | 1,102 | 450 + 120 + 450 |
 | `Route.hpp` | routes through the faces | 582 | (was OrthoDecorate, existing) |
 | `Redraw.hpp` | the view of a space curve as a drawing | 98 | |
 | `Turn.hpp` | the turn of the sphere | 154 | 180 |
 | `Tray.hpp` | spin-offs and the tray | 124 | 200 |
-| `Scene.hpp` | scenes, roles, the style sheet | 283 | part of 450 |
-| `Frame.hpp` | `FrameAt` | 530 | 280 |
-| `Json.hpp` | `ToJSON` | 199 | 100 |
+| `Scene.hpp` | scenes, roles, the style sheet | 288 | part of 450 |
+| `Frame.hpp` | `FrameAt` | 569 | 280 |
+| `Json.hpp` | `ToJSON` | 201 | 100 |
 | `Raster.hpp` | the rasterizer | 179 | part of 300 |
 | `tools/knoodlemovie.cpp` | the tool | 108 | part of 300 |
-| `players/knoodle-player.html` | the web player | 408 | 670 |
-| **Total** | | **6,431** | **5,340** |
+| `players/knoodle-player.html` | the web player | 426 | 670 |
+| **Total** | | **6,553** | **5,340** |
 
 The plan's 6,040 included 700 lines of tests; without them it was 5,340, so this is about
-1,090 over (JHC, 2026-11-10: the extra length is acceptable). `Sweep.hpp` and `Frame.hpp` ran over, and `Route.hpp` (582) was not in the plan:
+1,210 over (JHC, 2026-11-10: the extra length is acceptable). `Sweep.hpp` and `Frame.hpp` ran over, and `Route.hpp` (582) was not in the plan:
 it replaces the use of `OrthoDecorate`, which is existing code. The tests are 1,433 lines
 (JHC, 2026-11-10: fast tests are wanted and do not count).
 
@@ -435,6 +435,28 @@ then the head to suit its last, tried a step apart and kept half a step from the
 (a quarter of the arc if that is less). This made loops as small as half a step, which showed
 that `Match` kept two corners 1e-9 to 1e-6 apart in parameter as two points on top of one
 another; its merge tolerance is now 1e-6.
+
+**The reshape after a turn happens on the sphere** (JHC, 2026-11-10: after a turn "most of
+the content is squashed into a ring round the equator of the sphere"; could the Möbius
+transformation be continued until the central face is smaller?). It cannot: with the new
+face kept outside, the only Möbius maps left are similarities of the plane, which change no
+face's size against another's. The turned drawing is uneven by nature (a face's size goes as
+the inverse square of its distance from the pole), and a radial map shrinks one empty face
+only for the next to take its place (tried: centred on the roomiest point of the old
+outside). What evens it out is the reshape into a fresh layout, which used to follow, flat.
+Now `TurnTo` does it on the sphere: the drawing rolls up, the sphere turns, the drawing
+settles into the layout while still on the sphere, and the layout unrolls. The reshape is
+worked out in the plane from the turned drawing evened out, as before (the morph does not
+like the raw one), and shown with the evening undone at its start and gone by its end
+(`Stage::unfinish`), one stage a morph frame, the renderer running each into the next
+(`Stage::blend`). `TurnTo` leaves a fresh layout, so its callers no longer reshape. If the
+layout or the morph fails it falls back to unrolling the turned drawing and reshaping flat.
+
+**A sweep's keyframes are never blended** (`Easing::Step`). JHC saw one frame of a sweep
+with the still strands scrambled: each keyframe cuts the still strands where the moving
+strand meets them, so two keyframes with the same point counts need not correspond, and the
+renderer blended them. A scan of the FHW movie for a frame unlike both its neighbours, or
+for judder, now finds nothing.
 
 **The turn of the sphere, made easier to follow** (JHC, 2026-11-10). The face that is to be
 the outside is pointed out (`Stage::marks`): filled on the flat drawing before anything
