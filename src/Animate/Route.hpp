@@ -252,11 +252,10 @@ namespace Knoodle::Animate
         }
 
         /*!@brief The runs of the polygon's edges on darc `tag`: maximal
-         * chains with no break inside. Each is given by a point near half way
-         * along it. */
-        inline std::vector<Point> Runs( const RoutePoly & Q, Idx tag )
+         * chains with no break inside. */
+        inline std::vector<Polyline> Runs( const RoutePoly & Q, Idx tag )
         {
-            std::vector<Point> out;
+            std::vector<Polyline> out;
             const Idx n = Q.p.size();
             std::vector<char> used (n, 0);
             for( Idx e0 = 0; e0 < n; ++e0 )
@@ -271,13 +270,102 @@ namespace Knoodle::Animate
                     const Idx f = (e + 1) % n;
                     if( Q.tag[f] != tag || Q.brk[f] || used[f] ) { break; }
                 }
-                // the middle of the edge that holds the run's half-way point: never a corner of the arc
-                Real total = 0, upto = 0;
-                for( Idx i = 0; i + 1 < L.size(); ++i ) { total += Animate::Dist(L[i], L[i+1]); }
-                Idx mid = 0;
-                for( Idx i = 0; i + 1 < L.size(); ++i ) { const Real d = Animate::Dist(L[i], L[i+1]); if( upto + d >= total / 2 && d > 0 ) { mid = i; break; } upto += d; }
-                out.push_back(Point{ (L[mid][0] + L[mid+1][0]) / 2, (L[mid][1] + L[mid+1][1]) / 2 });
+                out.push_back(std::move(L));
             }
+            return out;
+        }
+
+        /*!@brief Places to cross the run L: the middle of the edge that holds
+         * its half-way point first, then points a step apart along it, half a
+         * step in from its ends. Never a corner of the run. */
+        inline std::vector<Point> Places( const Polyline & L, Real step )
+        {
+            std::vector<Real> upto { 0 };
+            for( Idx i = 0; i + 1 < L.size(); ++i ) { upto.push_back(upto.back() + Animate::Dist(L[i], L[i+1])); }
+            const Real total = upto.back();
+            std::vector<Point> out;
+            auto at = [&]( Real s )
+            {
+                for( Idx i = 0; i + 1 < L.size(); ++i )
+                {
+                    const Real d = upto[i+1] - upto[i];
+                    if( d <= 0 || s > upto[i+1] ) { continue; }
+                    Real t = (s - upto[i]) / d;
+                    if( t * d < 1e-6 * total || (1 - t) * d < 1e-6 * total ) { t = 0.5; }       // off the corner
+                    out.push_back(Point{ L[i][0] + (L[i+1][0] - L[i][0]) * t, L[i][1] + (L[i+1][1] - L[i][1]) * t });
+                    return;
+                }
+            };
+            if( total <= 0 ) { return out; }
+            at(total / 2);
+            const Real m = std::min(step / 2, total / 4);
+            for( Real s = m; s <= total - m + 1e-9 * total; s += step ) { if( std::abs(s - total / 2) > step / 4 ) { at(s); } }
+            return out;
+        }
+
+        /*!@brief The leg pulled taut inside its polygon, like a band that
+         * keeps `keep` off the polygon's sides (or as far off them as it was,
+         * where the way is narrower than that). Its ends, and a stem of length
+         * `keep` at each, stay where they are. The medial axis says which way
+         * to go; this says how a hand would draw it. */
+        inline Polyline Tighten( const RoutePoly & Q, const Polyline & leg, Real keep, Real grain )
+        {
+            const Real total = Length(leg);
+            if( leg.size() < 3 || total <= 2 * keep + grain ) { return leg; }
+            // the leg's own corners, and points a grain apart between them
+            Polyline P { leg.front() };
+            for( Idx i = 0; i + 1 < leg.size(); ++i )
+            {
+                const Idx k = static_cast<Idx>(std::ceil(Animate::Dist(leg[i], leg[i+1]) / grain));
+                for( Idx j = 1; j <= std::max<Idx>(k, 1); ++j ) { const Real t = static_cast<Real>(j) / static_cast<Real>(std::max<Idx>(k, 1)); P.push_back(Point{ leg[i][0] + (leg[i+1][0] - leg[i][0]) * t, leg[i][1] + (leg[i+1][1] - leg[i][1]) * t }); }
+            }
+            const Idx n = P.size(), m = Q.p.size();
+            std::vector<char> fixed (n, 0);
+            { Real s = 0; for( Idx i = 0; i < n; ++i ) { if( i > 0 ) { s += Animate::Dist(P[i-1], P[i]); } fixed[i] = (s <= keep || total - s <= keep); } }
+            auto ps = []( const Point & p, const Point & a, const Point & b )
+            {
+                const Real dx = b[0] - a[0], dy = b[1] - a[1], d2 = dx * dx + dy * dy;
+                const Real t = (d2 > 0) ? std::clamp(((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / d2, 0.0, 1.0) : 0.0;
+                return std::hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy);
+            };
+            // how far the piece ab is from the polygon's sides, as far as `keep` matters
+            auto clear = [&]( const Point & a, const Point & b )
+            {
+                Real best = keep;
+                const Real lox = std::min(a[0], b[0]) - keep, hix = std::max(a[0], b[0]) + keep, loy = std::min(a[1], b[1]) - keep, hiy = std::max(a[1], b[1]) + keep;
+                for( Idx e = 0; e < m && best > 0; ++e )
+                {
+                    const Point & c = Q.p[e], & d = Q.p[(e + 1) % m];
+                    if( std::max(c[0], d[0]) < lox || std::min(c[0], d[0]) > hix || std::max(c[1], d[1]) < loy || std::min(c[1], d[1]) > hiy ) { continue; }
+                    if( Side(a, b, c) * Side(a, b, d) < 0 && Side(c, d, a) * Side(c, d, b) < 0 ) { return Real(0); }
+                    best = std::min({ best, ps(a, c, d), ps(b, c, d), ps(c, a, b), ps(d, a, b) });
+                }
+                return best;
+            };
+            std::vector<Real> room (n, 0);                      // room[i]: of the piece from P[i] to P[i+1]
+            for( Idx i = 0; i + 1 < n; ++i ) { room[i] = clear(P[i], P[i+1]); }
+            for( int sweep = 0; sweep < 200; ++sweep )
+            {
+                Real moved = 0;
+                for( Idx i = 1; i + 1 < n; ++i )
+                {
+                    if( fixed[i] ) { continue; }
+                    const Real floor = std::min(room[i-1], room[i]) - 1e-12 * total;
+                    for( Real f : { 1.0, 0.5, 0.25 } )
+                    {
+                        const Point c { P[i][0] + f * ((P[i-1][0] + P[i+1][0]) / 2 - P[i][0]), P[i][1] + f * ((P[i-1][1] + P[i+1][1]) / 2 - P[i][1]) };
+                        const Real r0 = clear(P[i-1], c), r1 = (r0 >= floor) ? clear(c, P[i+1]) : Real(0);
+                        if( r0 < floor || r1 < floor ) { continue; }
+                        moved = std::max(moved, Animate::Dist(P[i], c));
+                        P[i] = c; room[i-1] = r0; room[i] = r1;
+                        break;
+                    }
+                }
+                if( moved < 1e-3 * grain ) { break; }
+            }
+            Polyline out { P[0] };                              // drop what lies on a straight piece
+            for( Idx i = 1; i + 1 < n; ++i ) { if( fixed[i] != fixed[i+1] || ps(P[i], out.back(), P[i+1]) > 1e-3 * grain ) { out.push_back(P[i]); } }
+            out.push_back(P[n-1]);
             return out;
         }
     } // namespace detail
@@ -384,7 +472,8 @@ namespace Knoodle::Animate
                     {
                         RoutePoly Q = Q0;
                         if( detail::Vertex(Q, tag_a, a, tol) == None ) { continue; }
-                        const std::vector<Point> targets = runsQ ? detail::Runs(Q, tag_b) : std::vector<Point>{ b };
+                        std::vector<Point> targets { b };
+                        if( runsQ ) { targets.clear(); for( const Polyline & L : detail::Runs(Q, tag_b) ) { const auto pl = detail::Places(L, step); if( !pl.empty() ) { targets.push_back(pl[0]); } } }
                         for( const Point & q : targets )
                         {
                             RoutePoly W = Q;
@@ -448,7 +537,18 @@ namespace Knoodle::Animate
             // lay the legs one after another, trying each run the next arc offers
             struct Go
             {
-                const RouteRequest & rq; Accept_T & accept; int & budget; bool & anyQ; Real tol; Point head;
+                const RouteRequest & rq; Accept_T & accept; int & budget; bool & anyQ; Real tol; Point head; Real step; std::vector<Point> aim;
+                // the leg from `at` to q, pulled taut; W is the polygon with both ends in it
+                Polyline Lay( const RoutePoly & Q, Idx start_tag, const Point & at, Idx want, const Point & q, bool tautQ, RoutePoly & W, Idx & from, Idx & to )
+                {
+                    W = Q;
+                    to = detail::Vertex(W, want, q, tol); from = None;
+                    if( to == None ) { return {}; }
+                    for( Idx e = 0; e < W.p.size(); ++e ) { if( Animate::Dist(W.p[e], at) <= tol && (W.tag[e] == start_tag || W.tag[(e + W.p.size() - 1) % W.p.size()] == start_tag) ) { from = e; break; } }
+                    if( from == None || from == to ) { return {}; }
+                    Polyline leg = detail::Leg(W, from, to);
+                    return (tautQ && leg.size() >= 2) ? detail::Tighten(W, leg, 0.45 * step, step / 4) : leg;
+                }
                 bool Leg( std::vector<RoutePoly> polys, Polyline route, Idx start_tag, Idx i )
                 {
                     if( budget <= 0 ) { return false; }
@@ -460,17 +560,33 @@ namespace Knoodle::Animate
                         RoutePoly Q = polys[pc];
                         const Idx from0 = detail::Vertex(Q, start_tag, at, tol);
                         if( from0 == None ) { continue; }
-                        std::vector<Point> targets = lastQ ? std::vector<Point>{ head } : detail::Runs(Q, want);
-                        std::sort(targets.begin(), targets.end(), [&]( const Point & a, const Point & b ) { return Animate::Dist(a, at) < Animate::Dist(b, at); });
-                        for( const Point & q : targets )
+                        // Where to cross the next arc: on each stretch of it this polygon has, the place that
+                        // makes this leg and the straight line on to the arc after shortest.
+                        std::vector<std::pair<Real,Point>> targets;
+                        if( lastQ ) { targets.push_back({ 0, head }); }
+                        else
                         {
-                            RoutePoly W = Q;
-                            const Idx to = detail::Vertex(W, want, q, tol);
-                            if( to == None ) { continue; }
-                            Idx from = None;
-                            for( Idx e = 0; e < W.p.size(); ++e ) { if( Animate::Dist(W.p[e], at) <= tol && (W.tag[e] == start_tag || W.tag[(e + W.p.size() - 1) % W.p.size()] == start_tag) ) { from = e; break; } }
-                            if( from == None || from == to ) { continue; }
-                            const Polyline leg = detail::Leg(W, from, to);
+                            for( const Polyline & L : detail::Runs(Q, want) )
+                            {
+                                std::vector<Point> pl = detail::Places(L, step);
+                                const Idx stride = (pl.size() + 8) / 9;
+                                Real best = std::numeric_limits<Real>::infinity(); Point q { 0, 0 };
+                                for( Idx k = 0; k < pl.size(); k += std::max<Idx>(stride, 1) )
+                                {
+                                    RoutePoly W; Idx from = None, to = None;
+                                    const Polyline leg = Lay(Q, start_tag, at, want, pl[k], false, W, from, to);
+                                    if( leg.size() < 2 ) { continue; }
+                                    const Real score = Length(leg) + Animate::Dist(pl[k], aim[i]);
+                                    if( score < best - 1e-9 * step ) { best = score; q = pl[k]; }
+                                }
+                                if( std::isfinite(best) ) { targets.push_back({ best, q }); }
+                            }
+                        }
+                        std::sort(targets.begin(), targets.end(), []( const auto & a, const auto & b ) { return a.first < b.first; });
+                        for( const auto & [score, q] : targets )
+                        {
+                            RoutePoly W; Idx from = None, to = None;
+                            const Polyline leg = Lay(Q, start_tag, at, want, q, true, W, from, to);
                             if( leg.size() < 2 ) { continue; }
                             Polyline r = route;
                             r.insert(r.end(), leg.begin() + 1, leg.end());
@@ -490,7 +606,9 @@ namespace Knoodle::Animate
                     return false;
                 }
             };
-            Go go { rq, accept, budget, anyQ, tol, head };
+            std::vector<Point> aim;                             // after crossing i: the middle of the next arc to cross, or the head
+            for( Idx i = 0; i < rq.cross.size(); ++i ) { aim.push_back(head); if( i + 1 < rq.cross.size() ) { const Polyline & L = D.arcs[rq.cross[i+1] / 2].pts; aim.back() = At(L, Params(L), 0.5); } }
+            Go go { rq, accept, budget, anyQ, tol, head, step, aim };
             if( go.Leg(polys, Polyline{ tail }, rq.depart, 0) ) { return true; }
         }
         why = anyQ ? "no route through the faces makes the move" : "no route could be laid through the faces the move names";
