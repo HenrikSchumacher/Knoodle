@@ -436,19 +436,34 @@ then the head to suit its last, tried a step apart and kept half a step from the
 that `Match` kept two corners 1e-9 to 1e-6 apart in parameter as two points on top of one
 another; its merge tolerance is now 1e-6.
 
+**The turn of the sphere, made easier to follow** (JHC, 2026-11-10). The face that is to be
+the outside is pointed out (`Stage::marks`): filled on the flat drawing before anything
+moves and while the drawing rolls up, fading as the sphere turns it to the top; as the
+sphere unrolls the outside is filled instead, then let go; its outline is drawn throughout.
+The ball is drawn, faintly. And the turned drawing, which is very uneven, is evened out while
+still on the sphere and only then unrolled; before, the two ran together and the
+half-unrolled drawing left the picture. The pole was already the roomiest point found in an
+eligible face (`FaceInside`), so that was left alone. The web player draws the same; it was
+smoke-tested with node on turn frames, not compared item for item, and not opened in a browser.
+
 **Routes go through the faces, not along the lattice** (JHC, 2026-11-10, after seeing the
 first movies: the morph works on polylines, so a route need not be grid lines). `Route.hpp`
 takes each face of the drawing in hand as a polygon. A leg of the route enters at a point
-of the polygon's boundary and leaves at another, and in between follows the polygon's
-skeleton. The skeleton is the medial axis (JHC, 2026-11-10; his Mathematica prototype used
-the straight skeleton, and the two differ only round reflex corners, where the medial axis
-has a short parabolic arc): the inside part of the Voronoi diagram of the polygon's edges,
-from Boost.Polygon, which is exact on integer input, so the corners are snapped to a grid
-of 2^29 first. Each end of a leg goes straight in along the bisector of its corner to the
-axis, and the leg takes the shortest way along the axis between them, never through a
-corner of the polygon. This is the first use of Boost inside `src/Animate/`; Knoodle
-already requires Boost, so it is no new dependency. (The first version followed the
-midpoints of the diagonals of a Delaunay triangulation, which could run close to a strand.) A leg, once laid, cuts its polygon in two, so a
+of the polygon's boundary and leaves at another. Which way it goes between them is read off
+a triangulation of the polygon: the chain of triangles from the way in to the way out, through
+the midpoints of the diagonals it crosses. How it goes is then a band (`Tighten`): each end
+gets a stem straight in from its corner; between the stems the leg is pushed off the
+polygon's sides, to 0.45 of a step where there is room, and pulled taut, never nearer a side
+than that, or than it already is where the way is narrower. The band rounds the corners it
+wraps and bridges the pockets of the outside. Where a leg crosses the next arc slides too:
+places a step apart are tried, and the one that makes this leg plus the straight line on to
+the arc after shortest is taken.
+
+For a few hours on 2026-11-10 the way was the medial axis, from Boost.Polygon's Voronoi
+diagram of segments (JHC's choice over a hand-rolled straight skeleton, which his Mathematica
+prototype used). JHC then asked whether the tightening made it unnecessary. It did: any path
+inside the polygon gives the same band, the pictures are the same, the build test runs in 9 s
+instead of 16, and `src/Animate/` is again free of Boost. A leg, once laid, cuts its polygon in two, so a
 later leg cannot cross it. The outside is a frame round the drawing joined to the
 drawing's outline by a cut. The frame is the outline's convex hull pushed out by one step
 (the middle length of the drawing's pieces: the grid step, for a layout), so a route round
