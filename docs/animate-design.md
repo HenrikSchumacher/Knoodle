@@ -4,7 +4,7 @@ Status: design agreed 2026-11-10 (JHC). Henrik: at about 6,000 lines this needs 
 design review. The estimates below are from reading the prototype, not from built code.
 
 Built (2026-11-10): the library in `src/Animate/`, `tools/knoodlemovie` and
-`players/knoodle-player.html`, 6,092 lines, with four C++ tests. Every kind of move in
+`players/knoodle-player.html`, 6,128 lines, with four C++ tests. Every kind of move in
 the committed traces is animated. See "What is built" and "What the first three pieces
 found" at the end.
 
@@ -348,7 +348,7 @@ ffmpeg. It has a Makefile target but is not in `all` and is not installed.
 | `Pass.hpp` | the weave; pass surgery; welding a sweep frame to the still strands | 405 | 500, with the next two |
 | `Diagram.hpp` | `ToPlanarDiagram`: the diagram a drawing draws | 60 | |
 | `Build.hpp` | the build loop; r1, pass, middle pass, redraw; turns; spin-offs; the camera | 1,009 | 450 + 120 + 450 |
-| `Route.hpp` | routes through the faces | 401 | (was OrthoDecorate, existing) |
+| `Route.hpp` | routes through the faces | 437 | (was OrthoDecorate, existing) |
 | `Redraw.hpp` | the view of a space curve as a drawing | 98 | |
 | `Turn.hpp` | the turn of the sphere | 131 | 180 |
 | `Tray.hpp` | spin-offs and the tray | 124 | 200 |
@@ -358,10 +358,10 @@ ffmpeg. It has a Makefile target but is not in `all` and is not installed.
 | `Raster.hpp` | the rasterizer | 179 | part of 300 |
 | `tools/knoodlemovie.cpp` | the tool | 108 | part of 300 |
 | `players/knoodle-player.html` | the web player | 381 | 670 |
-| **Total** | | **6,092** | **5,340** |
+| **Total** | | **6,128** | **5,340** |
 
 The plan's 6,040 included 700 lines of tests; without them it was 5,340, so this is about
-750 over. `Sweep.hpp` and `Frame.hpp` ran over, and `Route.hpp` (401) was not in the plan:
+790 over. `Sweep.hpp` and `Frame.hpp` ran over, and `Route.hpp` (437) was not in the plan:
 it replaces the use of `OrthoDecorate`, which is existing code. The tests are 1,433 lines
 (JHC, 2026-11-10: fast tests are wanted and do not count).
 
@@ -431,7 +431,10 @@ corner of the polygon. This is the first use of Boost inside `src/Animate/`; Kno
 already requires Boost, so it is no new dependency. (The first version followed the
 midpoints of the diagonals of a Delaunay triangulation, which could run close to a strand.) A leg, once laid, cuts its polygon in two, so a
 later leg cannot cross it. The outside is a frame round the drawing joined to the
-drawing's outline by a cut; the four ways of placing the cut are the ways round. Where
+drawing's outline by a cut. The frame is the outline's convex hull pushed out by one step
+(the middle length of the drawing's pieces: the grid step, for a layout), so a route round
+the outside runs like a band about half a step off the drawing (JHC, 2026-11-10: with a far
+rectangular frame the outside routes looked weird); the four ways of placing the cut are the ways round. Where
 the move leaves a choice (which way round; which part of an arc already met) the choices
 are tried in turn, and each route offered is checked the way every route is: the surgery
 must leave the next record's diagram. Of the routes that pass, the builder takes the one

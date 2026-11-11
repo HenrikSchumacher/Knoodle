@@ -303,6 +303,12 @@ namespace Knoodle::Animate
         auto dot = [&]( Idx a, Real f ) { const Polyline & L = D.arcs[a].pts; return At(L, Params(L), rq.forwardQ ? f : 1 - f); };
         const Point tail = dot(rq.first_arc, oneQ ? 1.0 / 3 : 0.5), head = dot(rq.last_arc, oneQ ? 2.0 / 3 : 0.5);
 
+        // a step: the middle length of the drawing's pieces (the grid step, for a layout)
+        std::vector<Real> lens;
+        for( const auto & A : D.arcs ) { for( Idx i = 0; i + 1 < A.pts.size(); ++i ) { lens.push_back(Animate::Dist(A.pts[i], A.pts[i+1])); } }
+        std::nth_element(lens.begin(), lens.begin() + static_cast<std::ptrdiff_t>(lens.size() / 2), lens.end());
+        const Real step = lens.empty() ? 0.05 * size : std::max(lens[lens.size() / 2], 0.01 * size);
+
         bool anyQ = false;
         for( int way = 0; way < 4 && budget > 0; ++way )            // which way the outside is cut open
         {
@@ -319,16 +325,46 @@ namespace Knoodle::Animate
                 {
                     // The outside: a frame round the drawing, joined to the drawing's outline by a cut
                     // from the outline's farthest point one way. Round the frame, in, round the outline, out.
-                    const Real m = 0.2 * size + 4 * tol;
-                    const Point c[4] { { B.lo[0] - m, B.lo[1] - m }, { B.hi[0] + m, B.lo[1] - m }, { B.hi[0] + m, B.hi[1] + m }, { B.lo[0] - m, B.hi[1] + m } };
-                    const Point dir[4] { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } };      // side i runs from corner i to corner i + 1
+                    // The frame is the outline's convex hull pushed out by a step, so a route round the
+                    // outside runs like a band round the drawing, half a step off it.
+                    const Point dir[4] { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } };
                     Idx v = 0;
                     for( Idx i = 1; i < Q.p.size(); ++i ) { if( Q.p[i][0] * dir[way][0] + Q.p[i][1] * dir[way][1] > Q.p[v][0] * dir[way][0] + Q.p[v][1] * dir[way][1] ) { v = i; } }
-                    const Point on = (way % 2 == 0) ? Point{ Q.p[v][0], c[way][1] } : Point{ c[way][0], Q.p[v][1] };
+                    Polyline S = Q.p, H;
+                    std::sort(S.begin(), S.end());
+                    for( int pass = 0; pass < 2; ++pass )
+                    {
+                        const Idx base = H.size();
+                        for( const Point & q : S )
+                        {
+                            while( H.size() >= base + 2 && Side(H[H.size()-2], H.back(), q) <= 0 ) { H.pop_back(); }
+                            H.push_back(q);
+                        }
+                        H.pop_back(); std::reverse(S.begin(), S.end());
+                    }
+                    Polyline F;                                 // each corner of the hull cut off square
+                    for( Idx i = 0; i < H.size(); ++i )
+                    {
+                        const Point & a = H[(i + H.size() - 1) % H.size()], & b = H[i], & c = H[(i + 1) % H.size()];
+                        const Real l0 = Animate::Dist(a, b), l1 = Animate::Dist(b, c);
+                        F.push_back(Point{ b[0] + step * (b[1] - a[1]) / l0, b[1] - step * (b[0] - a[0]) / l0 });
+                        F.push_back(Point{ b[0] + step * (c[1] - b[1]) / l1, b[1] - step * (c[0] - b[0]) / l1 });
+                    }
+                    Real best = std::numeric_limits<Real>::infinity(); Idx hit = None;
+                    for( Idx i = 0; i < F.size(); ++i )
+                    {
+                        const Point & p = F[i], & q = F[(i + 1) % F.size()];
+                        const Real ex = q[0] - p[0], ey = q[1] - p[1], den = dir[way][0] * ey - dir[way][1] * ex;
+                        if( std::abs(den) <= 1e-12 * std::hypot(ex, ey) ) { continue; }
+                        const Real t = ((p[0] - Q.p[v][0]) * ey - (p[1] - Q.p[v][1]) * ex) / den, u = ((p[0] - Q.p[v][0]) * dir[way][1] - (p[1] - Q.p[v][1]) * dir[way][0]) / den;
+                        if( u >= 0 && u <= 1 && t > 0 && t < best ) { best = t; hit = i; }
+                    }
+                    if( hit == None ) { continue; }
+                    const Point on { Q.p[v][0] + best * dir[way][0], Q.p[v][1] + best * dir[way][1] };
                     RoutePoly K;
                     auto add = [&]( const Point & q, Idx tag ) { K.p.push_back(q); K.tag.push_back(tag); K.brk.push_back(1); };
                     add(on, None);
-                    for( int i = 1; i <= 4; ++i ) { add(c[(way + i) % 4], None); }
+                    for( Idx i = 1; i <= F.size(); ++i ) { add(F[(hit + i) % F.size()], None); }
                     add(on, None);
                     for( Idx i = 0; i < Q.p.size(); ++i ) { const Idx j = (v + i) % Q.p.size(); add(Q.p[j], Q.tag[j]); K.brk.back() = 0; }
                     add(Q.p[v], None);
