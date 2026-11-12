@@ -22,6 +22,10 @@
 #                    CI_CXX="clang++ -DTOOLS_NO_RESTRICT".
 #   HOMEBREW_PREFIX  prefix the tools/Makefile searches for Boost + SuiteSparse
 #                    headers/libs (/opt/homebrew on mac, /usr on native Linux).
+#   CI_TEST_TARGET   what `make -C test` builds: `light` (the default here) is
+#                    what the light tier runs; `all` adds the tools and benches
+#                    that no tier runs. The workflow asks for `all` everywhere
+#                    except on pull requests, so those still cannot rot.
 #   CI_NO_BOOST      set to 1 to build the tools WITHOUT boost::unordered_flat_map
 #                    (make BOOST_FLAGS=). Needed where the system Boost is < 1.81
 #                    (no flat_map) -- e.g. Rocky 9's Boost 1.75, mirroring how the
@@ -80,8 +84,11 @@ CI_EXCLUDE="cli_stdin_check,run_tests"
 
 # EXCLUDE_NEEDS filters what `all` BUILDS, using the same manifest column
 # run_tier.py filters what it RUNS -- so the two cannot disagree.
-make -C test all EXCLUDE_NEEDS="${CI_EXCLUDE_NEEDS}" ${MK[@]+"${MK[@]}"}
+make -C test "${CI_TEST_TARGET:-light}" EXCLUDE_NEEDS="${CI_EXCLUDE_NEEDS}" ${MK[@]+"${MK[@]}"}
 make -C test lint
+
+# How much of the test build came from the compiler cache, where there is one.
+if command -v ccache >/dev/null 2>&1; then ccache --show-stats || true; fi
 
 cd test
 python3 run_tier.py --tier=light \

@@ -24,10 +24,14 @@ name: ci
 # knoodleidentify really identifies; the rest of the LFS data (data/diagrams) is
 # not. The heavy UMFPACK tier is out of scope.
 
+# docs/ is skipped: nothing that is built or tested reads it (README.md and
+# CITATION.cff ship in the release tarball, so those still run).
 on:
   push:
     branches: [main]
+    paths-ignore: ["docs/**"]
   pull_request:
+    paths-ignore: ["docs/**"]
   schedule:
     # 1st of each month, 06:00 UTC: catch breakage from a new runner image /
     # toolchain even with no pushes (mirrors the tap's monthly cron).
@@ -92,21 +96,47 @@ jobs:
       - name: Fetch the KLUT tables (Git LFS, data/Klut only)
         run: bash scripts/ci-fetch-klut.sh
 
-      - name: Install deps (macOS -- Boost + SuiteSparse)
+      - name: Install deps (macOS -- Boost + SuiteSparse + ccache)
         if: runner.os == 'macOS'
-        run: brew install boost suite-sparse
+        run: brew install boost suite-sparse ccache
 
-      - name: Install deps (Ubuntu -- clang + Boost + SuiteSparse)
+      - name: Install deps (Ubuntu -- clang + Boost + SuiteSparse + ccache)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            clang make libboost-dev libsuitesparse-dev python3
+            clang make libboost-dev libsuitesparse-dev python3 ccache
+
+      - name: Name this runner's CPU (part of the compiler-cache key)
+        # The build uses -march=native, and ccache sees only the word "native":
+        # an object cached on one CPU would be handed to another that may not
+        # have its instructions. So each CPU model gets its own cache.
+        run: |
+          { sysctl -n machdep.cpu.brand_string 2>/dev/null \
+              || grep -m1 'model name' /proc/cpuinfo; } > .ci-cpu-model
+          cat .ci-cpu-model
+
+      - name: Restore the compiler cache (test groups)
+        # test/Makefile uses ccache for the group compiles when it is on PATH.
+        # A push that did not change what a group includes then recompiles
+        # nothing for it. Saved per commit, restored from the newest earlier one.
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-${{ matrix.os }}-${{ hashFiles('.ci-cpu-model') }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ matrix.os }}-${{ hashFiles('.ci-cpu-model') }}-
 
       - name: Build tools + run light-tier tests
         env:
           CI_CXX: ${{ matrix.cxx }}
           HOMEBREW_PREFIX: ${{ matrix.homebrew_prefix }}
+          CI_TEST_TARGET: ${{ github.event_name == 'pull_request' && 'light' || 'all' }}
+          CCACHE_DIR: ${{ github.workspace }}/.ccache
+          CCACHE_MAXSIZE: 400M
+          # Compare compilers by content, not mtime: every runner is a fresh
+          # image, so the mtime never matches and nothing would ever hit.
+          CCACHE_COMPILERCHECK: content
         run: bash scripts/ci-build-and-test.sh
 
   # RHEL-family + Debian coverage (no native Fedora/RHEL/Debian runner exists), as
@@ -169,6 +199,8 @@ jobs:
         run: bash scripts/ci-fetch-klut.sh
 
       - name: Build tools + run light-tier tests
+        env:
+          CI_TEST_TARGET: all
         run: bash scripts/ci-build-and-test.sh
 
   # Debian stable (bookworm), MANUAL ONLY for now (Actions -> ci -> "Run workflow",
