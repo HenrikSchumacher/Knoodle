@@ -30,6 +30,7 @@ TOOLS = os.path.join(HERE, "..", "tools")
 SIMPLIFY = os.path.join(TOOLS, "knoodlesimplify")
 DRAW = os.path.join(TOOLS, "knoodledraw")
 IDENTIFY = os.path.join(TOOLS, "knoodleidentify")
+PROVE = os.path.join(TOOLS, "knoodleprove")
 
 
 def klut_tables_are_pointers():
@@ -287,6 +288,36 @@ def test_help():
 
         for h in hidden:
             check(h not in text, f"{name}: {h} stays out of --help")
+
+    # --version, in the GNU Coding Standards' form: program, package in
+    # parentheses, version after the last space; on stdout, exit 0. The same
+    # line opens --help, so a pasted help text says which build it came from.
+    for tool in (SIMPLIFY, DRAW, IDENTIFY, PROVE):
+        name = os.path.basename(tool)
+        if not os.path.exists(tool):
+            print(f"  SKIP  {name} is not built")
+            continue
+        rc, out, err = run([tool, "--version"])
+        lines = out.splitlines()
+        line = lines[0] if lines else ""
+        check(rc == 0, f"{name} --version exits 0")
+        check(len(lines) == 2 and lines[1].startswith("License: MIT."),
+              f"{name} --version names the licence on its second line")
+        check(line.startswith(f"{name} (Knoodle) ") and len(line.split()) == 3
+              and '"' not in line,
+              f"{name} --version prints '{name} (Knoodle) VERSION' on stdout (got {line!r})")
+        version = line.split()[-1] if line else ""
+        check(version not in ("", "unknown"),
+              f"{name} was built with a version ({version!r})")
+        check(not any(len(piece) > 12 for piece in version.split("-")
+                      if all(c in "0123456789abcdefg" for c in piece)),
+              f"{name} --version abbreviates the commit hash")
+        rc, out, err = run([tool, "--Version"])
+        if tool != PROVE:   # knoodleprove matches its three flags verbatim
+            check(rc == 0 and out.splitlines()[:1] == [line], f"{name} accepts --Version too")
+        rc, out, err = run([tool, "--help"])
+        check((out + err).splitlines()[:1] == [line],
+              f"{name} --help opens with the --version line")
 
 
 def test_flag_spellings():
