@@ -47,6 +47,11 @@ CC  ?= cc
 # off. ccache only caches a compile, never a compile-and-link, which is why the
 # group rule below makes an object file first.
 CCACHE ?= $(shell command -v ccache 2>/dev/null)
+# time_macros: the vendored pcg-cpp (deps/pcg-cpp/include/pcg_extras.hpp) names
+# __DATE__ and __TIME__ in a seed helper. ccache sees the words, assumes every
+# compile differs, and never hits (verified 2026-11-12: two identical builds,
+# 0 hits of 8). This tells it not to mind.
+CCACHE_ENV := $(if $(CCACHE),CCACHE_SLOPPINESS=time_macros)
 
 # Knoodle uses clang's matrix extension (-fenable-matrix), so clang/LLVM is the
 # supported toolchain (macOS clang, or a module-loaded clang/LLVM on a cluster).
@@ -212,7 +217,7 @@ build/group_$(1).cpp: $$(MANIFEST) gen_group.py | build
 
 build/group_$(1).o: build/group_$(1).cpp
 	@echo "=== Building group $(1) on $$(UNAME_S) ==="
-	$$(CCACHE) $$(CXX) $$(CXXFLAGS) -I. $$(FLAGS_$(2)) -c build/group_$(1).cpp -o $$@
+	$$(CCACHE_ENV) $$(CCACHE) $$(CXX) $$(CXXFLAGS) -I. $$(FLAGS_$(2)) -c build/group_$(1).cpp -o $$@
 
 build/group_$(1): build/group_$(1).o $$(DEPS_$(2)) $(3)
 	$$(CXX) $$(CXXFLAGS) build/group_$(1).o $$(LIBS_$(2)) -o $$@
