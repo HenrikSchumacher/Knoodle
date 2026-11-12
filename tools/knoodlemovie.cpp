@@ -19,6 +19,7 @@
 #include "../src/Animate/Frame.hpp"
 #include "../src/Animate/Json.hpp"
 #include "../src/Animate/Raster.hpp"
+#include "knoodle_io.hpp"   // VersionLine, VersionText
 
 #include <cstdio>
 #include <fstream>
@@ -50,6 +51,7 @@ int main( int argc, char ** argv )
         {
             if( a == "--help" || a == "-h" )
             {
+                std::printf("%s\n\n", VersionLine("knoodlemovie").c_str());
                 std::printf("Usage: knoodlemovie TRACE [--json=FILE | --frame=SECONDS] [--size=WxH] [--fps=N] [--style=talk|light|dark]\n\n"
                             "Reads a move trace (the stream knoodleprove checks) and writes its animation:\n"
                             "  --json=FILE       the animation, for the web player (players/knoodle-player.html)\n"
@@ -59,10 +61,13 @@ int main( int argc, char ** argv )
                             "        -s 1280x720 -r 30 -i - -pix_fmt yuv420p out.mp4\n\n"
                             "  --size=WxH        the picture's size (1280x720)\n"
                             "  --fps=N           frames a second (30)\n"
-                            "  --style=NAME      talk, light or dark (talk)\n\n"
+                            "  --style=NAME      talk, light or dark (talk)\n"
+                            "  -h, --help        show this message\n"
+                            "  --version         show the version and exit\n\n"
                             "A summary goes to standard error. examples/traces has traces to try.\n");
                 return 0;
             }
+            else if( a == "--version" )         { std::fputs(VersionText("knoodlemovie").c_str(), stdout); return 0; }
             else if( !val("--json=").empty() )  { json = val("--json="); }
             else if( !val("--size=").empty() )  { const std::string v = val("--size="); const auto x = v.find('x'); W = std::stoi(v.substr(0, x)); H = std::stoi(v.substr(x + 1)); }
             else if( !val("--fps=").empty() )   { fps = std::stoi(val("--fps=")); }
