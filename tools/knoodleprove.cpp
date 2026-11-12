@@ -38,10 +38,6 @@
 #include <string>
 #include <vector>
 
-#ifndef GIT_VERSION
-#define GIT_VERSION "unknown"
-#endif
-
 using Int     = std::int64_t;
 using PD_T    = Knoodle::PlanarDiagram<Int>;
 using Trace_T = Knoodle::MoveTrace<PD_T>;
@@ -51,6 +47,7 @@ namespace
 
 void PrintUsage()
 {
+    std::cerr << VersionLine("knoodleprove") << "\n\n";
     std::cerr <<
         "Usage: knoodleprove [OPTIONS] [FILE]\n"
         "\n"
@@ -96,7 +93,7 @@ void PrintUsage()
         "\n"
         "Options:\n"
         "  -h, --help     Show this message\n"
-        "  --version      Show the version\n";
+        "  --version      Show the version and exit\n";
 }
 
 /// The move kind a `#move` payload names; `pass` when it names none (the
@@ -415,7 +412,7 @@ int main( int argc, char * argv[] )
         }
         if( arg == "--version" )
         {
-            std::cout << "knoodleprove " << GIT_VERSION << "\n";
+            std::cout << VersionText("knoodleprove");
             return 0;
         }
         if( arg == "--check-exterior"  ) { check_exteriorQ  = true; continue; }

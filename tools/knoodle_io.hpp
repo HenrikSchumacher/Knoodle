@@ -317,6 +317,67 @@ CerrErrorTap* g_cerr_tap = nullptr;
 // that distinction is exactly the sort of thing that decides whether a failure
 // reproduces.
 
+/// The version this binary was built from, as --version and --help print it:
+/// "1.2.1" for a release, "1.2.0-38-ge4c4486c" (git describe: nearest release,
+/// commits since, hash) for a build between releases, "unversioned-e4c4486c"
+/// where no release tag is reachable, "unknown" when the build gave us nothing.
+/// The Makefile hands over the full 40-digit hash for the failure reports
+/// (BuildIdentity keeps it); here it is cut to 8 digits.
+[[maybe_unused]] std::string VersionString()
+{
+#if defined(GIT_VERSION)
+    std::string v = GIT_VERSION;
+    std::erase(v, '"');   // the Makefile's quoting leaves literal quotes in
+#else
+    std::string v;
+#endif
+    if( v.empty() ) { return "unknown"; }
+
+    std::string dirty;
+    if( v.ends_with("-dirty") )
+    {
+        dirty = "-dirty";
+        v.resize(v.size() - dirty.size());
+    }
+
+    const auto hexQ = []( std::string_view s )
+    {
+        return !s.empty() && s.find_first_not_of("0123456789abcdef") == s.npos;
+    };
+
+    if( (v.size() >= 7) && hexQ(v) )
+    {
+        // A bare hash: git describe found no tag.
+        return "unversioned-" + v.substr(0, 8) + dirty;
+    }
+
+    if( const auto g = v.rfind("-g"); (g != v.npos) && hexQ(std::string_view(v).substr(g + 2)) )
+    {
+        v.resize(std::min(v.size(), g + 2 + 8));
+    }
+
+    if( (v.size() > 1) && (v[0] == 'v') && (v[1] >= '0') && (v[1] <= '9') )
+    {
+        v.erase(0, 1);   // tags are v1.2.1; the version is 1.2.1
+    }
+    return v + dirty;
+}
+
+/// First line of --version and of --help, in the GNU Coding Standards' form
+/// (program, package in parentheses, version after the last space).
+[[maybe_unused]] std::string VersionLine( std::string_view tool )
+{
+    return std::string(tool) + " (Knoodle) " + VersionString();
+}
+
+/// What --version prints: the version line, then the licence (the repository's
+/// LICENSE is MIT). No copyright line, by JHC's decision.
+[[maybe_unused]] std::string VersionText( std::string_view tool )
+{
+    return VersionLine(tool) + "\n"
+        "License: MIT. There is NO WARRANTY, to the extent permitted by law.\n";
+}
+
 /// Compile-time build identity.
 [[maybe_unused]] std::string BuildIdentity()
 {

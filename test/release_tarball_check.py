@@ -207,16 +207,14 @@ def build_checks(ship):
             p = subprocess.run([exe, "--help"], cwd=scratch, env=env,
                                capture_output=True, text=True, timeout=120)
             check(p.returncode == 0, f"{t} --help exits 0", p.stdout + p.stderr)
-            # Only knoodleprove has --version; the others compile the same
-            # GIT_VERSION into their failure reports (BuildIdentity), so look
-            # for it in the binary. Either way it proves the makefile read the
-            # tarball's VERSION rather than falling through to "unknown".
-            check(CHECK_VERSION.encode() in open(exe, "rb").read(),
-                  f"{t} has the tarball's VERSION compiled in")
-        p = subprocess.run([os.path.join(root, "tools", "knoodleprove"), "--version"],
-                           cwd=scratch, env=env, capture_output=True, text=True, timeout=120)
-        check(CHECK_VERSION in p.stdout + p.stderr,
-              "knoodleprove --version reports the tarball's VERSION", p.stdout + p.stderr)
+            # --version drops the tag's leading "v"; it proves the makefile
+            # read the tarball's VERSION rather than falling through to
+            # "unknown".
+            p = subprocess.run([exe, "--version"], cwd=scratch, env=env,
+                               capture_output=True, text=True, timeout=120)
+            check(p.returncode == 0
+                  and p.stdout.splitlines()[:1] == [f"{t} (Knoodle) {CHECK_VERSION.lstrip('v')}"],
+                  f"{t} --version reports the tarball's VERSION", p.stdout + p.stderr)
 
         # An empty input loads no subtable, so it proves only that the tool found
         # a directory (and, since the startup table check, that every file in it
