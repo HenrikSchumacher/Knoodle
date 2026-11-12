@@ -9,8 +9,8 @@
 //              most two triangles, a disk, the boundary the one expected.
 //   Refine     Delaunay refinement of a polygon's triangulation: Lawson's
 //              flips, then longest-edge bisection down to a target length.
-//   Solve      the sparse solve: UMFPACK (Tensors' wrapper) when
-//              KNOODLE_USE_UMFPACK is set, else a small BiCGSTAB.
+//   Solve      the sparse solve, on Tensors' Sparse::MatrixCSR: Tensors'
+//              UMFPACK when KNOODLE_USE_UMFPACK is set, else a small BiCGSTAB.
 //
 // Tolerances are relative: a triangle's flatness is its doubled area over the
 // sum of its squared edges, a number that does not change with scale.
@@ -295,53 +295,57 @@ namespace Knoodle::Animate
     // The sparse solve.
     //==========================================================================
 
-    /*!@brief A square sparse matrix by rows. */
-    struct SparseMatrix
+    /*!@brief The matrix type: Tensors' compressed sparse rows. Its products
+     * (`Dot`), its sorting and its UMFPACK wrapper are the ones used here. */
+    using SparseMatrix = Tensors::Sparse::MatrixCSR<Real,Int64,Int64,Sequential>;
+
+    /*!@brief The rows of a square sparse matrix as they are assembled, one
+     * after another; `Matrix()` is the finished Tensors matrix. */
+    struct SparseRows
     {
-        Idx n = 0;
-        std::vector<Idx>  rp { 0 };  // row pointers, n + 1
-        std::vector<Idx>  ci;        // column indices
-        std::vector<Real> v;         // values
+        std::vector<Int64> rp { 0 }; // row pointers
+        std::vector<Int64> ci;       // column indices
+        std::vector<Real>  v;        // values
 
-        void Add( Idx col, Real value ) { ci.push_back(col); v.push_back(value); }
-        void EndRow()                // sorts the row by column, as a direct solver wants it
-        {
-            std::vector<std::pair<Idx,Real>> row;
-            for( Idx k = rp.back(); k < ci.size(); ++k ) { row.push_back({ ci[k], v[k] }); }
-            std::sort(row.begin(), row.end());
-            for( Idx k = 0; k < row.size(); ++k ) { ci[rp.back() + k] = row[k].first; v[rp.back() + k] = row[k].second; }
-            rp.push_back(ci.size()); ++n;
-        }
+        Idx  n() const { return rp.size() - 1; }
+        void Add( Idx col, Real value ) { ci.push_back(static_cast<Int64>(col)); v.push_back(value); }
+        void EndRow() { rp.push_back(static_cast<Int64>(ci.size())); }
 
-        void Mul( const std::vector<Real> & x, std::vector<Real> & y ) const
+        SparseMatrix Matrix() const
         {
-            y.assign(n, 0.0);
-            for( Idx i = 0; i < n; ++i ) { for( Idx k = rp[i]; k < rp[i+1]; ++k ) { y[i] += v[k] * x[ci[k]]; } }
-        }
-
-        /*!@brief ||b - A x|| / ||b|| (0 if b is 0 and so is the residual). */
-        Real Residual( const std::vector<Real> & b, const std::vector<Real> & x ) const
-        {
-            std::vector<Real> y;
-            Mul(x, y);
-            Real e = 0, bn = 0;
-            for( Idx i = 0; i < n; ++i ) { e += (b[i] - y[i]) * (b[i] - y[i]); bn += b[i] * b[i]; }
-            return (bn > 0) ? std::sqrt(e / bn) : std::sqrt(e);
+            SparseMatrix A ( rp.data(), ci.data(), v.data(), n(), n(), Int64(1) );
+            A.SortInner();           // by column within a row, as a direct solver wants it
+            return A;
         }
     };
 
+    /*!@brief ||b - A x|| / ||b|| (the norm of the residual itself if b is 0). */
+    inline Real Residual( const SparseMatrix & A, const std::vector<Real> & b, const std::vector<Real> & x )
+    {
+        std::vector<Real> y (b);
+        A.Dot(Real(-1), x.data(), Real(1), y.data());        // y = b - A x
+        Real e = 0, bn = 0;
+        for( Idx i = 0; i < b.size(); ++i ) { e += y[i] * y[i]; bn += b[i] * b[i]; }
+        return (bn > 0) ? std::sqrt(e / bn) : std::sqrt(e);
+    }
+
     /*!@brief BiCGSTAB with Jacobi preconditioning for A x = b, from the guess
-     * in x. Stops at relative residual `tol` or after `max_it` iterations. */
+     * in x. Stops at relative residual `tol` or after `max_it` iterations.
+     *
+     * Only for builds with neither SuiteSparse nor a BLAS. The matrices here
+     * are not symmetric (mean value weights), so Tensors' ConjugateGradient
+     * and sparse Cholesky do not apply, and its GMRES needs a BLAS. */
     inline void BiCGSTAB( const SparseMatrix & A, const std::vector<Real> & b, std::vector<Real> & x, Real tol, Idx max_it )
     {
-        const Idx n = A.n;
-        std::vector<Real> d (n, 1.0), Ax, res (n), rh, p (n, 0.0), vv (n, 0.0), s (n), t (n), y (n), z (n);
-        for( Idx i = 0; i < n; ++i ) { for( Idx k = A.rp[i]; k < A.rp[i+1]; ++k ) { if( A.ci[k] == i && A.v[k] != 0.0 ) { d[i] = 1.0 / A.v[k]; } } }
+        const Idx n = b.size();
+        std::vector<Real> d (n, 1.0), res (b), rh, p (n, 0.0), vv (n, 0.0), s (n), t (n), y (n), z (n);
+        const Int64 * rp = A.Outer().data(); const Int64 * ci = A.Inner().data(); const Real * av = A.Values().data();
+        for( Idx i = 0; i < n; ++i ) { for( Int64 k = rp[i]; k < rp[i+1]; ++k ) { if( static_cast<Idx>(ci[k]) == i && av[k] != 0.0 ) { d[i] = 1.0 / av[k]; } } }
         auto dot = [n]( const std::vector<Real> & a, const std::vector<Real> & c ) { Real r = 0; for( Idx i = 0; i < n; ++i ) { r += a[i] * c[i]; } return r; };
+        auto mul = [&A]( const std::vector<Real> & a, std::vector<Real> & c ) { A.Dot(Real(1), a.data(), Real(0), c.data()); };
         const Real bn = std::sqrt(dot(b, b));
         if( bn == 0.0 ) { x.assign(n, 0.0); return; }
-        A.Mul(x, Ax);
-        for( Idx i = 0; i < n; ++i ) { res[i] = b[i] - Ax[i]; }
+        A.Dot(Real(-1), x.data(), Real(1), res.data());      // res = b - A x
         rh = res;
         Real rho = 1.0, alpha = 1.0, omega = 1.0;
         for( Idx it = 0; it < max_it && std::sqrt(dot(res, res)) > tol * bn; ++it )
@@ -350,12 +354,12 @@ namespace Knoodle::Animate
             if( rho1 == 0.0 ) { break; }
             const Real beta = (rho1 / rho) * (alpha / omega);
             for( Idx i = 0; i < n; ++i ) { p[i] = res[i] + beta * (p[i] - omega * vv[i]); y[i] = d[i] * p[i]; }
-            A.Mul(y, vv);
+            mul(y, vv);
             const Real rv = dot(rh, vv);
             if( rv == 0.0 ) { break; }
             alpha = rho1 / rv;
             for( Idx i = 0; i < n; ++i ) { s[i] = res[i] - alpha * vv[i]; z[i] = d[i] * s[i]; }
-            A.Mul(z, t);
+            mul(z, t);
             const Real tt = dot(t, t);
             omega = (tt > 0.0) ? dot(t, s) / tt : 0.0;
             for( Idx i = 0; i < n; ++i ) { x[i] += alpha * y[i] + omega * z[i]; res[i] = s[i] - omega * t[i]; }
@@ -364,23 +368,26 @@ namespace Knoodle::Animate
         }
     }
 
-    /*!@brief Solve A X = B for each right-hand side in B. With
-     * KNOODLE_USE_UMFPACK: one sparse LU factorization. Without: BiCGSTAB from
-     * the guesses in X (the previous frame's solution, say), restarted from
-     * where it stops while that still gains. `residual` returns the largest
-     * true relative residual; false, with a reason, if it is above `accept`.
+    /*!@brief Solve A X = B for each right-hand side in B, A given by its
+     * rows. With KNOODLE_USE_UMFPACK: one sparse LU factorization (Tensors'
+     * UMFPACK). Without: BiCGSTAB from the guesses in X (the previous frame's
+     * solution, say), restarted from where it stops while that still gains.
+     * `residual` returns the largest true relative residual; false, with a
+     * reason, if it is above `accept`.
      */
-    inline bool Solve( const SparseMatrix & A, const std::vector<std::vector<Real>> & B, std::vector<std::vector<Real>> & X,
+    inline bool Solve( const SparseRows & rows, const std::vector<std::vector<Real>> & B, std::vector<std::vector<Real>> & X,
                        Real & residual, std::string & why, Real accept = 1e-9 )
     {
+        const Idx n = rows.n();
         X.resize(B.size());
-        for( auto & x : X ) { if( x.size() != A.n ) { x.assign(A.n, 0.0); } }
+        for( auto & x : X ) { if( x.size() != n ) { x.assign(n, 0.0); } }
         residual = 0;
-        if( A.n == 0 ) { return true; }
+        if( n == 0 ) { return true; }
+        const SparseMatrix A = rows.Matrix();
 #ifdef KNOODLE_USE_UMFPACK
         {
-            const std::vector<Int64> rp (A.rp.begin(), A.rp.end()), ci (A.ci.begin(), A.ci.end());
-            Tensors::UMFPACK<Real,Int64> lu ( static_cast<Int64>(A.n), static_cast<Int64>(A.n), rp.data(), ci.data(), A.v.data() );
+            // (UMFPACK's constructor from a MatrixCSR does not compile: it hands Tensor1s to a constructor that takes pointers.)
+            Tensors::UMFPACK<Real,Int64> lu ( A.RowCount(), A.ColCount(), A.Outer().data(), A.Inner().data(), A.Values().data() );
             if( lu.NumericStatus() != 0 ) { why = "UMFPACK could not factor the matrix (status " + std::to_string(lu.NumericStatus()) + ")"; return false; }
             for( Idx k = 0; k < B.size(); ++k ) { lu.Solve(B[k].data(), X[k].data()); }
         }
@@ -390,14 +397,14 @@ namespace Knoodle::Animate
             Real last = std::numeric_limits<Real>::infinity();
             for( int attempt = 0; attempt < 12; ++attempt )
             {
-                BiCGSTAB(A, B[k], X[k], 1e-14, std::max<Idx>(200, 10 * A.n));
-                const Real r = A.Residual(B[k], X[k]);
+                BiCGSTAB(A, B[k], X[k], 1e-14, std::max<Idx>(200, 10 * n));
+                const Real r = Residual(A, B[k], X[k]);
                 if( r <= 1e-13 || !(r < 0.5 * last) ) { break; }
                 last = r;
             }
         }
 #endif
-        for( Idx k = 0; k < B.size(); ++k ) { residual = std::max(residual, A.Residual(B[k], X[k])); }
+        for( Idx k = 0; k < B.size(); ++k ) { residual = std::max(residual, Residual(A, B[k], X[k])); }
         if( !(residual <= accept) ) { why = "the sparse solve stopped at relative residual " + std::to_string(residual); return false; }
         return true;
     }

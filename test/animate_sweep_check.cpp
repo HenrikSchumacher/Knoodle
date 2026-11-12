@@ -6,6 +6,7 @@
 // and frame i is within 2% of the total of times[i]. The pocket shapes also
 // check that the strand never jumps. Standard library only; a second or so.
 
+#include "../Knoodle.hpp"
 #include "../src/Animate/Sweep.hpp"
 
 #include <chrono>

@@ -159,7 +159,7 @@ static void TestKits()
     {
         // the 1D Laplacian on 200 points, and an unsymmetric perturbation of it
         const Idx n = 200;
-        A::SparseMatrix M;
+        A::SparseRows M;
         for( Idx i = 0; i < n; ++i )
         {
             if( i > 0 ) { M.Add(i - 1, -1.0); }
@@ -169,7 +169,8 @@ static void TestKits()
         }
         std::vector<std::vector<Real>> X0 (2, std::vector<Real>(n)), B (2), X;
         for( Idx i = 0; i < n; ++i ) { X0[0][i] = std::sin(0.1 * static_cast<Real>(i)); X0[1][i] = static_cast<Real>(i % 7); }
-        M.Mul(X0[0], B[0]); M.Mul(X0[1], B[1]);
+        const A::SparseMatrix MM = M.Matrix();
+        for( Idx k = 0; k < 2; ++k ) { B[k].assign(n, 0.0); MM.Dot(Real(1), X0[k].data(), Real(0), B[k].data()); }
         Real res = 1, err = 0;
         std::string why;
         const bool okQ = A::Solve(M, B, X, res, why);

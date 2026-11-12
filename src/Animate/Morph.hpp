@@ -674,7 +674,7 @@ namespace Knoodle::Animate
             std::vector<Point> P = (t >= 1) ? pr.P1 : (t > 0) ? pr.Q0 : pr.P0;
             if( t > 0 && t < 1 )
             {
-                SparseMatrix A;
+                SparseRows A;
                 std::vector<std::vector<Real>> B (2, std::vector<Real>(n, 0.0));
                 for( Idx i = 0; i < n; ++i )
                 {

@@ -202,7 +202,9 @@ No new dependency to build or install Knoodle.
 
 | Need | Candidate | Saves | Verdict |
 |---|---|---|---|
-| Sparse solve | Tensors' UMFPACK wrapper, already in the tree | about 60 | Use when `KNOODLE_USE_UMFPACK` is set; a 90-line BiCGSTAB otherwise, so builds without SuiteSparse still work |
+| Sparse matrix | Tensors' `Sparse::MatrixCSR`, already included | none | Use (2026-11-12, at Henrik's request): the matrix, its products and its sorting are Tensors' in every build |
+| Sparse solve | Tensors' UMFPACK wrapper, already in the tree | about 60 | Use when `KNOODLE_USE_UMFPACK` is set; a small BiCGSTAB otherwise, so builds without SuiteSparse still work |
+| Sparse solve without SuiteSparse | Tensors' `ConjugateGradient`, sparse Cholesky, `GMRES` | about 35 | Cannot yet. The matrices are not symmetric (mean value weights, which is what keeps a level set one curve), so the first two do not apply; `GMRES` calls `BLAS::trsv`, and the plain build has no BLAS |
 | Orientation predicate | Tools' `Oriented2D.hpp`, already included | about 20 | Use |
 | Triangulation | CDT (MPL-2.0), earcut (ISC) | 40 to 100 | No. Neither refines a mesh nor triangulates two drawings compatibly |
 | Quality meshing | Triangle, CGAL | about 240 | No. Licences |

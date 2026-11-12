@@ -254,7 +254,7 @@ namespace Knoodle::Animate
                 for( Idx v = 0; v < P.size(); ++v ) { if( cls[v] == 0 ) { S.push_back(v); } else if( cls[v] != zero && cls[v] != 3 ) { f[v] = 1; } }
                 for( int stage = 0; stage < 80 && !S.empty(); ++stage )
                 {
-                    SparseMatrix A;
+                    SparseRows A;
                     std::vector<std::vector<Real>> B (1, std::vector<Real>(S.size(), 0.0)), X;
                     Real scale = 0, residual = 0;
                     for( Idx k = 0; k < S.size(); ++k ) { pos[S[k]] = k; }
