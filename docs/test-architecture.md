@@ -166,6 +166,26 @@ can lean on a header that only a neighbour names; `make standalone` is the check
 
 CI also skips pushes and pull requests that touch only `docs/`.
 
+### Run time (same day)
+
+The light tier's run went from 19–24 s to about 12 s wall (4 workers, quiet
+machine; 15–18 s with the machine busy). Three changes:
+
+* **`cli_contract_check` and `lattice_input_check` run their test functions
+  side by side** (`test/concurrent_checks.py`), with the output printed in the
+  original order; it is byte-identical to a sequential run. About 190 of their
+  launches are `knoodleidentify`, each 0.1 s of loading the 12- and 13-crossing
+  tables, so the time was spent waiting on child processes. 11.8 → 6.3 s and
+  9.7 → 3.2 s. A Python-to-C++ translation would not have helped.
+* **`embedding_check --symmetry-images=6`** in the light tier: 6 of the 24 cube
+  rotations per fixture, 13.5 → 7.5 s. The heavy tier still checks all 24. This
+  one is a real reduction in what a push checks.
+* **`key_roundtrip_probe --up-to-crossing=12`** in the light tier: 6 → 0.7 s.
+  The 13-crossing table is 1.5 M of the 1.8 M keys; the heavy tier reads all.
+
+Raising the runner from 4 workers to 8 was tried and measured: no gain, once
+the scripts overlap their own launches. The default stays 4.
+
 ## 4. The random-polygon corpus (new)
 
 This is the fix for failure (3). Hard unknots are *built* to resist local moves,
