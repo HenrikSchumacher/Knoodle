@@ -339,7 +339,10 @@ namespace Knoodle::Animate
                     Cell c;
                     for( Idx x : T[t] ) { if( cls[x] != 3 ) { c.v[c.n++] = x; } else if( x == 0 ) { fan.push_back(t); } }
                     if( c.n < 2 ) { why = "a triangle holds both ends of a region"; return false; }
-                    std::sort(c.v.begin(), c.v.begin() + static_cast<std::ptrdiff_t>(c.n), [this]( Idx x, Idx y ) { return rank[x] < rank[y]; });
+                    // Two or three corners: Tools' sorting networks. (std::sort on a run whose length gcc
+                    // cannot bound drew -Warray-bounds; the run was never longer than the array.)
+                    auto lower = [this]( Idx x, Idx y ) { return rank[x] < rank[y]; };
+                    if( c.n == 3 ) { Tools::SortNet<3>()(c.v.data(), lower); } else { Tools::SortNet<2>()(c.v.data(), lower); }
                     c.area = Cross(P[T[t][0]], P[T[t][1]], P[T[t][2]]) / 2;
                     cells.push_back(c);
                     start[rank[c.v[0]]].push_back(t);
