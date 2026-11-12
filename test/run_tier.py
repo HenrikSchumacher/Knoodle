@@ -56,8 +56,13 @@ def read_manifest(path):
         for line in f:
             if line.startswith("#") or not line.strip():
                 continue
-            target, kind, needs, source, light, heavy, work = line.rstrip("\n").split("\t")
+            cols = line.rstrip("\n").split("\t")
+            # The group column is the eighth; a seven-column manifest (the
+            # fake suites run_tier_check writes) simply has no groups.
+            target, kind, needs, source, light, heavy, work = cols[:7]
+            group = cols[7] if len(cols) > 7 else "-"
             rows.append({
+                "group": None if group == "-" else group,
                 "target": target,
                 "kind": kind,
                 "needs": needs,
@@ -73,6 +78,10 @@ def command_for(row, tier, base):
     args = row[tier]
     if row["kind"] == "script":
         return [sys.executable, os.path.join(base, row["source"])] + args
+    # A grouped test lives in its group's binary, which takes the test's name
+    # as its first argument and runs that one test (see gen_group.py).
+    if row.get("group"):
+        return [os.path.join(base, "build", "group_" + row["group"]), row["target"]] + args
     return [os.path.join(base, row["target"])] + args
 
 

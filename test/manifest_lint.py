@@ -33,14 +33,15 @@ def read_manifest(path=MANIFEST):
         if line.startswith("#") or not line.strip():
             continue
         f = line.rstrip("\n").split("\t")
-        if len(f) != 7:
+        if len(f) != 8:
             raise SystemExit(
-                f"{path}:{lineno}: expected 7 tab-separated columns, got {len(f)}\n"
+                f"{path}:{lineno}: expected 8 tab-separated columns, got {len(f)}\n"
                 f"  {f!r}\n"
-                f"  (columns are: target kind needs source light-args heavy-args work)"
+                f"  (columns are: target kind needs source light-args heavy-args work group)"
             )
-        target, kind, needs, source, light, heavy, work = f
+        target, kind, needs, source, light, heavy, work, group = f
         rows[target] = {
+            "group": None if group == "-" else group,
             "lineno": lineno,
             "kind": kind,
             "needs": needs,
@@ -90,6 +91,28 @@ def main():
             problems.append(
                 f"{MANIFEST}:{r['lineno']}: {target}: no such source file '{r['source']}'"
             )
+
+    # Groups: one translation unit, one link line. So every member must be a
+    # compiled test and they must all link the same way.
+    group_needs = {}
+    for target, r in sorted(rows.items(), key=lambda kv: kv[1]["lineno"]):
+        g = r["group"]
+        if not g:
+            continue
+        if not re.fullmatch(r"[A-Za-z0-9_]+", g):
+            problems.append(
+                f"{MANIFEST}:{r['lineno']}: {target}: group '{g}' must be letters, "
+                f"digits and '_' only (it becomes a file name and a make target)")
+        if r["kind"] != "test":
+            problems.append(
+                f"{MANIFEST}:{r['lineno']}: {target}: only kind=test can be in a "
+                f"group, this is kind={r['kind']}. Set its group column to '-'.")
+        first = group_needs.setdefault(g, (r["needs"], target))
+        if first[0] != r["needs"]:
+            problems.append(
+                f"{MANIFEST}:{r['lineno']}: {target}: needs '{r['needs']}' but group "
+                f"'{g}' is linked as '{first[0]}' (from {first[1]}). A group is one "
+                f"binary, so its tests must share one link shape.")
 
     claimed = {r["source"] for r in rows.values()}
     for cpp in sorted(f for f in os.listdir(".") if f.endswith(".cpp")):
