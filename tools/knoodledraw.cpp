@@ -359,10 +359,12 @@ void PrintUsage()
     std::cerr << "                              exactly: non-integer coordinates that do not\n";
     std::cerr << "                              land exactly on Knoodle's integer grid, or that\n";
     std::cerr << "                              --projection=random would have to rotate\n";
-    std::cerr << "  --seed=N                    Seed every random choice (N in [0, 2^64)): the\n";
-    std::cerr << "                              random projection and --embedding's Reapr. The\n";
-    std::cerr << "                              same seed repeats a run on the same build, except\n";
-    std::cerr << "                              Reapr's bend randomization under --embedding\n";
+    std::cerr << "  --seed=N                    Seed the random projection and --embedding's\n";
+    std::cerr << "                              Reapr (N in [0, 2^64)). The same seed repeats a\n";
+    std::cerr << "                              run on the same build, except for the layout's\n";
+    std::cerr << "                              own random choices, which --seed cannot reach:\n";
+    std::cerr << "                              --randomize-bends, --randomize-virtual-edges,\n";
+    std::cerr << "                              and the layout inside every --embedding run\n";
     std::cerr << "\n";
     std::cerr << "Other:\n";
     std::cerr << "  -q, --quiet                 No warnings or notices on stderr (errors still\n";
@@ -4707,7 +4709,8 @@ int main(int argc, char* argv[])
 
     g_quiet = config.quiet;
 
-    // Every random choice follows from this one seed (see SeededEngine).
+    // Every random choice follows from this one seed (see SeededEngine), except
+    // OrthoDraw's: it seeds its own engine, which --seed cannot reach (see --help).
     g_run_seed = config.seed.value_or(FreshSeed());
     Knoodle::PRNG_T rng = SeededEngine(g_run_seed);
 
