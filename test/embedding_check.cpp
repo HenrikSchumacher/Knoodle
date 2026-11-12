@@ -1255,6 +1255,13 @@ static void TierCross( const std::vector<Fixture> & fx, Coords coords,
 ///
 /// Exact for integral coordinates, and exact for the integer-valued floating
 /// point ones too, since the entries are 0 and +/-1.
+///
+/// `--symmetry-images=N` checks N of the 24, spread evenly through the list
+/// (always including the identity). The light tier asks for 6: the symmetry
+/// tier is 8 of this test's 13 seconds, and six lattice images are still six
+/// maximally degenerate projections per fixture. The heavy tier checks all 24.
+static std::size_t g_symmetry_images = 24;
+
 template<class LE_T>
 static void SymmetryCheckOne( const Fixture & f, const std::string & label,
                               int cls, bool degeneracy_capable,
@@ -1271,7 +1278,13 @@ static void SymmetryCheckOne( const Fixture & f, const std::string & label,
         return true;
     };
 
-    const auto & rots = kt::OctahedralRotations();
+    const auto & all_rots = kt::OctahedralRotations();
+    const std::size_t want = std::min<std::size_t>(
+        std::max<std::size_t>(g_symmetry_images,2), all_rots.size());
+    // rots[k] is the image's index in the full list, so a failure names the
+    // same "image i" whichever subset found it.
+    std::vector<std::size_t> rots;
+    for( std::size_t k = 0; k < want; ++k ) { rots.push_back(k * all_rots.size() / want); }
 
     LinkClass base;
     std::string err;
@@ -1283,12 +1296,12 @@ static void SymmetryCheckOne( const Fixture & f, const std::string & label,
     // documented limitation, so the check reports it and stops.
     for( ; first < rots.size(); ++first )
     {
-        const kt::Curve c = kt::ApplyMatrix(f.curve,rots[first],
-                                            "oct" + std::to_string(first));
+        const kt::Curve c = kt::ApplyMatrix(f.curve,all_rots[rots[first]],
+                                            "oct" + std::to_string(rots[first]));
         if( classify(c,base,err) ) { break; }
         if( degeneracy_capable )
         {
-            t.Verdict(what,false,"image " + std::to_string(first)
+            t.Verdict(what,false,"image " + std::to_string(rots[first])
                       + " failed -- " + err, xfail, verbose);
             return;
         }
@@ -1296,7 +1309,8 @@ static void SymmetryCheckOne( const Fixture & f, const std::string & label,
 
     if( first >= rots.size() )
     {
-        t.Skip(what,"this class refused all 24 lattice-symmetric projections, "
+        t.Skip(what,"this class refused all " + std::to_string(rots.size())
+                    + " lattice-symmetric projections it was given, "
                     "which is expected without symbolic perturbation",verbose);
         return;
     }
@@ -1305,14 +1319,15 @@ static void SymmetryCheckOne( const Fixture & f, const std::string & label,
 
     for( std::size_t i = first+1; i < rots.size(); ++i )
     {
-        const kt::Curve c = kt::ApplyMatrix(f.curve,rots[i],"oct" + std::to_string(i));
+        const kt::Curve c = kt::ApplyMatrix(f.curve,all_rots[rots[i]],
+                                            "oct" + std::to_string(rots[i]));
 
         LinkClass lc;
         if( !classify(c,lc,err) )
         {
             if( degeneracy_capable )
             {
-                t.Verdict(what,false,"image " + std::to_string(i) + " failed -- " + err,
+                t.Verdict(what,false,"image " + std::to_string(rots[i]) + " failed -- " + err,
                           xfail,verbose);
                 return;
             }
@@ -1327,7 +1342,7 @@ static void SymmetryCheckOne( const Fixture & f, const std::string & label,
             {
                 continue;
             }
-            t.Verdict(what,false,"image " + std::to_string(i)
+            t.Verdict(what,false,"image " + std::to_string(rots[i])
                       + " is a different link: " + why, xfail, verbose);
             return;
         }
@@ -1639,6 +1654,7 @@ static void Usage()
         "  --fixtures=DIR     fixture directory                    (default ./embeddings)\n"
         "  --only=SUBSTR      only fixtures whose name contains SUBSTR\n"
         "  --rotations=N      random generic projections per fixture (default 3)\n"
+        "  --symmetry-images=N cube rotations checked in the symmetry tier (default 24, all)\n"
         "  --rotation-steps=N successive re-aimings in the rotation tier (default 24)\n"
         "  --homfly-cap=N     max crossings for the HOMFLY oracle  (default 40)\n"
         "  --isolate          run each (tier,fixture,class,coords) in a child process,\n"
@@ -1730,6 +1746,7 @@ int main( int argc, char ** argv )
         else if( Arg(argv[i],"--reader-probe=",v) ) { reader_probe = v; }
         else if( Arg(argv[i],"--only=",v) )       { only = v; }
         else if( Arg(argv[i],"--rotations=",v) )  { rotations = std::stoll(v); }
+        else if( Arg(argv[i],"--symmetry-images=",v) ) { g_symmetry_images = std::stoull(v); }
         else if( Arg(argv[i],"--homfly-cap=",v) ) { homfly_cap = std::stoll(v); }
         else if( Arg(argv[i],"--reps=",v) )       { reps = std::stoll(v); }
         else if( Arg(argv[i],"--rotation-steps=",v) ) { rot_steps = std::stoll(v); }
