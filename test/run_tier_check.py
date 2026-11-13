@@ -117,7 +117,7 @@ def write_suite(d, rows):
     with open(path, "w") as f:
         f.write("# fake manifest for run_tier_check\n")
         for target, kind, source, work in rows:
-            f.write("\t".join([target, kind, "-", source, "-", "-", work]) + "\n")
+            f.write("\t".join([target, kind, "-", source, "-", "-", "=", work, "-"]) + "\n")
     return path
 
 
@@ -291,11 +291,11 @@ def test_grouped_tests_run_in_their_group():
         manifest = os.path.join(d, "manifest.tsv")
         with open(manifest, "w") as f:
             for target in ("good_check", "bad_check"):
-                f.write("\t".join([target, "test", "plain", "-", "--small", "-",
-                                   WORK, "g"]) + "\n")
+                f.write("\t".join([target, "test", "plain", "-", "--small", "--big",
+                                   "--huge", WORK, "g"]) + "\n")
             # Same manifest, no group: there is no such binary, so "not built".
             f.write("\t".join(["alone_check", "test", "plain", "-", "-", "-",
-                               "-", "-"]) + "\n")
+                               "=", "-", "-"]) + "\n")
         logs = os.path.join(d, "logs")
         rc, out = run(manifest, logs)
         check(rc == 1, f"one failing member makes the run red (got {rc})")
@@ -307,6 +307,16 @@ def test_grouped_tests_run_in_their_group():
               "the group binary gets the test's name, then the test's arguments")
         check("MISSING" in out and "alone_check" in out,
               "a test with no group is still looked for as its own binary")
+
+        # The three tiers take their arguments from three columns.
+        for tier, arg in (("full", "--big"), ("release", "--huge")):
+            tier_logs = os.path.join(d, "logs_" + tier)
+            subprocess.run([sys.executable, os.path.join(HERE, "run_tier.py"),
+                            f"--tier={tier}", f"--manifest={manifest}",
+                            f"--log-dir={tier_logs}"], capture_output=True, text=True)
+            got = open(os.path.join(tier_logs, "good_check.log")).read()
+            check(f"member=good_check arg={arg}" in got,
+                  f"the {tier} tier passes the {tier}-args column ({arg})")
 
 
 def main():

@@ -20,7 +20,7 @@ Two depths, because the light tier reduces rather than skips:
       checkout resolves to one inside SHIP -- so a new include of, say,
       experimental/ cannot ship a tarball that does not compile.
 
-  heavy (--build)  -- what the release workflow and the formula do, end to end:
+  full (--build)   -- what the release workflow and the formula do, end to end:
     * run the script, unpack the tarball into an empty directory, and check
       its VERSION file and that the KLUT is real data, not LFS pointers;
     * build the four tools and PolyFold FROM THE UNPACKED TREE, with
@@ -32,7 +32,7 @@ Two depths, because the light tier reduces rather than skips:
       PolyFold smoke run; and each binary reports the tarball's version.
 
 The heavy build compiles every tool from scratch (minutes) and needs git-lfs,
-Boost and SuiteSparse. That is the heavy tier's job; the light tier and CI get
+Boost and SuiteSparse. That is the full and release tiers' job; the light tier and CI get
 the static half.
 
 Run: python3 release_tarball_check.py [--build]
@@ -140,7 +140,7 @@ def static_checks(ship):
 
 
 # ---------------------------------------------------------------------------
-# heavy: build the tarball and build from it
+# full and release tiers: build the tarball and build from it
 # ---------------------------------------------------------------------------
 
 def build_checks(ship):

@@ -33,13 +33,16 @@ def read_manifest(path=MANIFEST):
         if line.startswith("#") or not line.strip():
             continue
         f = line.rstrip("\n").split("\t")
-        if len(f) != 8:
+        if len(f) != 9:
             raise SystemExit(
-                f"{path}:{lineno}: expected 8 tab-separated columns, got {len(f)}\n"
+                f"{path}:{lineno}: expected 9 tab-separated columns, got {len(f)}\n"
                 f"  {f!r}\n"
-                f"  (columns are: target kind needs source light-args heavy-args work group)"
+                f"  (columns are: target kind needs source light-args full-args"
+                f" release-args work group)\n"
+                f"  (a row from before the release tier wants '=' inserted after"
+                f" its full-args, and a group -- or '-' -- at the end)"
             )
-        target, kind, needs, source, light, heavy, work, group = f
+        target, kind, needs, source, light, full, release, work, group = f
         rows[target] = {
             "group": None if group == "-" else group,
             "lineno": lineno,
@@ -47,7 +50,9 @@ def read_manifest(path=MANIFEST):
             "needs": needs,
             "source": source if source != "-" else target + ".cpp",
             "light": [] if light == "-" else light.split(),
-            "heavy": [] if heavy == "-" else heavy.split(),
+            "full": [] if full == "-" else full.split(),
+            "release": None if release == "=" else
+                       [] if release == "-" else release.split(),
             "work": None if work == "-" else work,
         }
     return rows
@@ -75,7 +80,7 @@ def main():
                 + "/".join(sorted(VALID_NEEDS))
             )
         # A reduced test with no work pattern can hollow out unnoticed.
-        if r["kind"] == "test" and (r["light"] or r["heavy"]) and not r["work"]:
+        if r["kind"] == "test" and (r["light"] or r["full"] or r["release"]) and not r["work"]:
             problems.append(
                 f"{MANIFEST}:{r['lineno']}: {target}: has reduced arguments but no "
                 f"work pattern, so it could be reduced to a no-op and still pass"
