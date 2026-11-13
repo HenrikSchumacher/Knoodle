@@ -87,7 +87,8 @@ CI_EXCLUDE="cli_stdin_check,run_tests"
 make -C test "${CI_TEST_TARGET:-light}" EXCLUDE_NEEDS="${CI_EXCLUDE_NEEDS}" ${MK[@]+"${MK[@]}"}
 make -C test lint
 
-# How much of the test build came from the compiler cache, where there is one.
+# How much of the tool and test builds came from the compiler cache, where
+# there is one.
 if command -v ccache >/dev/null 2>&1; then ccache --show-stats || true; fi
 
 cd test
