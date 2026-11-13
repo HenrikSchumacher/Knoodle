@@ -280,11 +280,10 @@ polygons: polygons/make_polygons
 #   make check       every test at light settings. Budget: build time plus 30 s
 #                    of RUN time. This is what the pre-push hook and CI run, so
 #                    the budget is what keeps it from being dodged.
-#   make check-full  every test at full settings, about a minute and a half of
-#                    runs. For when a change deserves more than the light tier:
+#   make check-full  every test at full settings, under two minutes of runs. For when a change deserves more than the light tier:
 #                    before merging to main, after touching the core.
 #   make check-release  the full tier plus what is too slow to run that often
-#                    (inflate_check's five trials: seven minutes). Required at
+#                    (inflate_check to 100k crossings: seven minutes). Required at
 #                    the commit of every v* tag; the pre-push hook checks.
 #                    Better to delay a release than to ship a regression.
 #
