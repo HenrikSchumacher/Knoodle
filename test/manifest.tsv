@@ -1,13 +1,13 @@
 # The test manifest: the single source of truth for what exists and how to run it.
 #
 # Both the Makefile and run_tier.py read this file. The Makefile uses columns
-# 1-4 and 8 to generate the build rules; the runner uses all eight. Two lints
+# 1-4 and 9 to generate the build rules; the runner uses all nine. Two lints
 # run as part of `make check`: a *_check.cpp with no row here fails, and a row
 # with no source file fails. That is what keeps targets from going unbuilt --
 # before this file, `make all` built 2 of 23 and the other 21 rotted quietly
 # (klut_identify_check had stopped compiling; link_alex_probe was exiting 1).
 #
-# TAB-SEPARATED. Eight columns, '-' means "default" or "none":
+# TAB-SEPARATED. Nine columns, '-' means "default" or "none":
 #
 #   target      binary name (and, unless `source` says otherwise, <target>.cpp)
 #   kind        test  -- runs with no arguments, exit 0 = pass. Runs in the tiers.
@@ -17,8 +17,13 @@
 #               plain | homfly | umfpack | homfly_umfpack | boost_umfpack
 #   source      source file, if it is not <target>.cpp
 #   light-args  argv for the light tier (must still do real work -- see §7)
-#   heavy-args  argv for the heavy tier
-#   work        a regex that the run's stdout MUST match, in BOTH tiers.
+#   full-args   argv for the full tier (`make check-full`)
+#   release-args  argv for the release tier (`make check-release`), or '=' for
+#               "the same as full-args", which is nearly every row. The release
+#               tier is the full tier plus whatever is too slow to run more
+#               often than once per release: today that is inflate_check's
+#               other four trials, 340 of the old heavy tier's 440 seconds.
+#   work        a regex that the run's stdout MUST match, in EVERY tier.
 #               '-' means none.
 #
 #               This is the guard against a reduced test quietly becoming a
@@ -54,63 +59,63 @@
 # by neither `all`, and linked -lumfpack it does not need. This manifest is how
 # that surfaced.
 #
-#target	kind	needs	source	light-args	heavy-args	work	group
-cli_contract_check	script	-	cli_contract_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)	-
-cli_stdin_check	script	-	cli_stdin_check.py	-	-	-	-
-lattice_input_check	script	-	lattice_input_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)	-
-hooks_check	script	-	hooks_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)	-
-klut_lfs_pointer_check	script	-	klut_lfs_pointer_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)	-
-klut_table_check	script	-	klut_table_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)	-
-polyfold_check	script	boost_umfpack	polyfold_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)	-
-release_tarball_check	script	-	release_tarball_check.py	-	--build	\([1-9][0-9]* checks, 0 failed\)	-
-run_tier_check	script	-	run_tier_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)	-
-alexander_normalization_check	test	umfpack	-	-	-	-	umfpack
-animate_morph_check	test	plain	-	--faces=1 --frames=5	--faces=5	ANIMATE MORPH CHECK OK \([1-9][0-9]* checks passed, 0 failed; [1-9][0-9]* morphs, 0 could not be made\)	plain
-animate_morph_umfpack_check	test	umfpack	animate_morph_check.cpp	--faces=1 --frames=5	--faces=5	ANIMATE MORPH CHECK OK \([1-9][0-9]* checks passed, 0 failed; [1-9][0-9]* morphs, 0 could not be made\)	umfpack
-canon_check	test	umfpack	-	-	-	-	umfpack
-component_check	test	plain	-	-	-	-	plain
-diagram_sanity_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)	plain
-embedding_check	test	homfly_umfpack	-	--symmetry-images=6	--coords=f64,f32,i32,i64 --rotations=8	passed [1-9][0-9]*, failed 0	homfly_umfpack
-embedding_inflation_check	test	plain	-	-	-	-	plain
-error_tap_check	test	plain	-	-	-	-	plain
-float_offset_check	test	plain	-	-	-	FLOAT OFFSET CHECK OK \([1-9][0-9]* checks, 0 failed	plain
-homfly_check	test	homfly	-	-	-	-	homfly
-inflate_check	test	homfly_umfpack	-	--trials=1 --target=3000 --max-rounds=8	--trials=5	inflate_check: [1-9][0-9]*/[1-9][0-9]* trials passed	homfly_umfpack
-intersection3d_check	test	plain	-	-	-	-	plain
-intersection_flag_reset_check	test	plain	-	-	-	-	plain
-key_roundtrip_probe	test	plain	-	--up-to-crossing=12	-	Total keys: [1-9][0-9]*	plain
-knoodle_io_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)	plain
-klut_bench	bench	umfpack	-	-	-	-	-
-klut_bench_boost	bench	boost_umfpack	klut_bench.cpp	-	-	-	-
-klut_check	test	homfly_umfpack	-	--up-to-crossing=8	-	klut_check: [1-9][0-9]* keys	homfly_umfpack
-klut_e2e	test	plain	-	--up-to-crossing=8 --per-crossing=3	-	sampled [1-9][0-9]* of [1-9][0-9]* keys	plain
-klut_identify_check	test	umfpack	-	-	-	-	umfpack
-klut_identify_random_check	test	umfpack	-	-	-	-	umfpack
-klut_loader_check	test	plain	-	-	-	KLUT LOADER CHECK OK \([1-9][0-9]* checks, 0 failed\)	plain
-link_alex_probe	test	umfpack	-	-	-	-	umfpack
-link_color_roundtrip	test	plain	-	-	-	-	plain
-link_inflate_check	test	homfly_umfpack	-	--trials=1 --target=3000	--trials=3	link_inflate_check: [1-9][0-9]*/[1-9][0-9]* trials passed	homfly_umfpack
-link_split_check	test	homfly_umfpack	-	-	-	-	homfly_umfpack
-local_moves_check	test	homfly_umfpack	-	-	-	passed [1-9][0-9]*,	homfly_umfpack
-lock_api_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)	plain
-pd_internal_state_check	test	plain	-	-	-	-	plain
-polygon_levels_check	test	homfly_umfpack	-	-	-	different diagrams on [1-9][0-9]* of [1-9][0-9]* polygons	homfly_umfpack
-run_tests	script	-	run_tests.py	--smoke-only	-	[1-9][0-9]*/[1-9][0-9]* passed	-
-sha256_check	test	plain	-	-	-	SHA256 CHECK OK \([1-9][0-9]* checks, 0 failed\)	plain
-simplify_config_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)	plain
-plantri_check	test	homfly	-	--up-to-crossing=6	--up-to-crossing=7	tested=[1-9][0-9]*	homfly
-reapr_corner_probe	tool	plain	-	-	-	-	-
-move_trace_check	test	plain	-	-	-	MOVE TRACE CHECK OK \([1-9][0-9]* checks passed\)	plain
-orthodecorate_check	test	plain	-	-	-	PROBE OK \([1-9][0-9]* checks passed\)	plain
-pass_view_check	test	plain	-	-	-	PASS VIEW CHECK OK \([1-9][0-9]* checks passed\)	plain
-oracle_vs_reroute	tool	plain	-	-	-	-	-
-ordering_probe	tool	plain	-	-	-	-	-
-wideint_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)	plain
-witness_check	test	plain	-	-	-	WITNESS CHECK OK \([1-9][0-9]* checks passed\)	plain
-draw_trace_check	script	-	draw_trace_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)	-
-r1_draw_check	script	-	r1_draw_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)	-
-prove_check	script	-	prove_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)	-
-exterior_thread_check	script	-	exterior_thread_check.py	-	-	\([1-9][0-9]* checks, 0 failed\)	-
-animate_scene_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)	plain
-animate_build_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)	plain
-animate_sweep_check	test	plain	-	-	-	\([1-9][0-9]* checks, 0 failed\)	plain
+#target	kind	needs	source	light-args	full-args	release-args	work	group
+cli_contract_check	script	-	cli_contract_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
+cli_stdin_check	script	-	cli_stdin_check.py	-	-	=	-	-
+lattice_input_check	script	-	lattice_input_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
+hooks_check	script	-	hooks_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
+klut_lfs_pointer_check	script	-	klut_lfs_pointer_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
+klut_table_check	script	-	klut_table_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
+polyfold_check	script	boost_umfpack	polyfold_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
+release_tarball_check	script	-	release_tarball_check.py	-	--build	=	\([1-9][0-9]* checks, 0 failed\)	-
+run_tier_check	script	-	run_tier_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
+alexander_normalization_check	test	umfpack	-	-	-	=	-	umfpack
+animate_morph_check	test	plain	-	--faces=1 --frames=5	--faces=5	=	ANIMATE MORPH CHECK OK \([1-9][0-9]* checks passed, 0 failed; [1-9][0-9]* morphs, 0 could not be made\)	plain
+animate_morph_umfpack_check	test	umfpack	animate_morph_check.cpp	--faces=1 --frames=5	--faces=5	=	ANIMATE MORPH CHECK OK \([1-9][0-9]* checks passed, 0 failed; [1-9][0-9]* morphs, 0 could not be made\)	umfpack
+canon_check	test	umfpack	-	-	-	=	-	umfpack
+component_check	test	plain	-	-	-	=	-	plain
+diagram_sanity_check	test	plain	-	-	-	=	\([1-9][0-9]* checks, 0 failed\)	plain
+embedding_check	test	homfly_umfpack	-	--symmetry-images=6	--coords=f64,f32,i32,i64 --rotations=8	=	passed [1-9][0-9]*, failed 0	homfly_umfpack
+embedding_inflation_check	test	plain	-	-	-	=	-	plain
+error_tap_check	test	plain	-	-	-	=	-	plain
+float_offset_check	test	plain	-	-	-	=	FLOAT OFFSET CHECK OK \([1-9][0-9]* checks, 0 failed	plain
+homfly_check	test	homfly	-	-	-	=	-	homfly
+inflate_check	test	homfly_umfpack	-	--trials=1 --target=3000 --max-rounds=8	--trials=1	--trials=5	inflate_check: [1-9][0-9]*/[1-9][0-9]* trials passed	homfly_umfpack
+intersection3d_check	test	plain	-	-	-	=	-	plain
+intersection_flag_reset_check	test	plain	-	-	-	=	-	plain
+key_roundtrip_probe	test	plain	-	--up-to-crossing=12	-	=	Total keys: [1-9][0-9]*	plain
+knoodle_io_check	test	plain	-	-	-	=	\([1-9][0-9]* checks, 0 failed\)	plain
+klut_bench	bench	umfpack	-	-	-	=	-	-
+klut_bench_boost	bench	boost_umfpack	klut_bench.cpp	-	-	=	-	-
+klut_check	test	homfly_umfpack	-	--up-to-crossing=8	-	=	klut_check: [1-9][0-9]* keys	homfly_umfpack
+klut_e2e	test	plain	-	--up-to-crossing=8 --per-crossing=3	-	=	sampled [1-9][0-9]* of [1-9][0-9]* keys	plain
+klut_identify_check	test	umfpack	-	-	-	=	-	umfpack
+klut_identify_random_check	test	umfpack	-	-	-	=	-	umfpack
+klut_loader_check	test	plain	-	-	-	=	KLUT LOADER CHECK OK \([1-9][0-9]* checks, 0 failed\)	plain
+link_alex_probe	test	umfpack	-	-	-	=	-	umfpack
+link_color_roundtrip	test	plain	-	-	-	=	-	plain
+link_inflate_check	test	homfly_umfpack	-	--trials=1 --target=3000	--trials=3	=	link_inflate_check: [1-9][0-9]*/[1-9][0-9]* trials passed	homfly_umfpack
+link_split_check	test	homfly_umfpack	-	-	-	=	-	homfly_umfpack
+local_moves_check	test	homfly_umfpack	-	-	-	=	passed [1-9][0-9]*,	homfly_umfpack
+lock_api_check	test	plain	-	-	-	=	\([1-9][0-9]* checks, 0 failed\)	plain
+pd_internal_state_check	test	plain	-	-	-	=	-	plain
+polygon_levels_check	test	homfly_umfpack	-	-	-	=	different diagrams on [1-9][0-9]* of [1-9][0-9]* polygons	homfly_umfpack
+run_tests	script	-	run_tests.py	--smoke-only	-	=	[1-9][0-9]*/[1-9][0-9]* passed	-
+sha256_check	test	plain	-	-	-	=	SHA256 CHECK OK \([1-9][0-9]* checks, 0 failed\)	plain
+simplify_config_check	test	plain	-	-	-	=	\([1-9][0-9]* checks, 0 failed\)	plain
+plantri_check	test	homfly	-	--up-to-crossing=6	--up-to-crossing=7	=	tested=[1-9][0-9]*	homfly
+reapr_corner_probe	tool	plain	-	-	-	=	-	-
+move_trace_check	test	plain	-	-	-	=	MOVE TRACE CHECK OK \([1-9][0-9]* checks passed\)	plain
+orthodecorate_check	test	plain	-	-	-	=	PROBE OK \([1-9][0-9]* checks passed\)	plain
+pass_view_check	test	plain	-	-	-	=	PASS VIEW CHECK OK \([1-9][0-9]* checks passed\)	plain
+oracle_vs_reroute	tool	plain	-	-	-	=	-	-
+ordering_probe	tool	plain	-	-	-	=	-	-
+wideint_check	test	plain	-	-	-	=	\([1-9][0-9]* checks, 0 failed\)	plain
+witness_check	test	plain	-	-	-	=	WITNESS CHECK OK \([1-9][0-9]* checks passed\)	plain
+draw_trace_check	script	-	draw_trace_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
+r1_draw_check	script	-	r1_draw_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
+prove_check	script	-	prove_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
+exterior_thread_check	script	-	exterior_thread_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
+animate_scene_check	test	plain	-	-	-	=	\([1-9][0-9]* checks, 0 failed\)	plain
+animate_build_check	test	plain	-	-	-	=	\([1-9][0-9]* checks, 0 failed\)	plain
+animate_sweep_check	test	plain	-	-	-	=	\([1-9][0-9]* checks, 0 failed\)	plain

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """gen_group -- write the one source file that a GROUP of tests is built from.
 
-    ./gen_group.py <group> <out.cpp>     # members come from manifest.tsv, column 8
+    ./gen_group.py <group> <out.cpp>     # members come from manifest.tsv, column 9
     ./gen_group.py --members=a,b <out.cpp>
 
 WHY GROUPS EXIST. Knoodle, Tensors and Tools are header-only, so every test
@@ -62,7 +62,7 @@ def members_of(group):
             if line.startswith("#") or not line.strip():
                 continue
             cols = line.rstrip("\n").split("\t")
-            if len(cols) >= 8 and cols[7] == group:
+            if len(cols) >= 9 and cols[8] == group:
                 out.append((cols[0], cols[0] + ".cpp" if cols[3] == "-" else cols[3]))
     return out
 

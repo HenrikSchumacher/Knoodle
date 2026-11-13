@@ -9,7 +9,7 @@
 #                              commit of ours must SAY so.
 #   push to main               light tier runs. Red REFUSES. Everybody,
 #                              including Henrik, has to override deliberately.
-#   push a v* tag              the heavy-tier stamp for that commit is
+#   push a v* tag              the release-tier stamp for that commit is
 #                              required. Refuses without it.
 #
 # Override: KNOODLE_PUSH_RED=1. Deliberately NOT --no-verify, which would also
@@ -50,21 +50,21 @@ done
 # --- the release gate -------------------------------------------------------
 if [ -n "$pushing_tag" ]; then
     version="${pushing_tag#refs/tags/}"
-    if [ -f "$STAMPS/heavy-$tag_sha" ]; then
-        printf '\npre-push: heavy tier verified for %s at %s\n\n' "$version" "$(echo "$tag_sha" | cut -c1-12)"
+    if [ -f "$STAMPS/release-$tag_sha" ]; then
+        printf '\npre-push: release tier verified for %s at %s\n\n' "$version" "$(echo "$tag_sha" | cut -c1-12)"
     elif [ -n "$OVERRIDE" ]; then
-        printf '\npre-push: KNOODLE_PUSH_RED set -- releasing %s without a heavy-tier run.\n\n' "$version"
+        printf '\npre-push: KNOODLE_PUSH_RED set -- releasing %s without a release-tier run.\n\n' "$version"
     else
         cat >&2 <<EOF
 
 Refusing to push the version tag $version.
 
-The heavy tier has not been run cleanly at this commit ($(echo "$tag_sha" | cut -c1-12)).
+The release tier has not been run cleanly at this commit ($(echo "$tag_sha" | cut -c1-12)).
 A tag is where a release starts, so this is the last point at which a corner-case
 regression can be caught before users see it.
 
-  To run it (about fifteen minutes, with the build):
-      make -C test check-full
+  To run it (about ten minutes, with the build):
+      make -C test check-release
 
   To tag anyway, without having run it:
       KNOODLE_PUSH_RED=1 git push ${1:-origin} $version
