@@ -149,7 +149,10 @@ endif
 
 # The tools. Add one here and it is built, cleaned and dependency-tracked;
 # `install` lists what it installs by name.
-TOOLS = knoodlesimplify knoodledraw knoodleidentify knoodleprove
+#
+# knoodlemovie is the animator's movie writer (docs/animate-design.md). It is
+# built by `all`, so that every build compiles the animator; not installed yet.
+TOOLS = knoodlesimplify knoodledraw knoodleidentify knoodleprove knoodlemovie
 
 all: $(TOOLS)
 

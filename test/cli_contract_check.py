@@ -33,6 +33,7 @@ SIMPLIFY = os.path.join(TOOLS, "knoodlesimplify")
 DRAW = os.path.join(TOOLS, "knoodledraw")
 IDENTIFY = os.path.join(TOOLS, "knoodleidentify")
 PROVE = os.path.join(TOOLS, "knoodleprove")
+MOVIE = os.path.join(TOOLS, "knoodlemovie")
 
 
 def klut_tables_are_pointers():
@@ -296,7 +297,7 @@ def test_help():
     # --version, in the GNU Coding Standards' form: program, package in
     # parentheses, version after the last space; on stdout, exit 0. The same
     # line opens --help, so a pasted help text says which build it came from.
-    for tool in (SIMPLIFY, DRAW, IDENTIFY, PROVE):
+    for tool in (SIMPLIFY, DRAW, IDENTIFY, PROVE, MOVIE):
         name = os.path.basename(tool)
         if not os.path.exists(tool):
             print(f"  SKIP  {name} is not built")
@@ -317,7 +318,7 @@ def test_help():
                       if all(c in "0123456789abcdefg" for c in piece)),
               f"{name} --version abbreviates the commit hash")
         rc, out, err = run([tool, "--Version"])
-        if tool != PROVE:   # knoodleprove matches its three flags verbatim
+        if tool not in (PROVE, MOVIE):   # these two match their few flags verbatim
             check(rc == 0 and out.splitlines()[:1] == [line], f"{name} accepts --Version too")
         rc, out, err = run([tool, "--help"])
         check((out + err).splitlines()[:1] == [line],
