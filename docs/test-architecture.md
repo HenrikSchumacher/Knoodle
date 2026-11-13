@@ -195,7 +195,7 @@ heavy tier something to run once per release and never otherwise. It is now two:
 |---|---|---|---|
 | light | `make check` | every test, reduced | about 12 s |
 | full | `make check-full` | every test at full settings, `inflate_check` to 20k crossings (3 trials) | about 100 s |
-| release | `make check-release` | the full tier, `inflate_check` to 100k crossings (5 trials) | about 5 min (see below) |
+| release | `make check-release` | the full tier, `inflate_check` to 50k crossings (5 trials) | about 2 min (see below) |
 
 Cutting `inflate_check` to one trial was not enough: a single trial at the
 default 100k target took 88, 140 and 266 s on three runs (the inflation
@@ -218,6 +218,17 @@ A second thing the timing showed: a run is NOT reproducible from `--seed`. Two
 runs with the same seed gave different crossing counts from round 1. The
 per-round reseeding of the Reapr engine does not cover every source of
 randomness in an embed-and-reproject round. Not chased yet.
+
+**Same day: the release target is 50k, not 100k.** With the Alexander cap in,
+the release tier still took 513 s, 506 of it `inflate_check` (one trial: 291 s).
+The time left is the embedding, and it depends on the size of the diagram being
+EMBEDDED, roughly as its square: 0.75 s at 11k crossings, 12 s at 44k, 21 s at
+55k, 77 s at 96k. So how far the last round overshoots the target costs nothing
+(that diagram is only simplified, in 0.1 s); what costs is every round whose
+input is just under the target, and a trial can have several, since a round can
+shrink the diagram. A cap on round size would therefore save nothing, and the
+target is the only lever. At `--target=50000` five trials took 57, 59 and 63 s
+on three runs. The test's own default is still 100000.
 
 The manifest has a `release-args` column; `=` means "as in the full tier",
 which is every row but one. The `v*` tag gate now wants the **release** stamp.

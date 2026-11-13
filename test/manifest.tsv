@@ -80,7 +80,7 @@ embedding_inflation_check	test	plain	-	-	-	=	-	plain
 error_tap_check	test	plain	-	-	-	=	-	plain
 float_offset_check	test	plain	-	-	-	=	FLOAT OFFSET CHECK OK \([1-9][0-9]* checks, 0 failed	plain
 homfly_check	test	homfly	-	-	-	=	-	homfly
-inflate_check	test	homfly_umfpack	-	--trials=1 --target=3000 --max-rounds=8	--trials=3 --target=20000	--trials=5	inflate_check: [1-9][0-9]*/[1-9][0-9]* trials passed	homfly_umfpack
+inflate_check	test	homfly_umfpack	-	--trials=1 --target=3000 --max-rounds=8	--trials=3 --target=20000	--trials=5 --target=50000	inflate_check: [1-9][0-9]*/[1-9][0-9]* trials passed	homfly_umfpack
 intersection3d_check	test	plain	-	-	-	=	-	plain
 intersection_flag_reset_check	test	plain	-	-	-	=	-	plain
 key_roundtrip_probe	test	plain	-	--up-to-crossing=12	-	=	Total keys: [1-9][0-9]*	plain
