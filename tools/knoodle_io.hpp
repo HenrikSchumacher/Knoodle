@@ -81,6 +81,19 @@ using LatticeEmb_T = Knoodle::LinkEmbedding<std::int64_t, Int>;
 // conflicting typedef redefinition. Downstream tools that combine this shared
 // header with the Accelerate backend are the first TU to meet both, so keep
 // these two aliases scoped. The vocabulary aliases above stay global on purpose.
+// Where the version text comes from. A tool built by tools/Makefile is compiled
+// with KNOODLE_VERSION_LINKED and linked against knoodle_version.cpp, which
+// holds the version and the build time; that keeps the version off the tool's
+// own compile line, so a new commit relinks a tool instead of recompiling it.
+// Anything else that includes this header gets the GIT_VERSION macro if its
+// build defines one, exactly as before.
+// (Declared here, at file scope: inside the unnamed namespace below they
+// would name a different, internal variable and the link would fail.)
+#if defined(KNOODLE_VERSION_LINKED)
+extern const char * const knoodle_linked_version;
+extern const char * const knoodle_linked_build_time;
+#endif
+
 namespace knoodle_io {
     using Clock    = std::chrono::steady_clock;
     using Duration = std::chrono::duration<double>;
@@ -317,22 +330,86 @@ CerrErrorTap* g_cerr_tap = nullptr;
 // that distinction is exactly the sort of thing that decides whether a failure
 // reproduces.
 
+/// The version text as the build gave it, without the quotes the Makefile's
+/// -DGIT_VERSION=\"...\" leaves in; empty when the build gave none.
+[[maybe_unused]] std::string RawVersionText()
+{
+#if defined(KNOODLE_VERSION_LINKED)
+    std::string v = knoodle_linked_version;
+#elif defined(GIT_VERSION)
+    std::string v = GIT_VERSION;
+#else
+    std::string v;
+#endif
+    std::erase(v, '"');
+    return v;
+}
+
+/// The version this binary was built from, as --version and --help print it:
+/// "1.2.1" for a release, "1.2.0-38-ge4c4486c" (git describe: nearest release,
+/// commits since, hash) for a build between releases, "unversioned-e4c4486c"
+/// where no release tag is reachable, "unknown" when the build gave us nothing.
+/// The Makefile hands over the full 40-digit hash for the failure reports
+/// (BuildIdentity keeps it); here it is cut to 8 digits.
+[[maybe_unused]] std::string VersionString()
+{
+    std::string v = RawVersionText();
+    if( v.empty() ) { return "unknown"; }
+
+    std::string dirty;
+    if( v.ends_with("-dirty") )
+    {
+        dirty = "-dirty";
+        v.resize(v.size() - dirty.size());
+    }
+
+    const auto hexQ = []( std::string_view s )
+    {
+        return !s.empty() && s.find_first_not_of("0123456789abcdef") == s.npos;
+    };
+
+    if( (v.size() >= 7) && hexQ(v) )
+    {
+        // A bare hash: git describe found no tag.
+        return "unversioned-" + v.substr(0, 8) + dirty;
+    }
+
+    if( const auto g = v.rfind("-g"); (g != v.npos) && hexQ(std::string_view(v).substr(g + 2)) )
+    {
+        v.resize(std::min(v.size(), g + 2 + 8));
+    }
+
+    if( (v.size() > 1) && (v[0] == 'v') && (v[1] >= '0') && (v[1] <= '9') )
+    {
+        v.erase(0, 1);   // tags are v1.2.1; the version is 1.2.1
+    }
+    return v + dirty;
+}
+
+/// First line of --version and of --help, in the GNU Coding Standards' form
+/// (program, package in parentheses, version after the last space).
+[[maybe_unused]] std::string VersionLine( std::string_view tool )
+{
+    return std::string(tool) + " (Knoodle) " + VersionString();
+}
+
+/// What --version prints: the version line, then the licence (the repository's
+/// LICENSE is MIT). No copyright line, by JHC's decision.
+[[maybe_unused]] std::string VersionText( std::string_view tool )
+{
+    return VersionLine(tool) + "\n"
+        "License: MIT. There is NO WARRANTY, to the extent permitted by law.\n";
+}
+
 /// Compile-time build identity.
 [[maybe_unused]] std::string BuildIdentity()
 {
     std::string s;
 
-#if defined(GIT_VERSION)
     {
-        // The Makefile's -DGIT_VERSION=\"...\" leaves literal quotes in the
-        // value; strip them so the most-read line of the report is clean.
-        std::string v = GIT_VERSION;
-        std::erase(v, '"');
-        s += "  knoodle version : " + v + "\n";
+        const std::string v = RawVersionText();
+        s += "  knoodle version : " + (v.empty() ? std::string("(not compiled in)") : v) + "\n";
     }
-#else
-    s += "  knoodle version : (not compiled in)\n";
-#endif
 
 #if   defined(__aarch64__) || defined(__arm64__)
     s += "  built for arch  : arm64\n";
@@ -354,7 +431,11 @@ CerrErrorTap* g_cerr_tap = nullptr;
     s += "  compiler        : " __VERSION__ "\n";
 #endif
 
+#if defined(KNOODLE_VERSION_LINKED)
+    s += "  built           : " + std::string(knoodle_linked_build_time) + "\n";
+#else
     s += "  built           : " __DATE__ " " __TIME__ "\n";
+#endif
     return s;
 }
 
