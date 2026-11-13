@@ -116,9 +116,9 @@ jobs:
               || grep -m1 'model name' /proc/cpuinfo; } > .ci-cpu-model
           cat .ci-cpu-model
 
-      - name: Restore the compiler cache (test groups)
-        # test/Makefile uses ccache for the group compiles when it is on PATH.
-        # A push that did not change what a group includes then recompiles
+      - name: Restore the compiler cache (tools and test groups)
+        # tools/Makefile and test/Makefile use ccache when it is on PATH. A push
+        # that did not change what a tool or a group includes then recompiles
         # nothing for it. Saved per commit, restored from the newest earlier one.
         uses: actions/cache@v4
         with:

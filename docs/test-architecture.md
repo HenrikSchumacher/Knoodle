@@ -186,6 +186,38 @@ machine; 15–18 s with the machine busy). Three changes:
 Raising the runner from 4 workers to 8 was tried and measured: no gain, once
 the scripts overlap their own launches. The default stays 4.
 
+### Three tiers (same day)
+
+`inflate_check --trials=5` was 428 s of the heavy tier's 442 s, which made the
+heavy tier something to run once per release and never otherwise. It is now two:
+
+| tier | make target | what | run time |
+|---|---|---|---|
+| light | `make check` | every test, reduced | about 12 s |
+| full | `make check-full` | every test at full settings, `inflate_check` at one trial | about 90 s |
+| release | `make check-release` | the full tier, `inflate_check` at five trials | about 7 min |
+
+The manifest has a `release-args` column; `=` means "as in the full tier",
+which is every row but one. The `v*` tag gate now wants the **release** stamp.
+Nothing requires the full tier: it is for before a merge to `main`, or after
+touching the core.
+
+### The tools and the version (same day)
+
+Each tool used to be compiled with `-DGIT_VERSION=<git describe>`. That had two
+costs. No two commits compiled alike, so nothing could be cached (41 s per CI
+leg). And make compares dates, not flags, so locally a tool was NOT rebuilt
+after a commit and went on reporting the old one.
+
+The version now lives in `tools/knoodle_version.cpp`, compiled once per tool
+into `tools/build/<tool>_version.o` and linked in. `tools/build/version.txt`
+holds the version text and is rewritten only when it changes, which is what
+triggers the recompile of that one small file and a relink. `knoodle_io.hpp`
+reads the linked value under `KNOODLE_VERSION_LINKED` and the `GIT_VERSION`
+macro otherwise, so other users of the header are unchanged. The tool compiles
+go through ccache when it is installed. `devel/PolyFold` still takes the
+version on its command line.
+
 ## 4. The random-polygon corpus (new)
 
 This is the fix for failure (3). Hard unknots are *built* to resist local moves,
