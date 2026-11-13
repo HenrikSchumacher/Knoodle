@@ -33,20 +33,26 @@ def read_manifest(path=MANIFEST):
         if line.startswith("#") or not line.strip():
             continue
         f = line.rstrip("\n").split("\t")
-        if len(f) != 7:
+        if len(f) != 9:
             raise SystemExit(
-                f"{path}:{lineno}: expected 7 tab-separated columns, got {len(f)}\n"
+                f"{path}:{lineno}: expected 9 tab-separated columns, got {len(f)}\n"
                 f"  {f!r}\n"
-                f"  (columns are: target kind needs source light-args heavy-args work)"
+                f"  (columns are: target kind needs source light-args full-args"
+                f" release-args work group)\n"
+                f"  (a row from before the release tier wants '=' inserted after"
+                f" its full-args, and a group -- or '-' -- at the end)"
             )
-        target, kind, needs, source, light, heavy, work = f
+        target, kind, needs, source, light, full, release, work, group = f
         rows[target] = {
+            "group": None if group == "-" else group,
             "lineno": lineno,
             "kind": kind,
             "needs": needs,
             "source": source if source != "-" else target + ".cpp",
             "light": [] if light == "-" else light.split(),
-            "heavy": [] if heavy == "-" else heavy.split(),
+            "full": [] if full == "-" else full.split(),
+            "release": None if release == "=" else
+                       [] if release == "-" else release.split(),
             "work": None if work == "-" else work,
         }
     return rows
@@ -74,7 +80,7 @@ def main():
                 + "/".join(sorted(VALID_NEEDS))
             )
         # A reduced test with no work pattern can hollow out unnoticed.
-        if r["kind"] == "test" and (r["light"] or r["heavy"]) and not r["work"]:
+        if r["kind"] == "test" and (r["light"] or r["full"] or r["release"]) and not r["work"]:
             problems.append(
                 f"{MANIFEST}:{r['lineno']}: {target}: has reduced arguments but no "
                 f"work pattern, so it could be reduced to a no-op and still pass"
@@ -90,6 +96,28 @@ def main():
             problems.append(
                 f"{MANIFEST}:{r['lineno']}: {target}: no such source file '{r['source']}'"
             )
+
+    # Groups: one translation unit, one link line. So every member must be a
+    # compiled test and they must all link the same way.
+    group_needs = {}
+    for target, r in sorted(rows.items(), key=lambda kv: kv[1]["lineno"]):
+        g = r["group"]
+        if not g:
+            continue
+        if not re.fullmatch(r"[A-Za-z0-9_]+", g):
+            problems.append(
+                f"{MANIFEST}:{r['lineno']}: {target}: group '{g}' must be letters, "
+                f"digits and '_' only (it becomes a file name and a make target)")
+        if r["kind"] != "test":
+            problems.append(
+                f"{MANIFEST}:{r['lineno']}: {target}: only kind=test can be in a "
+                f"group, this is kind={r['kind']}. Set its group column to '-'.")
+        first = group_needs.setdefault(g, (r["needs"], target))
+        if first[0] != r["needs"]:
+            problems.append(
+                f"{MANIFEST}:{r['lineno']}: {target}: needs '{r['needs']}' but group "
+                f"'{g}' is linked as '{first[0]}' (from {first[1]}). A group is one "
+                f"binary, so its tests must share one link shape.")
 
     claimed = {r["source"] for r in rows.values()}
     for cpp in sorted(f for f in os.listdir(".") if f.endswith(".cpp")):

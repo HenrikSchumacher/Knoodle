@@ -67,6 +67,7 @@ tools/knoodledraw
 tools/knoodleidentify
 tools/knoodleprove
 tools/*.d
+tools/build/
 test/*.d
 tools/knoodlesimplify.log
 tools/knoodledraw.log

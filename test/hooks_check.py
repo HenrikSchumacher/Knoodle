@@ -188,19 +188,19 @@ def test_annotated_tag_gate():
         green = {"KNOODLE_PUSH_TIER_RESULT": "0"}
 
         rc, out = run_policy(tag_ref, green, cwd=repo)
-        check(rc != 0, "annotated v* tag, no heavy stamp -> refused")
+        check(rc != 0, "annotated v* tag, no release stamp -> refused")
         check(commit[:12] in out, "the refusal names the COMMIT, not the tag object")
 
         os.makedirs(os.path.join(repo, "test", ".stamps"))
-        open(os.path.join(repo, "test", ".stamps", f"heavy-{commit}"), "w").close()
+        open(os.path.join(repo, "test", ".stamps", f"release-{commit}"), "w").close()
 
         rc, out = run_policy(tag_ref, green, cwd=repo)
-        check(rc == 0, "annotated v* tag + heavy stamp on its commit -> allowed")
-        check("heavy tier verified" in out, "the gate says the heavy tier was verified")
+        check(rc == 0, "annotated v* tag + release stamp on its commit -> allowed")
+        check("release tier verified" in out, "the gate says the release tier was verified")
 
         light_ref = f"refs/tags/v9.9.9 {commit} refs/tags/v9.9.9 {'0'*40}\n"
         rc, out = run_policy(light_ref, green, cwd=repo)
-        check(rc == 0, "lightweight v* tag + heavy stamp -> allowed")
+        check(rc == 0, "lightweight v* tag + release stamp -> allowed")
 
 
 def test_failure_names_come_from_the_run():
@@ -265,10 +265,10 @@ def test_policy_decisions():
     rc, out = run_policy(main_ref, dict(red, KNOODLE_PUSH_RED="1"))
     check(rc == 0, "RED + main + override -> allowed")
 
-    # A version tag with no heavy stamp for that commit.
+    # A version tag with no release stamp for that commit.
     rc, out = run_policy(tag_ref, green)
-    check(rc != 0, "v* tag with no heavy-tier stamp -> refused")
-    check("check-full" in out, "the tag refusal says how to run the heavy tier")
+    check(rc != 0, "v* tag with no release-tier stamp -> refused")
+    check("check-release" in out, "the tag refusal says how to run the release tier")
     # pre-push is handed <remote name> <url>; the hint used to expand "$*"
     # into `git push origin url v9.9.9`, which is not a command.
     check("KNOODLE_PUSH_RED=1 git push origin v9.9.9" in out,
