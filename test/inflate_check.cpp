@@ -6,11 +6,14 @@
  *        run KnoodleSimplify and confirm it collapses back to a small diagram
  *        with the same Alexander and HOMFLY invariants.
  *
- * The Alexander value (determinant-style, via sparse UMFPACK) is fast even at
- * 100k crossings, so it serves as a tripwire: if any embed→reproject round
- * changes it, a bug corrupted the diagram. KnoodleSimplify failing to reduce
- * the giant diagram, or the recovered diagram having a different HOMFLY, are
- * the other two failure signals.
+ * The Alexander value (determinant-style, via sparse UMFPACK) serves as a
+ * tripwire: if any embed→reproject round changes it, a bug corrupted the
+ * diagram. It is checked after every round up to --alexander-max crossings
+ * (default 25000). Above that it is too slow to run each round (97 s at 141k
+ * crossings), and a change of knot type is caught at the end instead, on the
+ * recovered diagram. KnoodleSimplify failing to reduce the giant diagram, or
+ * the recovered diagram having a different Alexander or HOMFLY, are the other
+ * failure signals.
  *
  * Reproducibility: the run is driven by a master --seed; each round re-seeds the
  * Reapr RNG with splitmix64(seed, round), so any failing round is reproducible
@@ -195,6 +198,13 @@ struct Config
     int           max_rounds = 60;
     Int           reduce_to  = 200;       // simplified must be <= this
     Int           homfly_max = 40;        // compute HOMFLY if recovered <= this
+    // The per-round Alexander tripwire runs only on diagrams up to this size
+    // (0 = every round). Its cost grows faster than linearly: 1.3 s at 21k
+    // crossings, 12 s at 64k, 97 s at 141k (measured 2026-11-13), which was
+    // two thirds of a trial. A change of knot type in a larger round is still
+    // caught, by the Alexander and HOMFLY comparison after Simplify; what is
+    // lost above the cap is only WHICH round did it.
+    Int           alex_max   = 25000;
     bool          verbose    = false;
 };
 
@@ -236,6 +246,7 @@ bool RunTrial(PD_T start, const Config& cfg, const Alex_T& alex)
 
     const auto t_inflate0 = Clock::now();
     int round = 0;
+    int first_unchecked = 0;   // first round too big for the Alexander tripwire
     while (pd.CrossingCount() < cfg.target && round < cfg.max_rounds)
     {
         ++round;
@@ -249,10 +260,13 @@ bool RunTrial(PD_T start, const Config& cfg, const Alex_T& alex)
         const std::uint64_t seed_k = SplitMix64(cfg.seed + static_cast<std::uint64_t>(round));
         reapr.RandomEngine() = Knoodle::PRNG_T(seed_k);
 
+        const auto t_r0 = Clock::now();
         prev = pd;
         auto emb = reapr.Embedding(pd);
         emb.Transform( reapr.RandomRotation() );
+        const auto t_r1 = Clock::now();
         auto [pd_new, unlinks] = PD_T::FromLinkEmbedding(emb);
+        const auto t_r2 = Clock::now();
 
         if (!pd_new.ValidQ() || unlinks.Size() > Int(0)
             || pd_new.LinkComponentCount() > Int(1))
@@ -288,7 +302,11 @@ bool RunTrial(PD_T start, const Config& cfg, const Alex_T& alex)
         }
 
         // Tripwire: the Alexander value must not change.
-        const AlexFingerprint alex_k = Alexander(alex, pd);
+        const auto t_r3 = Clock::now();
+        const bool check_alex = (cfg.alex_max == Int(0)) || (pd.CrossingCount() <= cfg.alex_max);
+        if (!check_alex && first_unchecked == 0) { first_unchecked = round; }
+        const AlexFingerprint alex_k = check_alex ? Alexander(alex, pd) : alex0;
+        const auto t_r4 = Clock::now();
         if (!AlexEqual(alex_k, alex0))
         {
             const std::string dump = "inflate_fail_seed" + std::to_string(cfg.seed)
@@ -306,7 +324,12 @@ bool RunTrial(PD_T start, const Config& cfg, const Alex_T& alex)
         if (cfg.verbose)
         {
             std::cout << "    round " << round << ": " << pd.CrossingCount()
-                      << " crossings\n";
+                      << " crossings  (embed " << Secs(t_r0, t_r1)
+                      << "s, project " << Secs(t_r1, t_r2)
+                      << "s, sanity " << Secs(t_r2, t_r3)
+                      << "s, Alexander "
+                      << (check_alex ? std::to_string(Secs(t_r3, t_r4)) + "s" : "skipped")
+                      << ")\n";
         }
     }
     const auto t_inflate1 = Clock::now();
@@ -363,6 +386,13 @@ bool RunTrial(PD_T start, const Config& cfg, const Alex_T& alex)
         std::cout << "  FAIL: Alexander of recovered diagram differs.\n"
                   << "    start    : " << AlexToString(alex0) << "\n"
                   << "    recovered: " << AlexToString(alex_rec) << "\n";
+        if (first_unchecked > 0)
+        {
+            std::cout << "  Rounds " << first_unchecked << ".." << round
+                      << " were above --alexander-max=" << cfg.alex_max
+                      << " and not checked one by one; rerun with "
+                         "--alexander-max=0 to see which round does it.\n";
+        }
         return false;
     }
 
@@ -398,6 +428,7 @@ int main(int argc, char* argv[])
         if      (a.rfind("--seed=", 0) == 0)        cfg.seed = std::stoull(val("--seed="));
         else if (a.rfind("--target=", 0) == 0)      cfg.target = std::stoll(val("--target="));
         else if (a.rfind("--max-rounds=", 0) == 0)  cfg.max_rounds = std::stoi(val("--max-rounds="));
+        else if (a.rfind("--alexander-max=", 0) == 0) cfg.alex_max = std::stoll(val("--alexander-max="));
         else if (a.rfind("--reduce-to=", 0) == 0)   cfg.reduce_to = std::stoll(val("--reduce-to="));
         else if (a.rfind("--trials=", 0) == 0)      n_trials = std::stoi(val("--trials="));
         else if (a.rfind("--start=", 0) == 0)       start_spec = val("--start=");
@@ -416,6 +447,9 @@ int main(int argc, char* argv[])
                 "  --trials=N       run N trials with consecutive seeds (default 1)\n"
                 "  --target=N       inflate until >= N crossings (default 100000)\n"
                 "  --max-rounds=N   cap on inflation rounds (default 60)\n"
+                "  --alexander-max=N  check Alexander after a round only while the\n"
+                "                   diagram has <= N crossings (default 25000; 0 = always).\n"
+                "                   Larger rounds are covered by the check after Simplify.\n"
                 "  --reduce-to=N    recovered diagram must be <= N crossings (default 200)\n"
                 "  --klut-dir=PATH  KLUT data dir for --start=klut (default ../data/Klut)\n"
                 "  --verbose        print per-round crossing counts\n";

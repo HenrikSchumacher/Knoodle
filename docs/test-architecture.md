@@ -195,12 +195,29 @@ heavy tier something to run once per release and never otherwise. It is now two:
 |---|---|---|---|
 | light | `make check` | every test, reduced | about 12 s |
 | full | `make check-full` | every test at full settings, `inflate_check` to 20k crossings (3 trials) | about 100 s |
-| release | `make check-release` | the full tier, `inflate_check` to 100k crossings (5 trials) | about 7 min |
+| release | `make check-release` | the full tier, `inflate_check` to 100k crossings (5 trials) | about 5 min (see below) |
 
 Cutting `inflate_check` to one trial was not enough: a single trial at the
 default 100k target took 88, 140 and 266 s on three runs (the inflation
 overshoots at random, and the last rounds are nearly all of the time). To 20k
 crossings, three trials take about 20 s.
+
+**2026-11-13: the Alexander check has a size cap.** The release tier then took
+362 s one evening and 819 s the next morning, all of it `inflate_check`. Timing
+the parts of a round showed why: the per-round Alexander check was two thirds
+of a trial (1.3 s at 21k crossings, 12 s at 64k, 97 s at 141k, against 32 s for
+the embedding in that last round). It now runs only on rounds of at most
+`--alexander-max` crossings (default 25000; 0 means every round). A change of
+knot type in a larger round is still caught, by the Alexander and HOMFLY
+comparison on the diagram that Simplify recovers; what is lost is which round
+did it, and a failure says to rerun with `--alexander-max=0`. Five trials at
+100k took 272 s after the change. What remains is the embedding of the last
+round or two (12 to 77 s per trial), and it is as random as before.
+
+A second thing the timing showed: a run is NOT reproducible from `--seed`. Two
+runs with the same seed gave different crossing counts from round 1. The
+per-round reseeding of the Reapr engine does not cover every source of
+randomness in an embed-and-reproject round. Not chased yet.
 
 The manifest has a `release-args` column; `=` means "as in the full tier",
 which is every row but one. The `v*` tag gate now wants the **release** stamp.
