@@ -25,6 +25,8 @@ import os
 import subprocess
 import sys
 
+import concurrent_checks
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.join(HERE, "..", "tools")
 SIMPLIFY = os.path.join(TOOLS, "knoodlesimplify")
@@ -66,11 +68,13 @@ fails = 0
 
 def check(ok, what):
     global checks, fails
-    checks += 1
-    if ok:
-        return
-    print(f"  FAILED  {what}")
-    fails += 1
+    # The tests run side by side (concurrent_checks), so the counters are shared.
+    with concurrent_checks.LOCK:
+        checks += 1
+        if not ok:
+            fails += 1
+    if not ok:
+        print(f"  FAILED  {what}")
 
 
 def section(s):
@@ -881,18 +885,22 @@ def main():
               " knoodleidentify refuses them. Install git-lfs and run `git lfs pull`.")
         return 2
 
-    test_output_is_readable_again()
-    test_column_counts()
-    test_failure_looks_like_failure()
-    test_3d_input_is_quiet()
-    test_3d_routes_agree()
-    test_input_flags()
-    test_embedding_is_reaprs_own()
-    test_help()
-    test_flag_spellings()
-    test_draw_is_a_filter()
-    test_embedding_grid()
-    test_every_test_runs()
+    # Side by side, reported in this order (see concurrent_checks.py). Each is
+    # written out as a call so that test_every_test_runs can still find it.
+    concurrent_checks.run_in_order([
+        lambda: test_output_is_readable_again(),
+        lambda: test_column_counts(),
+        lambda: test_failure_looks_like_failure(),
+        lambda: test_3d_input_is_quiet(),
+        lambda: test_3d_routes_agree(),
+        lambda: test_input_flags(),
+        lambda: test_embedding_is_reaprs_own(),
+        lambda: test_help(),
+        lambda: test_flag_spellings(),
+        lambda: test_draw_is_a_filter(),
+        lambda: test_embedding_grid(),
+        lambda: test_every_test_runs(),
+    ])
 
     print(f"\n{'CLI CONTRACT CHECK OK' if fails == 0 else 'CLI CONTRACT CHECK FAILED'}"
           f" ({checks} checks, {fails} failed)")
