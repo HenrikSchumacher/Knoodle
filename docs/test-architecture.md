@@ -194,8 +194,13 @@ heavy tier something to run once per release and never otherwise. It is now two:
 | tier | make target | what | run time |
 |---|---|---|---|
 | light | `make check` | every test, reduced | about 12 s |
-| full | `make check-full` | every test at full settings, `inflate_check` at one trial | about 90 s |
-| release | `make check-release` | the full tier, `inflate_check` at five trials | about 7 min |
+| full | `make check-full` | every test at full settings, `inflate_check` to 20k crossings (3 trials) | about 100 s |
+| release | `make check-release` | the full tier, `inflate_check` to 100k crossings (5 trials) | about 7 min |
+
+Cutting `inflate_check` to one trial was not enough: a single trial at the
+default 100k target took 88, 140 and 266 s on three runs (the inflation
+overshoots at random, and the last rounds are nearly all of the time). To 20k
+crossings, three trials take about 20 s.
 
 The manifest has a `release-args` column; `=` means "as in the full tier",
 which is every row but one. The `v*` tag gate now wants the **release** stamp.
