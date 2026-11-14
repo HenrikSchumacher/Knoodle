@@ -606,7 +606,7 @@ Three runner bugs were fixed alongside:
 |---|---|---|
 | local commit, any branch including `main` | nothing | — commits are free; `main` may carry WIP history |
 | push to a feature branch | light tier | **warn**, push proceeds; Claude-authored commits must say so in the message (below) |
-| push to `main` | light tier | **refuse**; explicit override required, for everybody including Henrik |
+| push to `main` | light tier | **refuse**; explicit override required, for everybody including Henrik. Also refuses if the pushed commit cannot be tested here (not the clean `HEAD`, no stamp) |
 | push a `v*` tag | heavy-tier stamp check | **refuse** unless a clean heavy run is recorded for that exact commit |
 
 The tag case is where the release gate belongs: a versioned GitHub release starts
@@ -671,9 +671,18 @@ is a warning-shaped refusal with an obvious one-line fix.
   the worktree is clean **and nothing was skipped**: a stamp against a dirty tree
   would certify code that was never run, and a platform-limited subset covered
   less than the tier claims. HEAD must also be the commit the run started at
-  (§7a). The hook skips a tier whose stamp matches `HEAD`.
+  (§7a). The hook skips the tier for a pushed commit that has a stamp.
   One mechanism serves both the push gate and the release gate. Gitignored --
   a stamp certifies one checkout, not a commit in the abstract.
+* **The tier answers only for the commit it tested.** It tests the checked-out
+  working tree, so a run vouches for a pushed commit only when that commit is
+  the clean `HEAD`. Each pushed commit is *stamped* (green), *runnable* (it is
+  the clean `HEAD`: the tier runs, once per push) or *untested* (anything else,
+  e.g. `git push origin main` from a checkout on another branch, or with
+  uncommitted tracked changes). Untested refuses for `main`, with the same
+  `KNOODLE_PUSH_RED=1` override, and warns for a branch. Until 2026-11-14 the
+  hook tested `HEAD` whatever was pushed, so `main` could go out on another
+  branch's stamp; 430df8ec did. `test/hooks_check` covers each case.
 * **A red push leaves its evidence.** The hook keeps the whole `make check`
   transcript as `test/logs/pre-push.log`, next to the per-test logs (§7a), and
   prints where both are. It takes the failing tests' names for the message from

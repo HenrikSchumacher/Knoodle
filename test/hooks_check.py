@@ -149,6 +149,52 @@ exit 0
             os.rename(backup, policy)
 
 
+GIT = ["git", "-c", "user.name=hooks_check", "-c", "user.email=hooks@example.invalid",
+       "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false", "-c", "core.hooksPath=/dev/null"]
+
+
+class Fixture:
+    """A throwaway repository whose commits are real, so that the policy's
+    `git rev-parse HEAD` and `git status` answer about the commit being pushed.
+    Two commits: `older` and `head` (= HEAD), and one tracked file to dirty."""
+
+    def __init__(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.path = os.path.join(self._tmp.name, "repo")
+        os.makedirs(self.path)
+        self.g("init", "-q")
+        with open(os.path.join(self.path, "f.txt"), "w") as f:
+            f.write("one\n")
+        self.g("add", "f.txt")
+        self.g("commit", "-q", "-m", "older")
+        self.older = self.g("rev-parse", "HEAD")
+        self.g("commit", "-q", "--allow-empty", "-m", "head")
+        self.head = self.g("rev-parse", "HEAD")
+
+    def g(self, *a, cwd=None):
+        return subprocess.run([*GIT, *a], cwd=cwd or self.path, capture_output=True,
+                              text=True, check=True).stdout.strip()
+
+    def stamp(self, tier, sha):
+        d = os.path.join(self.path, "test", ".stamps")
+        os.makedirs(d, exist_ok=True)
+        open(os.path.join(d, f"{tier}-{sha}"), "w").close()
+
+    def unstamp(self, tier, sha):
+        os.remove(os.path.join(self.path, "test", ".stamps", f"{tier}-{sha}"))
+
+    def dirty(self, on=True):
+        with open(os.path.join(self.path, "f.txt"), "w") as f:
+            f.write("two\n" if on else "one\n")
+
+    def close(self):
+        self._tmp.cleanup()
+
+
+def ref(remote_ref, sha, local_ref=None):
+    return f"{local_ref or remote_ref} {sha} {remote_ref} {'b'*40}\n"
+
+
 def run_policy(refs, env_extra, args=("origin", "url"), cwd=REPO):
     env = dict(os.environ, **env_extra)
     env.pop("KNOODLE_PUSH_RED", None)
@@ -171,8 +217,7 @@ def test_annotated_tag_gate():
     # gate comparing the raw sha refused every real release even after a clean
     # heavy run. The fake shas above cannot catch this: it takes a real tag
     # object, so build one in a throwaway repository.
-    git = ["git", "-c", "user.name=hooks_check", "-c", "user.email=hooks@example.invalid",
-           "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false", "-c", "core.hooksPath=/dev/null"]
+    git = GIT
     with tempfile.TemporaryDirectory() as repo:
         def g(*a):
             return subprocess.run([*git, *a], cwd=repo, capture_output=True, text=True,
@@ -206,15 +251,15 @@ def test_annotated_tag_gate():
 def test_failure_names_come_from_the_run():
     section("the policy names failures from the run's own failed.txt")
 
-    sha = "a" * 40
-    main_ref = f"refs/heads/main {sha} refs/heads/main {'b'*40}\n"
+    fx = Fixture()
+    main_ref = ref("refs/heads/main", fx.head)
     red = {"KNOODLE_PUSH_TIER_RESULT": "1"}
 
     with tempfile.TemporaryDirectory() as logs:
         os.makedirs(os.path.join(logs, "light"))
         with open(os.path.join(logs, "light", "failed.txt"), "w") as f:
             f.write("alpha_check\nbeta_check\n")
-        rc, out = run_policy(main_ref, dict(red, KNOODLE_PUSH_LOG_DIR=logs))
+        rc, out = run_policy(main_ref, dict(red, KNOODLE_PUSH_LOG_DIR=logs), cwd=fx.path)
         check(rc != 0, "RED + main -> refused (names from failed.txt)")
         check("alpha_check beta_check" in out,
               "the refusal names every test listed in failed.txt")
@@ -223,10 +268,11 @@ def test_failure_names_come_from_the_run():
     # the build or the lints. Say so -- the old "(see the output above)" is how
     # a build failure used to read in a commit message.
     with tempfile.TemporaryDirectory() as logs:
-        rc, out = run_policy(main_ref, dict(red, KNOODLE_PUSH_LOG_DIR=logs))
+        rc, out = run_policy(main_ref, dict(red, KNOODLE_PUSH_LOG_DIR=logs), cwd=fx.path)
         check(rc != 0, "RED + main with no failed.txt -> refused")
         check("before any test ran" in out,
               "with no failed.txt the refusal says the build or lint failed first")
+    fx.close()
 
     # The names must come from the run that just happened. Re-running the tier
     # to scrape them cost another 15s and could disagree with the first run.
@@ -241,32 +287,33 @@ def test_failure_names_come_from_the_run():
 def test_policy_decisions():
     section("the push policy's four cases")
 
-    sha = "a" * 40
-    main_ref = f"refs/heads/main {sha} refs/heads/main {'b'*40}\n"
-    branch_ref = f"refs/heads/topic {sha} refs/heads/topic {'b'*40}\n"
+    fx = Fixture()
+    sha = fx.head
+    main_ref = ref("refs/heads/main", sha)
+    branch_ref = ref("refs/heads/topic", sha)
     tag_ref = f"refs/tags/v9.9.9 {sha} refs/tags/v9.9.9 {'0'*40}\n"
 
     green = {"KNOODLE_PUSH_TIER_RESULT": "0"}
     red = {"KNOODLE_PUSH_TIER_RESULT": "1", "KNOODLE_PUSH_TIER_FAILED": "widget_check"}
 
-    rc, out = run_policy(main_ref, green)
+    rc, out = run_policy(main_ref, green, cwd=fx.path)
     check(rc == 0, "green + main -> allowed")
 
-    rc, out = run_policy(branch_ref, green)
+    rc, out = run_policy(branch_ref, green, cwd=fx.path)
     check(rc == 0, "green + branch -> allowed")
 
-    rc, out = run_policy(main_ref, red)
+    rc, out = run_policy(main_ref, red, cwd=fx.path)
     check(rc != 0, "RED + main -> refused")
     check("widget_check" in out, "the refusal names the failing test")
     check("KNOODLE_PUSH_RED=1" in out, "the refusal gives the override command")
     check("refs/heads/<branch-name>" in out,
           "the refusal gives the push-to-a-branch-instead command")
 
-    rc, out = run_policy(main_ref, dict(red, KNOODLE_PUSH_RED="1"))
+    rc, out = run_policy(main_ref, dict(red, KNOODLE_PUSH_RED="1"), cwd=fx.path)
     check(rc == 0, "RED + main + override -> allowed")
 
     # A version tag with no release stamp for that commit.
-    rc, out = run_policy(tag_ref, green)
+    rc, out = run_policy(tag_ref, green, cwd=fx.path)
     check(rc != 0, "v* tag with no release-tier stamp -> refused")
     check("check-release" in out, "the tag refusal says how to run the release tier")
     # pre-push is handed <remote name> <url>; the hint used to expand "$*"
@@ -274,13 +321,79 @@ def test_policy_decisions():
     check("KNOODLE_PUSH_RED=1 git push origin v9.9.9" in out,
           "the tag refusal's command names the remote, not the remote and its url")
 
-    rc, out = run_policy(tag_ref, dict(green, KNOODLE_PUSH_RED="1"))
+    rc, out = run_policy(tag_ref, dict(green, KNOODLE_PUSH_RED="1"), cwd=fx.path)
     check(rc == 0, "v* tag + override -> allowed")
 
     # Deleting a branch pushes an all-zero local sha and must not run anything.
     delete_ref = f"(delete) {'0'*40} refs/heads/topic {'b'*40}\n"
-    rc, out = run_policy(delete_ref, red)
+    rc, out = run_policy(delete_ref, red, cwd=fx.path)
     check(rc == 0, "deleting a ref runs no tests and is allowed")
+    fx.close()
+
+
+def test_pushed_commit_is_the_tested_commit():
+    section("the tier speaks only for the commit it actually tested")
+
+    # Until 2026-11-14 the policy ran (or read the stamp for) HEAD whatever was
+    # being pushed: `git push origin main` from a checkout on another branch
+    # passed on THAT branch's stamp, and main was never tested. 430df8ec went
+    # out that way. The tier tests the working tree, so it can vouch for a
+    # pushed commit only when that commit is the clean HEAD -- or when a clean
+    # run at exactly that commit left a stamp.
+    green = {"KNOODLE_PUSH_TIER_RESULT": "0"}
+    red = {"KNOODLE_PUSH_TIER_RESULT": "1", "KNOODLE_PUSH_TIER_FAILED": "widget_check"}
+    fx = Fixture()
+    old, head = fx.older, fx.head
+    try:
+        # main is not HEAD. Even a green run here must not count for it.
+        rc, out = run_policy(ref("refs/heads/main", old), green, cwd=fx.path)
+        check(rc != 0, "main != HEAD, no stamp, green tier -> refused (the run tested HEAD)")
+        check(old[:12] in out and head[:12] in out,
+              "the refusal names both the pushed commit and HEAD")
+        check("KNOODLE_PUSH_RED=1 git push origin main" in out,
+              "the refusal gives the override command")
+
+        rc, out = run_policy(ref("refs/heads/main", old), dict(green, KNOODLE_PUSH_RED="1"),
+                             cwd=fx.path)
+        check(rc == 0, "main != HEAD + override -> allowed")
+        check("untested" in out, "the override says main went out untested")
+
+        # A clean run at exactly that commit, earlier, is enough.
+        fx.stamp("light", old)
+        rc, out = run_policy(ref("refs/heads/main", old), red, cwd=fx.path)
+        check(rc == 0, "main != HEAD but stamped at that commit -> allowed (even with a red HEAD)")
+        check(f"already verified at {old[:12]}" in out,
+              "the stamp message names the PUSHED commit, not HEAD")
+        fx.unstamp("light", old)
+
+        # Uncommitted tracked changes: the run would test them, not HEAD.
+        fx.dirty()
+        rc, out = run_policy(ref("refs/heads/main", head), green, cwd=fx.path)
+        check(rc != 0, "main == HEAD but tree dirty, no stamp -> refused")
+        check("uncommitted" in out, "the refusal says the tree has uncommitted changes")
+        fx.stamp("light", head)
+        rc, out = run_policy(ref("refs/heads/main", head), red, cwd=fx.path)
+        check(rc == 0, "dirty tree, but HEAD stamped -> allowed (the stamp is of the commit)")
+        fx.unstamp("light", head)
+        fx.dirty(False)
+
+        # A branch that is not HEAD: warned, not refused, and never blamed for
+        # HEAD's red run.
+        rc, out = run_policy(ref("refs/heads/topic", old), red, cwd=fx.path)
+        check(rc == 0, "branch != HEAD -> allowed")
+        check("NOT tested" in out, "...with a warning that it was not tested")
+        check("widget_check" not in out, "...and not blamed for HEAD's failures")
+
+        # One push, two refs: main is HEAD and green, topic is elsewhere.
+        refs = ref("refs/heads/main", head) + ref("refs/heads/topic", old)
+        rc, out = run_policy(refs, green, cwd=fx.path)
+        check(rc == 0 and "NOT tested" in out,
+              "main (HEAD, green) + topic (elsewhere) -> allowed, topic warned")
+        refs = ref("refs/heads/main", old) + ref("refs/heads/topic", head)
+        rc, out = run_policy(refs, green, cwd=fx.path)
+        check(rc != 0, "topic (HEAD, green) + main (elsewhere) -> refused for main")
+    finally:
+        fx.close()
 
 
 def main():
@@ -296,6 +409,7 @@ def main():
     test_policy_decisions()
     test_annotated_tag_gate()
     test_failure_names_come_from_the_run()
+    test_pushed_commit_is_the_tested_commit()
 
     print(f"\n{'HOOKS CHECK OK' if fails == 0 else 'HOOKS CHECK FAILED'}"
           f" ({checks} checks, {fails} failed)")
