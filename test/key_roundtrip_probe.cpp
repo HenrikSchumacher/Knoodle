@@ -18,15 +18,21 @@
  *     -pthread -I$HOMEBREW_PREFIX/include -I../submodules/Tensors \
  *     key_roundtrip_probe.cpp -o key_roundtrip_probe
  * Run:
- *   ./key_roundtrip_probe ../data/Klut
+ *   ./key_roundtrip_probe [--up-to-crossing=N] [../data/Klut]
+ *
+ * --up-to-crossing=N stops stages 1 and 2 after the N-crossing table. The
+ * 13-crossing table is most of the keys and most of the six seconds; the light
+ * tier stops at 12 and the heavy tier reads them all.
  */
 
 #include "../Knoodle.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <vector>
 
 using Int   = std::int64_t;
@@ -58,7 +64,16 @@ std::vector<Knoodle::UInt8> MacLeodOf(const PD_T& pd)
 
 int main(int argc, char** argv)
 {
-    const std::filesystem::path data_dir = (argc > 1) ? argv[1] : "../data/Klut";
+    std::filesystem::path data_dir = "../data/Klut";
+    std::size_t up_to = Klut::max_crossing_count;
+    for (int i = 1; i < argc; ++i)
+    {
+        const std::string a = argv[i];
+        const std::string flag = "--up-to-crossing=";
+        if (a.rfind(flag, 0) == 0) { up_to = std::stoul(a.substr(flag.size())); }
+        else                       { data_dir = a; }
+    }
+    up_to = std::min<std::size_t>(up_to, Klut::max_crossing_count);
 
     Klut klut(data_dir);
 
@@ -104,7 +119,7 @@ int main(int argc, char** argv)
     //==========================================================================
     std::size_t total = 0, stage1_bad = 0, stage2_bad = 0, invalid_pd = 0;
 
-    for (std::size_t c = 3; c <= Klut::max_crossing_count; ++c)
+    for (std::size_t c = 3; c <= up_to; ++c)
     {
         std::ifstream stream(klut.KeyFile(c), std::ios::binary);
         if (!stream)

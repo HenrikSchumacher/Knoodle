@@ -20,7 +20,7 @@ Two depths, because the light tier reduces rather than skips:
       checkout resolves to one inside SHIP -- so a new include of, say,
       experimental/ cannot ship a tarball that does not compile.
 
-  heavy (--build)  -- what the release workflow and the formula do, end to end:
+  full (--build)   -- what the release workflow and the formula do, end to end:
     * run the script, unpack the tarball into an empty directory, and check
       its VERSION file and that the KLUT is real data, not LFS pointers;
     * build the four tools and PolyFold FROM THE UNPACKED TREE, with
@@ -32,7 +32,7 @@ Two depths, because the light tier reduces rather than skips:
       PolyFold smoke run; and each binary reports the tarball's version.
 
 The heavy build compiles every tool from scratch (minutes) and needs git-lfs,
-Boost and SuiteSparse. That is the heavy tier's job; the light tier and CI get
+Boost and SuiteSparse. That is the full and release tiers' job; the light tier and CI get
 the static half.
 
 Run: python3 release_tarball_check.py [--build]
@@ -140,7 +140,7 @@ def static_checks(ship):
 
 
 # ---------------------------------------------------------------------------
-# heavy: build the tarball and build from it
+# full and release tiers: build the tarball and build from it
 # ---------------------------------------------------------------------------
 
 def build_checks(ship):
@@ -207,16 +207,14 @@ def build_checks(ship):
             p = subprocess.run([exe, "--help"], cwd=scratch, env=env,
                                capture_output=True, text=True, timeout=120)
             check(p.returncode == 0, f"{t} --help exits 0", p.stdout + p.stderr)
-            # Only knoodleprove has --version; the others compile the same
-            # GIT_VERSION into their failure reports (BuildIdentity), so look
-            # for it in the binary. Either way it proves the makefile read the
-            # tarball's VERSION rather than falling through to "unknown".
-            check(CHECK_VERSION.encode() in open(exe, "rb").read(),
-                  f"{t} has the tarball's VERSION compiled in")
-        p = subprocess.run([os.path.join(root, "tools", "knoodleprove"), "--version"],
-                           cwd=scratch, env=env, capture_output=True, text=True, timeout=120)
-        check(CHECK_VERSION in p.stdout + p.stderr,
-              "knoodleprove --version reports the tarball's VERSION", p.stdout + p.stderr)
+            # --version drops the tag's leading "v"; it proves the makefile
+            # read the tarball's VERSION rather than falling through to
+            # "unknown".
+            p = subprocess.run([exe, "--version"], cwd=scratch, env=env,
+                               capture_output=True, text=True, timeout=120)
+            check(p.returncode == 0
+                  and p.stdout.splitlines()[:1] == [f"{t} (Knoodle) {CHECK_VERSION.lstrip('v')}"],
+                  f"{t} --version reports the tarball's VERSION", p.stdout + p.stderr)
 
         # An empty input loads no subtable, so it proves only that the tool found
         # a directory (and, since the startup table check, that every file in it

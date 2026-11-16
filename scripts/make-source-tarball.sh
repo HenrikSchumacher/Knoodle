@@ -45,7 +45,9 @@ fi
 # --verify-tables` against the unpacked tarball.
 MANIFEST="data/Klut/Klut_Manifest.txt"
 [ -f "$MANIFEST" ] || { echo "ERROR: missing $MANIFEST -- run scripts/klut-manifest.py"; exit 1; }
-file_size() { stat -f '%z' "$1" 2>/dev/null || stat -c '%s' "$1" 2>/dev/null || echo 0; }
+# wc -c, not stat: stat's size flags differ (BSD -f %z, GNU -c %s), and GNU stat
+# reads -f as --file-system and prints a file-system report before it fails.
+file_size() { wc -c < "$1" | tr -d ' '; }
 if command -v sha256sum >/dev/null 2>&1; then
   file_sha() { sha256sum "$1" | cut -d' ' -f1; }
 else

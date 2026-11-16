@@ -9,7 +9,7 @@ To use the Knoodle classes in your own programs, clone this repository. To make 
 
     git clone --depth 1 --recurse-submodules --shallow-submodules git@github.com:HenrikSchumacher/Knoodle.git
 
-Knoodle's command line tools _polyfold_, _knoodlesimplify_, _knoodledraw_, _knoodleidentify_, and _knoodleprove_ (but *not* the Knoodle headers themselves) can be installed via _homebrew_ on a wide variety of systems. The native platform is MacOS/Apple Clang. Installation is continuously tested via GitHub Actions on the `ubuntu-latest` and `macos-26` runners, and WSL2 uses the same Linuxbrew path as native Linux. It should install on a wide variety of linux systems with the following commands: 
+Knoodle's command line tools _polyfold_, _knoodlesimplify_, _knoodledraw_, _knoodleidentify_, and _knoodleprove_ (but *not* the Knoodle headers themselves) can be installed via _homebrew_ on a wide variety of systems. The native platform is MacOS/Apple Clang. Installation is continuously tested via GitHub Actions on the `ubuntu-latest`, `macos-26` and `macos-15` runners, and WSL2 uses the same Linuxbrew path as native Linux. It should install on a wide variety of linux systems with the following commands: 
 
 ```
 brew tap designbynumbers/cantarellalab
@@ -153,12 +153,14 @@ dropped. All three diagram tools take the same flags for 3D input:
 - `--exact-input` refuses 3D input that cannot be projected exactly. Integer coordinates always can. Floating-point
   coordinates can only if they land exactly on the integer grid (dyadic values like 0.25 do; 0.01 does not), if they are not
   far from the origin compared with their spread, and if they are not rotated by `--projection=random`.
-- `--seed=N` seeds every random choice the tool makes: the random projection, and the _ReAPR_ embeddings of
-  `knoodlesimplify -s=6`, `knoodledraw --embedding` and `knoodleidentify`. The same seed repeats a run on the same build;
-  the standard library's random distributions differ between libc++ and libstdc++, so it may not repeat on another one.
-  One random source is out of its reach: the bend randomization of the OrthoDraw layout inside _ReAPR_. To repeat a
-  `knoodlesimplify -s=6` run exactly, add `--randomize-bends=0 --no-randomize-virtual-edges`. `knoodledraw --embedding`
-  has no switch for it yet. Without `--seed`, a seed is drawn at random, and a failing run's error report names it.
+- `--seed=N` seeds the random projection, and the _ReAPR_ embeddings of `knoodlesimplify -s=6`,
+  `knoodledraw --embedding` and `knoodleidentify`. The same seed repeats a run on the same build; the standard library's
+  random distributions differ between libc++ and libstdc++, so it may not repeat on another one. One random source is
+  out of its reach: the OrthoDraw layout's own randomization of bends and virtual edges. That means
+  `knoodledraw --randomize-bends` and `--randomize-virtual-edges` (both off by default) in a 2D drawing, and the layout
+  inside _ReAPR_. To repeat a `knoodlesimplify -s=6` run exactly, add
+  `--randomize-bends=0 --no-randomize-virtual-edges`. `knoodledraw --embedding` has no switch for it yet. Without
+  `--seed`, a seed is drawn at random, and a failing run's error report names it.
 
 Within a file or stream, knots and connected summands are separated by lines containing `k` and `s`, exactly as they are in _polyfold_ output (see the _PolyFold_ section above).
 
@@ -261,7 +263,7 @@ Input options:
   --projection=P              How 3D input is projected: z (default), x, y, random
   --randomize-projection      Same as --projection=random
   --exact-input               Refuse 3D input that cannot be projected exactly
-  --seed=N                    Seed every random choice (N in [0, 2^64))
+  --seed=N                    Seed the random projection and --embedding's Reapr
 
 Other:
   -q, --quiet                 No warnings or notices on stderr (errors still

@@ -82,6 +82,7 @@ struct Config
     std::optional<std::string> wl_prefix;
     bool embedding_mode       = false;  // --embedding : emit a 3D embedding, not a 2D drawing
     bool help_requested       = false;
+    bool version_requested    = false;
     bool label_crossings      = false;
     bool label_arcs           = false;
     bool label_faces          = false;
@@ -170,6 +171,7 @@ struct HighlightSet {
 void PrintUsage()
 {
     // Help goes to stderr so stdout stays clean for piping
+    std::cerr << VersionLine("knoodledraw") << "\n\n";
     std::cerr << "Usage: knoodledraw [options] [input_files...]\n";
     std::cerr << "\n";
     std::cerr << "Reads knot/link diagrams and produces ASCII art drawings.\n";
@@ -359,15 +361,18 @@ void PrintUsage()
     std::cerr << "                              exactly: non-integer coordinates that do not\n";
     std::cerr << "                              land exactly on Knoodle's integer grid, or that\n";
     std::cerr << "                              --projection=random would have to rotate\n";
-    std::cerr << "  --seed=N                    Seed every random choice (N in [0, 2^64)): the\n";
-    std::cerr << "                              random projection and --embedding's Reapr. The\n";
-    std::cerr << "                              same seed repeats a run on the same build, except\n";
-    std::cerr << "                              Reapr's bend randomization under --embedding\n";
+    std::cerr << "  --seed=N                    Seed the random projection and --embedding's\n";
+    std::cerr << "                              Reapr (N in [0, 2^64)). The same seed repeats a\n";
+    std::cerr << "                              run on the same build, except for the layout's\n";
+    std::cerr << "                              own random choices, which --seed cannot reach:\n";
+    std::cerr << "                              --randomize-bends, --randomize-virtual-edges,\n";
+    std::cerr << "                              and the layout inside every --embedding run\n";
     std::cerr << "\n";
     std::cerr << "Other:\n";
     std::cerr << "  -q, --quiet                 No warnings or notices on stderr (errors still\n";
     std::cerr << "                              print, and still make the exit status nonzero)\n";
     std::cerr << "  -h, --help                  Show this help message\n";
+    std::cerr << "  --version                   Show the version and exit\n";
     std::cerr << "\n";
     std::cerr << "Examples:\n";
     std::cerr << "  knoodlesimplify --streaming-mode < input.tsv | knoodledraw\n";
@@ -430,6 +435,7 @@ int MatchBoolFlag(std::string_view arg, std::string_view name)
 // agree.
 constexpr std::string_view kKnownFlags[] = {
     "--help",
+    "--version",
     "--x-grid-size",
     "--y-grid-size",
     "--x-gap-size",
@@ -491,6 +497,12 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         if (arg == "-h" || arg == "--help")
         {
             config.help_requested = true;
+            return config;
+        }
+
+        if (arg == "--version")
+        {
+            config.version_requested = true;
             return config;
         }
 
@@ -4687,6 +4699,12 @@ int main(int argc, char* argv[])
 
     Config config = *config_opt;
 
+    if (config.version_requested)
+    {
+        std::cout << VersionText("knoodledraw");
+        return EXIT_SUCCESS;
+    }
+
     if (config.help_requested)
     {
         PrintUsage();
@@ -4707,7 +4725,8 @@ int main(int argc, char* argv[])
 
     g_quiet = config.quiet;
 
-    // Every random choice follows from this one seed (see SeededEngine).
+    // Every random choice follows from this one seed (see SeededEngine), except
+    // OrthoDraw's: it seeds its own engine, which --seed cannot reach (see --help).
     g_run_seed = config.seed.value_or(FreshSeed());
     Knoodle::PRNG_T rng = SeededEngine(g_run_seed);
 

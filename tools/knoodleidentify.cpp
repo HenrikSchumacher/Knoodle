@@ -82,6 +82,7 @@ struct Config
     ki::Size_T rotation_trials   = ki::IdentifyParams{}.rot;      ///< reprojections per embedding
     std::vector<std::string> input_files;    ///< Input file paths (empty = stdin)
     bool help_requested = false;
+    bool version_requested = false;
 };
 
 //==============================================================================
@@ -90,6 +91,7 @@ struct Config
 
 void PrintUsage()
 {
+    std::cout << VersionLine("knoodleidentify") << "\n\n";
     std::cout <<
         "knoodleidentify - identify knot diagrams via the KLUT\n"
         "\n"
@@ -189,6 +191,7 @@ void PrintUsage()
         "                      seed repeats a run on the same build, except for\n"
         "                      Reapr's internal bend randomization.\n"
         "  -h, --help          Show this help.\n"
+        "  --version           Show the version and exit.\n"
         "\n"
         "Knot symbols (default / --tsv); c=crossings, i=index, the third field is the\n"
         "alternating flag, last is the symmetry coset:\n"
@@ -232,6 +235,7 @@ std::optional<Int> ParseInt(std::string_view s)
 // test/cli_contract_check.py checks all three agree.
 constexpr std::string_view kKnownFlags[] = {
     "--help",
+    "--version",
     "--data-dir",
     "--max-crossings",
     "--escalation-rounds",
@@ -268,6 +272,11 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         if (arg == "-h" || arg == "--help")
         {
             config.help_requested = true;
+            return config;
+        }
+        else if (arg == "--version")
+        {
+            config.version_requested = true;
             return config;
         }
         else if (arg.starts_with("--data-dir="))
@@ -948,7 +957,7 @@ bool KlutTablesAreSound(const std::filesystem::path& dir, Int max_crossings,
 // also hashes the keys files (23 MB). And the set must be the one this build
 // was made for (klut_table_set.hpp), unless --allow-other-tables.
 //
-// Tables without a manifest (from before Knoodle 1.1.1, or copied without it)
+// Tables without a manifest (from before Knoodle 1.2.0, or copied without it)
 // get a warning, not an error, for now: the paclet's staged copies lack it
 // until its build copies it too.
 
@@ -1115,7 +1124,7 @@ bool KlutTablesMatchManifest(const std::filesystem::path& dir, Int max_crossings
         {
             LogError("Cannot verify the KLUT tables in " + dir.string() + ": there is no "
                      + std::string(kManifestName) + " to check them against. (Tables "
-                     "from before Knoodle 1.1.1 have none; data/Klut in a current "
+                     "from before Knoodle 1.2.0 have none; data/Klut in a current "
                      "Knoodle checkout or release does.)");
             return false;
         }
@@ -1785,6 +1794,12 @@ int main(int argc, char* argv[])
     if (config.help_requested)
     {
         PrintUsage();
+        return EXIT_SUCCESS;
+    }
+
+    if (config.version_requested)
+    {
+        std::cout << VersionText("knoodleidentify");
         return EXIT_SUCCESS;
     }
 

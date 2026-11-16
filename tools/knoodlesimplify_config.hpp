@@ -99,6 +99,7 @@ struct Config
 
     // Derived state
     bool help_requested       = false;       ///< User requested help
+    bool version_requested    = false;       ///< User requested the version
 };
 
 /// Minimum valid simplification level.
@@ -116,6 +117,8 @@ constexpr int kReaprThreshold = 6;
  */
 void PrintUsage()
 {
+    Log(VersionLine("knoodlesimplify"));
+    Log("");
     Log("Usage: knoodlesimplify [options] [input_files...]");
     Log("");
     Log("Simplification options:");
@@ -218,6 +221,7 @@ void PrintUsage()
     Log("");
     Log("Other:");
     Log("  -h, --help                  Show this help message");
+    Log("  --version                   Show the version and exit");
 }
 
 /**
@@ -256,6 +260,7 @@ std::optional<int> ParseSimplifyLevel(std::string_view arg)
 // -q and -h are matched verbatim and are not canonicalized.)
 constexpr std::string_view kKnownFlags[] = {
     "--help",
+    "--version",
     "--simplify-level",
     "--max-reapr-attempts",
     "--no-compaction",
@@ -311,6 +316,12 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         if (arg == "-h" || arg == "--help")
         {
             config.help_requested = true;
+            return config;
+        }
+
+        if (arg == "--version")
+        {
+            config.version_requested = true;
             return config;
         }
 

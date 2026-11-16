@@ -26,6 +26,8 @@ import subprocess
 import sys
 import tempfile
 
+import concurrent_checks
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.join(HERE, "..", "tools")
 SIMPLIFY = os.path.join(TOOLS, "knoodlesimplify")
@@ -62,11 +64,13 @@ fails = 0
 
 def check(ok, what):
     global checks, fails
-    checks += 1
-    if ok:
-        return
-    print(f"  FAILED  {what}")
-    fails += 1
+    # The tests run side by side (concurrent_checks), so the counters are shared.
+    with concurrent_checks.LOCK:
+        checks += 1
+        if not ok:
+            fails += 1
+    if not ok:
+        print(f"  FAILED  {what}")
 
 
 def section(s):
@@ -138,13 +142,13 @@ def test_three_column_input():
 def test_random_projection_agrees():
     section("--projection: the other axes and exact random rotations name the same knot")
 
-    for name in UNKNOTS + TREFOILS + UNDOCUMENTED:
+    def one_fixture(name):
         text = fixture(name)
         _, exact, _ = identify(text)
         # Over the table, the output carries the reduced PD code itself, which
         # depends on the projection; only a table type is comparable.
         if "Unidentified" in exact:
-            continue
+            return
         # Down the x- and y-axes: as degenerate as down z for these fixtures,
         # and as exact.
         for axis in ("x", "y"):
@@ -159,6 +163,10 @@ def test_random_projection_agrees():
             check(rc == 0, f"{name}: randomized trial {t} exits 0 (rc={rc}): {err.strip()[:200]}")
             check(out == exact, f"{name}: randomized trial {t} gives {out.strip()[:80]},"
                                 f" exact gives {exact.strip()[:80]}")
+
+    # This is most of the script's launches, so the fixtures go side by side too.
+    concurrent_checks.run_in_order(
+        [lambda name=name: one_fixture(name) for name in UNKNOTS + TREFOILS + UNDOCUMENTED])
 
 
 def test_spelling_and_repeats():
@@ -251,12 +259,15 @@ def main():
               " knoodleidentify refuses them. Install git-lfs and run `git lfs pull`.")
         return 2
 
-    test_three_column_input()
-    test_random_projection_agrees()
-    test_spelling_and_repeats()
+    # Side by side, reported in this order (see concurrent_checks.py).
     with tempfile.TemporaryDirectory() as tmp:
-        test_kndlxyz_links(tmp)
-    test_failure_looks_like_failure()
+        concurrent_checks.run_in_order([
+            lambda: test_three_column_input(),
+            lambda: test_random_projection_agrees(),
+            lambda: test_spelling_and_repeats(),
+            lambda: test_kndlxyz_links(tmp),
+            lambda: test_failure_looks_like_failure(),
+        ])
 
     print(f"\n{'LATTICE INPUT CHECK OK' if fails == 0 else 'LATTICE INPUT CHECK FAILED'}"
           f" ({checks} checks, {fails} failed)")

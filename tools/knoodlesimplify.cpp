@@ -846,6 +846,12 @@ int main(int argc, char* argv[])
         return EXIT_SUCCESS;
     }
 
+    if (config.version_requested)
+    {
+        std::cout << VersionText("knoodlesimplify");
+        return EXIT_SUCCESS;
+    }
+
     // Initialize logging
     // Decide where diagnostics go before anything else can write one: the log
     // opens in InitLogging just below, and the library reads KNOODLE_DUMP_DIR at

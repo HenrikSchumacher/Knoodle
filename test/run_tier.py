@@ -2,11 +2,13 @@
 """run_tier -- run every test in the manifest at one tier's settings.
 
     ./run_tier.py --tier=light     # what `make check` runs, budget 30 s
-    ./run_tier.py --tier=heavy     # what `make check-full` runs, hours are fine
+    ./run_tier.py --tier=full      # what `make check-full` runs, a minute or two
+    ./run_tier.py --tier=release   # what `make check-release` runs; a v* tag needs it
     ./run_tier.py --list           # show what would run, and with what arguments
 
 THE LIGHT TIER REDUCES, IT NEVER SKIPS. Every kind=test and kind=script row runs
-in both tiers; only the arguments differ. Skipping is how `all` came to build 2
+in every tier; only the arguments differ. The release tier is the full tier
+with a few rows' arguments raised (the manifest's release-args column). Skipping is how `all` came to build 2
 of 23 binaries and 21 targets rotted unnoticed, and a tier that skips would
 reintroduce exactly that, just one level up.
 
@@ -56,14 +58,23 @@ def read_manifest(path):
         for line in f:
             if line.startswith("#") or not line.strip():
                 continue
-            target, kind, needs, source, light, heavy, work = line.rstrip("\n").split("\t")
+            cols = line.rstrip("\n").split("\t")
+            if len(cols) != 9:
+                raise SystemExit(f"{path}: expected 9 tab-separated columns, got "
+                                 f"{len(cols)}: {cols!r}\n  (run `make lint`)")
+            target, kind, needs, source, light, full, release, work, group = cols
+            full_args = [] if full == "-" else full.split()
             rows.append({
+                "group": None if group == "-" else group,
                 "target": target,
                 "kind": kind,
                 "needs": needs,
                 "source": source if source != "-" else target + ".cpp",
                 "light": [] if light == "-" else light.split(),
-                "heavy": [] if heavy == "-" else heavy.split(),
+                "full": full_args,
+                # '=' is "the same as the full tier", which is nearly every row.
+                "release": full_args if release == "=" else
+                           [] if release == "-" else release.split(),
                 "work": None if work == "-" else work,
             })
     return rows
@@ -73,6 +84,10 @@ def command_for(row, tier, base):
     args = row[tier]
     if row["kind"] == "script":
         return [sys.executable, os.path.join(base, row["source"])] + args
+    # A grouped test lives in its group's binary, which takes the test's name
+    # as its first argument and runs that one test (see gen_group.py).
+    if row.get("group"):
+        return [os.path.join(base, "build", "group_" + row["group"]), row["target"]] + args
     return [os.path.join(base, row["target"])] + args
 
 
@@ -223,7 +238,7 @@ def write_stamp(tier, at_start):
     """Record that `tier` passed cleanly at this exact commit.
 
     The pre-push hook reads these to avoid re-running a tier it already has an
-    answer for, and the release gate reads the heavy one to refuse a version tag
+    answer for, and the release gate reads the release one to refuse a version tag
     that has never been through it.
 
     Four conditions, all necessary for the stamp to mean anything:
@@ -259,7 +274,7 @@ def write_stamp(tier, at_start):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--tier", choices=("light", "heavy"), default="light")
+    ap.add_argument("--tier", choices=("light", "full", "release"), default="light")
     ap.add_argument("--jobs", type=int, default=4,
                     help="run this many tests concurrently (default 4). Results "
                          "are always reported in manifest order.")

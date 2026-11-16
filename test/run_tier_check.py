@@ -117,7 +117,7 @@ def write_suite(d, rows):
     with open(path, "w") as f:
         f.write("# fake manifest for run_tier_check\n")
         for target, kind, source, work in rows:
-            f.write("\t".join([target, kind, "-", source, "-", "-", work]) + "\n")
+            f.write("\t".join([target, kind, "-", source, "-", "-", "=", work, "-"]) + "\n")
     return path
 
 
@@ -270,9 +270,59 @@ def test_stamp_names_the_commit_that_ran():
         run_tier.STAMPS, run_tier.tree_state = saved
 
 
+def test_grouped_tests_run_in_their_group():
+    """A row with a group runs `build/group_<g> <test> <args>`, one test at a time.
+
+    The group binary here is a shell script standing in for the real thing
+    (gen_group.py's dispatcher): it reports which test it was asked for, and
+    fails for one of them, so each member must pass or fail by itself.
+    """
+    section("grouped tests run inside their group's binary")
+    with tempfile.TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, "build"))
+        fake = os.path.join(d, "build", "group_g")
+        with open(fake, "w") as f:
+            f.write('#!/bin/sh\n'
+                    'echo "member=$1 arg=$2"\n'
+                    'echo "checked 3 things"\n'
+                    '[ "$1" = bad_check ] && exit 1\n'
+                    'exit 0\n')
+        os.chmod(fake, 0o755)
+        manifest = os.path.join(d, "manifest.tsv")
+        with open(manifest, "w") as f:
+            for target in ("good_check", "bad_check"):
+                f.write("\t".join([target, "test", "plain", "-", "--small", "--big",
+                                   "--huge", WORK, "g"]) + "\n")
+            # Same manifest, no group: there is no such binary, so "not built".
+            f.write("\t".join(["alone_check", "test", "plain", "-", "-", "-",
+                               "=", "-", "-"]) + "\n")
+        logs = os.path.join(d, "logs")
+        rc, out = run(manifest, logs)
+        check(rc == 1, f"one failing member makes the run red (got {rc})")
+        names = open(os.path.join(logs, "failed.txt")).read().split()
+        check(names == ["bad_check", "alone_check"],
+              f"only the failing member is named, not its whole group (got {names})")
+        good = open(os.path.join(logs, "good_check.log")).read()
+        check("member=good_check arg=--small" in good,
+              "the group binary gets the test's name, then the test's arguments")
+        check("MISSING" in out and "alone_check" in out,
+              "a test with no group is still looked for as its own binary")
+
+        # The three tiers take their arguments from three columns.
+        for tier, arg in (("full", "--big"), ("release", "--huge")):
+            tier_logs = os.path.join(d, "logs_" + tier)
+            subprocess.run([sys.executable, os.path.join(HERE, "run_tier.py"),
+                            f"--tier={tier}", f"--manifest={manifest}",
+                            f"--log-dir={tier_logs}"], capture_output=True, text=True)
+            got = open(os.path.join(tier_logs, "good_check.log")).read()
+            check(f"member=good_check arg={arg}" in got,
+                  f"the {tier} tier passes the {tier}-args column ({arg})")
+
+
 def main():
     print("run_tier_check -- the tier runner's report, against a fake suite")
     test_red_suite()
+    test_grouped_tests_run_in_their_group()
     test_green_suite_does_not_stamp()
     test_stamp_names_the_commit_that_ran()
     print(f"\n{'RUN_TIER CHECK OK' if fails == 0 else 'RUN_TIER CHECK FAILED'}"
