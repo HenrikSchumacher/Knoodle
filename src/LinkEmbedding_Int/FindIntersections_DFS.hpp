@@ -108,7 +108,7 @@ void FindIntersectingEdges_DFS() const
         }
         else
         {
-            if constexpr ( mortonQ )
+            if constexpr ( mortonQ && !reorderQ)
             {
                 ComputeEdgeEdgeIntersection(
                     p[T.NodeBegin(i)], p[T.NodeBegin(j)]
@@ -127,6 +127,11 @@ void FindIntersectingEdges_DFS() const
 
 void ComputeEdgeEdgeIntersection( const Int k, const Int l ) const
 {
+    if constexpr ( countersQ )
+    {
+        ++edge_edge_check_count;
+    }
+    
     if( (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) )
     {
         // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
@@ -140,7 +145,7 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l ) const
 {
     if constexpr ( verboseQ )
     {
-        Msgr::logprint("ComputeEdgeEdgeIntersection", "( ", k, " ,", k, " ).");
+        Msgr::logprint("ComputeEdgeEdgeIntersection", "( ", k, " ,", l, " ).");
     }
 
     // At this point we assume that `k != l` and that they are also not direct neighbors.

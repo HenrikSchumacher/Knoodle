@@ -25,8 +25,9 @@ public:
         
         if constexpr ( countersQ )
         {
-            box_box_counter = 0;
-            edge_edge_counter = 0;
+            box_box_check_count        = 0;
+            box_box_intersection_count = 0;
+            edge_edge_check_count      = 0;
         }
         
         RequireBoundingBoxes();
@@ -47,14 +48,14 @@ public:
 
         FindIntersectingEdges_DFS();
         
-        
-        if constexpr ( countersQ )
-        {
-            logvalprint("number of edges", EdgeCount());
-            logvalprint("number of box-box checks", box_box_counter);
-            logvalprint("number of edge-edge checks", edge_edge_counter);
-            logvalprint("number of intersections", intersections.size());
-        }
+//        if constexpr ( countersQ )
+//        {
+//            logvalprint("number of edges", EdgeCount());
+//            logvalprint("number of box-box checks", box_box_check_count);
+//            logvalprint("number of box-box intersections", box_box_intersection_count);
+//            logvalprint("number of edge-edge checks", edge_edge_check_count);
+//            logvalprint("number of edge-edge intersections", intersections.Size());
+//        }
                 
         intersections_computedQ = true;
         
@@ -483,24 +484,29 @@ public:
 
     bool BoxesIntersectQ( const Int i, const Int j )
     {
+        const bool b =  T.BoxesIntersectQ( box_coords.data(i), box_coords.data(j) );
+        
         if constexpr ( countersQ )
         {
-            ++box_box_counter;
+            ++box_box_check_count;
+            box_box_intersection_count += b;
         }
-        return T.BoxesIntersectQ( box_coords.data(i), box_coords.data(j) );
+        
+        return b;
     }
 
 protected:
 
     void ComputeEdgeEdgeIntersection( const Int k, const Int l )
     {
+        if constexpr ( countersQ )
+        {
+            ++edge_edge_check_count;
+        }
+        
         // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
         if( (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) )
         {
-            if constexpr ( countersQ )
-            {
-                ++edge_edge_counter;
-            }
             this->template ComputeEdgeEdgeIntersection_impl<false>(k,l);
         }
     }
@@ -518,8 +524,6 @@ protected:
             TOOLS_LOGDUMP(k);
             TOOLS_LOGDUMP(l);
         }
-        
-//        ++edge_edge_counter;
         
         // At this point we assume that `k != l` and that they are also not direct neighbors.
 

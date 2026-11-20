@@ -9,8 +9,23 @@
 #                              commit of ours must SAY so.
 #   push to main               light tier runs. Red REFUSES. Everybody,
 #                              including Henrik, has to override deliberately.
-#   push a v* tag              the heavy-tier stamp for that commit is
+#   push a v* tag              the release-tier stamp for that commit is
 #                              required. Refuses without it.
+#
+# WHICH COMMIT IS TESTED. The tier tests the checked-out working tree, so a run
+# here speaks for a pushed commit only when that commit IS the clean HEAD.
+# Each pushed commit is therefore one of:
+#
+#   stamped    this checkout has test/.stamps/light-<sha>: the tier passed
+#              cleanly at exactly that commit earlier. Green.
+#   runnable   it is HEAD and the tree has no uncommitted tracked changes:
+#              the tier runs (once per push) and its result is the answer.
+#   untested   anything else -- e.g. `git push origin main` from a checkout on
+#              another branch. Nothing here can test it. Main REFUSES; a
+#              branch gets a warning.
+#
+# Until 2026-11-14 the hook tested HEAD whatever was being pushed, so pushing
+# main from a checkout on another branch passed on THAT branch's stamp.
 #
 # Override: KNOODLE_PUSH_RED=1. Deliberately NOT --no-verify, which would also
 # skip the Git LFS hook above and corrupt the push.
@@ -22,13 +37,14 @@ TEST_DIR="$REPO/test"
 STAMPS="$TEST_DIR/.stamps"
 OVERRIDE="${KNOODLE_PUSH_RED:-}"
 ZERO="0000000000000000000000000000000000000000"
+REMOTE="${1:-origin}"
 
 # What kinds of push is this? A single `git push` can carry several refs.
 pushing_main=0
 pushing_tag=""
-pushing_branch=""
 tag_sha=""
 main_sha=""
+branches=""          # space-separated name=sha; ref names cannot contain spaces
 
 while read -r local_ref local_sha remote_ref remote_sha; do
     [ -z "${remote_ref:-}" ] && continue
@@ -41,45 +57,90 @@ while read -r local_ref local_sha remote_ref remote_sha; do
                           # commit, so look through the tag to the commit it names.
                           tag_sha=$(git rev-parse --verify --quiet "$local_sha^{commit}" 2>/dev/null) \
                               || tag_sha="$local_sha" ;;
-        refs/heads/*)     pushing_branch="${remote_ref#refs/heads/}" ;;
+        refs/heads/*)     branches="$branches ${remote_ref#refs/heads/}=$local_sha" ;;
     esac
 done
 
-[ "$pushing_main" = 0 ] && [ -z "$pushing_tag" ] && [ -z "$pushing_branch" ] && exit 0
+[ "$pushing_main" = 0 ] && [ -z "$pushing_tag" ] && [ -z "$branches" ] && exit 0
+
+short() { echo "$1" | cut -c1-12; }
+
+# Did a clean run of tier $1 pass at exactly commit $2 in THIS checkout?
+# (A stamp certifies one checkout -- docs/test-architecture.md section 8.)
+find_stamp() {
+    [ -f "$STAMPS/$1-$2" ]
+}
 
 # --- the release gate -------------------------------------------------------
 if [ -n "$pushing_tag" ]; then
     version="${pushing_tag#refs/tags/}"
-    if [ -f "$STAMPS/heavy-$tag_sha" ]; then
-        printf '\npre-push: heavy tier verified for %s at %s\n\n' "$version" "$(echo "$tag_sha" | cut -c1-12)"
+    if find_stamp release "$tag_sha"; then
+        printf '\npre-push: release tier verified for %s at %s\n\n' "$version" "$(short "$tag_sha")"
     elif [ -n "$OVERRIDE" ]; then
-        printf '\npre-push: KNOODLE_PUSH_RED set -- releasing %s without a heavy-tier run.\n\n' "$version"
+        printf '\npre-push: KNOODLE_PUSH_RED set -- releasing %s without a release-tier run.\n\n' "$version"
     else
         cat >&2 <<EOF
 
 Refusing to push the version tag $version.
 
-The heavy tier has not been run cleanly at this commit ($(echo "$tag_sha" | cut -c1-12)).
+The release tier has not been run cleanly at this commit ($(short "$tag_sha")).
 A tag is where a release starts, so this is the last point at which a corner-case
 regression can be caught before users see it.
 
-  To run it (about fifteen minutes, with the build):
-      make -C test check-full
+  To run it (about ten minutes, with the build):
+      make -C test check-release
 
   To tag anyway, without having run it:
-      KNOODLE_PUSH_RED=1 git push ${1:-origin} $version
+      KNOODLE_PUSH_RED=1 git push $REMOTE $version
 
 EOF
         exit 1
     fi
 fi
 
-[ "$pushing_main" = 0 ] && [ -z "$pushing_branch" ] && exit 0
+[ "$pushing_main" = 0 ] && [ -z "$branches" ] && exit 0
 
-# --- the light tier ---------------------------------------------------------
+# --- which pushed commits can the tier here speak for? -----------------------
 head_sha=$(git rev-parse HEAD)
 dirty=$(git status --porcelain --untracked-files=no)
 
+how_tested() {
+    if find_stamp light "$1"; then
+        echo stamped
+    elif [ "$1" = "$head_sha" ] && [ -z "$dirty" ]; then
+        echo runnable
+    else
+        echo untested
+    fi
+}
+
+# Why a commit is untested, and what would let it be tested, for the messages below.
+why_untested() {
+    if [ "$1" = "$head_sha" ]; then
+        echo "it is HEAD, but this checkout has uncommitted changes to tracked files"
+    else
+        echo "this checkout is at $(short "$head_sha"), not $(short "$1")"
+    fi
+}
+how_to_test() {
+    if [ "$1" = "$head_sha" ]; then
+        echo "commit or stash the uncommitted changes, then push again"
+    else
+        echo "check out $(short "$1") with a clean tree (for local main: git switch main), then push again from there"
+    fi
+}
+
+need_run=0
+main_how=""
+if [ "$pushing_main" = 1 ]; then
+    main_how=$(how_tested "$main_sha")
+    [ "$main_how" = runnable ] && need_run=1
+fi
+for entry in $branches; do
+    [ "$(how_tested "${entry#*=}")" = runnable ] && need_run=1
+done
+
+# --- the light tier ---------------------------------------------------------
 # Where the run is kept. run_tier.py writes each test's full output to
 # logs/light/<target>.log and the names of the tests that did not pass to
 # logs/light/failed.txt; this hook keeps the whole `make check` transcript next
@@ -90,55 +151,68 @@ LOG_DIR="${KNOODLE_PUSH_LOG_DIR:-$TEST_DIR/logs}"
 FAILED_FILE="$LOG_DIR/light/failed.txt"
 SHOW_LOG_DIR=$(echo "$LOG_DIR" | sed "s|^$REPO/||")
 
-# Test seam: test/hooks_check sets KNOODLE_PUSH_TIER_RESULT to exercise the
-# red paths without waiting 15s for a real run, and without needing a way to
-# make a passing suite fail. Unset in normal use, which is the only way the
-# tier actually runs.
-if [ -n "${KNOODLE_PUSH_TIER_RESULT:-}" ]; then
-    tier_rc="$KNOODLE_PUSH_TIER_RESULT"
-elif [ -z "$dirty" ] && [ -f "$STAMPS/light-$head_sha" ]; then
-    printf '\npre-push: light tier already verified at %s\n' "$(echo "$head_sha" | cut -c1-12)"
-    tier_rc=0
-else
-    printf '\npre-push: running the light tier (~15s of runs; a header bump adds a parallel rebuild)...\n\n'
-    mkdir -p "$LOG_DIR"
-    # A failed.txt from an earlier run must not be read as this run's: if the
-    # build fails, run_tier.py never runs and never writes a new one.
-    rm -f "$FAILED_FILE"
-    ( cd "$TEST_DIR" && make --no-print-directory check >"$LOG_DIR/pre-push.log" 2>&1 )
-    tier_rc=$?
-    if [ "$tier_rc" != 0 ]; then
-        tail -40 "$LOG_DIR/pre-push.log" >&2
-        printf '\n(whole run: %s/pre-push.log; each test'"'"'s own output: %s/light/)\n' \
-            "$SHOW_LOG_DIR" "$SHOW_LOG_DIR" >&2
+tier_rc=0
+if [ "$need_run" = 1 ]; then
+    # Test seam: test/hooks_check sets KNOODLE_PUSH_TIER_RESULT to exercise the
+    # red paths without waiting 15s for a real run, and without needing a way to
+    # make a passing suite fail. Unset in normal use, which is the only way the
+    # tier actually runs.
+    if [ -n "${KNOODLE_PUSH_TIER_RESULT:-}" ]; then
+        tier_rc="$KNOODLE_PUSH_TIER_RESULT"
     else
-        tail -4 "$LOG_DIR/pre-push.log"
+        printf '\npre-push: running the light tier at %s (~15s of runs; a header bump adds a parallel rebuild)...\n\n' "$(short "$head_sha")"
+        mkdir -p "$LOG_DIR"
+        # A failed.txt from an earlier run must not be read as this run's: if the
+        # build fails, run_tier.py never runs and never writes a new one.
+        rm -f "$FAILED_FILE"
+        ( cd "$TEST_DIR" && make --no-print-directory check >"$LOG_DIR/pre-push.log" 2>&1 )
+        tier_rc=$?
+        if [ "$tier_rc" != 0 ]; then
+            tail -40 "$LOG_DIR/pre-push.log" >&2
+            printf '\n(whole run: %s/pre-push.log; each test'"'"'s own output: %s/light/)\n' \
+                "$SHOW_LOG_DIR" "$SHOW_LOG_DIR" >&2
+        else
+            tail -4 "$LOG_DIR/pre-push.log"
+        fi
     fi
-fi
-
-if [ "$tier_rc" = 0 ]; then
-    exit 0
 fi
 
 # The names come from the run that just happened -- never from a second run,
 # which would cost another 15s and could disagree with the first.
-if [ -n "${KNOODLE_PUSH_TIER_FAILED:-}" ]; then
-    failed="$KNOODLE_PUSH_TIER_FAILED"
-elif [ -s "$FAILED_FILE" ]; then
-    failed=$(tr '\n' ' ' < "$FAILED_FILE" | sed 's/ *$//')
-elif [ -f "$FAILED_FILE" ]; then
-    failed="(none by name -- see $SHOW_LOG_DIR/pre-push.log)"
-else
-    failed="(the build or lint failed before any test ran -- see $SHOW_LOG_DIR/pre-push.log)"
+failed=""
+if [ "$tier_rc" != 0 ]; then
+    if [ -n "${KNOODLE_PUSH_TIER_FAILED:-}" ]; then
+        failed="$KNOODLE_PUSH_TIER_FAILED"
+    elif [ -s "$FAILED_FILE" ]; then
+        failed=$(tr '\n' ' ' < "$FAILED_FILE" | sed 's/ *$//')
+    elif [ -f "$FAILED_FILE" ]; then
+        failed="(none by name -- see $SHOW_LOG_DIR/pre-push.log)"
+    else
+        failed="(the build or lint failed before any test ran -- see $SHOW_LOG_DIR/pre-push.log)"
+    fi
 fi
 
-# --- red, pushing to main ---------------------------------------------------
+# green, red or untested, for one pushed commit.
+verdict() {
+    case "$(how_tested "$1")" in
+        stamped)  echo green ;;
+        runnable) if [ "$tier_rc" = 0 ]; then echo green; else echo red; fi ;;
+        *)        echo untested ;;
+    esac
+}
+
+# --- main ---------------------------------------------------------------------
 if [ "$pushing_main" = 1 ]; then
-    if [ -n "$OVERRIDE" ]; then
-        printf '\npre-push: KNOODLE_PUSH_RED set -- pushing red tests to main.\n\n' >&2
-        exit 0
-    fi
-    cat >&2 <<EOF
+    case "$(verdict "$main_sha")" in
+    green)
+        [ "$main_how" = stamped ] && \
+            printf '\npre-push: light tier already verified at %s\n' "$(short "$main_sha")"
+        ;;
+    red)
+        if [ -n "$OVERRIDE" ]; then
+            printf '\npre-push: KNOODLE_PUSH_RED set -- pushing red tests to main.\n\n' >&2
+        else
+            cat >&2 <<EOF
 
 Tests failed: $failed
 
@@ -146,31 +220,72 @@ Pushing red tests to main is blocked. Recommend investigating before pushing to
 main, or pushing this commit to a branch instead.
 
   To push to main anyway:
-      KNOODLE_PUSH_RED=1 git push origin main
+      KNOODLE_PUSH_RED=1 git push $REMOTE main
 
   To put it on a branch instead:
-      git push origin HEAD:refs/heads/<branch-name>
+      git push $REMOTE HEAD:refs/heads/<branch-name>
 
 EOF
-    exit 1
+            exit 1
+        fi
+        ;;
+    untested)
+        if [ -n "$OVERRIDE" ]; then
+            printf '\npre-push: KNOODLE_PUSH_RED set -- pushing main at %s untested.\n\n' "$(short "$main_sha")" >&2
+        else
+            cat >&2 <<EOF
+
+Refusing to push main at $(short "$main_sha"): that commit has not been through
+the light tier, and this checkout cannot test it.
+
+The tier tests the checked-out working tree, so a run here would test something
+other than what main would receive: $(why_untested "$main_sha").
+
+  To test it: $(how_to_test "$main_sha").
+
+  To push it untested anyway:
+      KNOODLE_PUSH_RED=1 git push $REMOTE main
+
+EOF
+            exit 1
+        fi
+        ;;
+    esac
 fi
 
-# --- red, pushing to a branch: allowed, but it has to say so ----------------
+# --- branches -----------------------------------------------------------------
 # Red on a branch is legitimate -- that is what WIP is for. The only
 # requirement is that the history says so honestly. "Ours" is detected by the
 # mandatory credit line, so this binds our commits and not hand-written ones.
-range_start=$(git rev-parse "origin/$pushing_branch" 2>/dev/null)
-if [ -n "$range_start" ]; then
-    range="$range_start..HEAD"
-else
-    range="origin/main..HEAD"
-fi
+for entry in $branches; do
+    name="${entry%%=*}"
+    sha="${entry#*=}"
+    case "$(verdict "$sha")" in
+    green)
+        [ "$(how_tested "$sha")" = stamped ] && \
+            printf '\npre-push: light tier already verified at %s (%s)\n' "$(short "$sha")" "$name"
+        ;;
+    untested)
+        cat >&2 <<EOF
 
-ours=$(git log --format='%H' --grep='Prepared with Claude Code' "$range" 2>/dev/null | head -1)
-wip=$(git log -1 --format='%B' 2>/dev/null | grep -ciE 'WIP|does not pass testing')
+WARNING: $name at $(short "$sha") was NOT tested: $(why_untested "$sha").
+Pushing to a branch anyway. Check out that commit and run \`make -C test check\`
+before this reaches main.
 
-if [ -n "$ours" ] && [ "$wip" = 0 ] && [ -z "$OVERRIDE" ]; then
-    cat >&2 <<EOF
+EOF
+        ;;
+    red)
+        range_start=$(git rev-parse --verify --quiet "refs/remotes/$REMOTE/$name" 2>/dev/null)
+        if [ -n "$range_start" ]; then
+            range="$range_start..$sha"
+        else
+            range="$REMOTE/main..$sha"
+        fi
+        ours=$(git log --format='%H' --grep='Prepared with Claude Code' "$range" 2>/dev/null | head -1)
+        wip=$(git log -1 --format='%B' "$sha" 2>/dev/null | grep -ciE 'WIP|does not pass testing')
+
+        if [ -n "$ours" ] && [ "$wip" = 0 ] && [ -z "$OVERRIDE" ]; then
+            cat >&2 <<EOF
 
 Tests failed: $failed
 
@@ -180,20 +295,22 @@ commit message has to say so, and this one does not.
   To fix the message and push:
       git commit --amend
       (add a line such as: "WIP: pushes red, $failed failing")
-      git push ${1:-origin}
+      git push $REMOTE
 
   To push as-is:
-      KNOODLE_PUSH_RED=1 git push ${1:-origin}
+      KNOODLE_PUSH_RED=1 git push $REMOTE
 
 EOF
-    exit 1
-fi
-
-cat >&2 <<EOF
+            exit 1
+        fi
+        cat >&2 <<EOF
 
 WARNING: tests failed: $failed
 
-Pushing to a branch anyway. Investigate before this reaches main.
+Pushing $name anyway. Investigate before this reaches main.
 
 EOF
+        ;;
+    esac
+done
 exit 0

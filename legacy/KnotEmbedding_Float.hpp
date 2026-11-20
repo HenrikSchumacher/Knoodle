@@ -95,13 +95,14 @@ namespace Knoodle
         Prosector_T S;
         ProsectorFlagCounts_T prosector_flag_counts = {};
         
-        Int    intersection_count     = 0;
-        Size_T intersection_count_3D  = 0;
-        Size_T box_box_counter        = 0;
-        Size_T edge_edge_counter      = 0;
+        Size_T box_box_check_count        = 0;
+        Size_T box_box_intersection_count = 0;
+        Size_T edge_edge_check_count      = 0;
+        Size_T intersection_count_3D      = 0;
+        Int    intersection_count         = 0;
         
-        bool intersections_computedQ  = false;
-        bool bounding_boxes_computedQ = false;
+        bool intersections_computedQ      = false;
+        bool bounding_boxes_computedQ     = false;
         
     public:
         

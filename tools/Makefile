@@ -91,11 +91,20 @@ ifndef KNOODLE_VERSION
         KNOODLE_VERSION := $(shell cat ../VERSION)
     endif
 endif
+#
+# The version is NOT on the tools' own compile lines. It used to be, as
+# -DGIT_VERSION=..., which made every commit a different compile: nothing could
+# be cached, and -- since make compares dates, not flags -- a tool built three
+# commits ago went on reporting that commit until something else rebuilt it.
+# It now goes into one small file per tool, knoodle_version.cpp, which is
+# recompiled whenever the version text changes and linked in. See the rules.
 ifdef KNOODLE_VERSION
-    CXXFLAGS += -DGIT_VERSION=\"$(KNOODLE_VERSION)\"
+    VERSION_TEXT   := $(KNOODLE_VERSION)
+    VERSION_DEFINE  = -DGIT_VERSION=\"$(KNOODLE_VERSION)\"
 else
     GIT_VERSION := $(shell git describe --abbrev=100 --dirty --always --tags 2>/dev/null || echo "unknown")
-    CXXFLAGS += -DGIT_VERSION=\"\\\"$(GIT_VERSION)\\\"\"
+    VERSION_TEXT   := $(GIT_VERSION)
+    VERSION_DEFINE  = -DGIT_VERSION=\"\\\"$(GIT_VERSION)\\\"\"
 endif
 
 PREFIX ?= /usr/local
@@ -138,47 +147,73 @@ else
                      -pthread
 endif
 
-all: knoodlesimplify knoodledraw knoodleidentify knoodleprove
+# The tools. Add one here and it is built, cleaned and dependency-tracked;
+# `install` lists what it installs by name.
+TOOLS = knoodlesimplify knoodledraw knoodleidentify knoodleprove
 
-knoodlesimplify: knoodlesimplify.cpp $(SHARED_DEPS)
-	@echo "=== Building knoodlesimplify on $(UNAME_S) ==="
-	@echo "=== Compiler: $(CXX) ==="
-	@echo ""
-	@echo "Compiling knoodlesimplify.cpp..."
-	$(CXX) $(CXXFLAGS) $(DEPFLAGS) $(BOOST_FLAGS) $(CPPFLAGS) knoodlesimplify.cpp $(LDFLAGS) -o $@
-	@echo "✓ knoodlesimplify compiled successfully"
+all: $(TOOLS)
 
-knoodledraw: knoodledraw.cpp $(SHARED_DEPS)
-	@echo "=== Building knoodledraw on $(UNAME_S) ==="
-	@echo "=== Compiler: $(CXX) ==="
-	@echo ""
-	@echo "Compiling knoodledraw.cpp..."
-	$(CXX) $(CXXFLAGS) $(DEPFLAGS) $(CPPFLAGS) knoodledraw.cpp $(LDFLAGS) -o $@
-	@echo "✓ knoodledraw compiled successfully"
+# ---------------------------------------------------------------------------
+# How a tool is built: three steps.
+#
+#   build/<tool>.o          the tool itself. Its flags are the same for every
+#                           commit, so ccache (used when installed; `make
+#                           CCACHE=` turns it off) can hand back the object for
+#                           source it has compiled before -- in CI, for every
+#                           push that did not touch what the tool includes.
+#   build/<tool>_version.o  knoodle_version.cpp: the version text and the build
+#                           time. Compiled again when the version text changes
+#                           (a commit, a tag, the tree going dirty) or the tool
+#                           was recompiled. It includes nothing; it is instant.
+#   <tool>                  the two, linked.
+#
+# So after a commit a tool is relinked, not recompiled, and says the right
+# version. knoodle_io.hpp reads the linked values when KNOODLE_VERSION_LINKED is
+# defined, and the GIT_VERSION macro as before when it is not (the tests, and
+# anyone else who includes it, are unchanged).
+# ---------------------------------------------------------------------------
 
-# The picture-independent claims of a move trace (the checks in
-# trace_verify.hpp), with no layout per record. `knoodledraw --trace --verify`
-# keeps the one claim that IS about a picture: the two deletions.
-knoodleprove: knoodleprove.cpp $(SHARED_DEPS)
-	@echo "=== Building knoodleprove on $(UNAME_S) ==="
-	@echo "Compiling knoodleprove.cpp..."
-	$(CXX) $(CXXFLAGS) $(DEPFLAGS) $(CPPFLAGS) knoodleprove.cpp $(LDFLAGS) -o $@
-	@echo "✓ knoodleprove compiled successfully"
+# Per-tool extra flags. boost::unordered for the two performance-critical tools.
+TOOL_FLAGS_knoodlesimplify = $(BOOST_FLAGS)
+TOOL_FLAGS_knoodleidentify = $(BOOST_FLAGS)
 
-knoodleidentify: knoodleidentify.cpp $(SHARED_DEPS)
-	@echo "=== Building knoodleidentify on $(UNAME_S) ==="
-	@echo "=== Compiler: $(CXX) ==="
-	@echo ""
-	@echo "Compiling knoodleidentify.cpp..."
-	$(CXX) $(CXXFLAGS) $(DEPFLAGS) $(BOOST_FLAGS) $(CPPFLAGS) knoodleidentify.cpp $(LDFLAGS) -o $@
-	@echo "✓ knoodleidentify compiled successfully"
-	@echo ""
-	@echo "NOTE: this is a *local* knoodleidentify build. It needs the ~23 MB KLUT"
-	@echo "      tables to identify knots. When run in-tree it finds them at"
-	@echo "      ../data/Klut automatically; a copy installed elsewhere (e.g. via"
-	@echo "      'make install', on a cluster) does NOT ship the tables, so point it"
-	@echo "      at them explicitly with --data-dir=PATH or \$$KNOODLE_KLUT_DIR."
-	@echo "      Most users should install via Homebrew, which wires this up for you."
+CCACHE ?= $(shell command -v ccache 2>/dev/null)
+# time_macros: deps/pcg-cpp names __DATE__ and __TIME__, which makes ccache
+# treat every compile as new. The tools' own build time is in the version
+# object, which is never cached.
+CCACHE_ENV := $(if $(CCACHE),CCACHE_SLOPPINESS=time_macros)
+
+build:
+	@mkdir -p build
+
+# Rewritten only when the text changes, so it is the version CHANGING that
+# rebuilds the version objects, not every run of make.
+build/version.txt: FORCE | build
+	@echo '$(VERSION_TEXT)' | cmp -s - $@ || echo '$(VERSION_TEXT)' > $@
+
+FORCE:
+
+$(TOOLS:%=build/%.o): build/%.o: %.cpp $(SHARED_DEPS) | build
+	@echo "=== Building $* on $(UNAME_S) with $(CXX) ==="
+	$(CCACHE_ENV) $(CCACHE) $(CXX) $(CXXFLAGS) $(DEPFLAGS) $(TOOL_FLAGS_$*) $(CPPFLAGS) -DKNOODLE_VERSION_LINKED -c $< -o $@
+
+$(TOOLS:%=build/%_version.o): build/%_version.o: knoodle_version.cpp build/version.txt build/%.o
+	@$(CXX) $(CXXFLAGS) $(VERSION_DEFINE) -c knoodle_version.cpp -o $@
+
+$(TOOLS): %: build/%.o build/%_version.o
+	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) -o $@
+	@echo "✓ $@ compiled successfully"
+	@$(NOTE_$@)
+
+define NOTE_knoodleidentify
+echo ""; \
+echo "NOTE: this is a *local* knoodleidentify build. It needs the ~23 MB KLUT"; \
+echo "      tables to identify knots. When run in-tree it finds them at"; \
+echo "      ../data/Klut automatically; a copy installed elsewhere (e.g. via"; \
+echo "      'make install', on a cluster) does NOT ship the tables, so point it"; \
+echo "      at them explicitly with --data-dir=PATH or \$$KNOODLE_KLUT_DIR."; \
+echo "      Most users should install via Homebrew, which wires this up for you."
+endef
 
 # Tier 4 end-to-end pipeline test (test/klut_e2e.cpp). Same flags as the tools;
 # it shells out to the built knoodlesimplify / knoodleidentify binaries.
@@ -204,10 +239,10 @@ install: all
 	@echo "      --data-dir=PATH or \$$KNOODLE_KLUT_DIR pointing at a data/Klut dir."
 
 clean:
-	rm -f knoodlesimplify knoodledraw knoodleidentify knoodleprove
-	rm -f knoodlesimplify.d knoodledraw.d knoodleidentify.d knoodleprove.d
+	rm -f $(TOOLS) $(TOOLS:%=%.d)
+	rm -rf build
 
-# Generated by DEPFLAGS; absent on a fresh checkout, hence the leading '-'.
--include knoodlesimplify.d knoodledraw.d knoodleidentify.d knoodleprove.d
+# Generated by DEPFLAGS, next to each object; absent on a fresh checkout.
+-include $(wildcard build/*.d)
 
-.PHONY: all install clean debug
+.PHONY: all install clean debug FORCE

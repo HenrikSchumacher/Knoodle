@@ -22,6 +22,7 @@ struct Simplify_Args_T
     bool                permute_randomQ          = true;
     Energy_T            energy                   = Energy_T::TV;
     double              scaling                  = 1.;
+    Int                 z_grid_size              = 0;
     
     int                 randomize_bends          = 2;
     bool                randomize_virtual_edgesQ = true;
@@ -69,7 +70,8 @@ Size_T Simplify( cref<Simplify_Args_T> args = Simplify_Args_T() )
             .randomize_virtual_edgesQ = args.randomize_virtual_edgesQ,
             .compaction_method        = args.compaction_method
         },
-        .scaling             = args.scaling
+        .scaling             = args.scaling,
+        .z_grid_size         = args.z_grid_size
     });
     
     return Simplify<targs>( reapr, args );
@@ -462,7 +464,7 @@ void DumpRattleFailure(
         // 3. The exact geometry, at full precision, so it can be re-projected.
         (void)emb.WriteToFile( base.string() + ".xyz", true );
 
-        Msgr::wprint("Rattle", ": wrote a failure bundle to ", base.string(), ".{txt,pd.tsv,xyz} -- please attach these to any bug report." );
+        Msgr::wprint("Rattle", "Wrote a failure bundle to ", base, ".{txt,pd.tsv,xyz} -- please attach these to any bug report." );
     }
     catch( ... )
     {

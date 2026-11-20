@@ -18,14 +18,20 @@ name: ci
 #   * rockylinux:9  -> clang (Rocky's system gcc is 11; distro clang builds fine),
 #                      Sapelo2-cluster (Rocky 9.x) proxy
 #
-# Light tier only: the three tools + --help smoke, then the self-contained test
-# drivers that need no Git-LFS data and no UMFPACK/BLAS (see
-# scripts/ci-build-and-test.sh). The heavy UMFPACK/KLUT tier is out of scope.
+# Light tier only: the three tools + --help smoke, then the light-tier test
+# drivers that need no UMFPACK/BLAS (see scripts/ci-build-and-test.sh). The KLUT
+# tables (data/Klut, Git LFS, ~24 MB) are fetched, cached on the host runners, so
+# knoodleidentify really identifies; the rest of the LFS data (data/diagrams) is
+# not. The heavy UMFPACK tier is out of scope.
 
+# docs/ is skipped: nothing that is built or tested reads it (README.md and
+# CITATION.cff ship in the release tarball, so those still run).
 on:
   push:
     branches: [main]
+    paths-ignore: ["docs/**"]
   pull_request:
+    paths-ignore: ["docs/**"]
   schedule:
     # 1st of each month, 06:00 UTC: catch breakage from a new runner image /
     # toolchain even with no pushes (mirrors the tap's monthly cron).
@@ -49,13 +55,16 @@ jobs:
         include:
           - name: macos-26 (Apple clang)
             os: macos-26
-          # macOS 15 / Clang 17 lacks floating-point std::from_chars, so the build
-          # is expected to fail. Informational tripwire (does not fail the run); it
-          # goes green if the upstream code ever gains a fallback. Mirrors the tap's
-          # macos-15 experimental leg.
-          - name: macos-15 (tripwire, expected fail)
+          # The older Apple toolchain: the macos-15 image's default Xcode 16.4
+          # (Apple clang 17), which is what macOS 15 users build with. A regular
+          # leg since 2026-11-09. It was an informational tripwire while Clang 17
+          # lacked floating-point std::from_chars, and it had been passing since
+          # at least 2026-08-06 without anyone noticing. If it starts failing
+          # again, decide then whether to make it informational again or drop it.
+          # GitHub sometimes cannot find a macOS runner, and the job is then
+          # cancelled ("not acquired by Runner"); re-run it.
+          - name: macos-15 (Apple clang 17, Xcode 16.4)
             os: macos-15
-            experimental: true
           - name: ubuntu-latest (clang)
             os: ubuntu-latest
             cxx: "clang++ -DTOOLS_NO_RESTRICT"
@@ -68,27 +77,66 @@ jobs:
 
       - name: Fetch submodules (ssh->https, no LFS)
         # .gitmodules uses git@github.com: SSH URLs and Tensors nests Tools, so
-        # rewrite to https and init recursively. No LFS: the light tier needs no
-        # KLUT data.
+        # rewrite to https and init recursively. The submodules need no LFS.
         run: |
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git submodule update --init --recursive
 
-      - name: Install deps (macOS -- Boost + SuiteSparse)
-        if: runner.os == 'macOS'
-        run: brew install boost suite-sparse
+      - name: List the KLUT tables' LFS objects (the cache key)
+        run: git lfs ls-files --long --include="data/Klut/**" | cut -d' ' -f1 | sort > .klut-lfs-oids
 
-      - name: Install deps (Ubuntu -- clang + Boost + SuiteSparse)
+      - name: Restore the KLUT tables' LFS objects
+        # Saves LFS bandwidth: the tables change rarely, so most runs download
+        # nothing. A new table set gets a new key.
+        uses: actions/cache@v4
+        with:
+          path: .git/lfs/objects
+          key: klut-lfs-${{ runner.os }}-${{ hashFiles('.klut-lfs-oids') }}
+
+      - name: Fetch the KLUT tables (Git LFS, data/Klut only)
+        run: bash scripts/ci-fetch-klut.sh
+
+      - name: Install deps (macOS -- Boost + SuiteSparse + ccache)
+        if: runner.os == 'macOS'
+        run: brew install boost suite-sparse ccache
+
+      - name: Install deps (Ubuntu -- clang + Boost + SuiteSparse + ccache)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            clang make libboost-dev libsuitesparse-dev python3
+            clang make libboost-dev libsuitesparse-dev python3 ccache
+
+      - name: Name this runner's CPU (part of the compiler-cache key)
+        # The build uses -march=native, and ccache sees only the word "native":
+        # an object cached on one CPU would be handed to another that may not
+        # have its instructions. So each CPU model gets its own cache.
+        run: |
+          { sysctl -n machdep.cpu.brand_string 2>/dev/null \
+              || grep -m1 'model name' /proc/cpuinfo; } > .ci-cpu-model
+          cat .ci-cpu-model
+
+      - name: Restore the compiler cache (tools and test groups)
+        # tools/Makefile and test/Makefile use ccache when it is on PATH. A push
+        # that did not change what a tool or a group includes then recompiles
+        # nothing for it. Saved per commit, restored from the newest earlier one.
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-${{ matrix.os }}-${{ hashFiles('.ci-cpu-model') }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ matrix.os }}-${{ hashFiles('.ci-cpu-model') }}-
 
       - name: Build tools + run light-tier tests
         env:
           CI_CXX: ${{ matrix.cxx }}
           HOMEBREW_PREFIX: ${{ matrix.homebrew_prefix }}
+          CI_TEST_TARGET: ${{ github.event_name == 'pull_request' && 'light' || 'all' }}
+          CCACHE_DIR: ${{ github.workspace }}/.ccache
+          CCACHE_MAXSIZE: 400M
+          # Compare compilers by content, not mtime: every runner is a fresh
+          # image, so the mtime never matches and nothing would ever hit.
+          CCACHE_COMPILERCHECK: content
         run: bash scripts/ci-build-and-test.sh
 
   # RHEL-family + Debian coverage (no native Fedora/RHEL/Debian runner exists), as
@@ -124,7 +172,7 @@ jobs:
         # gcc-c++ (gcc 15), make, git (for checkout + submodules), Boost +
         # SuiteSparse (umfpack.h under /usr/include/suitesparse), python3.
         run: |
-          dnf -y install gcc-c++ make git boost-devel suitesparse-devel \
+          dnf -y install gcc-c++ make git git-lfs boost-devel suitesparse-devel \
                          python3 findutils
 
       - name: Install toolchain + deps (Rocky 9)
@@ -134,7 +182,7 @@ jobs:
         run: |
           dnf -y install epel-release dnf-plugins-core
           dnf config-manager --set-enabled crb
-          dnf -y install clang make git boost-devel suitesparse-devel \
+          dnf -y install clang make git git-lfs boost-devel suitesparse-devel \
                          python3 findutils
 
       - name: Check out
@@ -146,7 +194,13 @@ jobs:
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git submodule update --init --recursive
 
+      - name: Fetch the KLUT tables (Git LFS, data/Klut only)
+        # No cache in the containers: these jobs run on push/cron only.
+        run: bash scripts/ci-fetch-klut.sh
+
       - name: Build tools + run light-tier tests
+        env:
+          CI_TEST_TARGET: all
         run: bash scripts/ci-build-and-test.sh
 
   # Debian stable (bookworm), MANUAL ONLY for now (Actions -> ci -> "Run workflow",
@@ -191,7 +245,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            clang make git ca-certificates curl gnupg libboost-dev \
+            clang make git git-lfs ca-certificates curl gnupg libboost-dev \
             libsuitesparse-dev python3
           if [ -n "${{ matrix.llvm }}" ]; then
             V="${{ matrix.llvm }}"
@@ -212,6 +266,9 @@ jobs:
           git config --global --add safe.directory '*'
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git submodule update --init --recursive
+
+      - name: Fetch the KLUT tables (Git LFS, data/Klut only)
+        run: bash scripts/ci-fetch-klut.sh
 
       - name: Build tools + run light-tier tests
         run: bash scripts/ci-build-and-test.sh

@@ -10,7 +10,10 @@
 # place to look for what a test does and why it exists.
 #
 # Targets:
-#   all        - every binary in the manifest (the default)
+#   all        - everything the manifest lists (the default): the group
+#                binaries, the tests built alone, the tools and the benches
+#   light      - what the light tier RUNS: `all` without the tools and benches
+#   standalone - every target as its own binary, grouped or not
 #   lint       - check that the manifest and the tree agree
 #   <name>     - any single target from the manifest
 #   libhomfly  - just the vendored libhomfly objects
@@ -35,6 +38,20 @@ endif
 
 CXX ?= clang++
 CC  ?= cc
+
+# ccache, when it is installed, for the GROUP compiles (which are nearly all of
+# the test build). Nothing here needs it; with it, a compile whose preprocessed
+# source and flags were seen before is a file copy. That pays whenever the same
+# code is built twice: switching between branches, a second worktree, and in CI
+# every push that did not touch what a group includes. `make CCACHE=` turns it
+# off. ccache only caches a compile, never a compile-and-link, which is why the
+# group rule below makes an object file first.
+CCACHE ?= $(shell command -v ccache 2>/dev/null)
+# time_macros: the vendored pcg-cpp (deps/pcg-cpp/include/pcg_extras.hpp) names
+# __DATE__ and __TIME__ in a seed helper. ccache sees the words, assumes every
+# compile differs, and never hits (verified 2026-11-12: two identical builds,
+# 0 hits of 8). This tells it not to mind.
+CCACHE_ENV := $(if $(CCACHE),CCACHE_SLOPPINESS=time_macros)
 
 # Knoodle uses clang's matrix extension (-fenable-matrix), so clang/LLVM is the
 # supported toolchain (macOS clang, or a module-loaded clang/LLVM on a cluster).
@@ -128,7 +145,7 @@ EXTRA_DEPS_plantri_check = $(PLANTRI)
 #
 # One shell call reads it into `target:needs:source` triples -- those three
 # columns never contain spaces, so they survive make's word splitting. The
-# light/heavy argument columns DO contain spaces, and are deliberately not read
+# light/full/release argument columns DO contain spaces, and are deliberately not read
 # here: only run_tests.py needs them.
 # ---------------------------------------------------------------------------
 
@@ -138,8 +155,14 @@ MANIFEST      := manifest.tsv
 # here. They are still manifest rows -- the runner and the lint see them -- which
 # is the point: cli_stdin_check.py used to sit outside the manifest entirely,
 # which is exactly the orphan condition the manifest exists to prevent.
-MANIFEST_ROWS := $(shell awk -F'\t' '$$0 !~ /^\#/ && NF>=4 && $$2 != "script" { print $$1":"$$3":"(($$4=="-")?$$1".cpp":$$4) }' $(MANIFEST))
+MANIFEST_ROWS := $(shell awk -F'\t' '$$0 !~ /^\#/ && NF>=9 && $$2 != "script" { print $$1":"$$3":"(($$4=="-")?$$1".cpp":$$4)":"$$2":"$$9 }' $(MANIFEST))
 TARGETS       := $(foreach r,$(MANIFEST_ROWS),$(word 1,$(subst :, ,$(r))))
+
+# GROUPS. A test whose `group` column names a group is not built alone by the
+# tiers: it is compiled into build/group_<name> with the rest of its group, as
+# one translation unit (see gen_group.py for why -- it is a 3-4x saving in
+# compile time). GROUP_ROWS is `group:needs`, one per group.
+GROUP_ROWS    := $(shell awk -F'\t' '$$0 !~ /^\#/ && NF>=9 && $$2 == "test" && $$9 != "-" { print $$9":"$$3 }' $(MANIFEST) | sort -u)
 
 # EXCLUDE_NEEDS lets a platform build only what it can link. CI images without
 # SuiteSparse pass EXCLUDE_NEEDS=umfpack,homfly_umfpack,boost_umfpack. Build
@@ -147,9 +170,30 @@ TARGETS       := $(foreach r,$(MANIFEST_ROWS),$(word 1,$(subst :, ,$(r))))
 # filtered -- so naming an excluded target explicitly still works and fails
 # with a real linker error rather than "no rule to make target".
 EXCLUDE_NEEDS ?=
+EXCLUDED      := $(subst $(COMMA), ,$(EXCLUDE_NEEDS))
 BUILD_TARGETS := $(foreach r,$(MANIFEST_ROWS),\
-    $(if $(filter $(word 2,$(subst :, ,$(r))),$(subst $(COMMA), ,$(EXCLUDE_NEEDS))),,\
+    $(if $(filter $(word 2,$(subst :, ,$(r))),$(EXCLUDED)),,\
         $(word 1,$(subst :, ,$(r)))))
+
+# What each tier builds. A row is `target:needs:source:kind:group`.
+#   ALONE_TESTS   kind=test with no group: its own binary, as before.
+#   GROUP_BINS    one binary per group.
+#   EXTRA_TARGETS kind=tool and kind=bench. Neither tier RUNS these, so the
+#                 light tier does not build them either (55 CPU-seconds on
+#                 every push, for nothing it then used). `all` does, and
+#                 `all` is what check-full and CI on main build -- that is
+#                 where they are kept from rotting.
+ALONE_TESTS   := $(foreach r,$(MANIFEST_ROWS),\
+    $(if $(filter $(word 2,$(subst :, ,$(r))),$(EXCLUDED)),,\
+        $(if $(filter test:-,$(word 4,$(subst :, ,$(r))):$(word 5,$(subst :, ,$(r)))),\
+            $(word 1,$(subst :, ,$(r))))))
+GROUP_BINS    := $(foreach g,$(GROUP_ROWS),\
+    $(if $(filter $(word 2,$(subst :, ,$(g))),$(EXCLUDED)),,\
+        build/group_$(word 1,$(subst :, ,$(g)))))
+EXTRA_TARGETS := $(foreach r,$(MANIFEST_ROWS),\
+    $(if $(filter $(word 2,$(subst :, ,$(r))),$(EXCLUDED)),,\
+        $(if $(filter test,$(word 4,$(subst :, ,$(r)))),,\
+            $(word 1,$(subst :, ,$(r))))))
 
 define BUILD_RULE
 $(1): $(3) $$(DEPS_$(2)) $$(EXTRA_DEPS_$(1))
@@ -160,7 +204,38 @@ endef
 
 $(foreach r,$(MANIFEST_ROWS),$(eval $(call BUILD_RULE,$(word 1,$(subst :, ,$(r))),$(word 2,$(subst :, ,$(r))),$(word 3,$(subst :, ,$(r))))))
 
-all: $(BUILD_TARGETS)
+# Three rules per group: the generated source, its object file, the binary. gen_group.py
+# rewrites the source only when its contents change, so editing an unrelated
+# manifest row re-runs the generator (instant) but does not recompile. The
+# members' own sources and headers reach make through the group's .d file.
+# -I. because the generated file lives in build/ while the headers its members
+# name ("../Knoodle.hpp", "diagram_sanity.hpp") are relative to this directory.
+# $(3) is the members' EXTRA_DEPS (plantri_check's vendored plantri binary).
+define GROUP_RULE
+build/group_$(1).cpp: $$(MANIFEST) gen_group.py | build
+	@python3 gen_group.py $(1) $$@
+
+build/group_$(1).o: build/group_$(1).cpp
+	@echo "=== Building group $(1) on $$(UNAME_S) ==="
+	$$(CCACHE_ENV) $$(CCACHE) $$(CXX) $$(CXXFLAGS) -I. $$(FLAGS_$(2)) -c build/group_$(1).cpp -o $$@
+
+build/group_$(1): build/group_$(1).o $$(DEPS_$(2)) $(3)
+	$$(CXX) $$(CXXFLAGS) build/group_$(1).o $$(LIBS_$(2)) -o $$@
+	@echo "✓ group $(1) compiled successfully"
+endef
+
+group_members = $(foreach r,$(MANIFEST_ROWS),$(if $(filter test:$(1),$(word 4,$(subst :, ,$(r))):$(word 5,$(subst :, ,$(r)))),$(word 1,$(subst :, ,$(r)))))
+
+$(foreach g,$(GROUP_ROWS),$(eval $(call GROUP_RULE,$(word 1,$(subst :, ,$(g))),$(word 2,$(subst :, ,$(g))),$(foreach m,$(call group_members,$(word 1,$(subst :, ,$(g)))),$(EXTRA_DEPS_$(m))))))
+
+all: light $(EXTRA_TARGETS)
+
+light: $(GROUP_BINS) $(ALONE_TESTS)
+
+# Every target as its own binary -- what `all` built before there were groups.
+# No tier uses it. It answers "does this test still compile by itself?", which
+# a group cannot: there, a test can lean on a header only its neighbour names.
+standalone: $(BUILD_TARGETS)
 
 
 # ---------------------------------------------------------------------------
@@ -205,11 +280,14 @@ polygons: polygons/make_polygons
 #   make check       every test at light settings. Budget: build time plus 30 s
 #                    of RUN time. This is what the pre-push hook and CI run, so
 #                    the budget is what keeps it from being dodged.
-#   make check-full  every test at full settings, before a release. Hours are
-#                    fine -- better to delay a release than to ship a
-#                    regression.
+#   make check-full  every test at full settings, under two minutes of runs. For when a change deserves more than the light tier:
+#                    before merging to main, after touching the core.
+#   make check-release  the full tier plus what is too slow to run that often
+#                    (inflate_check to 100k crossings: seven minutes). Required at
+#                    the commit of every v* tag; the pre-push hook checks.
+#                    Better to delay a release than to ship a regression.
 #
-# Both build everything first, tools included: klut_e2e, cli_contract_check,
+# All three build everything first, tools included: klut_e2e, cli_contract_check,
 # cli_stdin_check and run_tests all drive the real binaries in ../tools.
 #
 # `tools` builds PolyFold too (devel/PolyFold), for polyfold_check. Until
@@ -226,11 +304,14 @@ tools:
 	@$(MAKE) -C ../tools all
 	@$(MAKE) -C ../devel/PolyFold polyfold
 
-check: all tools lint
+check: light tools lint
 	@python3 run_tier.py --tier=light
 
 check-full: all tools lint
-	@python3 run_tier.py --tier=heavy
+	@python3 run_tier.py --tier=full
+
+check-release: all tools lint
+	@python3 run_tier.py --tier=release
 
 # Install the versioned hooks by pointing core.hooksPath at scripts/githooks.
 #
@@ -253,7 +334,7 @@ clean:
 	rm -rf build logs $(TARGETS) $(PLANTRI)
 	rm -f *.d
 
-.PHONY: all libhomfly clean cli_stdin_check lint polygons tools check check-full hooks
+.PHONY: all light standalone libhomfly clean cli_stdin_check lint polygons tools check check-full check-release hooks
 
 # Generated by -MMD; absent on a fresh checkout, hence the leading '-'.
--include $(wildcard *.d)
+-include $(wildcard *.d) $(wildcard build/*.d)

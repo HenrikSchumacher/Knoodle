@@ -14,18 +14,16 @@ int main()
  
     const auto loc = std::source_location::current();
     
-    std::filesystem::path path      = std::filesystem::path(loc.file_name()).parent_path();
-    std::filesystem::path klut_path = path.parent_path() / "data" / "Klut";
-    Tools::valprint("working directory", path.string() );
-    Tools::valprint("klut directory", klut_path.string() );
+    std::filesystem::path path = std::filesystem::path(loc.file_name()).parent_path();
+    Tools::print("Working directory set to ", path, "." );
+    Tools::Profiler::Clear(path);
     
-    // DEBUGGING
-    Knoodle::Profiler::Clear();
+    std::filesystem::path klut_path = path.parent_path().parent_path() / "data" / "Klut";
+    Tools::print("Knot lookup data will be read from ", klut_path, ".");
+    Knoodle::Klut klut ( klut_path );
 
-    
-    // Load a knot from file.
+    Tools::print("\n== Loading pd code from file ==");
     std::vector<Int> pd_code;
-    
     {
         std::string filename ( path / "ExampleKnot.tsv" );
         std::ifstream s ( filename );
@@ -54,6 +52,11 @@ int main()
         c_count          // number of crossingss
     );
     
+    if( pd_0.ValidQ() )
+    {
+        Tools::print("Loading from file was sucessful.");
+    }
+    
     // Graphics settings for ASCII art. (Move on, nothing to see here.)
     OrthoDraw_T::Settings_T plot_settings {
         .x_grid_size              = 8,
@@ -66,7 +69,7 @@ int main()
     {
 //        // Print PD code to command line.
 //        Tools::valprint( "PD code (unsimplified)", pd.PDCode() );
-//
+
         std::string filename ( path / "Diagram_unsimplified.txt" );
         Tools::print( "Writing diagram to file ", filename, "." );
         
@@ -77,8 +80,6 @@ int main()
         // Write an ASCII art version of the diagram to file.
         std::ofstream( filename ) << H.DiagramString();
     }
-    
-    Knoodle::Klut klut (klut_path);
     
     
     Tools::print( "\n== Demonstration of Simplify ==" );

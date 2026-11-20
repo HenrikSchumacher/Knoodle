@@ -16,7 +16,7 @@ Path_T ExportValues() const
     
     if( !SucceededQ() )
     {
-        eprint(tag() + ": Klutter did not succeed. Aborting to not overwrite data." );
+        eprint(tag(), ": Klutter did not succeed. Aborting to not overwrite data." );
         return Path_T();
     }
     
@@ -25,7 +25,7 @@ Path_T ExportValues() const
     std::ofstream stream ( file, std::ios::binary );
     if( !stream )
     {
-        eprint(tag() + ": Could not open " + file.string() +". Aborting." );
+        eprint(tag(), ": Could not open ", file, ". Aborting." );
         return Path_T();
     }
     
@@ -43,7 +43,7 @@ Path_T ExportKeys() const
     
     if( !SucceededQ() )
     {
-        eprint(tag() + ": Klutter did not succeed. Aborting to not overwrite data." );
+        eprint(tag(), ": Klutter did not succeed. Aborting to not overwrite data." );
         return Path_T();
     }
     
@@ -52,7 +52,7 @@ Path_T ExportKeys() const
     std::ofstream stream ( file, std::ios::binary );
     if( !stream )
     {
-        eprint(tag() + ": Could not open " + file.string() + ". Aborting." );
+        eprint(tag(), ": Could not open ", file, ". Aborting." );
         return Path_T();
     }
     

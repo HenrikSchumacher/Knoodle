@@ -22,10 +22,13 @@ namespace Knoodle
     /*!@brief Biggest comp type on this system.*/
     using DefaultSignedComp_T = ToSigned<DefaultComp_T>;
     
-    /*!@brief A class for wide integers.
-     
+    /*!@brief A class for wide fixed size integers. BEWARE: this is not an all-purpose implementation. Instead, the main purpose is to have fast addition, fast multiplication, and fast comparison operations.
+     *
      * An integer is represented by `limb_count` limbs of unsigned integer type `Limb_T`.
      * Computations are performed in the unsigned integer type _double limb_ `Comp_T`.
+     * Overflow is itentially left as undefined behavior for performance reasons.
+     * Use this class only in settings that allows you to guarantee that overflow does not happen.
+     * Integer division or modular operations are not implemented at all.
      *
      * @tparam limb_count_ The number of limbs to use.
      *
@@ -33,7 +36,7 @@ namespace Knoodle
      *
      * @tparam Comp_T_ The unsigned integral type used for computations. It needs to be at least twice as wide as `Limb_T`, and it should be the fastest type the processor has available.
      */
-    
+
     template<int limb_count_, UnsignedIntQ Limb_T_, UnsignedIntQ Comp_T_, bool signQ>
     class WideInt
     {
@@ -48,9 +51,8 @@ namespace Knoodle
         
         static constexpr Idx limb_count = static_cast<Idx>(limb_count_);
         
-        using This_T     = WideInt<    limb_count_,Limb_T,Comp_T,signQ>;
+        using Class_T    = WideInt;
         using Prod_T     = WideInt<2 * limb_count_,Limb_T,Comp_T,signQ>;
-        
         using Signed_T   = WideInt<    limb_count_,Limb_T,Comp_T,true>;
         using Unsigned_T = WideInt<    limb_count_,Limb_T,Comp_T,false>;
         
@@ -63,6 +65,7 @@ namespace Knoodle
         
         static_assert(comp_bit_count >= Idx(2) * limb_bit_count,"");
         
+        // TODO: To be removed.
         /*!@ A std::bitset with the same width as the internal list of limbs. Used to accelerate bitwise operations.*/
         using BitSet_T = std::bitset<bit_count>;
         
@@ -118,13 +121,15 @@ namespace Knoodle
             return As_Limb(a);
         }
         
-        TOOLS_FORCE_INLINE constexpr friend const BitSet_T & As_BitSet( cref<This_T> a )
+        // TODO: To be removed.
+        TOOLS_FORCE_INLINE constexpr friend const BitSet_T & As_BitSet( cref<WideInt> a )
         {
             const BitSet_T * a_ptr = reinterpret_cast<const BitSet_T *>(&a.limbs[0]);
             return *a_ptr;
         }
         
-        TOOLS_FORCE_INLINE constexpr friend const BitSet_T & As_BitSet( mref<This_T> a )
+        // TODO: To be removed.
+        TOOLS_FORCE_INLINE constexpr friend const BitSet_T & As_BitSet( mref<WideInt> a )
         {
             const BitSet_T * a_ptr = reinterpret_cast<BitSet_T *>(&a.limbs[0]);
             return *a_ptr;
@@ -144,12 +149,6 @@ namespace Knoodle
             // No need to fill up  with zeroes as WideInt is initialized by 0.
         }
         
-        constexpr explicit WideInt( SignedLimb_T a )
-        :   WideInt { static_cast<Limb_T>(a)}
-        {
-            // No need to fill up  with zeroes as WideInt is initialized by 0.
-        }
-        
         template<typename dummy = std::conditional_t<limb_count == Size_T(2),void,void>>
         constexpr explicit WideInt( Comp_T a )
         {
@@ -165,6 +164,7 @@ namespace Knoodle
             // No need to fill up  with zeroes as WideInt is initialized by 0.
         }
         
+        // TODO: To be removed.
         constexpr explicit WideInt( cref<BitSet_T> a  )
         {
             std::copy_n(
@@ -187,7 +187,7 @@ namespace Knoodle
         {
             if( a_size > limb_count )
             {
-                eprint(ClassName()+"(const Limb_T *): More limbs than the type can store.");
+                eprint(ClassName(), "(const Limb_T *): More limbs than the type can store.");
                 return;
             }
             else
@@ -210,9 +210,6 @@ namespace Knoodle
             }
             else if( sizeof(a) <= byte_count )
             {
-//                // TODO: This is dangerous because it may break in big-endian systems.
-//                *this = WideInt( reinterpret_cast<const Limb_T *>(&a), sizeof(a)/sizeof(Limb_T) );
-                
                 UInt b = a;
                 
                 constexpr int n = static_cast<int>(sizeof(UInt)/sizeof(Limb_T)) - 1;
@@ -220,13 +217,13 @@ namespace Knoodle
                 for( int i = 0; i < n; ++i )
                 {
                     limbs[i] = static_cast<Limb_T>(b);
-                    b >> limb_bit_count;
+                    b = b >> limb_bit_count;
                 }
                 limbs[n-1] = static_cast<Limb_T>(b);
             }
             else
             {
-                eprint(ClassName()+"(" + TypeName<UInt> + "): To many bytes to fit into type.");
+                eprint(ClassName(), "(", TypeName<UInt>, "): To many bytes to fit into type.");
             }
         }
         
@@ -255,14 +252,14 @@ namespace Knoodle
         
     public:
         
-        /*!@brief Return `i`-th limb, read only. The least significant limb is at position `0`.*/
+        /*!@brief Return `i`-th limb, read only. BEWARE: The least significant limb is at position `0`.*/
         template<IntQ Int>
         TOOLS_FORCE_INLINE constexpr Limb_T operator[]( const Int i ) const
         {
             return limbs[i];
         }
         
-        /*!@brief Return `i`-th limb. The least significant limb is at position `0`.*/
+        /*!@brief Return `i`-th limb. BEWARE:  The least significant limb is at position `0`.*/
         template<IntQ Int>
         TOOLS_FORCE_INLINE constexpr Limb_T & operator[]( const Int i )
         {
@@ -270,7 +267,7 @@ namespace Knoodle
         }
         
         /*!@brief Preincrement.*/
-        TOOLS_FORCE_INLINE constexpr This_T & operator++()
+        TOOLS_FORCE_INLINE constexpr WideInt & operator++()
         {
             // Exploiting that Limb_T wraps around.
             static_assert(static_cast<Limb_T>(max_limb + Limb_T(1)) == zero_limb,"");
@@ -285,7 +282,7 @@ namespace Knoodle
         }
         
         /*!@brief Predecrement.*/
-        TOOLS_FORCE_INLINE constexpr This_T & operator--()
+        TOOLS_FORCE_INLINE constexpr WideInt & operator--()
         {
             // Exploiting that Limb_T wraps around.
             static_assert(static_cast<Limb_T>(zero_limb - Limb_T(1)) == max_limb,"");
@@ -300,18 +297,17 @@ namespace Knoodle
         }
         
         /*!@brief Negate this wide integer.*/
-        TOOLS_FORCE_INLINE constexpr This_T & Negate()
+        TOOLS_FORCE_INLINE constexpr WideInt & Negate()
         {
             (*this) = ~(*this);
             ++(*this);
-            
             return *this;
         }
         
         /*!@brief Return negative of this wide integer.*/
-        TOOLS_FORCE_INLINE constexpr This_T operator-() const
+        TOOLS_FORCE_INLINE constexpr WideInt operator-() const
         {
-            This_T c { *this };
+            WideInt c { *this };
             (void)c.Negate();
             return c;
         }
@@ -374,7 +370,7 @@ namespace Knoodle
         /*!@brief Return the sign of  */
         template<SignedIntQ R = FastInt8>
         TOOLS_FORCE_INLINE friend constexpr
-        R Sign( cref<This_T> a )
+        R Sign( cref<WideInt> a )
         {
             if constexpr ( signQ )
             {
@@ -387,7 +383,7 @@ namespace Knoodle
         }
         
         /*!@brief Comparison operator.*/
-        TOOLS_FORCE_INLINE constexpr friend bool operator<( cref<This_T> a, cref<This_T> b )
+        TOOLS_FORCE_INLINE constexpr friend bool operator<( cref<WideInt> a, cref<WideInt> b )
         {
             if( NegativeQ(a) )
             {
@@ -416,25 +412,25 @@ namespace Knoodle
         }
         
         /*!@brief Comparison operator.*/
-        TOOLS_FORCE_INLINE constexpr friend bool operator>=( cref<This_T> a, cref<This_T> b )
+        TOOLS_FORCE_INLINE constexpr friend bool operator>=( cref<WideInt> a, cref<WideInt> b )
         {
             return !(a < b);
         }
         
         /*!@brief Comparison operator.*/
-        TOOLS_FORCE_INLINE constexpr friend bool operator>( cref<This_T> a, cref<This_T> b )
+        TOOLS_FORCE_INLINE constexpr friend bool operator>( cref<WideInt> a, cref<WideInt> b )
         {
             return (b < a);
         }
         
         /*!@brief Comparison operator.*/
-        TOOLS_FORCE_INLINE constexpr friend bool operator<=( cref<This_T> a, cref<This_T> b )
+        TOOLS_FORCE_INLINE constexpr friend bool operator<=( cref<WideInt> a, cref<WideInt> b )
         {
             return !(b < a);
         }
             
         /*!@brief Three-way comparison operator.*/
-        TOOLS_FORCE_INLINE constexpr friend std::strong_ordering operator<=>( cref<This_T> a, cref<This_T> b )
+        TOOLS_FORCE_INLINE constexpr friend std::strong_ordering operator<=>( cref<WideInt> a, cref<WideInt> b )
         {
             if( NegativeQ(a) )
             {
@@ -453,7 +449,7 @@ namespace Knoodle
             
             // If a and b have the same sign, then a - b cannot overflow.
             
-            This_T c = a - b;
+            WideInt c = a - b;
             
             if( NegativeQ(c) ) { return std::strong_ordering::less; }
             if( ZeroQ(c)     ) { return std::strong_ordering::equal; }
@@ -461,9 +457,9 @@ namespace Knoodle
         }
         
         /*!@brief (Short) addition operator. The result is of the same type.*/
-        TOOLS_FORCE_INLINE constexpr friend This_T operator+( cref<This_T> a, cref<This_T> b )
+        TOOLS_FORCE_INLINE constexpr friend WideInt operator+( cref<WideInt> a, cref<WideInt> b )
         {
-            This_T c {};
+            WideInt c {};
             Comp_T X = As_Comp(a[0]) + As_Comp(b[0]);
             c[0] = Lo_Limb(X);
             
@@ -480,9 +476,9 @@ namespace Knoodle
         }
 
         /*!@brief (Short) subtraction operator. The result is of the same type.*/
-        TOOLS_FORCE_INLINE constexpr friend This_T operator-( cref<This_T> a, cref<This_T> b )
+        TOOLS_FORCE_INLINE constexpr friend WideInt operator-( cref<WideInt> a, cref<WideInt> b )
         {
-            This_T c {};
+            WideInt c {};
             // Using 2's complement representation.
             Comp_T X = As_Comp(a[0]) + As_Comp(b[0] ^ max_limb) + Comp_T(1);
             c[0] = Lo_Limb(X);
@@ -504,27 +500,27 @@ namespace Knoodle
         
     public:
 
-        template<IntQ T = signed __int128>
-        T ToNumber()
-        {
-            static_assert(sizeof(T) >= byte_count, "");
-            WideInt b = *this;
-            
-            if( NegativeQ(*this) ) { Negate(b); }
-            
-            T   x = 0;
-            Idx s = 0;
-            
-            for( Idx i = 0; i < limb_count; ++i )
-            {
-                x |= static_cast<T>(b[i]) << s; // This shift should work with signed types.
-                s += 8 * sizeof(Limb_T);
-            }
-            
-            if( NegativeQ(*this) ) { x = -x; }
-            
-            return x;
-        }
+//        template<IntQ T = signed __int128>
+//        T ToNumber()
+//        {
+//            static_assert(sizeof(T) >= byte_count, "");
+//            WideInt b = *this;
+//            
+//            if( NegativeQ(*this) ) { Negate(b); }
+//            
+//            T   x = 0;
+//            Idx s = 0;
+//            
+//            for( Idx i = 0; i < limb_count; ++i )
+//            {
+//                x |= static_cast<T>(b[i]) << s; // This shift should work with signed types.
+//                s += 8 * sizeof(Limb_T);
+//            }
+//            
+//            if( NegativeQ(*this) ) { x = -x; }
+//            
+//            return x;
+//        }
         
         /*!@brief Conversion to `double`.*/
         friend double ToDouble( cref<WideInt> a )
@@ -557,7 +553,7 @@ namespace Knoodle
         
         /*!@ Fill the limb buffer with (pseudo)random numbers. With every call the function `fun` is required to generate number that is convertible to `Limb_T`*/
         template<typename RandomFunction_T>
-        TOOLS_FORCE_INLINE This_T & Randomize( mref<RandomFunction_T> fun )
+        TOOLS_FORCE_INLINE WideInt & Randomize( mref<RandomFunction_T> fun )
         {
             for( Idx i = 0; i < limb_count; ++i )
             {
@@ -567,24 +563,27 @@ namespace Knoodle
             return *this;
         }
         
-        friend std::string ToString( cref<This_T> c )
+        friend std::string ToString( cref<WideInt> c )
         {
             return ClassName() + std::string(OutString::FromVector(&c.limbs[0],limb_count));
         }
         
-        friend std::ostream & operator << (std::ostream &s, const This_T & c )
+        friend std::ostream & operator << (std::ostream &s, const WideInt & c )
         {
             return s << ClassName() << OutString::FromVector(&c.limbs[0],limb_count);
         }
         
     public:
         
-        static std::string MethodName( const std::string & tag )
+        using Msgr = Tools::Messenger<Class_T>;
+                
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr auto ClassName()
+        static consteval auto ClassName()
         {
             return ct_string("WideInt")
             + "<" + to_ct_string(limb_count)
