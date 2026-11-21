@@ -154,7 +154,6 @@ namespace Knoodle
         
     public:
         
-        
         using Msgr = Tools::Messenger<Class_T>;
                 
         template<typename A>

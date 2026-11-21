@@ -37,6 +37,12 @@ namespace Knoodle
         static constexpr bool countQ = false;
         static constexpr bool debugQ = false;
         
+#ifdef PD_ALLOCATE_SCRATCH
+        static constexpr bool scratchQ = true;
+#else
+        static constexpr bool scratchQ = false;
+#endif
+        
         /*!@brief Type used for indices of crossings and arcs.*/
         using Int                       = Int_;
         /*!@brief The unsigned type corresponding to `Int`.*/
@@ -407,11 +413,11 @@ namespace Knoodle
         
         /*!@brief Resize internal buffers to make room for at least `new_max_crossing_count` crossings. Caches will be cleared.
          */
-        void RequireCrossingCount( const Int new_max_crossing_count, bool doubleQ = true )
+        void RequireCrossingCount( const Int new_max_crossing_count, bool double_sizeQ = false )
         {
             if( max_crossing_count < new_max_crossing_count )
             {
-                (*this) = CreateEnlarged( (doubleQ ? Int(2) : Int(1) ) * new_max_crossing_count );
+                (*this) = CreateEnlarged( (double_sizeQ ? Int(2) * new_max_crossing_count : new_max_crossing_count )  );
             }
         }
         
@@ -535,6 +541,31 @@ namespace Knoodle
         {
             return !InvalidQ();
         }
+        
+    private:
+        
+        /*!@brief Turn the diagram that will be recognized as invalid in the sense that `InvalidQ()` returns true without deallocation. This way the memory can be used for something else.
+         
+           All crossings and arcs are explicitly set to inactive a search pointers are set to that modifying routines can still work with this cleared object.
+         */
+        void Reset_Private()
+        {
+            // needs to know all member variables
+            
+            crossing_count = Int(0);
+            arc_count = Int(0);
+            last_color_deactivated = InvalidColor;
+            
+            C_state.Fill(CrossingState_T::Inactive);
+            A_state.Fill(ArcState_T::Inactive);
+            
+            c_search_ptr    = 0;
+            a_search_ptr    = 0;
+            proven_minimalQ = false;
+        }
+        
+    public:
+        
         
         /*!@brief Move the internal search pointer to the first next inactive crossing and returns its index.*/
         Int NextInactiveCrossing() const
@@ -784,7 +815,12 @@ namespace Knoodle
     public:
         
         using Msgr = Tools::Messenger<Class_T>;
-                
+
+//        static auto MethodName( const std::string & tag )
+//        {
+//            return Msgr::MethodName(tag);
+//        }
+        
         template<typename A>
         static consteval auto MethodName( const A & tag )
         {

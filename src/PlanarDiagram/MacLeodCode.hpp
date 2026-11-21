@@ -84,19 +84,19 @@ static void MacLeodCode_to_LongMacLeodCode(
 template<IntQ T = UInt>
 void WriteMacLeodCode( mptr<T> s_mac_leod ) const
 {
-    constexpr auto tag = ct_string("WriteMacLeodCode<") + TypeName<T> + ">";
+    [[maybe_unused]] constexpr auto tag = ct_string("WriteMacLeodCode<") + TypeName<T> + ">";
     
-    TOOLS_PTIMER(timer,tag);
+    TOOLS_PTIMER(timer,MethodName(tag));
     
     if( LinkComponentCount() > Int(1) )
     {
-        eprint(tag, ": Not defined for links with multiple components. Aborting.");
+        Msgr::eprint(tag, "Not defined for links with multiple components. Aborting.");
         return;
     }
 
     if( !ValidQ() )
     {
-        wprint(tag, ": Trying to compute MacLeod code of invalid planar diagram. Returning empty vector.");
+        Msgr::wprint(tag, "Trying to compute MacLeod code of invalid planar diagram. Returning empty vector.");
         return;
     }
 
@@ -111,17 +111,17 @@ void WriteMacLeodCode( mptr<T> s_mac_leod ) const
 template<IntQ T = UInt>
 Tensor1<T,Int> MacLeodCode() const
 {
-    constexpr auto tag = MethodName("MacLeodCode<") + TypeName<T> + ">";
+    [[maybe_unused]] constexpr auto tag = ct_string("MacLeodCode<") + TypeName<T> + ">";
     
     if( LinkComponentCount() > Int(1) )
     {
-        eprint(tag, ": This diagram has several link components. And, you know, there can be only one.");
+        Msgr::eprint(tag, "This diagram has several link components. And, you know, there can be only one.");
         return Tensor1<T,Int>();
     }
     
     if( !ValidQ() )
     {
-        wprint(tag, ": Trying to compute MacLeod code of invalid planar diagram. Returning empty vector.");
+        Msgr::wprint(tag, "Trying to compute MacLeod code of invalid planar diagram. Returning empty vector.");
         return Tensor1<T,Int>();
     }
     
@@ -129,6 +129,68 @@ Tensor1<T,Int> MacLeodCode() const
     WriteMacLeodCode( s_mac_leod.data() );
     
     return s_mac_leod;
+}
+
+private:
+
+/*!@brief Read a MacLeod code into the current diagram. The diagram will be reallocated only, if the previously allocated memory is too small.
+ *
+ * Warning: some intermediate buffers might need to be allocated. If you need to do this often, then you might want to create a persistent buffer and use `MacLeodCode_to_LongMacLeodCode` and `ReadLongMacLeodCode_Private`.
+ *
+ * @return Integer error code: `0` on success and other values so that downstream routines can generated appropriate error message.
+ */
+template<bool silentQ = false, IntQ T, IntQ ExtInt, IntQ ExtInt2>
+int ReadMacLeodCode_Private(
+    cptr<T>       s_mac_leod,
+    const ExtInt  crossing_count_,
+    const ExtInt2 color,
+    const bool    proven_minimalQ_ = false
+)
+{
+//    constexpr auto tag = ct_string("ReadMacLeodCode_Private")
+//    + "<" + TypeName<T>
+//    + "," + TypeName<ExtInt>
+//    + "," + TypeName<ExtInt2>
+//    + ">";
+    
+    // TODO: Can we leave out this step and reimplement FromMacLeodCode directly?
+    
+    Int c_count = int_cast<Int>(crossing_count_);
+    Int a_count = Int(2) * c_count;
+    
+    Tensor1<T,Int> l_mac_leod ( a_count );
+
+    // TODO: Can we leave out this step and reimplement FromMacLeodCode directly?
+    MacLeodCode_to_LongMacLeodCode( s_mac_leod, l_mac_leod.data(), c_count );
+
+    return ReadLongMacLeodCode_Private(l_mac_leod.data(), a_count, color, proven_minimalQ_);
+}
+
+public:
+
+/*!@brief **UNSAFE** Read a MacLeod code into the current diagram. The diagram will be reallocated only, if the previously allocated memory is too small.
+ *
+ * Warning: some intermediate buffers might need to be allocated. If you need to do this often, then you might want to create a persistent buffer and use `MacLeodCode_to_LongMacLeodCode` and `ReadLongMacLeodCode`.
+ *
+ * @return Integer error code: `0` on success and other values so that downstream routines can generated appropriate error message.
+ */
+template<bool silentQ = false, IntQ T, IntQ ExtInt, IntQ ExtInt2>
+int ReadMacLeodCode(
+    cptr<T>       s_mac_leod,
+    const ExtInt  crossing_count_,
+    const ExtInt2 color,
+    const bool    proven_minimalQ_ = false
+)
+{
+    constexpr auto tag = ct_string("ReadMacLeodCode")
+    + "<" + TypeName<T>
+    + "," + TypeName<ExtInt>
+    + "," + TypeName<ExtInt2>
+    + ">";
+    
+    if( LockedQ() ) { LockMessage(tag); return 5; }
+
+    return ReadMacLeodCode_Private(s_mac_leod, crossing_count_, color, proven_minimalQ_);
 }
 
 /*!@brief Create a new `PlanarDiagram` from a MacLeod code. */
@@ -140,21 +202,25 @@ static PD_T FromMacLeodCode(
     const bool    proven_minimalQ_ = false
 )
 {
-    TOOLS_PTIMER(timer, MethodName( ct_string("FromMacLeodCode")
+    [[maybe_unused]] constexpr auto tag = ct_string("FromMacLeodCode")
         + "<" + TypeName<T>
         + "," + TypeName<ExtInt>
         + "," + TypeName<ExtInt2>
-        + ">" ) );
+        + ">";
     
-    Int c_count = int_cast<Int>(crossing_count_);
-    Int a_count = Int(2) * c_count;
+//    TOOLS_PTIMER(timer, MethodName(tag) );
+
+    PD_T pd;
     
-    Tensor1<T,Int> l_mac_leod ( a_count );
-
-    // TODO: Can we out this step and reimplement FromMacLeodCode directly?
-    MacLeodCode_to_LongMacLeodCode( s_mac_leod, l_mac_leod.data(), c_count );
-
-    return FromLongMacLeodCode( l_mac_leod.data(), a_count, color, proven_minimalQ_ );
+    const int info = pd.ReadMacLeodCode_Private(s_mac_leod, crossing_count_, color, proven_minimalQ_);
+    
+    if( info )
+    {
+        Msgr::eprint(tag, "Failed due to an error. Returning invalid diagram.");
+        return PD_T::InvalidDiagram();
+    }
+    
+    return pd;
 }
 
 

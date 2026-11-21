@@ -26,7 +26,7 @@ bool SwitchCrossing( const Int diagram_idx, const Int c )
 
 /*!@brief This is a relatively "safe" routine as we do not allow modification of any invalid diagrams. (You might need to `Push` an unknot first.*/
 template<bool silentQ = false>
-void RequireCrossingCount( const Int diagram_idx, const Int min_crossing_count )
+void RequireCrossingCount( const Int diagram_idx, const Int min_crossing_count, bool double_sizeQ = false )
 {
     TOOLS_PTIMER(timer,MethodName("RequireCrossingCount"));
     
@@ -41,7 +41,7 @@ void RequireCrossingCount( const Int diagram_idx, const Int min_crossing_count )
         return;
     }
     
-    pd.RequireCrossingCount(min_crossing_count);
+    pd.RequireCrossingCount(min_crossing_count,double_sizeQ);
 }
 
 /*!@brief A make a Reidemeister I move at an arc to create a new crossing.*/

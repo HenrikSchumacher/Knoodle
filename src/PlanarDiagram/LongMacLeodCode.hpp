@@ -156,8 +156,14 @@ Size_T MacLeodComparisonCount()
     return this->GetCache<Size_T>("MacLeodComparisonCount");
 }
 
-template<IntQ T, IntQ ExtInt, IntQ ExtInt2>
-static PD_T FromLongMacLeodCode(
+private:
+
+/*!@brief Read a long MacLeod code into the current diagram. The diagram will be reallocated only, if the previously allocated memory is too small.
+ *
+ * @return Integer error code: `0` on success and other values so that downstream routines can generated appropriate error message.
+ */
+template<bool silentQ = false, IntQ T, IntQ ExtInt, IntQ ExtInt2>
+int ReadLongMacLeodCode_Private(
     cptr<T>       code,
     const ExtInt  arc_count_,
     const ExtInt2 color,
@@ -166,48 +172,125 @@ static PD_T FromLongMacLeodCode(
 {
     // needs to know all member variables
  
-    constexpr auto tag = MethodName("FromLongMacLeodCode")
+    constexpr auto tag = ct_string("ReadLongMacLeodCode_Private")
         + "<" + TypeName<T>
         + "," + TypeName<ExtInt>
+        + "," + TypeName<ExtInt2>
         + ">";
     
-    TOOLS_PTIMER(timer,tag);
+//    TOOLS_PTIMER(timer,tag);
     
-    // TODO: We should check whether 2 * arc_count_ fits into Int.
-
-    const Int m = int_cast<Int>(arc_count_);
-    
-    if( m <= ExtInt(0) )
+    if( std::cmp_greater( arc_count_, Scalar::Max<Int> / Int{2} ) )
     {
-        return Unknot(color);
+        if constexpr( !silentQ )
+        {
+            Msgr::eprint(tag, "Number of arcs requested is too large for data type" , TypeName<Int>, ". Invalidating diagram.");
+            Reset_Private();
+            return 3;
+        }
     }
-    const Int n = m / Int(2);
+    
+    // This cast is safe now.
+    const Int m = static_cast<Int>(arc_count_);
+    
+    if( m < Int{0} )
+    {
+        if constexpr( !silentQ )
+        {
+            Msgr::eprint(tag, "Number of arcs is negative. Invalidating diagram.");
+            Reset_Private();
+            return 2;
+        }
+    }
+    
+    Int color_ = static_cast<Int>(color);
 
-    PD_T pd ( n );
+    if( !std::cmp_equal(color_,color) )
+    {
+        if constexpr( !silentQ )
+        {
+            Msgr::eprint(tag, "Requested color is out of bounds for type", TypeName<Int>, ".");
+        }
+        Reset_Private();
+        return -4;
+    }
+    
+    if( color_ == InvalidColor )
+    {
+        if constexpr( !silentQ )
+        {
+            Msgr::eprint(tag, "Requested color is the invalid color.");
+        }
+        Reset_Private();
+        return -3;
+    }
+    
+    if( m == Int(0) )
+    {
+        Reset_Private();
+        // Make this an unknot of this color. Potentially wastes space if buffers were already allocated.
+        last_color_deactivated = color_;
+        proven_minimalQ        = true;
+        return 0;
+    }
+    
+    const Int n = m / Int(2);
+    
+    if( m != Int{2} * n )
+    {
+        if constexpr( !silentQ )
+        {
+            Msgr::eprint(tag, "Number of arcs requested is odd. Invalidating diagram.");
+            Reset_Private();
+            return 1;
+        }
+    }
+
+    // Potential reallocation, but only if too small.
+    RequireCrossingCount(n);
+    // TODO: There are probably better ways to make sure that the trailing crossings and arcs are correctly recorded as inactive.
+    Reset_Private();
     
 #ifdef PD_ALLOCATE_SCRATCH
-    mptr<bool> A_visitedQ = reinterpret_cast<bool *>(pd.A_scratch.data());
+    mptr<bool> A_visitedQ = reinterpret_cast<bool *>(A_scratch.data());
     fill_buffer(A_visitedQ,false,m);
 #else
-    Tensor1<bool,Int> A_visitedQ_buffer( pd.max_arc_count, false );
+    Tensor1<bool,Int> A_visitedQ_buffer( max_arc_count, false );
     mptr<bool> A_visitedQ = A_visitedQ_buffer.data();
 #endif
     
-    pd.proven_minimalQ = proven_minimalQ_;
+    proven_minimalQ = proven_minimalQ_;
     
     Int crossing_counter = 0;
+    
+    bool invalid_leapQ = false;
     
     for( Int a = 0; a < m; ++a )
     {
         if( !A_visitedQ[a] )
         {
             const T    v               = code[a];
-            const Int  a_leap          = static_cast<Int>(v >> 2);
-            const bool a_right_handedQ = get_bit(v,T(0));
-            const bool a_overQ         = get_bit(v,T(1));
+            const T    v_leap          = v >> 2;
+            const bool a_right_handedQ = get_bit(v,0);
+            const bool a_overQ         = get_bit(v,1);
             
+            if( v_leap < T(1) ) { invalid_leapQ = true; break; }
+            
+            if constexpr( std::cmp_greater(Scalar::Max<T>, Scalar::Max<Int>) )
+            {
+                if( v_leap > static_cast<T>(m) ) { invalid_leapQ = true; break; }
+            }
+            
+            // This cast is safe now.
+            const Int a_leap = static_cast<Int>(v_leap);
+            
+            if constexpr( !std::cmp_greater(Scalar::Max<T>, Scalar::Max<Int>) )
+            {
+                if( a_leap >= m ) { invalid_leapQ = true; break; }
+            }
+                
             Int b = a + a_leap;
-            if( b >= m ) { b -= m; }
+            if( b >= m ) { b -= m; } //  Here we employ the guarantee that 0 <= leap < m.
             
             A_visitedQ[a] = true;
             A_visitedQ[b] = true;
@@ -215,21 +298,21 @@ static PD_T FromLongMacLeodCode(
             const Int c = crossing_counter;
             
             const CrossingState_T c_state = BooleanToCrossingState(a_right_handedQ);
-            pd.C_state[c] = c_state;
+            C_state[c] = c_state;
             
             const Int a_prev = (a > Int(0)) ? (a - Int(1)) : (m - Int(1));
-            pd.A_cross(a_prev,Head) = c;
-            pd.A_cross(a     ,Tail) = c;
+            A_cross(a_prev,Head) = c;
+            A_cross(a     ,Tail) = c;
 
             const Int b_prev = (b > Int(0)) ? (b - Int(1)) : (m - Int(1));
-            pd.A_cross(b_prev,Head) = c;
-            pd.A_cross(b     ,Tail) = c;
+            A_cross(b_prev,Head) = c;
+            A_cross(b     ,Tail) = c;
             
-            pd.A_color[a] = color;
-            pd.A_color[b] = color;
+            A_color[a] = color_;
+            A_color[b] = color_;
             
-            pd.A_state[a] = ArcState_T::Active;
-            pd.A_state[b] = ArcState_T::Active;
+            A_state[a] = ArcState_T::Active;
+            A_state[b] = ArcState_T::Active;
 
             if( a_overQ == a_right_handedQ )
             {
@@ -246,10 +329,10 @@ static PD_T FromLongMacLeodCode(
                  *       a_prev  b_prev    a_prev   b_prev
                  */
                 
-                pd.C_arcs(c,Out,Left ) = b;
-                pd.C_arcs(c,Out,Right) = a;
-                pd.C_arcs(c,In ,Left ) = a_prev;
-                pd.C_arcs(c,In ,Right) = b_prev;
+                C_arcs(c,Out,Left ) = b;
+                C_arcs(c,Out,Right) = a;
+                C_arcs(c,In ,Left ) = a_prev;
+                C_arcs(c,In ,Right) = b_prev;
             }
             else
             {
@@ -266,21 +349,93 @@ static PD_T FromLongMacLeodCode(
                  *      b_prev   a_prev    b_prev   a_prev
                  */
                 
-                pd.C_arcs(c,Out,Left ) = a;
-                pd.C_arcs(c,Out,Right) = b;
-                pd.C_arcs(c,In ,Left ) = b_prev;
-                pd.C_arcs(c,In ,Right) = a_prev;
+                C_arcs(c,Out,Left ) = a;
+                C_arcs(c,Out,Right) = b;
+                C_arcs(c,In ,Left ) = b_prev;
+                C_arcs(c,In ,Right) = a_prev;
             }
             ++crossing_counter;
         }
     }
 
-    pd.crossing_count = crossing_counter;
-    pd.arc_count      = pd.CountActiveArcs();
-    
-    if( !std::cmp_equal(pd.arc_count, arc_count_) )
+    if( invalid_leapQ )
     {
-        eprint(tag, ": Input long MacLeod code code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
+        if constexpr( !silentQ )
+        {
+            Msgr::eprint(tag, "Input long MacLeod code is invalid because it contains a leap greater than the arc count. Invalidating diagram.");
+        }
+        // Explicitly invalidation might be superflous if downstream code perfers to return a PD_T::InvalidDiagram. Nonetheless, we invalidate because it is actually not that expensive and it happens only on the unhappy path (when we have more severe problems).
+        Reset_Private();
+        return -1;
+    }
+    
+    crossing_count = crossing_counter;
+    arc_count      = CountActiveArcs();
+    
+    if( !std::cmp_equal(arc_count, arc_count_) )
+    {
+        if constexpr( !silentQ )
+        {
+            Msgr::eprint(tag, "Input long MacLeod code is invalid because arc_count != 2 * crossing_count. Invalidating diagram.");
+        }
+        // Explicitly invalidation might be superflous if downstream code perfers to return a PD_T::InvalidDiagram. Nonetheless, we invalidate because it is actually not that expensive and it happens only on the unhappy path (when we have more severe problems).
+        Reset_Private();
+        return -2;
+    }
+    
+    return 0;
+    
+} // ReadLongMacLeodCode_Private
+
+public:
+
+/*!@brief **UNSAFE.** Read a long MacLeod code into the current diagram. The diagram will be reallocated only, if the previously allocated memory is too small.
+ *
+ * @return Integer error code: `0` on success and other values so that downstream routines can generated appropriate error message.
+ */
+template<bool silentQ = false, IntQ T, IntQ ExtInt, IntQ ExtInt2>
+int ReadLongMacLeodCode(
+    cptr<T>       code,
+    const ExtInt  arc_count_,
+    const ExtInt2 color,
+    const bool    proven_minimalQ_ = false
+)
+{
+    constexpr auto tag = ct_string("ReadLongMacLeodCode")
+    + "<" + TypeName<T>
+    + "," + TypeName<ExtInt>
+    + "," + TypeName<ExtInt2>
+    + ">";
+    
+    if( LockedQ() ) { LockMessage(tag); return 5; }
+    
+    return ReadLongMacLeodCode_Private(code, arc_count_, color, proven_minimalQ_ );
+}
+
+template<IntQ T, IntQ ExtInt, IntQ ExtInt2>
+static PD_T FromLongMacLeodCode(
+    cptr<T>       code,
+    const ExtInt  arc_count_,
+    const ExtInt2 color,
+    const bool    proven_minimalQ_ = false
+)
+{
+    constexpr auto tag = ct_string("FromLongMacLeodCode")
+        + "<" + TypeName<T>
+        + "," + TypeName<ExtInt>
+        + "," + TypeName<ExtInt2>
+        + ">";
+    
+//    TOOLS_PTIMER(timer,MethodName(tag));
+    
+    PD_T pd;
+    
+    const int info = pd.ReadLongMacLeodCode_Private(code, arc_count_, color, proven_minimalQ_);
+    
+    if( info )
+    {
+        Msgr::eprint(tag, "Failed due to an error. Returning invalid diagram.");
+        return PD_T::InvalidDiagram();
     }
     
     return pd;
@@ -291,5 +446,5 @@ static PD_T FromLongMacLeodCode(
     cref<Tensor1<T,ExtInt>> code, const ExtInt2 color, const bool proven_minimalQ_ = false
 )
 {
-    return FromLongMacLeodCode( code.data(), code.Size(), color, proven_minimalQ_ );
+    return FromLongMacLeodCode(code.data(), code.Size(), color, proven_minimalQ_);
 }

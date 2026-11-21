@@ -41,18 +41,23 @@ Int MaxColor() const
 }
 
 
-/*!@brief **UNSAFE.** (Re-)compute arc colors. This may break topological invariance.*/
-void ComputeArcColors()
+/*!@brief **UNSAFE.** (Re-)compute arc colors. This may break topological invariance.
+ *
+ * @return `0` on success and an integer error code otherwise.*/
+
+int ComputeArcColors()
 {
-    if( LockedQ() ) { LockMessage("ComputeArcColors"); return; }
+    if( LockedQ() ) { LockMessage("ComputeArcColors"); return 1; }
     
-    ComputeArcColors_Private();
+    return ComputeArcColors_Private();
 }
 
 private:
 
-/*!@brief **UNSAFE.** (Re-)compute arc colors. This may break topological invariance.*/
-void ComputeArcColors_Private()
+/*!@brief **UNSAFE.** (Re-)compute arc colors. This may break topological invariance.
+ *
+ * @return `0` on success and an integer error code otherwise.*/
+int ComputeArcColors_Private()
 {
     TOOLS_PTIMER(timer,MethodName("ColorArcCounts_Private"));
     
@@ -96,6 +101,8 @@ void ComputeArcColors_Private()
     }
     
     this->template SetCache<false>("ColorArcCounts", std::move(color_arc_counts));
+    
+    return 0;
 }
 
 public:

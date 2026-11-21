@@ -53,7 +53,7 @@ bool SwitchCrossing_Private( const Int c )
 
 public:
 
-/*!@brief **UNSAFE.** Creates a new active crossing and two new active arcs. Increments the respective counters. Neither the crossing nor the arcs are initialized, so the diagram will be in an invalid state.
+/*!@brief **UNSAFE.** Creates a new active crossing and two new active arcs. Increments the respective counters. Neither the crossing nor the arcs are initialized, so the diagram will be in a nonconsistent state (but it will still be recognized by `ValidQ() == true`).
  */
 
 std::tuple<Int,Int,Int> CreateCrossing(
@@ -67,14 +67,14 @@ std::tuple<Int,Int,Int> CreateCrossing(
 
 private:
 
-/*!@brief **UNSAFE.** Creates a new active crossing and two new active arcs. Increments the respective counters. Neither the crossing nor the arcs are initialized, so the diagram will be in an invalid state.
+/*!@brief **UNSAFE.** Creates a new active crossing and two new active arcs. Increments the respective counters. Neither the crossing nor the arcs are initialized, so the diagram will be in a nonconsistent state (but it will still be recognized by `ValidQ() == true`).
  */
 
 std::tuple<Int,Int,Int> CreateCrossing_Private(
     const CrossingState_T handedness = CrossingState_T::RightHanded
 )
 {
-    RequireCrossingCount( CrossingCount() + Int(1) );
+    RequireCrossingCount( CrossingCount() + Int(1), true );
     
     const Int c     = NextInactiveCrossing();
     C_state[c]      = handedness;
@@ -146,7 +146,7 @@ Int CreateLoop( const Int a, const bool side, CrossingState_T handedness )
     
     if constexpr ( assertsQ ) { PD_ASSERT(CheckAll()); }
     
-    RequireCrossingCount(CrossingCount()+Int(1));
+    RequireCrossingCount(CrossingCount() + Int(1), true);
     
     auto [c,a_prev,a_next] = CreateCrossing_Private(handedness);
     
