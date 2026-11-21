@@ -68,11 +68,37 @@ except ImportError:
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = SCRIPT_DIR.parent
 DEFAULT_BINARY = PROJECT_DIR / "tools" / "knoodlesimplify"
-DEFAULT_HOMFLY_CHECK = SCRIPT_DIR / "homfly_check"
+MANIFEST = SCRIPT_DIR / "manifest.tsv"
 LINKTABLE_DIR = PROJECT_DIR / "data" / "diagrams" / "linktable"
 FAILURES_DIR = SCRIPT_DIR / "failures"
 SIMPLIFICATION_LEVELS = [3, 4, 5, 6]
 _failure_counter = 0
+
+
+def default_homfly_check() -> list[str]:
+    """The command that runs homfly_check the way `make -C test` builds it.
+
+    homfly_check is a GROUPED test in manifest.tsv (column 9), so `make all`
+    and `make light` -- what check, check-full and check-release build -- put
+    it only into build/group_<group>, which runs it as
+
+        build/group_<group> homfly_check [args...]
+
+    (see gen_group.py). A standalone test/homfly_check is built by
+    `make homfly_check` and by nothing else. So it is never looked for: in a
+    fresh checkout it does not exist, and in an old one it is a leftover no
+    tier rebuilds, whose --invariance mode would test a stale Simplify. Pass
+    --homfly-check to use one on purpose.
+    """
+    with open(MANIFEST) as f:
+        for line in f:
+            cols = line.rstrip("\n").split("\t")
+            if line.startswith("#") or len(cols) < 9 or cols[0] != "homfly_check":
+                continue
+            if cols[8] != "-":
+                return [str(SCRIPT_DIR / "build" / f"group_{cols[8]}"), "homfly_check"]
+            break
+    return [str(SCRIPT_DIR / "homfly_check")]
 
 
 # ---------------------------------------------------------------------------
@@ -736,11 +762,12 @@ def test_batch_homfly_preserved(names: list[str],
 # HOMFLY oracle: homfly_check (libhomfly) by default; Regina under --cross-check
 # ---------------------------------------------------------------------------
 
-def run_homfly_invariance(homfly_check_bin, paths):
+def run_homfly_invariance(homfly_check_cmd, paths):
     """Run `homfly_check --invariance` on file paths. Returns (results, proc),
     where results maps each path string to (status, crossings) from the
-    machine-readable RESULT lines."""
-    cmd = [str(homfly_check_bin), "--invariance", *[str(p) for p in paths]]
+    machine-readable RESULT lines. `homfly_check_cmd` is a command prefix
+    (see default_homfly_check)."""
+    cmd = [*homfly_check_cmd, "--invariance", *[str(p) for p in paths]]
     proc = subprocess.run(cmd, capture_output=True, text=True)
     results = {}
     for line in proc.stdout.splitlines():
@@ -895,7 +922,7 @@ def run_tier1a(suite: TestSuite, args):
     # Framework self-test: homfly_check's own built-in checks — encoding
     # (vs libhomfly reference values), invariance, and discrimination (distinct
     # knots get distinct HOMFLY, so the equality test isn't vacuous).
-    selftest = subprocess.run([str(args.homfly_check)],
+    selftest = subprocess.run(args.homfly_check,
                               capture_output=True, text=True)
     suite.record(TestResult(
         name="homfly_check self-test (encoding/invariance/discrimination)",
@@ -1584,8 +1611,10 @@ def parse_args() -> argparse.Namespace:
                         help="RNG seed for random sampling")
 
     # Oracles / binaries
-    parser.add_argument("--homfly-check", type=str, default=str(DEFAULT_HOMFLY_CHECK),
-                        help="Path to the homfly_check binary (default: test/homfly_check)")
+    parser.add_argument("--homfly-check", type=str, default=None,
+                        help="Path to a standalone homfly_check binary (default: "
+                             "the group binary `make -C test` builds, called as "
+                             "`build/group_homfly homfly_check`)")
     parser.add_argument("--knoodlesimplify", type=str, default=str(DEFAULT_BINARY),
                         help="Path to knoodlesimplify (tier 1b and --cross-check)")
     parser.add_argument("--cross-check", action="store_true",
@@ -1607,7 +1636,11 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
 
-    homfly_check = Path(args.homfly_check)
+    # From here on args.homfly_check is a command prefix, not a path.
+    explicit_homfly_check = args.homfly_check is not None
+    args.homfly_check = ([args.homfly_check] if explicit_homfly_check
+                         else default_homfly_check())
+    homfly_check = Path(args.homfly_check[0])
     knoodlesimplify = Path(args.knoodlesimplify)
 
     is_default = not (args.smoke_only or args.hard_unknots_only or
@@ -1620,7 +1653,9 @@ def main():
     if runs_homfly_tier and (not homfly_check.exists()
                              or not os.access(homfly_check, os.X_OK)):
         print(f"Error: homfly_check not found at {homfly_check}", file=sys.stderr)
-        print("Build it with: make -C test homfly_check", file=sys.stderr)
+        if not explicit_homfly_check:
+            print(f"Build it with: make -C test "
+                  f"{os.path.relpath(homfly_check, SCRIPT_DIR)}", file=sys.stderr)
         sys.exit(2)
 
     # knoodlesimplify is needed only for tier 1b and for --cross-check.
