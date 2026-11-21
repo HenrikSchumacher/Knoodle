@@ -163,5 +163,5 @@ std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_Ver
     
     auto [comp_ptr,x] = V_agg.Disband();
     
-    return {comp_ptr,comp_color,x};
+    return {std::move(comp_ptr),std::move(comp_color),std::move(x)};
 }

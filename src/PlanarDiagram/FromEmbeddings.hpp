@@ -288,7 +288,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_Raw(
     
     pd.template SetCache<false>("ColorArcCounts",std::move(color_arc_counts));
     
-    return { pd, anello_colors.Disband() };
+    return { std::move(pd), anello_colors.Disband() };
 }
 
 template<IntQ ExtInt>
