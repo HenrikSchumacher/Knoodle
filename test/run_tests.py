@@ -22,6 +22,11 @@ Tiers:
   1d: Children's-game knots (3D embeddings)
   2:  Exhaustive plantri-generated diagrams (requires plantri)
 
+Every data file Tiers 1a-1d read is parsed strictly before it is tested. One
+that does not parse -- above all a Git LFS pointer left by a checkout whose LFS
+files were not all fetched -- is a failure that names the file, never a skip.
+Each of those tiers also checks that it produced one result per file it found.
+
 Usage:
   python run_tests.py --smoke-only
   python run_tests.py --hard-unknots-only
@@ -89,6 +94,7 @@ class TestResult:
     homfly_after: str = ""
     error: str = ""
     elapsed: float = 0.0  # seconds
+    lfs_pointer: bool = False  # the input file was a Git LFS pointer stub
 
 
 class TestSuite:
@@ -107,10 +113,23 @@ class TestSuite:
         print(f"  {name}")
         print(f"{'='*60}")
 
-    def end_section(self):
-        """Print per-section timing summary."""
+    def end_section(self, expected: int | None = None):
+        """Print per-section timing summary.
+
+        `expected` is how many results the section must have recorded: one
+        per data file it found. Fewer means some file was dropped without a
+        verdict, the way Tier 1c once dropped LFS pointer files and still
+        passed, so a mismatch is recorded as a failure. The manifest's `work`
+        regex cannot catch this: a smaller N/M still matches it.
+        """
         elapsed = time.time() - self._section_start
         n = len(self.results) - self._section_result_start
+        if expected is not None and n != expected:
+            self.record(TestResult(
+                name=f"{self._section}: one result per data file",
+                passed=False,
+                error=f"{n} results for {expected} data files"))
+            n += 1
         passed = sum(1 for r in self.results[self._section_result_start:] if r.passed)
         print(f"\n  {self._section}: {passed}/{n} passed [{elapsed:.1f}s]")
 
@@ -149,6 +168,11 @@ class TestSuite:
             for r in self.results:
                 if not r.passed:
                     print(f"  - {r.name}: {r.error or 'HOMFLY mismatch'}")
+        n_pointers = sum(1 for r in self.results if r.lfs_pointer)
+        if n_pointers:
+            print(f"\n{n_pointers} data file(s) are Git LFS pointer files, not "
+                  f"data: this checkout's LFS files were not all fetched and "
+                  f"checked out. To fix, {LFS_FIX}.")
         if FAILURES_DIR.exists() and any(FAILURES_DIR.iterdir()):
             print(f"\nFailure artifacts saved to: {FAILURES_DIR}")
         return failed == 0
@@ -193,6 +217,135 @@ def read_tsv_file(path: str | Path) -> list[list[int]]:
             if len(parts) >= 5:
                 crossings.append([int(x) for x in parts[:5]])
     return crossings
+
+
+# ---------------------------------------------------------------------------
+# Data files: one the tests cannot read is a failure, never a skip
+# ---------------------------------------------------------------------------
+
+# data/diagrams is stored with Git LFS. Where a checkout's LFS files were not
+# all fetched and checked out, the working tree holds ~130-byte pointer stubs
+# instead, each starting with this line. That happens after a clone without
+# git-lfs, and it happened on 2026-11-21 to 88 of the 1268 link-table files in
+# a fresh worktree even though `git lfs ls-files` listed them as present.
+# read_tsv_file parses a pointer to nothing, and Tier 1c kept a file only if it
+# had crossings, so that worktree tested 1180 entries and reported a pass.
+# homfly_check is no backstop: it reports a pointer as a "skip" ("not a valid
+# PD code / embedding"), and verify_invariance counts a skip as a pass, since
+# a skip normally means a split link. Hence the strict readers below, used by
+# every tier that reads data/diagrams (same check as klut_lfs_pointer_check.py).
+LFS_POINTER_HEADER = b"version https://git-lfs.github.com/spec/"
+LFS_FIX = ("run `git lfs pull` (or `git lfs checkout`, if the objects are "
+           "already fetched) and rerun")
+
+
+class DataFileError(Exception):
+    """A data file the tests cannot use. str() names the file and the problem."""
+
+    def __init__(self, path: str | Path, problem: str, lfs_pointer: bool = False):
+        self.path = Path(path)
+        self.lfs_pointer = lfs_pointer
+        super().__init__(f"{display_path(path)}: {problem}")
+
+
+def display_path(path: str | Path) -> str:
+    """`path` relative to the project root if it is inside it, else as given."""
+    try:
+        return str(Path(path).resolve().relative_to(PROJECT_DIR))
+    except ValueError:
+        return str(path)
+
+
+def is_lfs_pointer(path: str | Path) -> bool:
+    with open(path, "rb") as f:
+        return f.read(len(LFS_POINTER_HEADER)) == LFS_POINTER_HEADER
+
+
+def refuse_lfs_pointer(path: str | Path):
+    if is_lfs_pointer(path):
+        raise DataFileError(path, "a Git LFS pointer, not the data "
+                                  "(run `git lfs pull`)", lfs_pointer=True)
+
+
+def data_lines(path: str | Path) -> Iterator[tuple[int, str]]:
+    """(line number, stripped line) for each non-blank, non-# line of a text
+    data file. Raises DataFileError for an LFS pointer or a non-text file."""
+    refuse_lfs_pointer(path)
+    try:
+        with open(path) as f:
+            lines = f.readlines()
+    except UnicodeDecodeError:
+        raise DataFileError(path, "not a text file") from None
+    for lineno, line in enumerate(lines, 1):
+        line = line.strip()
+        if line and not line.startswith('#'):
+            yield lineno, line
+
+
+def read_pd_file(path: str | Path) -> list[list[int]]:
+    """Read a PD-code data file strictly, unlike read_tsv_file: every data line
+    must start with 5 tab-separated integers, and there must be at least one.
+    Raises DataFileError otherwise."""
+    crossings = []
+    for lineno, line in data_lines(path):
+        parts = line.split('\t')
+        try:
+            if len(parts) < 5:
+                raise ValueError
+            crossings.append([int(x) for x in parts[:5]])
+        except ValueError:
+            raise DataFileError(
+                path, f"line {lineno} is not a PD code row (5 tab-separated "
+                      f"integers): {line[:60]!r}") from None
+    if not crossings:
+        raise DataFileError(path, "no PD code rows")
+    return crossings
+
+
+def check_embedding_file(path: str | Path) -> int:
+    """Check a 3D-embedding data file strictly: every data line must be 3
+    tab-separated numbers, and there must be at least one. Returns the vertex
+    count. Raises DataFileError otherwise."""
+    n = 0
+    for lineno, line in data_lines(path):
+        parts = line.split('\t')
+        try:
+            if len(parts) != 3:
+                raise ValueError
+            for x in parts:
+                float(x)
+        except ValueError:
+            raise DataFileError(
+                path, f"line {lineno} is not a 3D vertex (3 tab-separated "
+                      f"numbers): {line[:60]!r}") from None
+        n += 1
+    if n == 0:
+        raise DataFileError(path, "no vertices")
+    return n
+
+
+def read_diagram_file(path: str | Path) -> tuple[str, list[list[int]] | str]:
+    """Read a data file of either kind, strictly: ("pd", crossings) for a PD
+    code, ("embedding", file text) for a 3D embedding. Raises DataFileError for
+    an LFS pointer, a file of neither kind, or a bad line."""
+    refuse_lfs_pointer(path)
+    try:
+        fmt = detect_file_format(path)
+    except UnicodeDecodeError:
+        raise DataFileError(path, "not a text file") from None
+    if fmt == "pd":
+        return "pd", read_pd_file(path)
+    if fmt == "embedding":
+        check_embedding_file(path)
+        return "embedding", Path(path).read_text()
+    raise DataFileError(path, "neither a PD code (rows of 5 integers) nor a "
+                              "3D embedding (rows of 3 numbers)")
+
+
+def bad_file_result(name: str, err: DataFileError) -> TestResult:
+    """The failed TestResult for a data file that could not be read."""
+    return TestResult(name=name, passed=False, error=str(err),
+                      lfs_pointer=err.lfs_pointer)
 
 
 def crossings_to_knoodle_tsv(crossings: list[list[int]]) -> str:
@@ -914,8 +1067,11 @@ def run_tier1a(suite: TestSuite, args):
         ]
         hopf_path = LINKTABLE_DIR / "L2a1_0.tsv"
         if hopf_path.exists():
-            items.append(("Hopf link (L2a1_0)", hopf_path,
-                          ("pd", read_tsv_file(hopf_path))))
+            try:
+                items.append(("Hopf link (L2a1_0)", hopf_path,
+                              ("pd", read_pd_file(hopf_path))))
+            except DataFileError as e:
+                suite.record(bad_file_result("Hopf link (L2a1_0)", e))
         verify_invariance(suite, args, items)
 
     suite.end_section()
@@ -943,29 +1099,25 @@ def test_file_simplifies_to_unknot(name: str,
     """Test that a known-unknot diagram simplifies to 0 crossings.
 
     Handles both PD code and 3D embedding file formats. Does NOT compute
-    HOMFLY on the input (too expensive for large diagrams).
+    HOMFLY on the input (too expensive for large diagrams). A file that is
+    neither, or does not parse, fails without reaching knoodlesimplify.
     """
     t0 = time.time()
-    fmt = detect_file_format(file_path)
-    with open(file_path) as f:
-        raw_content = f.read()
-    input_lines = sum(1 for line in raw_content.strip().split('\n') if line.strip())
+    try:
+        fmt, data = read_diagram_file(file_path)
+    except DataFileError as e:
+        return bad_file_result(name, e)
+    # PD rows, or embedding vertices.
+    n_input = len(data) if fmt == "pd" else sum(
+        1 for line in data.splitlines() if line.strip())
 
     try:
         if fmt == "pd":
-            crossings = read_tsv_file(file_path)
-            if not crossings:
-                return TestResult(name=name, passed=False, error="Empty PD file",
-                                  elapsed=time.time() - t0)
-            results = run_knoodlesimplify([crossings], binary, simplify_level)
-            summands = results[0]
-            n_input = len(crossings)
+            summands = run_knoodlesimplify([data], binary, simplify_level)[0]
         else:
-            # 3D embedding or unknown: pass raw content to knoodlesimplify
-            summands = run_knoodlesimplify_raw(raw_content, binary, simplify_level)
-            n_input = input_lines
+            summands = run_knoodlesimplify_raw(data, binary, simplify_level)
     except Exception as e:
-        return TestResult(name=name, passed=False, input_crossings=input_lines,
+        return TestResult(name=name, passed=False, input_crossings=n_input,
                           error=f"knoodlesimplify failed: {e}",
                           elapsed=time.time() - t0)
 
@@ -992,6 +1144,7 @@ def run_tier1b(suite: TestSuite, binary: Path, simplify_level: int):
     """Tier 1b: Known unknots — verify simplification to 0 crossings."""
     suite.section("Tier 1b: Known Unknots")
 
+    n_files = 0
     for dir_label, dir_path in UNKNOT_DIRS:
         if not dir_path.exists():
             print(f"  Skipping {dir_label}: directory not found")
@@ -1003,6 +1156,7 @@ def run_tier1b(suite: TestSuite, binary: Path, simplify_level: int):
             continue
 
         print(f"  Testing {len(files)} unknots from {dir_label}/...")
+        n_files += len(files)
 
         for f in files:
             result = test_file_simplifies_to_unknot(
@@ -1010,7 +1164,7 @@ def run_tier1b(suite: TestSuite, binary: Path, simplify_level: int):
                 f, binary, simplify_level)
             suite.record(result)
 
-    suite.end_section()
+    suite.end_section(expected=n_files)
 
 
 # ---------------------------------------------------------------------------
@@ -1036,12 +1190,15 @@ def run_tier1c(suite: TestSuite, args):
 
     items = []
     for f in files:
-        crossings = read_tsv_file(f)
-        if crossings:
-            items.append((f"{f.stem} ({len(crossings)} cr)", f, ("pd", crossings)))
+        try:
+            crossings = read_pd_file(f)
+        except DataFileError as e:
+            suite.record(bad_file_result(f.stem, e))
+            continue
+        items.append((f"{f.stem} ({len(crossings)} cr)", f, ("pd", crossings)))
 
     verify_invariance(suite, args, items)
-    suite.end_section()
+    suite.end_section(expected=len(files))
 
 
 # ---------------------------------------------------------------------------
@@ -1139,9 +1296,17 @@ def run_tier1d(suite: TestSuite, args):
 
     print(f"  Testing {len(files)} children's game knots via homfly_check...")
 
-    items = [(f.stem, f, ("embedding", f.read_text())) for f in files]
+    items = []
+    for f in files:
+        try:
+            check_embedding_file(f)
+        except DataFileError as e:
+            suite.record(bad_file_result(f.stem, e))
+            continue
+        items.append((f.stem, f, ("embedding", f.read_text())))
+
     verify_invariance(suite, args, items)
-    suite.end_section()
+    suite.end_section(expected=len(files))
 
 
 # ---------------------------------------------------------------------------
