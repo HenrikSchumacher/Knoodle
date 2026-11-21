@@ -72,6 +72,8 @@ polyfold_check	script	boost_umfpack	polyfold_check.py	-	-	=	\([1-9][0-9]* checks
 release_tarball_check	script	-	release_tarball_check.py	-	--build	=	\([1-9][0-9]* checks, 0 failed\)	-
 run_tier_check	script	-	run_tier_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
 alexander_normalization_check	test	umfpack	-	-	-	=	-	umfpack
+animate_morph_check	test	plain	-	--faces=1 --frames=5	--faces=5	=	ANIMATE MORPH CHECK OK \([1-9][0-9]* checks passed, 0 failed; [1-9][0-9]* morphs, 0 could not be made\)	plain
+animate_morph_umfpack_check	test	umfpack	animate_morph_check.cpp	--faces=1 --frames=5	--faces=5	=	ANIMATE MORPH CHECK OK \([1-9][0-9]* checks passed, 0 failed; [1-9][0-9]* morphs, 0 could not be made\)	umfpack
 canon_check	test	umfpack	-	-	-	=	-	umfpack
 component_check	test	plain	-	-	-	=	-	plain
 diagram_sanity_check	test	plain	-	-	-	=	\([1-9][0-9]* checks, 0 failed\)	plain
@@ -116,3 +118,6 @@ draw_trace_check	script	-	draw_trace_check.py	-	-	=	\([1-9][0-9]* checks, 0 fail
 r1_draw_check	script	-	r1_draw_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
 prove_check	script	-	prove_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
 exterior_thread_check	script	-	exterior_thread_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
+animate_scene_check	test	plain	-	-	-	=	\([1-9][0-9]* checks, 0 failed\)	plain
+animate_build_check	test	plain	-	-	-	=	\([1-9][0-9]* checks, 0 failed\)	plain
+animate_sweep_check	test	plain	-	-	-	=	\([1-9][0-9]* checks, 0 failed\)	plain
