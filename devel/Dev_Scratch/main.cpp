@@ -13,8 +13,6 @@
 //#define TENSORS_BOUND_CHECKS
 //#define TENSORS_ALLOCATION_LOGS
 
-//#define PD_ALLOCATE_SCRATCH
-
 #ifdef __APPLE__
     #include "../../submodules/Tensors/Accelerate.hpp"
 #else
@@ -95,6 +93,12 @@ int main()
     TOOLS_DUMP(mantissa);
     TOOLS_DUMP(exponent);
     
+    
+    TOOLS_DUMP(std::cmp_equal(-1, Size_T(-1)));
+    
+    TOOLS_DUMP(std::cmp_equal(1, Size_T(1)));
+    
+    TOOLS_DUMP(std::cmp_equal(300, static_cast<Int8>(300)));
     
     return EXIT_SUCCESS;
 }

@@ -1,7 +1,6 @@
 #define TOOLS_AGGRESSIVE_INLINING
 #define TOOLS_USE_BOOST_UNORDERED
 #define TOOLS_USE_MIMALLOC
-//#define PD_ALLOCATE_SCRATCH
 
 #ifdef __APPLE__
     #include "../../submodules/Tensors/Accelerate.hpp"

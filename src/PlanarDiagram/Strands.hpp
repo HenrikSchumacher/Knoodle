@@ -41,7 +41,7 @@ private:
 template<bool overQ>
 RaggedList<Int,Int> StrandArcs() const
 {
-    TOOLS_PTIMER(timer, overQ ? MethodName("OverStrandArcs") : MethodName("UnderStrandArcs"));
+    TOOLS_PTIMER(timer, overQ ? std::string(MethodName("OverStrandArcs")) : std::string(MethodName("UnderStrandArcs")));
     
     // Are these sizes optimal?
     RaggedList<Int,Int> strand_arcs ( crossing_count, arc_count );
@@ -121,7 +121,7 @@ CrossingContainer_T CrossingUnderStrands() const
 template<bool overQ>
 CrossingContainer_T CrossingStrands() const
 {
-    TOOLS_PTIMER(timer,overQ ? MethodName("CrossingOverStrands") : MethodName("CrossingUnderStrands"));
+    TOOLS_PTIMER(timer,overQ ? std::string(MethodName("CrossingOverStrands")) : std::string(MethodName("CrossingUnderStrands")));
     
 //    CrossingContainer_T C_strand ( max_crossing_count, 2, 2, -1 );
     

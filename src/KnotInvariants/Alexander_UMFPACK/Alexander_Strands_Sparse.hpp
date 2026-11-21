@@ -15,16 +15,18 @@ Multiplier_T Alexander_Strands_Det_Sparse(
     
     const auto [z,e] = umfpack->Determinant();
     
-    // Caution: e is the exponent mod 10. We have to convert it to binary representation.
+    // Caution: e is the exponent to basis 10. We have to convert it to binary representation.
     
-    Multiplier_T det = Multiplier_T(z) * Multiplier_T::Power(10,e);
+    // e might be a double, so it seems we would lose precision by casting to Multiplier_T::Int. But I am quite sure that the values returned by UMFPACK are always integers.
+    
+    Multiplier_T det = Multiplier_T(z) * Multiplier_T::Power(10, static_cast<Multiplier_T::Int>(e));
     
     return det;
 }
 
 UMFPACK_Ptr SparseAlexanderStrandMatrix_UMFPACK( cref<PD_T> pd ) const
 {
-    std::string tag ( ClassName()+"::SparseAlexanderStrandMatrix_UMFPACK" );
+    std::string tag ( MethodName("SparseAlexanderStrandMatrix_UMFPACK") );
     
     if( !pd.InCacheQ(tag) )
     {

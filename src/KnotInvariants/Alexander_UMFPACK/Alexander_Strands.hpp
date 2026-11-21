@@ -130,7 +130,7 @@ template<bool sparseQ>
 std::pair<Multiplier_T,Exponent_T> &
 Alexander_Strands_Normalization( cref<PD_T> pd ) const
 {
-    const std::string tag ( ClassName()+"::Alexander_Strands_Normalization<" + ToString(sparseQ) + ">" );
+    const std::string tag (MethodName("Alexander_Strands_Normalization<") + ToString(sparseQ) + ">" );
     
     using T = std::pair<Multiplier_T,Exponent_T>;
     
@@ -176,7 +176,7 @@ Alexander_Strands_Normalization( cref<PD_T> pd ) const
                 // We break the loop if `t` is so close to `1` that taking a further root won't change it.
                 if( t >= t_squared  )
                 {
-                    eprint(MethodName("Alexander_Strands_Normalization"), ": Could not determine the normalizing power of t. Returning NaN.");
+                    Msgr::eprint("Alexander_Strands_Normalization", "Could not determine the normalizing power of t. Returning NaN.");
                     
                     a = Multiplier_T( Scal(std::numeric_limits<Real>::quiet_NaN()) );
                     break;
@@ -237,7 +237,7 @@ Alexander_Strands_Normalization( cref<PD_T> pd ) const
             
             if( failure_count > max_failure_count )
             {
-                eprint(MethodName("Alexander_Strands_Normalization"), ": Could not determine the normalizing power of t. There seems to be too much rounding error. Returning NaN.");
+                Msgr::eprint("Alexander_Strands_Normalization", "Could not determine the normalizing power of t. There seems to be too much rounding error. Returning NaN.");
                 
                 a = Multiplier_T( Scal(std::numeric_limits<Real>::quiet_NaN()) );
             }

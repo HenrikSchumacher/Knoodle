@@ -19,7 +19,7 @@ namespace Knoodle
      *
      * If no color information is submitted, the constructors will color the arcs automatically in a consistent way: each arc gets the color of its link component, and each link components gets its own color that is different from all others'.
      *
-     * Some public class methods are marked as **UNSAFE** because they may alter the topological class of the represented link. For users who want to use modify a `PlanarDiagram` nonetheless, we provide a locking mechanism: Per default every new created diagram is _locked_. The state of the lock can be queried with `LockedQ()`. The user may use `Unlock()` to unlock and `Lock()` to lock again. Alternatively, a RAII-stylescoped lock can be obtain by initializing a `ScopedUnlock` object:
+     * Some public class methods are marked as **UNSAFE** because they may alter the topological class of the represented link. For users who want to use modify a `PlanarDiagram` nonetheless, we provide a locking mechanism: Per default every new created diagram is _locked_. The state of the lock can be queried with `LockedQ()`. The user may use `Unlock()` to unlock and `Lock()` to lock again. Alternatively, a RAII-style scoped lock can be obtained by initializing a `ScopedUnlock` object:
      *
      *     ScopedUnlock unlocker (pd);
      *
@@ -36,6 +36,12 @@ namespace Knoodle
         
         static constexpr bool countQ = false;
         static constexpr bool debugQ = false;
+        
+#ifdef PD_ALLOCATE_SCRATCH
+        static constexpr bool scratchQ = true;
+#else
+        static constexpr bool scratchQ = false;
+#endif
         
         /*!@brief Type used for indices of crossings and arcs.*/
         using Int                       = Int_;
@@ -407,11 +413,11 @@ namespace Knoodle
         
         /*!@brief Resize internal buffers to make room for at least `new_max_crossing_count` crossings. Caches will be cleared.
          */
-        void RequireCrossingCount( const Int new_max_crossing_count, bool doubleQ = true )
+        void RequireCrossingCount( const Int new_max_crossing_count, bool double_sizeQ = false )
         {
             if( max_crossing_count < new_max_crossing_count )
             {
-                (*this) = CreateEnlarged( (doubleQ ? Int(2) : Int(1) ) * new_max_crossing_count );
+                (*this) = CreateEnlarged( (double_sizeQ ? Int(2) * new_max_crossing_count : new_max_crossing_count )  );
             }
         }
         
@@ -423,7 +429,8 @@ namespace Knoodle
         }
         
     public:
-        
+
+#include "PlanarDiagram/Lock.hpp"
 #include "PlanarDiagram/FromEmbeddings.hpp"
         
 #include "PlanarDiagram/Crossings.hpp"
@@ -534,6 +541,31 @@ namespace Knoodle
         {
             return !InvalidQ();
         }
+        
+    private:
+        
+        /*!@brief Turn the diagram that will be recognized as invalid in the sense that `InvalidQ()` returns true without deallocation. This way the memory can be used for something else.
+         
+           All crossings and arcs are explicitly set to inactive a search pointers are set to that modifying routines can still work with this cleared object.
+         */
+        void Reset_Private()
+        {
+            // needs to know all member variables
+            
+            crossing_count = Int(0);
+            arc_count = Int(0);
+            last_color_deactivated = InvalidColor;
+            
+            C_state.Fill(CrossingState_T::Inactive);
+            A_state.Fill(ArcState_T::Inactive);
+            
+            c_search_ptr    = 0;
+            a_search_ptr    = 0;
+            proven_minimalQ = false;
+        }
+        
+    public:
+        
         
         /*!@brief Move the internal search pointer to the first next inactive crossing and returns its index.*/
         Int NextInactiveCrossing() const
@@ -711,35 +743,10 @@ namespace Knoodle
         
     public:
         
-        /*!@brief Return whether this diagram is _locked_. Public UNSAFE operations cannot be called while this is being locked to prohibit unintended modifications that break topological invariance.*/
-        bool LockedQ() const
-        {
-            return lockedQ;
-        }
-        
-        /*!@brief Unlock diagram to allow topological modifications.*/
-        void Unlock()
-        {
-            lockedQ = false;
-        }
-        
-        /*!@brief Lock diagram to prohibit topological modifications.*/
-        void Lock()
-        {
-            lockedQ = true;
-        }
-        
-        void LockMessage( std::string_view tag ) const
-        {
-            Msgr::wprint(tag, ": This method is considered **UNSAFE**, and the diagram is currently locked to prevent break of topological invariance. If you want to perform this operation anyways, call `Unlock()` first. (Don't forget to `Lock()` it again.)");
-        }
-        
-    public:
-        
         /*!@brief Writes internal state of the diagram to log file. Meant for debugging purposes only.*/
         void PrintInfo() const
         {
-            logprint(MethodName("PrintInfo") + " -- begin");
+            logprint(MethodName("PrintInfo"), " -- begin");
             
             TOOLS_LOGDUMP( max_crossing_count );
             TOOLS_LOGDUMP( crossing_count );
@@ -757,7 +764,7 @@ namespace Knoodle
             
             TOOLS_LOGDUMP( this->CacheKeys() );
             
-            logprint(MethodName("PrintInfo") + " -- end");
+            logprint(MethodName("PrintInfo"), " -- end");
         }
 
         /*!@brief A coarse estimator of heap-allocated memory in use for this class instance. Does not account for quantities stored in the class' cache.*/
@@ -808,7 +815,12 @@ namespace Knoodle
     public:
         
         using Msgr = Tools::Messenger<Class_T>;
-                
+
+//        static auto MethodName( const std::string & tag )
+//        {
+//            return Msgr::MethodName(tag);
+//        }
+        
         template<typename A>
         static consteval auto MethodName( const A & tag )
         {

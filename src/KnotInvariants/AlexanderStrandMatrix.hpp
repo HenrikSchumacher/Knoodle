@@ -16,13 +16,14 @@ namespace Knoodle
         
         using Complex = Scalar::Complex<Real>;
 
+        using Class_T           = AlexanderStrandMatrix;
         using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt,Sequential>;
         using Pattern_T         = Sparse::MatrixCSR<Complex,Int,LInt,Sequential>;
         using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt,Sequential>;
         
         using PD_T              = PlanarDiagram<Int>;
-        using A_Cross_T         = typename PD_T::A_Cross_T;
-        using C_Arcs_T          = typename PD_T::C_Arcs_T;
+        using A_Cross_T         = PD_T::A_Cross_T;
+        using C_Arcs_T          = PD_T::C_Arcs_T;
         
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
@@ -323,17 +324,21 @@ namespace Knoodle
         
     public:
         
-        static constexpr std::string MethodName( const std::string & tag )
+        using Msgr = Tools::Messenger<Class_T>;
+                
+        template<typename A>
+        static consteval auto MethodName( const A & tag )
         {
-            return ClassName() + "::" + tag;
+            return Msgr::MethodName(tag);
         }
         
-        static constexpr std::string ClassName()
+        static consteval auto ClassName()
         {
-            return std::string("AlexanderStrandMatrix")
+            return ct_string("AlexanderStrandMatrix")
                 + "<" + TypeName<Scal>
                 + "," + TypeName<Int>
-                + "," + TypeName<LInt> + ">";
+                + "," + TypeName<LInt>
+                + ">";
         }
         
     }; // class AlexanderStrandMatrix

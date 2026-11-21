@@ -96,7 +96,9 @@ namespace Knoodle
         template<typename I_0, typename I_1>
         MultiGraph(
             const I_0 vertex_count_,
-            cref<I_0> tails, cref<I_0> heads, const I_1 edge_count_
+            cptr<I_0> tails,
+            cptr<I_0> heads,
+            const I_1 edge_count_
         )
         :   Base_T( vertex_count_, tails, heads, edge_count_ )
         {}
@@ -117,7 +119,7 @@ namespace Knoodle
         // Provide a list of edges by a PairAggregator.
         template<typename I_0, typename I_1>
         MultiGraph(
-            const I_0 vertex_count_, mref<PairAggregator<I_0,I_0,I_1>> pairs
+            const I_0 vertex_count_, cref<PairAggregator<I_0,I_0,I_1>> pairs
         )
         :   Base_T( vertex_count_, pairs )
         {}
@@ -228,6 +230,40 @@ namespace Knoodle
             }
 
             return this->template GetCache<ComponentMatrix_T>(tag);
+        }
+        
+        
+        cref<VV_Vector_T> VertexComponentVector() const
+        {
+            std::string tag ("VertexComponentVector");
+            
+            TOOLS_PTIMER(timer,MethodName(tag));
+
+            if( !this->InCacheQ(tag) )
+            {
+                VV_Vector_T v ( vertex_count, UninitializedVertex );
+                RaggedList<VInt,VInt> comp_v ( VInt{1}, vertex_count );
+                
+                VInt comp_counter = 0;
+                
+                this->template DepthFirstSearch<InOut::Undirected>(
+                    [&v,&comp_counter]( cref<DedgeNode> E )
+                    {
+                        if( E.tail == UninitializedVertex )
+                        {
+                            // This means that E.head is the root of a new spanning tree.
+                            // Thus, we start a new connected component.
+                            ++comp_counter;
+                        }
+                        
+                        v[E.head] = comp_counter - VInt{1};
+                    }
+                );
+
+                this->SetCache( std::string(tag), std::move(v) );
+            }
+
+            return this->template GetCache<VV_Vector_T>(tag);
         }
         
     public:

@@ -443,9 +443,11 @@ bool CheckArcNextArc() const
  */
 cref<Tensor1<Int,Int>> ArcPrevArc() const
 {
+    
+    TOOLS_PTIMER(timer,MethodName("ArcPrevArc"));
+    
     std::string tag ("ArcPrevArc");
     
-    TOOLS_PTIMER(timer,MethodName(tag));
     
     if( !this->InCacheQ(tag) )
     {
