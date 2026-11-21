@@ -144,6 +144,33 @@ private:
 };
 
 //==============================================================================
+// Moving Diagrams Out of a Complex
+//==============================================================================
+
+/**
+ * @brief Move every diagram out of a complex we own, in order, leaving it empty.
+ *
+ * PDC_T gives read access only (Diagram(i), Diagrams()), so the obvious loop,
+ * PD_T(pdc.Diagram(i)), copies: a second full diagram, about 110 bytes per
+ * crossing, alive beside the first until the complex dies. On 3D input with
+ * millions of crossings those copies were most of the tools' peak memory
+ * (handoff knoodlesimplify-3d-input-peak-memory). Pop() moves, but it is
+ * lock-guarded and hands the diagrams over last first; hence the Unlock()
+ * (the complex is ours, and its colors are not changed) and the reverse.
+ */
+std::vector<PD_T> TakeDiagrams(PDC_T& pdc)
+{
+    pdc.Unlock();
+
+    std::vector<PD_T> diagrams;
+    diagrams.reserve(static_cast<std::size_t>(pdc.DiagramCount()));
+    while (pdc.DiagramCount() > Int(0)) { diagrams.push_back(pdc.Pop()); }
+    std::reverse(diagrams.begin(), diagrams.end());
+
+    return diagrams;
+}
+
+//==============================================================================
 // Input/Output Data Structures
 //==============================================================================
 
@@ -1614,6 +1641,17 @@ void DropRepeatedVertices(std::vector<T>& xyz, std::vector<Int>& ptr)
 template<typename Emb_T>
 std::optional<Projection3D> ProjectEmbedding(Emb_T& L)
 {
+    // Find the crossings first, so that what only finding them needed (the
+    // tree, the coordinates, the intersection records: about 50 bytes per
+    // crossing) is freed BEFORE the diagram is allocated. FromLinkEmbedding(L)
+    // does not do this itself, since L is the caller's; DeleteTree() is the
+    // library's own provision for it, and FromCoordinates calls it the same
+    // way. Afterwards L still answers RoundingError(), ScalingFactor() and
+    // ScalingExponent(), which is all ProjectGeometry asks of it.
+    // On failure the library has already said why, on stderr.
+    if (L.RequireIntersections() != 0) return std::nullopt;
+    L.DeleteTree();
+
     // An invalid pd with a list of unlink colors is the all-crossingless case,
     // not a failure; PDC_T's constructor turns those colors into anelli.
     PDC_T pdc(PD_T::FromLinkEmbedding(L));
@@ -1628,10 +1666,9 @@ std::optional<Projection3D> ProjectEmbedding(Emb_T& L)
     pdc.Split();
 
     Projection3D result;
-    for (Int i = 0; i < pdc.DiagramCount(); ++i)
+    for (PD_T& pd : TakeDiagrams(pdc))
     {
-        Knoodle::cref<PD_T> pd = pdc.Diagram(i);
-        if (pd.CrossingCount() > Int(0)) { result.diagrams.push_back(PD_T(pd)); }
+        if (pd.CrossingCount() > Int(0)) { result.diagrams.push_back(std::move(pd)); }
         else                             { result.unknot_colors.push_back(pd.FirstColor()); }
     }
     return result;
@@ -2162,16 +2199,15 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
             Tools::InString in_str(pdc_text);
             PDC_T pdc = PDC_T::FromInString(in_str);
 
-            for (Int i = 0; i < pdc.DiagramCount(); ++i)
+            for (PD_T& pd : TakeDiagrams(pdc))
             {
-                Knoodle::cref<PD_T> pd = pdc.Diagram(i);
                 if (pd.AnelloQ())
                 {
                     result.unknot_colors.push_back(pd.FirstColor());
                 }
                 else
                 {
-                    result.summands.push_back(PD_T(pd));
+                    result.summands.push_back(std::move(pd));
                 }
             }
 

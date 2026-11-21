@@ -110,7 +110,12 @@ struct ProcessingStats
 /**
  * @brief Simplify a knot using the configured algorithm.
  *
- * @param input The input knot with its summands.
+ * @param input The input knot with its summands. CONSUMED: each summand is
+ *        moved into the working complex, so that the input diagram is not
+ *        kept beside the one being simplified (on 3D input with millions of
+ *        crossings it is ~110 bytes per crossing). Afterwards
+ *        input.summands holds moved-from diagrams; its size(), and every
+ *        other field of input, are as they were.
  * @param config Configuration options.
  * @param rng The tool's engine (--seed); each Reapr's engine is drawn from it.
  * @param output_pdc If non-null, every resulting diagram (trivial or not) is
@@ -121,7 +126,7 @@ struct ProcessingStats
  *        PlanarDiagramComplex's own native serialization.
  * @return The simplified knot with timing information.
  */
-SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config,
+SimplifiedKnot SimplifyKnot(InputKnot& input, const Config& config,
                             Knoodle::PRNG_T& rng, PDC_T* output_pdc = nullptr)
 {
     SimplifiedKnot result;
@@ -194,18 +199,20 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config,
     {
         ScopedTimer timer(result.simplify_time);
 
-        for (const PD_T& pd_in : input.summands)
+        for (PD_T& pd_in : input.summands)
         {
             if (config.simplify_level == 0)
             {
-                // No simplification - just copy the PD
-                all_pdc.Push(colorize(PD_T(pd_in)));
+                // No simplification: pass the diagram through.
+                all_pdc.Push(colorize(std::move(pd_in)));
             }
             else
             {
+                // Read before pd_in is moved from: the fallback color below.
+                const Int input_color = pd_in.ArcColors()[0];
+
                 // Use PlanarDiagramComplex for all simplification levels
-                PD_T pd_copy = colorize(PD_T(pd_in));
-                PDC_T pdc(std::move(pd_copy));
+                PDC_T pdc(colorize(std::move(pd_in)));
 
                 // The Reapr pdc.Simplify(args) would build for itself
                 // (Simplify.hpp), but with its engine drawn from ours, so that
@@ -232,13 +239,12 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config,
                     // Nothing (not even a trivial done-diagram) survived in
                     // pdc itself to read a color off of; fall back to the
                     // color the original, un-simplified summand carried.
-                    all_pdc.Push(PD_T::Unknot(validColor(pd_in.ArcColors()[0])));
+                    all_pdc.Push(PD_T::Unknot(validColor(input_color)));
                 }
                 else
                 {
-                    for (Int i = 0; i < pdc.DiagramCount(); ++i)
+                    for (PD_T& pd : TakeDiagrams(pdc))
                     {
-                        PD_T pd(pdc.Diagram(i));
                         if (pd.CrossingCount() == 0)
                         {
                             all_pdc.Push(PD_T::Unknot(validColor(pd.FirstColor())));
@@ -279,10 +285,8 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config,
 
     // Derive result.summands/unknot_count (and output_pdc, if requested)
     // from the final (possibly united) diagram list.
-    for (Int i = 0; i < all_pdc.DiagramCount(); ++i)
+    for (PD_T& pd : TakeDiagrams(all_pdc))
     {
-        PD_T pd(all_pdc.Diagram(i));
-
         // Same lock caveat as all_pdc above; the caller hands us a fresh
         // (locked) complex, so unlock before the first Push into it.
         if (output_pdc) { output_pdc->Unlock(); output_pdc->Push(PD_T(pd)); }
@@ -642,7 +646,8 @@ std::filesystem::path GetSimplifiedFilename(const std::filesystem::path& input_p
 /**
  * @brief Simplify, write and report one knot that has already been read.
  *
- * @param input_knot The knot.
+ * @param input_knot The knot. Its diagrams are consumed (see SimplifyKnot);
+ *        the counts the report reads afterwards are untouched.
  * @param input_time How long reading it took.
  * @param source_name Its file name, for per-file output, or "stdin".
  * @param output_stream Optional output stream (nullptr for per-file output).
@@ -652,7 +657,7 @@ std::filesystem::path GetSimplifiedFilename(const std::filesystem::path& input_p
  * @param first_knot_in_output Whether this is the first knot being written.
  * @return true on success.
  */
-bool ProcessKnot(const InputKnot& input_knot,
+bool ProcessKnot(InputKnot& input_knot,
                  Duration input_time,
                  const std::string& source_name,
                  std::ostream* output_stream,
