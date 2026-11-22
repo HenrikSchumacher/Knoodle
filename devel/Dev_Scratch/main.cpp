@@ -21,84 +21,62 @@
 
 
 #include "../../Knoodle.hpp"
-#include "../../src/KnotInvariants/Alexander_UMFPACK.hpp"
+#include "../../experimental/FrontEncodedLookupTable.hpp"
 
 using namespace Knoodle;
 using namespace Tensors;
 using namespace Tools;
 
-using Real  = Real64; // scalar type used for positions of polygon
-using Int   = Int64;  // integer type used, e.g., for indices
-using LInt  = Int64;  // integer type for counting objects
+constexpr Size_T key_count  = 10;
+constexpr Size_T key_length =  8;
 
-using Complex = Complex64;
+using Value_T = UInt8;
 
-using PDC_T           = PlanarDiagramComplex<Int>;
-using LinkEmbedding_T = PDC_T::LinkEmbedding_T;
-using PD_T            = PDC_T::PD_T;
-using OrthoDraw_T     = OrthoDraw<PD_T>;
-using Alex_T          = Alexander_UMFPACK<Complex,Int>;
+using LUT_T = FrontEncodedLookupTable<key_length,Value_T>;
+using FindResult_T = LUT_T::FindResult_T;
+
+static constexpr UInt8 keys [key_count][key_length] = {
+    {0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,2},
+    {0,0,0,0,0,0,1,1},
+    {0,0,0,0,1,0,1,1},
+    {1,0,0,0,0,0,0,0},
+    {1,0,0,0,0,0,0,1},
+    {1,0,0,0,0,0,0,2},
+    {1,0,0,0,0,0,1,1},
+    {1,0,0,0,1,0,1,1},
+    {9,0,0,0,1,0,1,1}
+};
+
+static constexpr Value_T vals [key_count] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
 int main()
 {
-    std::filesystem::path path      = std::filesystem::path(__FILE__);
-    Tools::valprint("working directory", path );
+    LUT_T lut;
     
-    std::filesystem::path data_path = path.parent_path().parent_path().parent_path() / "examples" / "Example_Knoodle";
-    Tools::valprint("data directory", data_path );
+    int info;
     
-    // Load a knot from file.
-    std::vector<Int> pd_code;
+    info = lut.LoadUnsorted(&keys[0][0],&vals[0],key_count);
+    
+    TOOLS_DUMP(info);
+    TOOLS_DUMP(lut.Buffer().size());
+    TOOLS_DUMP(lut.Buffer());
+    TOOLS_DUMP(lut.PrefixPointers());
+    TOOLS_DUMP(lut.PrefixPositions());
     
     {
-        std::string filename ( data_path / "ExampleKnot.tsv" );
-        std::ifstream s ( filename );
-        Int number;
-        
-        if(!s)
-        {
-            Tools::eprint( "File ", filename, " not found." );
-            return EXIT_FAILURE;
-        }
-        
-        while( s )
-        {
-            if( s >> number )
-            {
-                pd_code.push_back(number);
-            }
-        }
+        Size_T p = 8;
+        TOOLS_DUMP(p);
+        FindResult_T result = lut.Find(&keys[p][0]);
+        TOOLS_DUMP(result);
     }
     
-    Int c_count = static_cast<Int>( pd_code.size()/5 );
-    
-    // Create an instance of PlanarDiagram.
-    PDC_T pdc ( PD_T::FromSignedPDCode(
-        &pd_code[0],     // pointer to array of pd code.
-        c_count          // number of crossingss
-    ));
-    
-    pdc.Simplify();
-    
-    PD_T pd = pdc.Diagram(0);
-    
-    Alex_T alex;
-    
-    
-    Complex mantissa;
-    Int     exponent;
-    
-    alex.Alexander(pd, Complex(0.4), mantissa, exponent, false );
-    
-    TOOLS_DUMP(mantissa);
-    TOOLS_DUMP(exponent);
-    
-    
-    TOOLS_DUMP(std::cmp_equal(-1, Size_T(-1)));
-    
-    TOOLS_DUMP(std::cmp_equal(1, Size_T(1)));
-    
-    TOOLS_DUMP(std::cmp_equal(300, static_cast<Int8>(300)));
+    for( Size_T p = 0; p  < key_count; ++p )
+    {
+        TOOLS_DUMP(p);
+        FindResult_T result = lut.Find(&keys[p][0]);
+        TOOLS_DUMP(result);
+    }
     
     return EXIT_SUCCESS;
 }
