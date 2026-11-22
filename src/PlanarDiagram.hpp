@@ -831,6 +831,7 @@ namespace Knoodle
         {
             return ct_string("PlanarDiagram<") + TypeName<Int> + ">";
         }
-    };
+        
+    }; // class PlanarDiagram
 
 } // namespace Knoodle
