@@ -85,7 +85,7 @@ Mirrors need a real chirality transform, not a sign flip.)
     vacuous).
   - `--invariance [files…]`: the invariance test (below). Each input is a
     5-col PD code or a 3-col 3D embedding (auto-detected), or one diagram on
-    stdin. Exit nonzero on any HOMFLY change.
+    stdin. Exit nonzero on any HOMFLY change or invalid input.
   - `--emit-poly`: read a 5-col signed PD code on stdin, print libhomfly terms
     `L_exp M_exp coef` (bridge for the Regina cross-check).
   - `--stress N`: memory-bound regression guard for the gc_shim fix.
@@ -114,6 +114,15 @@ diagram by `ToSingleDiagram()`, which connect-sums the pieces back together
 links. (A genuinely split-link input would need the δ^(pieces−1) · ∏ rule from
 `run_tests.py:compute_composite_homfly`; all our corpora are non-split, so it's
 out of scope. An input that simplifies to the trivial knot → polynomial 1.)
+
+Each input gets one status. `pass` and `fail` are the verdicts. `skip` is a
+well-formed input this oracle cannot verify: a split link that does not
+reassemble, or a 3D embedding with no crossings at all. `invalid` is an input
+that is not a diagram: a file that cannot be opened, an unfetched Git LFS
+pointer, an empty file, a token that is not a number, or a count of numbers
+that is not a multiple of 5 (PD) or 3 (embedding). Until 2026-11-22 those were
+`skip` too, and run_tests.py counts a skip as a pass, so an LFS pointer passed
+as tested. Now they exit 1, and run_tests.py fails each one with the reason.
 
 **Validated 2026-06-13:** `homfly_check --invariance` over the full corpus —
 **1304 / 1304 diagrams preserved HOMFLY**, 0 changed (1268 link-table links +
@@ -165,8 +174,8 @@ single diagram at all.
 ## run_tests.py integration
 
 The HOMFLY-invariance tiers (1a, 1c, 1d, 2) call `homfly_check --invariance`
-(machine-readable `RESULT \t pass|fail|skip \t crossings \t label` lines) as
-their oracle — no Regina/Python in the default run. Tier 1b (known unknots) is
+(machine-readable `RESULT \t pass|fail|skip|invalid \t crossings \t label`
+lines) as their oracle — no Regina/Python in the default run. Tier 1b (known unknots) is
 unchanged: it checks "simplifies to 0 crossings" via the knoodlesimplify CLI
 (no HOMFLY — those before-diagrams are far too big to compute). Regina is now
 optional (`import` guarded by `REGINA_AVAILABLE`); `--cross-check` runs it

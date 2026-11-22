@@ -776,6 +776,31 @@ def write_pd_tmp(crossings, tmpdir, stem) -> Path:
     return p
 
 
+def invalid_reasons(stderr: str, results) -> dict:
+    """homfly_check's reason for each input it called `invalid`, from its
+    `  INVALID <label>: <why>` stderr lines (labels are the paths we passed)."""
+    reasons = {}
+    lines = stderr.splitlines()
+    for label, (status, _cr) in results.items():
+        if status != "invalid":
+            continue
+        prefix = f"  INVALID {label}: "
+        reasons[label] = next((ln[len(prefix):] for ln in lines
+                               if ln.startswith(prefix)), "")
+    return reasons
+
+
+def homfly_check_error(status: str, reason: str = "") -> str:
+    """The failure message for a homfly_check status that is not a verdict
+    (pass/fail) or a skip: `invalid` input, a crash, or a missing result."""
+    if status == "invalid":
+        # Not a PD code or 3D embedding at all (an LFS pointer, an empty or
+        # truncated file, junk after the rows), or it cannot be opened. Until
+        # 2026-11-22 homfly_check called these `skip`, which passes here.
+        return f"homfly_check: invalid input: {reason or 'see its stderr'}"
+    return f"homfly_check {status}"
+
+
 def verify_invariance(suite, args, items, chunk: int = 400):
     """Check HOMFLY invariance for `items`, recording one TestResult each.
 
@@ -784,6 +809,7 @@ def verify_invariance(suite, args, items, chunk: int = 400):
     ('embedding', raw_content), or None — used only under --cross-check.
     """
     status_by_path = {}
+    reason_by_path = {}   # why homfly_check called an input invalid
 
     def run_chunk(chunk_items):
         results, proc = run_homfly_invariance(
@@ -798,6 +824,7 @@ def verify_invariance(suite, args, items, chunk: int = 400):
                     run_chunk([it])
         else:
             status_by_path.update(results)
+            reason_by_path.update(invalid_reasons(proc.stderr, results))
 
     for i in range(0, len(items), chunk):
         run_chunk(items[i:i + chunk])
@@ -813,13 +840,14 @@ def verify_invariance(suite, args, items, chunk: int = 400):
                 suite.record(TestResult(name=name, passed=False, input_crossings=cr,
                                         error="homfly_check: HOMFLY changed"))
             elif status == "skip":
-                # Split link: homfly_check can't verify it (needs the delta
-                # rule). Not a failure — flag it; --cross-check verifies via Regina.
+                # A well-formed input homfly_check can't verify: a split link
+                # (needs the delta rule), or a 3D embedding with no crossings.
+                # Not a failure — flag it; --cross-check verifies via Regina.
                 n_skip += 1
                 suite.record(TestResult(name=name, passed=True, input_crossings=cr))
-            else:  # crash / missing
+            else:  # invalid / crash / missing
                 suite.record(TestResult(name=name, passed=False, input_crossings=cr,
-                                        error=f"homfly_check {status}"))
+                    error=homfly_check_error(status, reason_by_path.get(str(path), ""))))
             continue
 
         # --cross-check: bring in the Regina verdict.
@@ -844,21 +872,22 @@ def verify_invariance(suite, args, items, chunk: int = 400):
                 suite.record(TestResult(name=name, passed=hc_pass, input_crossings=cr,
                     error="" if hc_pass else "both oracles: HOMFLY changed"))
         elif status == "skip":
-            # homfly_check skipped a split link — rely on Regina (which handles
-            # the split-union delta rule).
+            # homfly_check skipped a split link (or a crossingless embedding) —
+            # rely on Regina (which handles the split-union delta rule).
             if reg_pass is None:
                 n_skip += 1
                 suite.record(TestResult(name=name, passed=True, input_crossings=cr))
             else:
                 suite.record(TestResult(name=name, passed=reg_pass, input_crossings=cr,
                     error="" if reg_pass else "regina: HOMFLY changed (split link)"))
-        else:  # crash / missing
+        else:  # invalid / crash / missing
             suite.record(TestResult(name=name, passed=False, input_crossings=cr,
-                                    error=f"homfly_check {status}"))
+                error=homfly_check_error(status, reason_by_path.get(str(path), ""))))
 
     if n_skip:
         extra = "" if args.cross_check else " — run --cross-check to verify via Regina"
-        print(f"  ({n_skip} split-link diagram(s) skipped by homfly_check{extra})")
+        print(f"  ({n_skip} diagram(s) skipped by homfly_check: split links, or "
+              f"embeddings with no crossings{extra})")
 
 
 # ---------------------------------------------------------------------------
