@@ -187,6 +187,22 @@ Validated 2026-06-13:
 - Tier 2 up to 8 crossings: 320/320 (default, no Regina); `--cross-check`
   320/320 with 0 disagreements (split links handled natively by the δ rule).
 
+Tier 2 needs plantri. run_tests.py uses the vendored
+`test/vendor/plantri/plantri` that `make -C test` builds for plantri_check
+(`make -C test vendor/plantri/plantri` builds just that), else
+`test/plantri58/plantri`, or `--plantri PATH`:
+
+```sh
+cd test
+python3 run_tests.py --plantri-only --up-to-crossing-number=8   # 320/320
+```
+
+Asking for Tier 2 with no plantri is an error. Until 2026-11-22, run_tests.py
+looked only in `test/plantri58/`, printed "Skipping", and reported 0/0 with exit
+0. Tier 2 also fails if plantri gives a different number of graphs for a V than
+plantri 5.8 does, or if any graph or sign assignment does not become a tested
+diagram. `run_tests_plantri_check.py` (light tier) checks this.
+
 ## Status
 
 Complete: vendoring, gc shim with bounded memory, Jenkins→libhomfly bridge,
