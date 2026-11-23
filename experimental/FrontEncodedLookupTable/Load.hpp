@@ -135,15 +135,39 @@ int LoadUnsorted(
     iota_buffer( ordering.data(), key_count );
     
     const Int m = key_size;
-    
-    std::sort(
-         ordering.begin(),
-         ordering.end(),
-         [keys,m]( const Int i, const Int j ) -> bool
-         {
-            return (MemCmp(&keys[m * i],&keys[m * j],m) < 0);
-         }
-    );
+  
+    if constexpr( SameQ<B_T,Byte_T> )
+    {
+        std::sort(
+             ordering.begin(),
+             ordering.end(),
+             [keys,m]( const Int i, const Int j ) -> bool
+             {
+                return (MemCmp(&keys[m * i],&keys[m * j],m) < 0);
+             }
+        );
+    }
+    else
+    {
+        // We cannot use std::memcmp here because we have no guarantee over endianess.
+        std::sort( ordering.begin(), ordering.end(),
+             [keys]( const Size_T i, const Size_T j ) -> bool
+             {
+                if (i == j) { return false;}
+            
+                for( Size_T k = 0; k < m; ++k )
+                {
+                    const Byte_T a_k = static_cast<Byte_T>(keys[m * i + k]);
+                    const Byte_T b_k = static_cast<Byte_T>(keys[m * j + k]);
+                    
+                    if( a_k < b_k ) { return true; }
+                    if( a_k > b_k ) { return false; }
+                }
+            
+                return false;
+             }
+        );
+    }
     
     return this->Load_impl<false>( keys, vals, ordering.data() );
 }
