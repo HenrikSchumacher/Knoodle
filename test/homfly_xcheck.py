@@ -28,8 +28,12 @@ import sys
 
 import regina
 
+# homfly_check is a grouped test: `make -C test` builds it only into its group
+# binary. run_tests.py knows how to call it (see default_homfly_check there).
+from run_tests import default_homfly_check
+
 HERE = pathlib.Path(__file__).resolve().parent
-HOMFLY_CHECK = HERE / "homfly_check"
+HOMFLY_CHECK = default_homfly_check()
 LINKTABLE_DIR = HERE.parent / "data" / "diagrams" / "linktable"
 
 # Hardcoded small knots (0-based [X0,X1,X2,X3,sign]), from run_tests.py.
@@ -65,7 +69,7 @@ def libhomfly_laurent2(crossings):
     """Run homfly_check --emit-poly and rebuild the result as a Laurent2."""
     flat = " ".join(str(x) for row in crossings for x in row[:5])
     proc = subprocess.run(
-        [str(HOMFLY_CHECK), "--emit-poly"],
+        [*HOMFLY_CHECK, "--emit-poly"],
         input=flat, capture_output=True, text=True,
     )
     if proc.returncode != 0:
@@ -107,8 +111,10 @@ def main():
                     help="number of linktable diagrams to sample (default 40)")
     args = ap.parse_args()
 
-    if not HOMFLY_CHECK.exists():
-        sys.exit(f"build homfly_check first (make -C {HERE}); not found at {HOMFLY_CHECK}")
+    binary = pathlib.Path(HOMFLY_CHECK[0])
+    if not binary.exists():
+        sys.exit(f"build homfly_check first (make -C {HERE} "
+                 f"{binary.relative_to(HERE)}); not found at {binary}")
 
     panel = [
         ("trefoil (3_1)", TREFOIL),
