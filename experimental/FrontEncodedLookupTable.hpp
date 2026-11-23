@@ -6,23 +6,17 @@ namespace Knoodle
     /*!@brief A class for a lookupt table whose keys are fixed-size byte sequences. This is optimized for low storage space and descently fast lookup. An insertion operation has been omitted intentionally.
      */
     
-    template<Size_T key_length_, typename Value_T_>
+    template<IntQ Int_,typename Value_T_>
     class FrontEncodedLookupTable final
     {
         
     public:
         
-        using UInt = UInt8;
-        
-        
-        static_assert( key_length_ <= 256,"" );
-        
-        static constexpr Size_T key_length = key_length_;
-        
-        using Class_T = FrontEncodedLookupTable;
-        using Key_T   = std::array<UInt8,key_length>;
+        using Int     = Int_;
+        using Byte_T  = unsigned char;
         using Value_T = Value_T_;
         
+        using Class_T = FrontEncodedLookupTable;
         
         struct FindResult_T
         {
@@ -48,17 +42,25 @@ namespace Knoodle
         static constexpr FindResult_T Failed    = {DefaultValue,2};
         static constexpr FindResult_T NotFound  = {DefaultValue,3};
         
-        
+        static constexpr Int default_block_size = 64;
         
     private:
         
+        Int key_count   = 0;
+        Int key_size    = 0;
+        Int block_count = 0;
+        Int block_size  = default_block_size;
+        Int last_block_size = 0;
+        
         // For each prefix byte `p` this table stores the first position of an entry greater or equal to `[p,0,0...]`.
-        std::array<Size_T,256> prefix_ptr = {};
-        // For each prefix byte `p` this table stores the number of keys _before_ `[p,0,0...]`.
-        std::array<Size_T,256> prefix_pos = {};
-        std::vector<UInt8> buffer;
-        std::vector<Value_T> values;
-        Key_T last_key = {};
+        
+        Tensor2<Byte_T ,Int> block_keys;
+        Tensor1<Int    ,Int> block_ptr;
+        Tensor1<Byte_T ,Int> buffer;
+        Tensor1<Value_T,Int> values;
+        mutable Tensor1<Byte_T,Int> last_key;
+        mutable Tensor1<Byte_T,Int> this_key;
+        
         bool loadedQ = false;
         bool failedQ = false;
         
@@ -68,15 +70,43 @@ namespace Knoodle
         
         ~FrontEncodedLookupTable() = default;
         
-        void Clear()
+        template<IntQ I_0, IntQ I_1, IntQ I_2>
+        int Reset(
+            const I_0 key_count_,
+            const I_1 key_size_,
+            const I_2 block_size_ = default_block_size
+        )
         {
-            prefix_ptr.fill(UInt{0});
-            prefix_pos.fill(UInt{0});
-            buffer.clear();
-            values.clear();
-            last_key.fill(UInt{0});
             loadedQ = false;
-            failedQ = false;
+            failedQ = true;
+            
+            // TODO: We have to check whether Int is large enough.
+            
+            if( std::cmp_less(key_size_, 0) ) { return 1; }
+
+            if( std::cmp_greater(key_size_, 256) ) { return 2; }
+        
+            if( std::cmp_less(key_count_, 0) ) { return 3; }
+            
+            if( std::cmp_less(block_size_, 0) ) { return 4; }
+            
+            key_count   = static_cast<Int>(Ramp(key_count_));
+            key_size    = Max(Int{1},static_cast<Int>(Ramp(key_size_)));
+            block_size  = Max(Int{1},static_cast<Int>(Ramp(block_size_)));
+            block_count = CeilDivide(key_count,block_size);
+            last_block_size = (block_count > Int{0}) ? (key_count - (block_count - Int{1}) * block_size) : Int{0};
+            
+            block_keys  = Tensor2<Byte_T ,Int>(block_count + Int{1}, key_size);
+            block_ptr   = Tensor1<Int    ,Int>(block_count + Int{1});
+            buffer      = Tensor1<Value_T,Int>((key_count - block_count) * key_size, -1);
+            values      = Tensor1<Value_T,Int>(key_count);
+            last_key    = Tensor1<Byte_T ,Int>(key_size);
+            this_key    = Tensor1<Byte_T ,Int>(key_size);
+        
+            loadedQ     = false;
+            failedQ     = false;
+            
+            return 0;
         }
 
         bool LoadedQ() const
@@ -89,47 +119,52 @@ namespace Knoodle
             return failedQ;
         }
         
-        Size_T KeyCount() const
+        Int KeyCount() const
         {
-            return values.size();
+            return key_count;
         }
         
-        constexpr Size_T KeyLength() const
+        Int KeySize() const
         {
-            return key_length;
+            return key_size;
+        }
+        
+        Int BlockCount() const
+        {
+            return block_count;
+        }
+        
+        Int BlockSize() const
+        {
+            return block_size;
         }
 
-        Size_T BufferSize() const
+        Int BufferSize() const
         {
-            return buffer.size();
+            return buffer.Size();
+        }
+
+        const Tensor1<Int,Int> & BlockPointers() const
+        {
+            return block_ptr;
         }
         
-        Size_T BufferCapacity() const
-        {
-            return buffer.capacity();
-        }
-        
-        const Key_T & LastKey() const
+        const Tensor1<Byte_T,Int> & LastKey() const
         {
             return last_key;
         }
 
-        const std::array<Size_T,256> & PrefixPointers() const
+        const Tensor2<Byte_T,Int> & BlockKeys() const
         {
-            return prefix_ptr;
+            return block_keys;
         }
         
-        const std::array<Size_T,256> & PrefixPositions() const
-        {
-            return prefix_pos;
-        }
-        
-        const std::vector<UInt> & Buffer() const
+        const Tensor1<Byte_T,Int> & Buffer() const
         {
             return buffer;
         }
         
-        const std::vector<Value_T> & Values() const
+        const Tensor1<Value_T,Int> & Values() const
         {
             return values;
         }
@@ -149,7 +184,7 @@ namespace Knoodle
         
         static auto ClassName()
         {
-            return std::string("FrontEncodedLookupTable<") + Tools::ToString(key_length) + ">";
+            return ct_string("FrontEncodedLookupTable<") + TypeName<Int> + "," + TypeName<Value_T> + ">";
         }
     
     }; // class FrontEncodedLookupTable

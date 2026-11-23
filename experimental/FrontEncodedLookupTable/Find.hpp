@@ -1,73 +1,101 @@
+private:
+
+static int MemCmp( const Byte_T * key_0, const Byte_T * key_1, const Int n )
+{
+    return std::memcmp(key_0,key_1,static_cast<Size_T>(n));
+}
+
+std::pair<Int,int> FindBlock() const
+{
+    const Int n = key_size;
+    Int L = 0;
+    Int R = block_count;
+    
+    int cmp = MemCmp(this_key.data(),block_keys.data(L),n);
+    
+    if( cmp  < 0 ) { return {L,3}; } // Mark as failed.
+    if( cmp == 0 ) { return {L,1}; } // Mark as exact hit.
+    
+    cmp = MemCmp(this_key.data(),block_keys.data(R),n);
+    
+    if( cmp  > 0 ) { return {R,3}; } // Mark as failed.
+    if( cmp == 0 ) { return {R,2}; } // Mark as exact hit on last entry.
+
+    // Invariants from here on: entry L <= this_key < entry R
+    // Starting binary search.
+    while( L + Int(1) < R )
+    {
+        const Int C = R - (R-L)/Int{2};
+
+        cmp = MemCmp(this_key.data(),block_keys.data(C),n);
+        
+        if( cmp < 0 )
+        {
+            R = C;
+        }
+        else if( cmp == 0 )
+        {
+            return {C,1};  // Mark as exact hit.
+        }
+        else // if( cmp >= 0 )
+        {
+            L = C;
+        }
+    }
+    
+    return {L,0};  // Mark as inexact hit.
+}
+
+
 public:
 
-
-template<IntQ Int>
-FindResult_T Find( cptr<Int> key ) const
+template<IntQ I>
+FindResult_T Find( cptr<I> key ) const
 {
-//    print("\nFind");
+    this_key.Read(key);
     
-    if( !loadedQ ) { return NotLoaded; }
-    if(  failedQ ) { return Failed; }
+    auto [b,info] = FindBlock();
 
-    Key_T query_key;
-    for( Size_T i = 0; i < key_length; ++i )
+    Int k = b * block_size;
+    
+    switch( info )
     {
-        query_key[i] = static_cast<UInt>(key[i]);
+        case 0  : break; // Move on to search within the block.
+        case 3  : return NotFound;
+        case 1  : return {values[k], 0};
+        case 2  : return {values[key_count - Int(1)],0};
+        default : return NotFound;
     }
     
-    const UInt prefix = query_key[Size_T(0)];
+    last_key.Read(block_keys.data(b));
     
-    Size_T ptr = prefix_ptr[prefix];
-    Size_T pos = prefix_pos[prefix];
-    
-    UInt dist_to_end = buffer[ptr];
-    ++ptr;
-    
-    if( static_cast<Size_T>(dist_to_end) != key_length )
+    if( MemCmp(this_key.data(),last_key.data(),key_size) == 0 )
     {
-//        eprint("dist_to_end != key_length");
-        return Failed;
+        return {values[k], 0};
     }
     
-    Key_T curr_key;
+    ++k;
+    Int ptr = block_ptr[b];
     
-    for( Size_T i = 0; i < key_length; ++i )
+    const Int this_block_size = ThisBlockSize(b);
+    
+    for( Int idx = 1; idx < this_block_size; ++idx )
     {
-        curr_key[i] = buffer[ptr + i];
-    }
-    
-    if( curr_key == query_key ) { return {values[pos],0}; }
-    
-    do
-    {
-        ptr += dist_to_end;
-        ++pos;
-        dist_to_end = buffer[ptr];
+        Int dist_to_end = buffer[ptr];
+
+        Int pos = key_size-dist_to_end;
         ++ptr;
-//        TOOLS_DUMP(ptr);
-//        TOOLS_DUMP(pos);
-//        TOOLS_DUMP(key_length - dist_to_end);
         
-        const Size_T offset = key_length - dist_to_end;
+        copy_buffer( &buffer[ptr], &last_key[pos], dist_to_end);
         
-        for( Size_T i = 0; i < dist_to_end; ++i )
-        {
-//            TOOLS_DUMP(i);
-            curr_key[offset + i] = buffer[ptr + i];
-        }
+        const int cmp = MemCmp(this_key.data(),last_key.data(),key_size);
         
-
-//        TOOLS_DUMP(curr_key);
-
-        if( curr_key == query_key ) { return {values[pos],0}; }
+        if( cmp == 0 ) { return {values[k], 0}; }
+        if( cmp  < 0 ) { return NotFound; }
+        
+        ptr += dist_to_end;
+        ++k;
     }
-    while( dist_to_end != key_length );
-    
-//    TOOLS_DUMP(dist_to_end);
-//    TOOLS_DUMP(key_length);
-//    TOOLS_DUMP(ptr);
-//    TOOLS_DUMP(pos);
-//    TOOLS_DUMP(curr_key);
-    
+     
     return NotFound;
 }

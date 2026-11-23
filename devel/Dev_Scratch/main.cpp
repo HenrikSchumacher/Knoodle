@@ -27,25 +27,42 @@ using namespace Knoodle;
 using namespace Tensors;
 using namespace Tools;
 
-constexpr Size_T key_count  = 10;
-constexpr Size_T key_length =  8;
 
-using Value_T = UInt8;
 
-using LUT_T = FrontEncodedLookupTable<key_length,Value_T>;
+using Int     = Int32;
+using Value_T = Int32;
+
+using LUT_T = FrontEncodedLookupTable<Int,Value_T>;
 using FindResult_T = LUT_T::FindResult_T;
 
-static constexpr UInt8 keys [key_count][key_length] = {
-    {0,0,0,0,0,0,0,0},
+constexpr Int key_count  = 10;
+constexpr Int key_size   =  8;
+constexpr Int block_size =  4;
+
+static constexpr UInt8 keys [key_count][key_size] = {
+    {0,0,0,0,0,0,0,0}, // 0
     {0,0,0,0,0,0,0,2},
     {0,0,0,0,0,0,1,1},
     {0,0,0,0,1,0,1,1},
-    {1,0,0,0,0,0,0,0},
+    {1,0,0,0,0,0,0,0}, // 1
     {1,0,0,0,0,0,0,1},
     {1,0,0,0,0,0,0,2},
     {1,0,0,0,0,0,1,1},
-    {1,0,0,0,1,0,1,1},
+    {1,0,0,0,1,0,1,1}, // 2
     {9,0,0,0,1,0,1,1}
+};
+
+static constexpr UInt8 no_keys [key_count][key_size] = {
+    {0,0,0,0,0,0,0,1}, // 0
+    {0,0,0,0,0,0,2,2},
+    {0,1,0,0,0,0,1,1},
+    {0,0,0,1,1,0,1,1},
+    {1,0,0,0,0,0,1,0},
+    {1,0,0,0,0,0,1,2},
+    {1,0,0,0,0,0,0,3},
+    {1,0,0,0,0,0,2,1},
+    {1,0,0,0,1,0,2,1}, // 2
+    {9,0,0,0,1,0,2,1}
 };
 
 static constexpr Value_T vals [key_count] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
@@ -56,13 +73,15 @@ int main()
     
     int info;
     
-    info = lut.LoadUnsorted(&keys[0][0],&vals[0],key_count);
+    info = lut.LoadUnsorted(&keys[0][0],&vals[0],key_count,key_size,block_size);
     
     TOOLS_DUMP(info);
-    TOOLS_DUMP(lut.Buffer().size());
+    TOOLS_DUMP(lut.Buffer().Size());
     TOOLS_DUMP(lut.Buffer());
-    TOOLS_DUMP(lut.PrefixPointers());
-    TOOLS_DUMP(lut.PrefixPositions());
+    TOOLS_DUMP(lut.BlockKeys());
+    TOOLS_DUMP(lut.BlockPointers());
+//    TOOLS_DUMP(lut.PrefixPointers());
+//    TOOLS_DUMP(lut.PrefixPositions());
     
     {
         Size_T p = 8;
