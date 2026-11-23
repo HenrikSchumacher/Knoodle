@@ -98,9 +98,17 @@ to these three.
 `test/vendor/plantri/plantri.c` is plantri **5.8 (March 4 2026)**, unmodified,
 under the **Apache License 2.0** (`LICENSE-2.0.txt`; see also
 `README.upstream.md`). plantri is one translation unit (C stdlib only), built by
-the `plantri` target in `test/Makefile`. Earlier plantri releases were not
-redistributable; the 5.8 relicensing to Apache 2.0 is what makes this vendoring
-legitimate.
+the `vendor/plantri/plantri` target in `test/Makefile`. Earlier plantri
+releases were not redistributable; the 5.8 relicensing to Apache 2.0 is what
+makes this vendoring legitimate.
+
+`run_tests.py`'s Tier 2 runs the same binary (`--plantri PATH` picks another).
+Since 2026-11-22 a missing plantri is an error there, not a skip reported as
+0/0. Tier 2 also checks plantri's graph count for each V against this binary's
+(`PLANTRI_GRAPH_COUNTS` in run_tests.py), so up to 8 crossings it must test
+exactly 320 diagrams in its default `simple` mode. `test/setup.sh
+--with-plantri` used to download plantri into `test/plantri58/`, which
+run_tests.py still accepts; it now just builds the vendored binary.
 
 ## Result
 

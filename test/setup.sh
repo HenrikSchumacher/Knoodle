@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # Setup script for Knoodle end-to-end tests.
-# Creates a Python venv, installs regina, and optionally builds plantri.
+# Creates a Python venv and installs regina (for run_tests.py --cross-check).
 #
 # Usage:
-#   ./setup.sh                  # basic setup (Tier 1 tests)
-#   ./setup.sh --with-plantri   # also download and build plantri (Tier 2)
+#   ./setup.sh                  # basic setup
+#   ./setup.sh --with-plantri   # also build the vendored plantri (Tier 2)
+#
+# run_tests.py's Tier 2 runs the vendored test/vendor/plantri/plantri, which
+# `make -C test` builds anyway (plantri_check uses it), so --with-plantri is
+# only a shortcut for `make -C test vendor/plantri/plantri`. It used to
+# download plantri 5.8 into test/plantri58/, which run_tests.py still accepts.
 
 set -euo pipefail
 
@@ -50,21 +55,11 @@ pip install -q -r requirements.txt
 echo "Verifying regina..."
 python3 -c "import regina; print(f'regina {regina.versionString()} OK')"
 
-# Step 3: Optionally download and build plantri
+# Step 3: Optionally build the vendored plantri
 if $WITH_PLANTRI; then
     echo ""
-    echo "=== Setting up plantri ==="
-    if [ -x plantri58/plantri ]; then
-        echo "plantri already built"
-    else
-        echo "Downloading plantri..."
-        curl -sL https://users.cecs.anu.edu.au/~bdm/plantri/plantri58.tar.gz -o plantri58.tar.gz
-        tar xzf plantri58.tar.gz
-        rm plantri58.tar.gz
-        echo "Building plantri..."
-        make -C plantri58
-        echo "plantri built successfully"
-    fi
+    echo "=== Building vendored plantri ==="
+    make vendor/plantri/plantri
 fi
 
 echo ""

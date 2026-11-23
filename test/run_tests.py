@@ -28,7 +28,14 @@ Usage:
   python run_tests.py --linktable-only
   python run_tests.py                        # all Tier 1
   python run_tests.py --up-to-crossing-number=8 --crossing-assignments=all
+  python run_tests.py --plantri-only --up-to-crossing-number=8   # 320 diagrams
   python run_tests.py --cross-check          # also validate against Regina
+
+Tier 2 runs the vendored plantri, test/vendor/plantri/plantri, which `make -C
+test` builds for plantri_check (`make -C test vendor/plantri/plantri` builds
+just that). test/plantri58/plantri, from older setup.sh runs, is the fallback,
+and --plantri PATH picks one. Asking for Tier 2 with no plantri is an error,
+and so is any diagram plantri should have produced but did not: see run_tier2.
 """
 
 # Keeps the `X | None` annotations below from being evaluated, so this runs on
@@ -1175,12 +1182,44 @@ def run_tier1d(suite: TestSuite, args):
 # Tier 2: Plantri-generated tests
 # ---------------------------------------------------------------------------
 
-def find_plantri(script_dir: Path) -> Path | None:
-    """Locate the plantri binary."""
-    candidate = script_dir / "plantri58" / "plantri"
-    if candidate.exists() and os.access(candidate, os.X_OK):
-        return candidate
+# Where plantri is looked for, relative to test/, in order. The first is the
+# vendored copy that `make -C test` builds for plantri_check, so `make check`
+# and the other tiers all build it. The second is where setup.sh
+# --with-plantri used to download it. Both are plantri 5.8.
+PLANTRI_PLACES = [Path("vendor") / "plantri" / "plantri",
+                  Path("plantri58") / "plantri"]
+PLANTRI_BUILD = "make -C test vendor/plantri/plantri"
+
+
+def plantri_candidates(script_dir: Path, explicit: str | None = None) -> list[Path]:
+    """The paths find_plantri tries, in order. An explicit --plantri path is
+    the only candidate: asking for one binary must not quietly run another."""
+    if explicit is not None:
+        return [Path(explicit)]
+    return [script_dir / p for p in PLANTRI_PLACES]
+
+
+def find_plantri(script_dir: Path, explicit: str | None = None) -> Path | None:
+    """The first executable plantri among plantri_candidates, or None."""
+    for candidate in plantri_candidates(script_dir, explicit):
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return candidate
     return None
+
+
+# How many graphs plantri 5.8 makes for each vertex count V, by Tier 2 mode
+# (the vendored binary's own `plantri <flags> -u V` counts). Tier 2 fails if
+# plantri gives a different number, so a broken or different plantri cannot
+# quietly test fewer diagrams. V beyond a table is not checked.
+PLANTRI_FLAGS = {"simple": ["-q"], "no-r1": ["-Q", "-c2"], "everything": ["-Q"]}
+PLANTRI_GRAPH_COUNTS = {
+    "simple": {8: 1, 10: 1, 12: 3, 14: 11, 16: 58, 18: 451, 20: 4461,
+               22: 49957},
+    "no-r1": {4: 1, 5: 1, 6: 3, 7: 4, 8: 17, 9: 38, 10: 162, 11: 594,
+              12: 2802, 13: 13290},
+    "everything": {4: 3, 5: 7, 6: 30, 7: 124, 8: 733, 9: 4586, 10: 33373,
+                   11: 259434, 12: 2152298},
+}
 
 
 def parse_plantri_edge_codes(raw: bytes) -> list[list[list[int]]]:
@@ -1203,12 +1242,14 @@ def parse_plantri_edge_codes(raw: bytes) -> list[list[list[int]]]:
         if body_size == 0:
             # Extended header for large graphs: next 4 bytes are little-endian size
             if pos + 4 > len(raw):
-                break
+                raise ValueError(f"plantri edge code truncated after "
+                                 f"{len(graphs)} graphs")
             body_size = struct.unpack_from('<I', raw, pos)[0]
             pos += 4
 
         if pos + body_size > len(raw):
-            break
+            raise ValueError(f"plantri edge code truncated after "
+                             f"{len(graphs)} graphs")
 
         body = raw[pos:pos + body_size]
         pos += body_size
@@ -1446,56 +1487,87 @@ def plantri_vertex_count(n_crossings: int) -> int:
     return n_crossings + 2
 
 
+def plantri_v_values(max_crossings: int, plantri_mode: str) -> list[int]:
+    """The vertex counts V (= crossings + 2) Tier 2 asks plantri for."""
+    if plantri_mode == "simple":
+        # Simple mode: V must be even, min 8
+        return [v for v in range(8, max_crossings + 3) if v % 2 == 0]
+    return list(range(4, max_crossings + 3))
+
+
+def expected_tier2_total(max_crossings: int, crossing_assignments: str,
+                         plantri_mode: str, knots_only: bool) -> int | None:
+    """How many diagrams Tier 2 must test, from PLANTRI_GRAPH_COUNTS, or None
+    where that cannot be known in advance: under --knots-only (which depends
+    on how each diagram traces), or past the end of the table."""
+    if knots_only:
+        return None
+    counts = PLANTRI_GRAPH_COUNTS[plantri_mode]
+    total = 0
+    for v in plantri_v_values(max_crossings, plantri_mode):
+        if v not in counts:
+            return None
+        masks = 1 << (v - 2)
+        if crossing_assignments != "all":
+            masks = min(masks, int(crossing_assignments))
+        total += counts[v] * masks
+    return total
+
+
 def generate_plantri_diagrams(plantri_path: Path,
                                max_crossings: int,
                                crossing_assignments: str,
                                plantri_mode: str = "simple",
                                knots_only: bool = False,
-                               seed: int = 42) -> Iterator[tuple[str, list[list[int]]]]:
+                               seed: int = 42
+                               ) -> Iterator[tuple[str, list[list[int]] | None, str]]:
     """Generate all test diagrams from plantri.
 
-    Yields (name, pd_rows) pairs one at a time (generator, not list).
+    Yields (name, pd_rows, "") for each diagram, one at a time (generator,
+    not list), and (name, None, error) for anything that kept diagrams from
+    being made: plantri failing or giving the wrong number of graphs for a V,
+    or a graph or crossing assignment that cannot be traced. The caller
+    records those as failures. They were once printed as warnings, and the
+    tier passed having tested less.
     """
     rng = random.Random(seed)
+    flags = PLANTRI_FLAGS[plantri_mode]
 
-    # Determine vertex counts to test
-    if plantri_mode == "simple":
-        # Simple mode: V must be even, min 8
-        v_values = [v for v in range(8, max_crossings + 3)
-                    if v % 2 == 0 and v - 2 <= max_crossings]
-    else:
-        v_values = [v for v in range(4, max_crossings + 3)
-                    if v - 2 <= max_crossings]
-
-    for v in v_values:
+    for v in plantri_v_values(max_crossings, plantri_mode):
         n_crossings = v - 2
-
-        # Build plantri command
-        if plantri_mode == "simple":
-            cmd = [str(plantri_path), "-q", "-E", str(v)]
-        elif plantri_mode == "no-r1":
-            cmd = [str(plantri_path), "-Q", "-c2", "-E", str(v)]
-        else:  # everything
-            cmd = [str(plantri_path), "-Q", "-E", str(v)]
+        cmd = [str(plantri_path), *flags, "-E", str(v)]
+        what = f"plantri V={v}"
+        shown = f"`{' '.join(['plantri', *flags, '-E', str(v)])}`"
 
         try:
             proc = subprocess.run(cmd, capture_output=True, timeout=60)
         except subprocess.TimeoutExpired:
-            print(f"  Warning: plantri timed out for V={v}")
+            yield (what, None, f"{shown} timed out after 60s")
             continue
 
         if proc.returncode != 0:
-            print(f"  Warning: plantri failed for V={v}: {proc.stderr[:200]}")
+            err = proc.stderr.decode(errors="replace").strip()[:200]
+            yield (what, None, f"{shown} exited {proc.returncode}: {err}")
             continue
 
-        graphs = parse_plantri_edge_codes(proc.stdout)
+        try:
+            graphs = parse_plantri_edge_codes(proc.stdout)
+        except ValueError as e:
+            yield (what, None, f"{shown}: {e}")
+            continue
         print(f"  V={v} ({n_crossings} crossings): {len(graphs)} graphs")
+
+        expected = PLANTRI_GRAPH_COUNTS[plantri_mode].get(v)
+        if expected is not None and len(graphs) != expected:
+            yield (what, None, f"{shown} gave {len(graphs)} graphs; plantri "
+                               f"5.8 gives {expected}")
 
         for g_idx, graph in enumerate(graphs):
             try:
                 shadow_crossings, partner_map = quad_to_shadow(graph)
             except ValueError as e:
-                print(f"  Warning: skipping graph {g_idx}: {e}")
+                yield (f"plantri_V{v}_g{g_idx}", None,
+                       f"not a knot shadow: {e}")
                 continue
 
             # Determine which masks to test
@@ -1514,7 +1586,8 @@ def generate_plantri_diagrams(plantri_path: Path,
                     pd_rows, n_components = assign_crossings_and_trace(
                         shadow_crossings, partner_map, mask)
                 except ValueError as e:
-                    print(f"  Warning: trace failed g={g_idx} m={mask}: {e}")
+                    yield (f"plantri_V{v}_g{g_idx}_m{mask}", None,
+                           f"trace failed: {e}")
                     continue
 
                 if knots_only and n_components > 1:
@@ -1522,23 +1595,24 @@ def generate_plantri_diagrams(plantri_path: Path,
 
                 name = (f"plantri_V{v}_g{g_idx}_m{mask}"
                         f"_{n_components}comp")
-                yield (name, pd_rows)
+                yield (name, pd_rows, "")
 
 
-def run_tier2(suite: TestSuite, args,
+def run_tier2(suite: TestSuite, args, plantri_path: Path,
               max_crossings: int, crossing_assignments: str,
               plantri_mode: str, knots_only: bool, seed: int,
               batch_size: int = 400):
-    """Tier 2: Plantri-generated exhaustive tests (streaming via homfly_check)."""
+    """Tier 2: Plantri-generated exhaustive tests (streaming via homfly_check).
+
+    Every diagram generated gets a result. Anything that kept diagrams from
+    being generated is a failure, and so is testing a different number of
+    diagrams than PLANTRI_GRAPH_COUNTS says there are (320 up to 8 crossings
+    in the default simple mode) or testing none at all.
+    """
     suite.section("Tier 2: Plantri-Generated Tests")
 
-    plantri_path = find_plantri(SCRIPT_DIR)
-    if plantri_path is None:
-        print("  Skipping: plantri not found. Run setup.sh --with-plantri")
-        suite.end_section()
-        return
-
     print(f"  Generating and testing diagrams up to {max_crossings} crossings (batched)...")
+    print(f"  plantri: {display_plantri(plantri_path)}")
     print(f"  Crossing assignments: {crossing_assignments}")
     print(f"  Plantri mode: {plantri_mode}")
 
@@ -1551,9 +1625,12 @@ def run_tier2(suite: TestSuite, args,
                 verify_invariance(suite, args, batch)
                 batch.clear()
 
-        for name, pd_rows in generate_plantri_diagrams(
+        for name, pd_rows, error in generate_plantri_diagrams(
                 plantri_path, max_crossings, crossing_assignments,
                 plantri_mode, knots_only, seed):
+            if error:
+                suite.record(TestResult(name=name, passed=False, error=error))
+                continue
             # Reuse a small set of temp filenames per batch (each batch is fully
             # processed before the next overwrites them).
             p = Path(td) / f"d{len(batch)}.tsv"
@@ -1564,12 +1641,31 @@ def run_tier2(suite: TestSuite, args,
                 flush()
         flush()
 
+    expected = expected_tier2_total(max_crossings, crossing_assignments,
+                                    plantri_mode, knots_only)
     if total == 0:
-        print("  No diagrams generated")
+        why = (" (simple mode starts at 6 crossings: plantri V=8)"
+               if plantri_mode == "simple" and max_crossings < 6 else "")
+        suite.record(TestResult(name="Tier 2: diagrams tested", passed=False,
+                                error=f"no diagrams generated{why}"))
+    elif expected is not None and total != expected:
+        suite.record(TestResult(name="Tier 2: diagrams tested", passed=False,
+                                error=f"tested {total} diagrams; there are "
+                                      f"{expected}"))
     else:
-        print(f"\n  Tested {total} diagrams total")
+        of = "" if expected is None else f" (of {expected} expected)"
+        print(f"\n  Tested {total} diagrams total{of}")
 
     suite.end_section()
+
+
+def display_plantri(path: Path) -> str:
+    """`path` relative to the project root if it is inside it, else as given.
+    A symlink is shown as itself, not as what it points to."""
+    try:
+        return str(Path(os.path.abspath(path)).relative_to(PROJECT_DIR))
+    except ValueError:
+        return str(path)
 
 
 # ---------------------------------------------------------------------------
@@ -1609,6 +1705,10 @@ def parse_args() -> argparse.Namespace:
                         help="Skip multi-component diagrams in plantri tier")
     parser.add_argument("--seed", type=int, default=42,
                         help="RNG seed for random sampling")
+    parser.add_argument("--plantri", type=str, default=None,
+                        help="Path to the plantri binary (default: the vendored "
+                             "test/vendor/plantri/plantri, which `make -C test` "
+                             "builds, then test/plantri58/plantri)")
 
     # Oracles / binaries
     parser.add_argument("--homfly-check", type=str, default=None,
@@ -1649,6 +1749,33 @@ def main():
     runs_1b = args.hard_unknots_only or is_default
     runs_homfly_tier = not args.hard_unknots_only  # 1a/1c/1d/2 all use homfly_check
 
+    # Tier 2 runs when --up-to-crossing-number asks for it, and only in a
+    # default run or --plantri-only. Asking for it anywhere else would test
+    # nothing and say nothing, so it is an error, as is --plantri-only without it.
+    if args.plantri_only and args.up_to_crossing_number <= 0:
+        print("Error: --up-to-crossing-number required for plantri tests",
+              file=sys.stderr)
+        sys.exit(2)
+    if args.up_to_crossing_number > 0 and not (is_default or args.plantri_only):
+        print("Error: --up-to-crossing-number runs Tier 2, which only a default "
+              "run or --plantri-only includes", file=sys.stderr)
+        sys.exit(2)
+    runs_tier2 = args.up_to_crossing_number > 0
+
+    # plantri generates Tier 2's diagrams. Missing, it is an error like any
+    # other missing binary; it used to print "Skipping" and report 0/0, exit 0.
+    plantri = None
+    if runs_tier2:
+        plantri = find_plantri(SCRIPT_DIR, args.plantri)
+        if plantri is None:
+            looked = ", ".join(display_plantri(c) for c in
+                               plantri_candidates(SCRIPT_DIR, args.plantri))
+            print(f"Error: plantri not found (looked for {looked})",
+                  file=sys.stderr)
+            if args.plantri is None:
+                print(f"Build it with: {PLANTRI_BUILD}", file=sys.stderr)
+            sys.exit(2)
+
     # homfly_check is the oracle for the HOMFLY-invariance tiers.
     if runs_homfly_tier and (not homfly_check.exists()
                              or not os.access(homfly_check, os.X_OK)):
@@ -1683,11 +1810,7 @@ def main():
     elif args.childrensgame_only:
         run_tier1d(suite, args)
     elif args.plantri_only:
-        if args.up_to_crossing_number <= 0:
-            print("Error: --up-to-crossing-number required for plantri tests",
-                  file=sys.stderr)
-            sys.exit(2)
-        run_tier2(suite, args, args.up_to_crossing_number,
+        run_tier2(suite, args, plantri, args.up_to_crossing_number,
                   args.crossing_assignments, args.plantri_mode,
                   args.knots_only, args.seed)
     else:
@@ -1698,8 +1821,8 @@ def main():
         run_tier1d(suite, args)
 
         # Tier 2 if plantri args given
-        if args.up_to_crossing_number > 0:
-            run_tier2(suite, args, args.up_to_crossing_number,
+        if runs_tier2:
+            run_tier2(suite, args, plantri, args.up_to_crossing_number,
                       args.crossing_assignments, args.plantri_mode,
                       args.knots_only, args.seed)
 
