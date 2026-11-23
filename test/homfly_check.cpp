@@ -39,20 +39,65 @@ struct KnownKnot
     std::string        expected;    ///< libhomfly reference poly, or "" if unknown
 };
 
+/// Read every whitespace-separated token of `text` as a T. False if any token
+/// is not one: a stray word must not end the read quietly and drop everything
+/// after it. (Before 2026-11-22 it did, so three trefoil rows followed by the
+/// text of a Git LFS pointer checked as a trefoil.)
+template<typename T>
+bool ReadAllNumbers(const std::string& text, std::vector<T>& out)
+{
+    std::istringstream in(text);
+    T v;
+    while (in >> v) { out.push_back(v); }
+    return in.eof();   // stopped at the end, not at a token that is not a T
+}
+
+/// How the text of one --invariance input turned out.
+enum class Parse
+{
+    Ok,           ///< a diagram with crossings, ready to check
+    NoCrossings,  ///< a well-formed 3D embedding whose projection has no crossings
+    Invalid       ///< not a PD code or 3D embedding at all
+};
+
+struct Input
+{
+    Parse       parse;
+    PD_T        pd;
+    std::string why;   ///< for NoCrossings and Invalid: what was found
+};
+
 /// Build the "before" diagram from a file's text. Auto-detects format: a '.'
 /// anywhere means a 3-column 3D embedding (projected via FromCoordinates);
-/// otherwise a 5-column signed PD code. Sets ok=false on a malformed shape.
-PD_T BuildDiagram(const std::string& text, bool& ok)
+/// otherwise a 5-column signed PD code.
+Input BuildDiagram(const std::string& text)
 {
-    ok = false;
+    const auto invalid = [](std::string why)
+    {
+        return Input{ Parse::Invalid, PD_T::InvalidDiagram(), std::move(why) };
+    };
+
+    // An unfetched Git LFS file: say so, rather than what it fails to parse as.
+    // (The header is the one test/run_tests.py and klut_lfs_pointer_check.py
+    // look for.)
+    if (text.rfind("version https://git-lfs.github.com/spec/", 0) == 0)
+    {
+        return invalid("a Git LFS pointer, not the data (run `git lfs pull`)");
+    }
 
     if (text.find('.') != std::string::npos)   // 3D embedding (floats)
     {
-        std::istringstream in(text);
         std::vector<double> coords;
-        double v;
-        while (in >> v) { coords.push_back(v); }
-        if (coords.empty() || coords.size() % 3 != 0) { return PD_T::InvalidDiagram(); }
+        if (!ReadAllNumbers(text, coords))
+        {
+            return invalid("not a 3D embedding: it holds a token that is not a number");
+        }
+        if (coords.empty()) { return invalid("no numbers in it"); }
+        if (coords.size() % 3 != 0)
+        {
+            return invalid("not a 3D embedding: " + std::to_string(coords.size())
+                           + " numbers, not a multiple of 3");
+        }
 
         Int nverts = static_cast<Int>(coords.size() / 3);
         // Drop a duplicated closing vertex if present (closed-polygon marker).
@@ -65,19 +110,86 @@ PD_T BuildDiagram(const std::string& text, bool& ok)
         }
 
         auto [pd, unlinks] = PD_T::FromCoordinates(coords.data(), nverts);
-        (void)unlinks;
-        ok = pd.ValidQ();
-        return pd;
+        if (pd.ValidQ()) { return Input{ Parse::Ok, std::move(pd), "" }; }
+
+        // FromCoordinates reports a crossingless curve as an invalid diagram
+        // plus one unlink per component, and a failure as an invalid diagram
+        // with no unlinks.
+        if (unlinks.Size() > 0)
+        {
+            return Input{ Parse::NoCrossings, std::move(pd),
+                          "a 3D embedding with no crossings (an unlink of "
+                          + std::to_string(unlinks.Size())
+                          + " component(s)): nothing to simplify" };
+        }
+        return invalid("the 3D embedding did not project to a diagram"
+                       " (FromCoordinates failed)");
     }
 
-    std::istringstream in(text);                // 5-col signed PD code (ints)
-    std::vector<Int> ints;
-    Int v;
-    while (in >> v) { ints.push_back(v); }
-    if (ints.empty() || ints.size() % 5 != 0) { return PD_T::InvalidDiagram(); }
+    std::vector<Int> ints;                      // 5-col signed PD code (ints)
+    if (!ReadAllNumbers(text, ints))
+    {
+        return invalid("not a PD code: it holds a token that is not an integer");
+    }
+    if (ints.empty()) { return invalid("no numbers in it"); }
+    if (ints.size() % 5 != 0)
+    {
+        return invalid("not a PD code: " + std::to_string(ints.size())
+                       + " integers, not a multiple of 5");
+    }
 
-    ok = true;
-    return BuildPD(ints, static_cast<Int>(ints.size() / 5));
+    PD_T pd = BuildPD(ints, static_cast<Int>(ints.size() / 5));
+    if (!pd.ValidQ()) { return invalid("the PD code does not describe a diagram"); }
+    return Input{ Parse::Ok, std::move(pd), "" };
+}
+
+/// The --invariance verdict on one input. `status` is what its RESULT line
+/// says:
+///   pass     HOMFLY preserved by simplification
+///   fail     HOMFLY changed: a real bug
+///   skip     a well-formed input this oracle cannot verify: a split link that
+///            does not reassemble (it needs the delta rule; --cross-check in
+///            run_tests.py verifies it with Regina), or a 3D embedding with no
+///            crossings (an unlink: there is nothing to simplify)
+///   invalid  not a test input at all: the file cannot be opened, or it is not
+///            a 5-column PD code or a 3-column 3D embedding. An unfetched Git
+///            LFS pointer lands here. Until 2026-11-22 these were `skip`, and
+///            run_tests.py counts a skip as a pass, so a pointer passed.
+struct Verdict
+{
+    std::string status;
+    Int         crossings = 0;
+    std::string note;   ///< for stderr: why it is not a pass
+};
+
+Verdict CheckText(const std::string& text)
+{
+    Input input = BuildDiagram(text);
+    if (input.parse == Parse::Invalid)     { return { "invalid", 0, input.why }; }
+    if (input.parse == Parse::NoCrossings) { return { "skip",    0, input.why }; }
+
+    const Int crossings = input.pd.CrossingCount();
+    InvarianceResult r = CheckInvariance(input.pd);
+
+    if (r.status == InvStatus::Preserved) { return { "pass", crossings, "" }; }
+    if (r.status == InvStatus::Changed)
+    {
+        return { "fail", crossings,
+                 "HOMFLY changed\n    before: " + PolyToString(r.before)
+                 + "\n    after : " + PolyToString(r.after) };
+    }
+    return { "skip", crossings,
+             "split link / not reassemblable — needs the delta rule"
+             " (verify with --cross-check)" };
+}
+
+Verdict CheckFile(const std::string& path)
+{
+    std::ifstream in(path);
+    if (!in) { return { "invalid", 0, "cannot open" }; }
+    std::stringstream ss;
+    ss << in.rdbuf();
+    return CheckText(ss.str());
 }
 
 /// --invariance [files...]: run the invariance check on each input — a 5-col PD
@@ -88,76 +200,43 @@ int Invariance(int argc, char* argv[])
     std::vector<std::string> files;
     for (int i = 2; i < argc; ++i) { files.emplace_back(argv[i]); }
 
-    long passed = 0, failed = 0, skipped = 0;
+    long passed = 0, failed = 0, skipped = 0, invalid = 0;
 
     // One machine-readable line per item on stdout:
-    //   RESULT \t pass|fail|skip \t <crossings> \t <label>
-    // (tab-separated so labels/paths may contain spaces). pass = HOMFLY
-    // preserved, fail = HOMFLY changed (a real bug), skip = not verifiable by
-    // this oracle (unreadable input, or a split link needing the delta rule).
-    // Failure details and skip notes go to stderr so stdout stays parseable.
-    auto run_one = [&](const std::string& label, const std::string& text)
+    //   RESULT \t pass|fail|skip|invalid \t <crossings> \t <label>
+    // (tab-separated so labels/paths may contain spaces; see Verdict for what
+    // each status means). Failure details and skip/invalid notes go to stderr
+    // so stdout stays parseable.
+    auto report = [&](const std::string& label, const Verdict& v)
     {
-        bool ok = false;
-        PD_T pd = BuildDiagram(text, ok);
-        if (!ok)
-        {
-            std::cout << "RESULT\tskip\t0\t" << label << "\n";
-            std::cerr << "  SKIP " << label << ": not a valid PD code / embedding\n";
-            ++skipped;
-            return;
-        }
-        const Int crossings = pd.CrossingCount();
-        InvarianceResult r = CheckInvariance(pd);
+        std::cout << "RESULT\t" << v.status << "\t" << v.crossings << "\t" << label << "\n";
 
-        const char* st = (r.status == InvStatus::Preserved) ? "pass"
-                       : (r.status == InvStatus::Changed)   ? "fail" : "skip";
-        std::cout << "RESULT\t" << st << "\t" << crossings << "\t" << label << "\n";
-
-        if (r.status == InvStatus::Preserved)
-        {
-            ++passed;
-        }
-        else if (r.status == InvStatus::Changed)
-        {
-            ++failed;
-            std::cerr << "  FAIL " << label << " (" << crossings << " crossings)\n"
-                      << "    before: " << PolyToString(r.before) << "\n"
-                      << "    after : " << PolyToString(r.after)  << "\n";
-        }
-        else
-        {
-            ++skipped;
-            std::cerr << "  SKIP " << label << " (" << crossings << " crossings):"
-                      << " split link / not reassemblable — needs the delta rule"
-                      << " (verify with --cross-check)\n";
-        }
+        if      (v.status == "pass") { ++passed; return; }
+        else if (v.status == "fail") { ++failed;  std::cerr << "  FAIL "; }
+        else if (v.status == "skip") { ++skipped; std::cerr << "  SKIP "; }
+        else                         { ++invalid; std::cerr << "  INVALID "; }
+        std::cerr << label;
+        if (v.crossings > 0) { std::cerr << " (" << v.crossings << " crossings)"; }
+        std::cerr << ": " << v.note << "\n";
     };
 
     if (files.empty())
     {
         std::stringstream ss;
         ss << std::cin.rdbuf();
-        run_one("stdin", ss.str());
+        report("stdin", CheckText(ss.str()));
     }
     else
     {
-        for (const std::string& f : files)
-        {
-            std::ifstream in(f);
-            if (!in) { std::cout << "RESULT\tskip\t0\t" << f << "\n";
-                       std::cerr << "  SKIP " << f << ": cannot open\n"; ++skipped; continue; }
-            std::stringstream ss;
-            ss << in.rdbuf();
-            run_one(f, ss.str());
-        }
+        for (const std::string& f : files) { report(f, CheckFile(f)); }
     }
 
     std::cout << "\ninvariance: " << passed << " preserved, " << failed
-              << " changed, " << skipped << " skipped\n";
-    // Exit 1 only on a genuine HOMFLY change; skips keep the code in {0,1} so
-    // callers can distinguish a clean run from a crash.
-    return (failed == 0) ? 0 : 1;
+              << " changed, " << skipped << " skipped, " << invalid << " invalid\n";
+    // Exit 1 on a genuine HOMFLY change or an input that is not one; a skip
+    // alone exits 0. Either way the code stays in {0,1}, so callers can tell
+    // a finished run from a crash.
+    return (failed == 0 && invalid == 0) ? 0 : 1;
 }
 
 /// --emit-poly: read a flat 5-column signed PD code (whitespace-separated
@@ -374,6 +453,56 @@ int main(int argc, char* argv[])
             std::cout << "    got     : " << PolyToString(got) << "\n"
                       << "    expected: " << PolyToString(expected) << "\n";
             ++failures;
+        }
+    }
+
+    // Input handling for --invariance: anything that is not a PD code or a 3D
+    // embedding is `invalid`, never `skip`. run_tests.py counts a skip as a
+    // pass, so before this an unfetched Git LFS pointer (and an unopenable
+    // path, and real rows followed by junk) passed as tested.
+    {
+        const std::string trefoil_pd = "0 4 1 3 1\n2 0 3 5 1\n4 2 5 1 1\n";
+        const std::string lfs_pointer =
+            "version https://git-lfs.github.com/spec/v1\n"
+            "oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\n"
+            "size 42\n";
+        // 12-vertex trefoil, (sin t + 2 sin 2t, cos t - 2 cos 2t, -sin 3t).
+        const std::string trefoil_3d =
+            "0.00 -1.00 -0.00\n2.23 -0.13 -1.00\n2.60 1.50 -0.00\n1.00 2.00 1.00\n"
+            "-0.87 0.50 0.00\n-1.23 -1.87 -1.00\n-0.00 -3.00 -0.00\n1.23 -1.87 1.00\n"
+            "0.87 0.50 0.00\n-1.00 2.00 -1.00\n-2.60 1.50 -0.00\n-2.23 -0.13 1.00\n";
+        const std::string square_3d =
+            "0.0 0.0 0.0\n1.0 0.0 0.0\n1.0 1.0 0.0\n0.0 1.0 0.0\n";
+
+        struct Case { std::string what; Verdict got; std::string expected; };
+        const std::vector<Case> cases = {
+            { "Git LFS pointer",               CheckText(lfs_pointer),                "invalid" },
+            { "empty input",                   CheckText(""),                         "invalid" },
+            { "blank lines only",              CheckText("\n  \n\t\n"),               "invalid" },
+            { "PD rows, then a stray word",    CheckText(trefoil_pd + "oops\n"),      "invalid" },
+            { "PD code with 9 integers",       CheckText("0 4 1 3 1\n2 0 3 5\n"),     "invalid" },
+            { "embedding, then a stray word",  CheckText(trefoil_3d + "oops\n"),      "invalid" },
+            { "embedding with 5 numbers",      CheckText("1.0 2.0 3.0\n4.0 5.0\n"),   "invalid" },
+            { "a path that does not exist",
+              CheckFile("/nonexistent/homfly_check_selftest.tsv"),                    "invalid" },
+            { "crossingless 3D embedding",     CheckText(square_3d),                  "skip"    },
+            { "trefoil PD code (control)",     CheckText(trefoil_pd),                 "pass"    },
+            { "trefoil 3D embedding (control)", CheckText(trefoil_3d),                "pass"    },
+        };
+
+        std::cout << "\n=== --invariance input handling (unreadable input is invalid) ===\n";
+        for (const Case& c : cases)
+        {
+            const bool ok = (c.got.status == c.expected);
+            std::cout << "  " << (ok ? "PASS" : "FAIL") << "  " << c.what
+                      << ": " << c.got.status;
+            if (!c.got.note.empty()) { std::cout << " (" << c.got.note << ")"; }
+            std::cout << "\n";
+            if (!ok)
+            {
+                std::cout << "    expected " << c.expected << "\n";
+                ++failures;
+            }
         }
     }
 
