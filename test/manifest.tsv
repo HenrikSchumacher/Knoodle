@@ -70,6 +70,7 @@ klut_lfs_pointer_check	script	-	klut_lfs_pointer_check.py	-	-	=	\([1-9][0-9]* ch
 klut_table_check	script	-	klut_table_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
 polyfold_check	script	boost_umfpack	polyfold_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
 release_tarball_check	script	-	release_tarball_check.py	-	--build	=	\([1-9][0-9]* checks, 0 failed\)	-
+run_tests_data_check	script	-	run_tests_data_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
 run_tier_check	script	-	run_tier_check.py	-	-	=	\([1-9][0-9]* checks, 0 failed\)	-
 alexander_normalization_check	test	umfpack	-	-	-	=	-	umfpack
 canon_check	test	umfpack	-	-	-	=	-	umfpack

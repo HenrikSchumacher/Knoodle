@@ -70,11 +70,15 @@ done
 #      --exclude         cli_stdin_check, which simulates a terminal with a
 #                        pty and is timing/TTY-sensitive in headless CI; and
 #                        run_tests, excluded with the LFS-data tests when CI
-#                        fetched no LFS data. Its full tiers read
-#                        data/diagrams, which CI still does not fetch, but its
-#                        light --smoke-only run does not, so that exclusion
-#                        could be revisited. (klut_e2e and key_roundtrip_probe
-#                        run now: they need only data/Klut.)
+#                        fetched no LFS data. Every run_tests tier reads
+#                        data/diagrams, which CI still does not fetch. Even
+#                        the light --smoke-only run reads the Hopf link from
+#                        the link table, and it now fails on an LFS pointer
+#                        rather than passing it as a skip (2026-11-21), so the
+#                        exclusion stays. run_tests_data_check covers that
+#                        refusal without LFS data and does run here.
+#                        (klut_e2e and key_roundtrip_probe run now: they need
+#                        only data/Klut.)
 #
 #    run_tier.py lists every skip in its summary, so a CI pass never reads as
 #    a full-tier pass.
